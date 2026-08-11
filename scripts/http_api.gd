@@ -19,10 +19,7 @@ func _ready() -> void:
 				base_url = String(cfg.get("development_url"))
 			if cfg.has("timeout_ms"):
 				default_timeout_ms = int(cfg.get("timeout_ms"))
-	# create a single HTTPRequest child used for all calls
-	var http := HTTPRequest.new()
-	http.name = "__HttpApiRequest"
-	add_child(http)
+	# no persistent HTTPRequest node: create per-request nodes to avoid blocking and allow concurrency
 
 func _build_url(path: String, params: Dictionary = {}) -> String:
 	var url := path.strip_edges()
@@ -38,51 +35,59 @@ func _build_url(path: String, params: Dictionary = {}) -> String:
 	return full
 
 func get(path: String, params: Dictionary = {}, timeout_ms: int = -1) -> Dictionary:
-	var http := get_node_or_null("__HttpApiRequest")
-	if http == null:
-		push_error("HttpApi: missing HTTPRequest node")
-		return {"ok": false, "error": "no_http_request"}
 	var url := _build_url(path, params)
 	var t := timeout_ms > 0 ? timeout_ms : default_timeout_ms
+	var http := HTTPRequest.new()
+	add_child(http)
 	var err := http.request(url, [], false, HTTPClient.METHOD_GET, null, t)
 	if err != OK:
+		http.queue_free()
 		return {"ok": false, "error": str(err)}
-	# wait for completion
-	var res = await_signal(http, "request_completed")
-	if res and res.size() >= 3:
-		var code = int(res[0])
-		var body = res[2]
-		var parsed = {}
-		if typeof(body) == TYPE_STRING and body != "":
-			var j = JSON.parse_string(body)
-			if j.error == OK:
-				parsed = j.result
-		return {"ok": true, "status": code, "body": parsed}
-	return {"ok": false, "error": "no_response"}
+	var args = await http.request_completed
+	# args: result, response_code, headers, body
+	var response_code = args.size() > 1 ? int(args[1]) : 0
+	var raw_body = args.size() > 3 ? args[3] : null
+	var body_text = ""
+	if raw_body != null:
+		if typeof(raw_body) == TYPE_PACKED_BYTE_ARRAY:
+			body_text = raw_body.get_string_from_utf8()
+		elif typeof(raw_body) == TYPE_STRING:
+			body_text = raw_body
+	var parsed = {}
+	if body_text != "":
+		var j = JSON.parse_string(body_text)
+		if j.error == OK:
+			parsed = j.result
+	http.queue_free()
+	return {"ok": true, "status": response_code, "body": parsed}
 
 func post(path: String, payload: Dictionary, timeout_ms: int = -1) -> Dictionary:
-	var http := get_node_or_null("__HttpApiRequest")
-	if http == null:
-		push_error("HttpApi: missing HTTPRequest node")
-		return {"ok": false, "error": "no_http_request"}
 	var url := _build_url(path, {})
 	var t := timeout_ms > 0 ? timeout_ms : default_timeout_ms
 	var body := JSON.stringify(payload)
 	var headers := ["Content-Type: application/json"]
+	var http := HTTPRequest.new()
+	add_child(http)
 	var err := http.request(url, headers, false, HTTPClient.METHOD_POST, body, t)
 	if err != OK:
+		http.queue_free()
 		return {"ok": false, "error": str(err)}
-	var res = await_signal(http, "request_completed")
-	if res and res.size() >= 3:
-		var code = int(res[0])
-		var bodyText = res[2]
-		var parsed = {}
-		if typeof(bodyText) == TYPE_STRING and bodyText != "":
-			var j = JSON.parse_string(bodyText)
-			if j.error == OK:
-				parsed = j.result
-		return {"ok": true, "status": code, "body": parsed}
-	return {"ok": false, "error": "no_response"}
+	var args = await http.request_completed
+	var response_code = args.size() > 1 ? int(args[1]) : 0
+	var raw_body = args.size() > 3 ? args[3] : null
+	var body_text = ""
+	if raw_body != null:
+		if typeof(raw_body) == TYPE_PACKED_BYTE_ARRAY:
+			body_text = raw_body.get_string_from_utf8()
+		elif typeof(raw_body) == TYPE_STRING:
+			body_text = raw_body
+	var parsed = {}
+	if body_text != "":
+		var j = JSON.parse_string(body_text)
+		if j.error == OK:
+			parsed = j.result
+	http.queue_free()
+	return {"ok": true, "status": response_code, "body": parsed}
 
 # compatibility helper for await signal
 func await_signal(node: Node, signal_name: String) -> Array:

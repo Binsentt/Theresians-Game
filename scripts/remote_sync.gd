@@ -22,6 +22,7 @@ func _async_send_progress(save_data: Dictionary) -> void:
 	# build payload mapping to backend expectations
 	var payload := {
 		"parent_id": String(save_data.get("parent_id", "")),
+		"student_id": String(save_data.get("student_id", "")),
 		"student_name": String(save_data.get("player_name", "")),
 		"grade_level": String(save_data.get("grade_level", "")),
 		"current_quest": String(save_data.get("current_quest", "")),
