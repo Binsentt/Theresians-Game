@@ -37,6 +37,34 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 	_questions.clear()
 	_history.clear()
 	_last_requested_id = ""
+	# Prefer API-backed questions when HttpApi is available; fall back to local JSON file
+	var http := get_node_or_null("/root/HttpApi")
+	if http != null:
+		# attempt to fetch published questions from backend
+		var params := {}
+		# allow callers to pass grade/difficulty/topic via source path encoded query-like string
+		# e.g. res://Data/questions.json?grade=Grade%201
+		var qindex := resolved_path.find_first("?")
+		if qindex >= 0:
+			var qs := resolved_path.substr(qindex + 1, resolved_path.length())
+			for part in qs.split("&"):
+				if part.find("=") >= 0:
+					var kv = part.split("=")
+					params[kv[0]] = URI.decode_component(kv[1])
+		var result := http.get("/api/game/questions", params)
+		if result.ok and result.status >= 200 and result.status < 300:
+			var body := result.body
+			if typeof(body) == TYPE_DICTIONARY and body.has("questions"):
+				for entry in body.questions:
+					if entry is Dictionary:
+						var normalized := _normalize_question(entry)
+						if not normalized.is_empty():
+							_questions.append(normalized)
+			questions_loaded.emit(_questions.size())
+			if _questions.size() > 0:
+				return _questions
+		# if API failed or returned empty, continue to local file fallback
+
 	var file := FileAccess.open(resolved_path, FileAccess.READ)
 	if file == null:
 		push_error("Cannot open question source: %s" % resolved_path)
@@ -133,23 +161,51 @@ func _clone_question(question: Dictionary) -> Dictionary:
 
 
 func _normalize_question(question: Dictionary) -> Dictionary:
-	if not question.has("id"):
+	# Accept multiple backend shapes: {id, question, choices, correct} OR
+	# {id, question, options, correct_answer, grade_level, difficulty}
+	var normalized := Dictionary()
+	var id_value = null
+	if question.has("id"):
+		id_value = question.get("id")
+	elif question.has("_id"):
+		id_value = question.get("_id")
+	if id_value == null:
 		return {}
-	var normalized := Dictionary(question)
-	var id_value := normalized.get("id", "")
 	if id_value is String:
 		normalized["id"] = id_value
 	elif id_value is int or id_value is float:
 		normalized["id"] = String(id_value)
 	else:
 		return {}
-	if not normalized.has("question") or not normalized.has("choices") or not normalized.has("correct"):
+
+	var qtext = question.get("question") if question.has("question") else question.get("text")
+	if qtext == null:
 		return {}
-	if normalized["choices"] is Array:
-		var choices := Array(normalized["choices"])
-		if choices.size() < 2:
-			return {}
-		normalized["choices"] = choices
-	else:
+	normalized["question"] = qtext
+
+	var choices = null
+	if question.has("choices"):
+		choices = question.get("choices")
+	elif question.has("options"):
+		choices = question.get("options")
+	if choices == null or not (choices is Array):
 		return {}
+	if choices.size() < 2:
+		return {}
+	normalized["choices"] = Array(choices)
+
+	var correct = null
+	if question.has("correct"):
+		correct = question.get("correct")
+	elif question.has("correct_answer"):
+		correct = question.get("correct_answer")
+	if correct == null:
+		return {}
+	normalized["correct"] = String(correct)
+
+	# optional metadata passthrough
+	for key in ["grade", "grade_level", "difficulty", "topic", "math_topic", "source"]:
+		if question.has(key):
+			normalized[key] = question.get(key)
+
 	return normalized

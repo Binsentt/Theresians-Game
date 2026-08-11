@@ -26,6 +26,8 @@ QuestionProvider="*res://scripts/question_provider.gd"
 NpcCollisionManager="*res://scripts/npc_collision_manager.gd"
 AudioSettingsManager="*res://scripts/audio_settings_manager.gd"
 MusicManager="*res://scripts/music_manager.gd"
+HttpApi="*res://scripts/http_api.gd"
+RemoteSync="*res://scripts/remote_sync.gd"
 
 [display]
 
