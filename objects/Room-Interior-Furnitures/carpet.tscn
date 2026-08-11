@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://c8q2n0bn6tgrj"]
+
+[ext_resource type="Texture2D" uid="uid://haqih280mdyu" path="res://living&room/Blue Carpet.png" id="1_cnkrb"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1247110685]
+position = Vector2(2.3841858e-07, 0)
+scale = Vector2(0.2, 0.207)
+texture = ExtResource("1_cnkrb")

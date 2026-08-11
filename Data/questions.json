@@ -1,0 +1,32 @@
+[
+	{
+		"id": 1,
+		"question": "5 + 2 = ?",
+		"choices": ["8", "7", "6", "9"],
+		"correct": 1
+	},
+	{
+		"id": 2,
+		"question": "How many sides does a triangle have?",
+		"choices": ["4", "3", "5", "2"],
+		"correct": 1
+	},
+	{
+		"id": 3,
+		"question": "Anna has 8 candies. She gives 3 to her friend. How many are left?",
+		"choices": ["5", "11", "6", "4"],
+		"correct": 0
+	},
+	{
+		"id": 4,
+		"question": "18 - 9 = ?",
+		"choices": ["9", "13", "8", "10"],
+		"correct": 0
+	},
+	{
+		"id": 5,
+		"question": "What is the place value of 3 in 34?",
+		"choices": ["Ones", "Tens", "Hundreds", "Thousands"],
+		"correct": 1
+	}
+]

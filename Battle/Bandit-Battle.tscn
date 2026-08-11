@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://bffeji4prlf5a"]
+
+[ext_resource type="Texture2D" uid="uid://cf32dwjo8xn6i" path="res://Battle/Bandit-Battle.png" id="1_fwl7g"]
+
+[node name="Bandit" type="Sprite2D" unique_id=1578274707]
+scale = Vector2(0.16, 0.16)
+texture = ExtResource("1_fwl7g")
+flip_h = true

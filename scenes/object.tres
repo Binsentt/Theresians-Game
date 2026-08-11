@@ -1,0 +1,55 @@
+[gd_resource type="TileSet" format=3 uid="uid://cirnhpjafjbwf"]
+
+[ext_resource type="Texture2D" uid="uid://cvksg5b23b2ey" path="res://Village/MetroCIty/Nature_Tileset.png" id="1_bau20"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_meuvh"]
+texture = ExtResource("1_bau20")
+16:1/0 = 0
+16:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-2.0021877, -3.220909, 2.0021877, -2.6985989, 3.0468063, 1.828085, -2.0021877, 2.6986008)
+17:1/0 = 0
+17:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6.0065613, 5.8324585, -6.0065613, 0.08705139, 0.43525887, -1.6539803, 3.7432194, 3.220911, -0.08705139, 5.31015)
+18:1/0 = 0
+18:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6.0065613, 5.8324585, -6.0065613, 0.08705139, 5.8324585, -1.828083, 6.5288715, 1.1316719, -0.08705139, 5.31015)
+19:1/0 = 0
+19:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6.0065613, 5.8324585, -6.5288715, 1.828085, 5.1360455, 0.60936165, 5.8324585, 4.9619427, 1.3057747, 8)
+19:3/0 = 0
+18:3/0 = 0
+17:3/0 = 0
+16:3/0 = 0
+16:5/0 = 0
+17:5/0 = 0
+18:5/0 = 0
+19:5/0 = 0
+19:5/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6.0065613, 5.8324585, -6.5288715, 1.828085, 5.1360455, 0.60936165, 5.8324585, 4.9619427, 1.3057747, 8)
+14:1/size_in_atlas = Vector2i(2, 2)
+14:1/0 = 0
+14:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-11.751969, 7.051182, -10.70735, -0.26115417, 10.1850395, -0.78346443, 10.881454, 7.3993893, -1.828083, 11.926071)
+14:5/size_in_atlas = Vector2i(2, 2)
+14:5/0 = 0
+16:7/0 = 0
+14:7/0 = 0
+15:7/0 = 0
+6:7/0 = 0
+6:7/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6.7029743, 8, -6.3547688, 1.828085, 5.3101482, 2.1762905, 6.180666, 8, -0.9575672, 8)
+7:7/0 = 0
+7:7/0/physics_layer_0/polygon_0/points = PackedVector2Array(-5.6583557, 8, -5.3101482, 1.828085, 2.3503933, 1.828085, 2.6986008, 8, -1.6539803, 8)
+8:7/0 = 0
+2:9/size_in_atlas = Vector2i(1, 2)
+2:9/0 = 0
+3:10/size_in_atlas = Vector2i(2, 1)
+3:10/0 = 0
+3:10/0/physics_layer_0/polygon_0/points = PackedVector2Array(-10.533246, 1.4798775, 11.577866, 1.828085, 9.662731, 5.484253, -9.836833, 5.31015)
+3:9/size_in_atlas = Vector2i(2, 1)
+3:9/0 = 0
+1:9/size_in_atlas = Vector2i(1, 2)
+1:9/0 = 0
+1:9/0/physics_layer_0/polygon_0/points = PackedVector2Array(-10.533246, 1.4798775, 11.577866, 1.828085, 9.662731, 5.484253, -9.836833, 5.31015)
+6:9/size_in_atlas = Vector2i(2, 2)
+6:9/0 = 0
+8:9/size_in_atlas = Vector2i(2, 2)
+8:9/0 = 0
+8:9/0/physics_layer_0/polygon_0/points = PackedVector2Array(-10.1850395, 4.2655296, 8, -5.8324585, 9.488628, -1.4798775, -1.3057747, 9.4886265, -9.14042, 8.966318)
+
+[resource]
+physics_layer_0/collision_layer = 1
+sources/2 = SubResource("TileSetAtlasSource_meuvh")

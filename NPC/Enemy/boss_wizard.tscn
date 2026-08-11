@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://cy6pff6v087ra"]
+
+[ext_resource type="Texture2D" uid="uid://c4fn5mvx24gnv" path="res://NPC/Wizard/Wizard_Asset_Pack/PNGs/IDLE/Wizard_Idle1.png" id="1_qoqku"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_05uvf"]
+atlas = ExtResource("1_qoqku")
+region = Rect2(0, 0, 93, 77)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_00s5w"]
+animations = [{
+"frames": [],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_05uvf")
+}],
+"loop": true,
+"name": &"down",
+"speed": 5.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"left",
+"speed": 5.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"right",
+"speed": 5.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"up",
+"speed": 5.0
+}]
+
+[node name="Boss-Wizard" type="AnimatedSprite2D" unique_id=425286597]
+sprite_frames = SubResource("SpriteFrames_00s5w")
+animation = &"down"

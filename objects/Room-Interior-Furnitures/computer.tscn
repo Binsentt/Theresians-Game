@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://ujgo8vxgu6ty"]
+
+[ext_resource type="Texture2D" uid="uid://bwoc8c3wqtvrb" path="res://Furniture_pixel_art_assets/Prefabs/room furni/Furniture_props_19.png" id="1_gcn0y"]
+
+[node name="computer" type="Sprite2D" unique_id=1228563126]
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("1_gcn0y")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=98503708]

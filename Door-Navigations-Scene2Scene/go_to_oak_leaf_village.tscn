@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://x8h77mqvhpv"]
+
+[ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="1_door"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_16log"]
+size = Vector2(36, 32)
+
+[node name="Go-to-Oak-Leaf-Village" type="Area2D" unique_id=1508637939]
+script = ExtResource("1_door")
+destination_scene_path = "res://scenes/oak_leaf_village.tscn"
+destination_spawn_position = Vector2(44, 508)
+destination_facing_direction = "right"
+play_fade_transition = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1635062385]
+position = Vector2(0, 2)
+shape = SubResource("RectangleShape2D_16log")

@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://cni0xtgqun1x4"]
+
+[ext_resource type="Texture2D" uid="uid://bbge88avobrql" path="res://houses/green h.png" id="1_cebkt"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_flke6"]
+atlas = ExtResource("1_cebkt")
+region = Rect2(0, 0, 512, 1024)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1mpqd"]
+atlas = ExtResource("1_cebkt")
+region = Rect2(512, 0, 512, 1024)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u0622"]
+atlas = ExtResource("1_cebkt")
+region = Rect2(1024, 0, 512, 1024)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_dljyr"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_flke6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1mpqd")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_u0622")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_left_body"]
+size = Vector2(118, 160)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_right_body"]
+size = Vector2(118, 160)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lintel"]
+size = Vector2(391.99994, 129.42859)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_door"]
+size = Vector2(114.000015, 72)
+
+[node name="GreenHouse-Animation" type="AnimatedSprite2D" unique_id=1461965303]
+position = Vector2(5.722046e-06, 3.8146973e-06)
+scale = Vector2(0.124999985, 0.10937499)
+sprite_frames = SubResource("SpriteFrames_dljyr")
+
+[node name="BuildingCollision" type="StaticBody2D" parent="." unique_id=14807970]
+collision_mask = 0
+
+[node name="LeftBodyBlock" type="CollisionShape2D" parent="BuildingCollision" unique_id=1776743542]
+position = Vector2(-112.00005, 82.285675)
+shape = SubResource("RectangleShape2D_left_body")
+
+[node name="RightBodyBlock" type="CollisionShape2D" parent="BuildingCollision" unique_id=1161755288]
+position = Vector2(143.99997, 82.285675)
+shape = SubResource("RectangleShape2D_right_body")
+
+[node name="CenterLintelBlock" type="CollisionShape2D" parent="BuildingCollision" unique_id=1734308439]
+position = Vector2(11.999937, -64.00006)
+scale = Vector2(1.0000005, 1.0000002)
+shape = SubResource("RectangleShape2D_lintel")
+
+[node name="DoorBlock" type="CollisionShape2D" parent="BuildingCollision" unique_id=1134064012]
+position = Vector2(6.999962, 73.14282)
+scale = Vector2(1.0000001, 1.0000001)
+shape = SubResource("RectangleShape2D_door")

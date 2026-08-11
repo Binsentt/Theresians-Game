@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://b6iyx8kbqjv06"]
+
+[ext_resource type="Texture2D" uid="uid://b6hhnyruov6t5" path="res://assets/hearth.png" id="1_ck4jm"]
+
+[node name="life" type="Control" unique_id=1404830301]
+custom_minimum_size = Vector2(24, 28)
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=110040605]
+position = Vector2(-1, 0.99999905)
+texture = ExtResource("1_ck4jm")
+region_enabled = true
+region_rect = Rect2(122.54755, 47.939957, 19.12294, 23.060043)

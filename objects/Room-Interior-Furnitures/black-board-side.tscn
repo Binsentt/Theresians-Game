@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://x75dutqedp2e"]
+
+[ext_resource type="Texture2D" uid="uid://6nbg2dex7a55" path="res://living&room/black-board-side.png" id="1_lloac"]
+
+[node name="Black-Board" type="Sprite2D" unique_id=1748322219]
+position = Vector2(-6, -7)
+scale = Vector2(0.3, 0.213)
+texture = ExtResource("1_lloac")

@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://c2qjfr4bme4ca"]
+
+[ext_resource type="Texture2D" uid="uid://csyqxuxqwdm4l" path="res://living&room/teacher-desk.png" id="1_f0v8i"]
+
+[node name="teacher-table" type="Sprite2D" unique_id=1034764143]
+position = Vector2(0.9587503, 0)
+scale = Vector2(0.169, 0.207)
+texture = ExtResource("1_f0v8i")

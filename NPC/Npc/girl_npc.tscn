@@ -1,0 +1,161 @@
+[gd_scene format=3 uid="uid://qejvf1ks28ln"]
+
+[ext_resource type="Texture2D" uid="uid://crts23og5g8ne" path="res://NPC/Female npc.png" id="1_5rdos"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5rdos"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(781, 0, 71, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_virio"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(228, 0, 76, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_py0w1"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(152, 0, 76, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5sb15"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(76, 0, 76, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nge42"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(0, 0, 76, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5fh4i"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(847, 0, 77, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lghdu"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(770, 0, 77, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5p301"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(693, 0, 77, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ykc6d"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(616, 0, 77, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vn387"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(312, 0, 78, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k8owf"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(390, 0, 78, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xrkqx"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(468, 0, 78, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ntru5"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(546, 0, 78, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_41f0y"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(624, 0, 78, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6ekf0"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(1140, 0, 76, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lr5pa"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(1064, 0, 76, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grrwm"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(988, 0, 76, 94)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4pivx"]
+atlas = ExtResource("1_5rdos")
+region = Rect2(912, 0, 76, 94)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_wqyr5"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5rdos")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_virio")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_py0w1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5sb15")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nge42")
+}],
+"loop": true,
+"name": &"walk_down",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5fh4i")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lghdu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5p301")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ykc6d")
+}],
+"loop": true,
+"name": &"walk_left",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vn387")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_k8owf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xrkqx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ntru5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_41f0y")
+}],
+"loop": true,
+"name": &"walk_right",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6ekf0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lr5pa")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_grrwm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4pivx")
+}],
+"loop": true,
+"name": &"walk_up",
+"speed": 5.0
+}]
+
+[node name="girl_npc" type="AnimatedSprite2D" unique_id=244227400]
+scale = Vector2(0.13, 0.13)
+sprite_frames = SubResource("SpriteFrames_wqyr5")

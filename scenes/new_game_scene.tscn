@@ -1,0 +1,431 @@
+[gd_scene format=3 uid="uid://q6jcirixyoyu"]
+
+[ext_resource type="Texture2D" uid="uid://d0vo1jkxt3gam" path="res://Images/newgame.png" id="1_0n3yy"]
+[ext_resource type="Texture2D" uid="uid://c5cd1rgyki63p" path="res://Images/Background-Menu.png" id="1_hsw6p"]
+[ext_resource type="Script" uid="uid://62mvj477dqoj" path="res://scenes/texture_rect_2.gd" id="2_l3v7k"]
+[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="3_nw40i"]
+[ext_resource type="Script" uid="uid://d1ujh3ar0mayx" path="res://scripts/newgm_back.gd" id="4_0n3yy"]
+[ext_resource type="Texture2D" uid="uid://bmyaf11t85dey" path="res://Images/male_normal.png" id="5_l3v7k"]
+[ext_resource type="Texture2D" uid="uid://cddgmdi5631ik" path="res://Images/female_normal.png" id="6_3tkvl"]
+[ext_resource type="Texture2D" uid="uid://1vld3umk2bg6" path="res://Images/start.png" id="7_g30ap"]
+[ext_resource type="Texture2D" uid="uid://1pqxkyynlhf" path="res://Images/gradelevel/6.png" id="8_3tkvl"]
+[ext_resource type="Script" uid="uid://df88vxsg4acic" path="res://scenes/start.gd" id="8_enhsu"]
+[ext_resource type="Texture2D" uid="uid://1y07oglcp76" path="res://Images/nameborder.png" id="9_3tkvl"]
+[ext_resource type="Texture2D" uid="uid://drhla1kg2gfwv" path="res://Images/gradelevel/1.png" id="9_hajpx"]
+[ext_resource type="Texture2D" uid="uid://dnanak0a785tf" path="res://Images/gradelevel/2.png" id="10_2anhr"]
+[ext_resource type="Texture2D" uid="uid://cxx0eoxyxm3p3" path="res://Images/gradelevel/3.png" id="11_g30ap"]
+[ext_resource type="Texture2D" uid="uid://ldqkshuqcsn" path="res://Images/gradelevel/4.png" id="12_enhsu"]
+[ext_resource type="Texture2D" uid="uid://bjtcvr5ja8jua" path="res://Images/gradelevel/5.png" id="13_k4kuq"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_3tkvl"]
+texture = ExtResource("9_3tkvl")
+texture_margin_left = 16.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_validation"]
+bg_color = Color(0.109804, 0.117647, 0.176471, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94902, 0.823529, 0.443137, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="NewGameScene" type="Control" unique_id=786148573]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect2" type="TextureRect" parent="." unique_id=1308047464]
+layout_mode = 0
+offset_right = 1216.0
+offset_bottom = 544.0
+script = ExtResource("2_l3v7k")
+
+[node name="BackgroundMenu" type="Sprite2D" parent="TextureRect2" unique_id=1311031977]
+position = Vector2(608, 271)
+scale = Vector2(0.7916665, 0.53320307)
+texture = ExtResource("1_hsw6p")
+
+[node name="Newgame" type="Sprite2D" parent="TextureRect2" unique_id=658138782]
+position = Vector2(621.12506, 276.00003)
+scale = Vector2(1.0297337, 0.8674699)
+texture = ExtResource("1_0n3yy")
+
+[node name="GenderSelect" type="TextureRect" parent="TextureRect2" unique_id=1667702310]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Label2" type="Label" parent="TextureRect2/GenderSelect" unique_id=1149557936]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 292.0
+offset_top = 132.0
+offset_right = 904.0
+offset_bottom = 178.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 34
+text = "SELECT YOUR GENDER"
+
+[node name="MaleBtn" type="TextureButton" parent="TextureRect2/GenderSelect" unique_id=1950282404]
+layout_mode = 0
+offset_left = 352.0
+offset_top = 200.0
+offset_right = 551.0
+offset_bottom = 400.0
+texture_normal = ExtResource("5_l3v7k")
+
+[node name="FemaleBtn" type="TextureButton" parent="TextureRect2/GenderSelect" unique_id=927553222]
+layout_mode = 0
+offset_left = 688.0
+offset_top = 200.0
+offset_right = 888.0
+offset_bottom = 392.0
+texture_normal = ExtResource("6_3tkvl")
+
+[node name="GenderContinue" type="TextureButton" parent="TextureRect2/GenderSelect" unique_id=914169401]
+layout_mode = 0
+offset_left = 536.0
+offset_top = 424.0
+offset_right = 696.0
+offset_bottom = 480.0
+texture_normal = ExtResource("7_g30ap")
+ignore_texture_size = true
+stretch_mode = 3
+script = ExtResource("8_enhsu")
+
+[node name="Label" type="Label" parent="TextureRect2/GenderSelect/GenderContinue" unique_id=2054546628]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 136.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(0.3137255, 0.78431374, 0.47058824, 1)
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 21
+text = "NEXT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StudentParentId" type="TextureRect" parent="TextureRect2" unique_id=1516927542]
+visible = false
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="NextBtn" type="TextureButton" parent="TextureRect2/StudentParentId" unique_id=2067651834]
+layout_mode = 0
+offset_left = 536.0
+offset_top = 424.0
+offset_right = 696.0
+offset_bottom = 480.0
+texture_normal = ExtResource("7_g30ap")
+ignore_texture_size = true
+stretch_mode = 3
+script = ExtResource("8_enhsu")
+
+[node name="Label" type="Label" parent="TextureRect2/StudentParentId/NextBtn" unique_id=2077727218]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 136.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(0.3137255, 0.78431374, 0.47058824, 1)
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 21
+text = "NEXT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StudentIdLabel" type="Label" parent="TextureRect2/StudentParentId" unique_id=684900233]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 332.0
+offset_top = 124.0
+offset_right = 876.0
+offset_bottom = 170.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.8745098, 0.8745098, 0.8745098, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 34
+text = "ENTER STUDENT ID"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StudentIdInput" type="LineEdit" parent="TextureRect2/StudentParentId" unique_id=765287919]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 184.0
+offset_right = 909.0
+offset_bottom = 262.0
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBoxTexture_3tkvl")
+virtual_keyboard_type = 2
+
+[node name="ParentIdLabel" type="Label" parent="TextureRect2/StudentParentId" unique_id=1166893853]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 332.0
+offset_top = 268.0
+offset_right = 876.0
+offset_bottom = 314.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.8745098, 0.8745098, 0.8745098, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 34
+text = "ENTER PARENT ID"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ParentIdInput" type="LineEdit" parent="TextureRect2/StudentParentId" unique_id=307552224]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 328.0
+offset_right = 909.0
+offset_bottom = 406.0
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBoxTexture_3tkvl")
+virtual_keyboard_type = 2
+
+[node name="NameGradeSelect" type="TextureRect" parent="TextureRect2" unique_id=1824109069]
+visible = false
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Start" type="TextureButton" parent="TextureRect2/NameGradeSelect" unique_id=1225893085]
+layout_mode = 0
+offset_left = 528.0
+offset_top = 435.0
+offset_right = 688.0
+offset_bottom = 491.0
+texture_normal = ExtResource("7_g30ap")
+ignore_texture_size = true
+stretch_mode = 3
+script = ExtResource("8_enhsu")
+
+[node name="Label" type="Label" parent="TextureRect2/NameGradeSelect/Start" unique_id=330267209]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 136.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(0.3137255, 0.78431374, 0.47058824, 1)
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 21
+text = "PLAY"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GradeLabel" type="Label" parent="TextureRect2/NameGradeSelect" unique_id=1725410502]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 295.0
+offset_top = 258.0
+offset_right = 907.0
+offset_bottom = 292.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.8745098, 0.8745098, 0.8745098, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 34
+text = "SELECT GRADE LEVEL"
+
+[node name="NameInput" type="LineEdit" parent="TextureRect2/NameGradeSelect" unique_id=697288276]
+layout_mode = 0
+offset_left = 328.0
+offset_top = 176.0
+offset_right = 901.0
+offset_bottom = 254.0
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBoxTexture_3tkvl")
+
+[node name="NameLabel" type="Label" parent="TextureRect2/NameGradeSelect" unique_id=656087374]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 340.0
+offset_top = 116.0
+offset_right = 850.0
+offset_bottom = 162.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.8745098, 0.8745098, 0.8745098, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 34
+text = "ENTER YOUR NAME"
+
+[node name="Grade6" type="TextureButton" parent="TextureRect2/NameGradeSelect" unique_id=774788338]
+layout_mode = 0
+offset_left = 880.0
+offset_top = 332.0
+offset_right = 987.0
+offset_bottom = 444.0
+texture_normal = ExtResource("8_3tkvl")
+ignore_texture_size = true
+stretch_mode = 3
+
+[node name="Grade1" type="TextureButton" parent="TextureRect2/NameGradeSelect" unique_id=1798120964]
+layout_mode = 0
+offset_left = 240.0
+offset_top = 332.0
+offset_right = 340.0
+offset_bottom = 409.0
+texture_normal = ExtResource("9_hajpx")
+
+[node name="Grade2" type="TextureButton" parent="TextureRect2/NameGradeSelect" unique_id=106343394]
+layout_mode = 0
+offset_left = 369.0
+offset_top = 334.0
+offset_right = 469.0
+offset_bottom = 408.0
+texture_normal = ExtResource("10_2anhr")
+
+[node name="Grade3" type="TextureButton" parent="TextureRect2/NameGradeSelect" unique_id=1189477849]
+layout_mode = 0
+offset_left = 498.0
+offset_top = 334.0
+offset_right = 598.0
+offset_bottom = 408.0
+texture_normal = ExtResource("11_g30ap")
+
+[node name="Grade4" type="TextureButton" parent="TextureRect2/NameGradeSelect" unique_id=2124669383]
+layout_mode = 0
+offset_left = 629.0
+offset_top = 333.0
+offset_right = 729.0
+offset_bottom = 407.0
+texture_normal = ExtResource("12_enhsu")
+
+[node name="Grade5" type="TextureButton" parent="TextureRect2/NameGradeSelect" unique_id=416688089]
+layout_mode = 0
+offset_left = 757.0
+offset_top = 332.0
+offset_right = 857.0
+offset_bottom = 408.0
+texture_normal = ExtResource("13_k4kuq")
+
+[node name="ValidationPanel" type="PanelContainer" parent="TextureRect2" unique_id=2078601001]
+visible = false
+layout_mode = 0
+offset_left = 326.0
+offset_top = 496.0
+offset_right = 901.0
+offset_bottom = 541.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_validation")
+
+[node name="MarginContainer" type="MarginContainer" parent="TextureRect2/ValidationPanel" unique_id=1014057810]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="ValidationLabel" type="Label" parent="TextureRect2/ValidationPanel/MarginContainer" unique_id=1629158258]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+
+[node name="Label" type="Label" parent="." unique_id=376372046]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -167.5
+offset_top = 64.0
+offset_right = 200.5
+offset_bottom = 110.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 46
+text = "NEW GAME"
+metadata/_edit_lock_ = true
+
+[node name="Fade" type="ColorRect" parent="." unique_id=311711418]
+modulate = Color(1, 1, 1, 0)
+z_index = 100
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+metadata/_edit_lock_ = true
+
+[node name="Button" type="Button" parent="." unique_id=2079074347]
+layout_mode = 0
+offset_top = 8.0
+offset_right = 116.0
+offset_bottom = 54.0
+theme_override_colors/font_color = Color(0, 0.039215688, 0.60784316, 1)
+theme_override_colors/font_pressed_color = Color(0.3078449, 0.14900312, 0.026899772, 1)
+theme_override_colors/font_hover_color = Color(0.24705882, 0.3019608, 0.5411765, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("3_nw40i")
+theme_override_font_sizes/font_size = 38
+text = "←
+"
+flat = true
+script = ExtResource("4_0n3yy")
+
+[connection signal="pressed" from="TextureRect2/GenderSelect/MaleBtn" to="TextureRect2" method="_on_male_btn_pressed"]
+[connection signal="pressed" from="TextureRect2/GenderSelect/FemaleBtn" to="TextureRect2" method="_on_female_btn_pressed"]
+[connection signal="pressed" from="TextureRect2/NameGradeSelect/Start" to="TextureRect2" method="_on_start_pressed"]

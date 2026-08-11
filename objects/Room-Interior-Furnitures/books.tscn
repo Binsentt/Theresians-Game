@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://c5noapdwv0sn5"]
+
+[ext_resource type="Texture2D" uid="uid://d3a0ng4m704mm" path="res://living&room/books.png" id="1_bmpjg"]
+
+[node name="books" type="Sprite2D" unique_id=1195704487]
+position = Vector2(0.99999905, -3)
+scale = Vector2(0.2, 0.171)
+texture = ExtResource("1_bmpjg")

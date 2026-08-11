@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://c34pe7vaeqrbs"]
+
+[ext_resource type="Texture2D" uid="uid://8t8ojngv4xk6" path="res://Village/MetroCIty/village-light.png" id="1_sbgxv"]
+[ext_resource type="Script" uid="uid://db0bq6yqtwh2w" path="res://scripts/outside_object_prop.gd" id="2_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_village_light"]
+size = Vector2(13.333331, 23.402992)
+
+[node name="village-light" type="StaticBody2D" unique_id=1899462495]
+position = Vector2(4.7683716e-07, 0)
+scale = Vector2(0.45000002, 0.38953486)
+script = ExtResource("2_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1140336283]
+texture = ExtResource("1_sbgxv")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1790110570]
+position = Vector2(-4.444446, 19.402988)
+scale = Vector2(1.0000004, 1)
+shape = SubResource("RectangleShape2D_village_light")

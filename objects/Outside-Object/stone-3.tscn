@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://cbpfus553gqdn"]
+
+[ext_resource type="Texture2D" uid="uid://dnvajkpmqwwu0" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/2 Objects/4 Stone/2.png" id="1_dassa"]
+[ext_resource type="Script" path="res://scripts/outside_object_prop.gd" id="2_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_stone_3"]
+size = Vector2(8, 6)
+
+[node name="stone-3" type="StaticBody2D" unique_id=2091222733]
+script = ExtResource("2_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_dassa")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=528385354]
+shape = SubResource("RectangleShape2D_stone_3")

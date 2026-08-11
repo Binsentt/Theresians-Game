@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/save_entry.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="1_entry_panel"]
+bg_color = Color(0.160784, 0.203922, 0.321569, 0.94)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.882353, 0.756863, 0.423529, 1)
+
+[node name="SaveEntry" type="Button"]
+custom_minimum_size = Vector2(0, 130)
+theme_override_styles/normal = SubResource("1_entry_panel")
+theme_override_styles/hover = SubResource("1_entry_panel")
+theme_override_styles/pressed = SubResource("1_entry_panel")
+alignment = 0
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+mouse_filter = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="TimeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Time:"
+
+[node name="DateLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Date:"
+
+[node name="PlayerLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Player:"
+
+[node name="GradeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Grade:"
+
+[node name="QuestLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Quest:"

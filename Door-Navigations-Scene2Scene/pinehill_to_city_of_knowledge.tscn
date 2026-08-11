@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://dv4x0airjeepq"]
+
+[ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="1_door"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gq1wv"]
+size = Vector2(35.5, 20)
+
+[node name="Pinehill-to-City-of-Knowledge" type="Area2D" unique_id=1911235964]
+script = ExtResource("1_door")
+destination_scene_path = "res://scenes/city_of_knowledge.tscn"
+destination_spawn_position = Vector2(160, 496)
+destination_spawn_marker_name = "spawn_from_pinehill"
+destination_facing_direction = "up"
+play_fade_transition = true
+fade_duration = 2.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=285165697]
+shape = SubResource("RectangleShape2D_gq1wv")

@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://barolv1vdb1o3"]
+
+[ext_resource type="Texture2D" uid="uid://f73le6wmyseh" path="res://living&room/Long Cabinet.png" id="1_1d2ph"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1586602410]
+position = Vector2(0, 1.000001)
+scale = Vector2(0.07, 0.062)
+texture = ExtResource("1_1d2ph")

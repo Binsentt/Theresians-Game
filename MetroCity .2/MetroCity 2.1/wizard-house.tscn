@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://c2aqclsivqh1m"]
+
+[ext_resource type="Texture2D" uid="uid://b6ox1c8myktnq" path="res://MetroCity .2/MetroCity 2.1/wizard house.png" id="1_1k1sq"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wizard_house"]
+size = Vector2(92, 28)
+
+[node name="display-kase yung wizard sa labas lang" type="Sprite2D" unique_id=1861555638]
+position = Vector2(-3.8146973e-06, 0)
+scale = Vector2(0.12499999, 0.12500001)
+texture = ExtResource("1_1k1sq")
+
+[node name="HouseCollision" type="StaticBody2D" parent="."]
+position = Vector2(0, 30)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="HouseCollision"]
+shape = SubResource("RectangleShape2D_wizard_house")

@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://buojftrwe2wj1"]
+
+[ext_resource type="Texture2D" uid="uid://byt43pthw71j" path="res://living&room/Long Chair-2.png" id="1_6hgic"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=689457295]
+position = Vector2(-3.8146973e-06, 0)
+scale = Vector2(0.141, 0.127)
+texture = ExtResource("1_6hgic")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1456970538]

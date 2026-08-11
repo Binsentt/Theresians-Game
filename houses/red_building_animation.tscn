@@ -1,0 +1,66 @@
+[gd_scene format=3 uid="uid://ctxa1bghv0kya"]
+
+[ext_resource type="Texture2D" uid="uid://cpcdj570m4ip5" path="res://MetroCity .2/MetroCity 2.1/Red Builing with Animation.png" id="1_4ek5i"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cplp3"]
+atlas = ExtResource("1_4ek5i")
+region = Rect2(0, 0, 164, 297)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bfelq"]
+atlas = ExtResource("1_4ek5i")
+region = Rect2(164, 0, 164, 297)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pbg7b"]
+atlas = ExtResource("1_4ek5i")
+region = Rect2(328, 0, 164, 297)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_5luq0"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cplp3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bfelq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pbg7b")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_red_left"]
+size = Vector2(25.666664, 42.66666)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_red_center"]
+size = Vector2(37.333332, 15.999989)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_red_right"]
+size = Vector2(25.666668, 43.333336)
+
+[node name="red-building-animation" type="AnimatedSprite2D" unique_id=2130291938]
+scale = Vector2(0.3, 0.3)
+sprite_frames = SubResource("SpriteFrames_5luq0")
+
+[node name="BuildingCollisionLeft" type="StaticBody2D" parent="." unique_id=308804122]
+position = Vector2(-43, 92)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionLeft" unique_id=826439204]
+position = Vector2(19.166666, -24.000008)
+shape = SubResource("RectangleShape2D_red_left")
+
+[node name="BuildingCollisionCenter" type="StaticBody2D" parent="." unique_id=1737158092]
+position = Vector2(0, 92)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionCenter" unique_id=1114291820]
+position = Vector2(7.9999995, -37.333344)
+shape = SubResource("RectangleShape2D_red_center")
+
+[node name="BuildingCollisionRight" type="StaticBody2D" parent="." unique_id=1788575749]
+position = Vector2(43, 92)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionRight" unique_id=932807671]
+position = Vector2(-2.5000038, -23.666672)
+shape = SubResource("RectangleShape2D_red_right")

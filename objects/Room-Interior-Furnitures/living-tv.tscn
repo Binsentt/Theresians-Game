@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cqeg4jvn4tiew"]
+
+[ext_resource type="Texture2D" uid="uid://benu5lqe6eicy" path="res://living&room/Livingroom Tv.png" id="1_7yxfv"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=875303579]
+position = Vector2(-2.3841858e-07, 4.7683716e-07)
+scale = Vector2(0.1, 0.082)
+texture = ExtResource("1_7yxfv")

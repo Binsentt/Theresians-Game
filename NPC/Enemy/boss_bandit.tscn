@@ -1,0 +1,66 @@
+[gd_scene format=3 uid="uid://busg8pr7d82nu"]
+
+[ext_resource type="Texture2D" uid="uid://icui5h8enify" path="res://NPC/bandit 2 .png" id="1_2sqdc"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0f54k"]
+atlas = ExtResource("1_2sqdc")
+region = Rect2(0, 0, 124, 150)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ej8hi"]
+atlas = ExtResource("1_2sqdc")
+region = Rect2(1240, 0, 124, 150)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3be2n"]
+atlas = ExtResource("1_2sqdc")
+region = Rect2(496, 0, 124, 150)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0xkf3"]
+atlas = ExtResource("1_2sqdc")
+region = Rect2(1488, 0, 124, 150)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_l6wn2"]
+animations = [{
+"frames": [],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0f54k")
+}],
+"loop": true,
+"name": &"down",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ej8hi")
+}],
+"loop": true,
+"name": &"left",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3be2n")
+}],
+"loop": true,
+"name": &"right",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0xkf3")
+}],
+"loop": true,
+"name": &"up",
+"speed": 5.0
+}]
+
+[node name="Boss-Bandit" type="AnimatedSprite2D" unique_id=29164339]
+scale = Vector2(0.08, 0.08)
+sprite_frames = SubResource("SpriteFrames_l6wn2")
+animation = &"up"
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1206877729]

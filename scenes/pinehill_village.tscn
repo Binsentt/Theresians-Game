@@ -1,0 +1,5 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" uid="uid://b7nrqn7vff7db" path="res://scenes/2nd Village/Pinehill Village.tscn" id="1_pinehill"]
+
+[node name="Pinehill Village" instance=ExtResource("1_pinehill")]

@@ -1,0 +1,137 @@
+[gd_scene format=3 uid="uid://r0ve0wtobq1r"]
+
+[ext_resource type="Texture2D" uid="uid://c5cd1rgyki63p" path="res://Images/Background-Menu.png" id="2_eq4f2"]
+[ext_resource type="Texture2D" uid="uid://d0vo1jkxt3gam" path="res://Images/newgame.png" id="3_1equp"]
+[ext_resource type="Script" uid="uid://d1ujh3ar0mayx" path="res://scripts/newgm_back.gd" id="4_eq4f2"]
+[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="4_tyo51"]
+[ext_resource type="Texture2D" uid="uid://djdx0lkuikeyl" path="res://dahonleft.png" id="5_nxn1u"]
+[ext_resource type="Texture2D" uid="uid://dx21esim7hahd" path="res://dahonright.png" id="6_6mmcl"]
+[ext_resource type="Texture2D" uid="uid://luhasdx08eox" path="res://lboard.png" id="7_a4r0e"]
+
+[node name="LeaderboardScene" type="Control" unique_id=1313402708]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect2" type="TextureRect" parent="." unique_id=1873132632]
+layout_mode = 0
+offset_right = 1216.0
+offset_bottom = 544.0
+
+[node name="BackgroundMenu" type="Sprite2D" parent="TextureRect2" unique_id=305690498]
+position = Vector2(608, 271)
+scale = Vector2(0.7916665, 0.53320307)
+texture = ExtResource("2_eq4f2")
+
+[node name="Back-Button" type="Button" parent="TextureRect2/BackgroundMenu" unique_id=2038079571]
+offset_left = -771.7897
+offset_top = -474.4909
+offset_right = -655.7897
+offset_bottom = -428.4909
+theme_override_colors/font_color = Color(0, 0.039215688, 0.60784316, 1)
+theme_override_colors/font_pressed_color = Color(0.3078449, 0.14900312, 0.026899772, 1)
+theme_override_colors/font_hover_color = Color(0.24705882, 0.3019608, 0.5411765, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("4_tyo51")
+theme_override_font_sizes/font_size = 38
+text = "←
+"
+flat = true
+script = ExtResource("4_eq4f2")
+
+[node name="Newgame" type="Sprite2D" parent="TextureRect2" unique_id=130721666]
+position = Vector2(617.99994, 295)
+scale = Vector2(1.0297337, 0.8674699)
+texture = ExtResource("3_1equp")
+
+[node name="Label" type="Label" parent="." unique_id=420074157]
+layout_mode = 0
+offset_left = 360.0
+offset_top = 75.0
+offset_right = 866.0
+offset_bottom = 121.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("4_tyo51")
+theme_override_font_sizes/font_size = 46
+text = "LEADERBOARD"
+
+[node name="Dahonleft" type="Sprite2D" parent="." unique_id=767652059]
+position = Vector2(327.00003, 100)
+scale = Vector2(0.19988066, 0.1268997)
+texture = ExtResource("5_nxn1u")
+
+[node name="Dahonright" type="Sprite2D" parent="." unique_id=1340915035]
+position = Vector2(887.00006, 97.99999)
+scale = Vector2(0.18513119, 0.13294832)
+texture = ExtResource("6_6mmcl")
+
+[node name="LeaderboardBG" type="TextureRect" parent="." unique_id=391853091]
+layout_mode = 0
+offset_left = 107.0
+offset_top = 133.0
+offset_right = 1133.0
+offset_bottom = 516.0
+texture = ExtResource("7_a4r0e")
+metadata/_edit_lock_ = true
+
+[node name="GradeLbl" type="Label" parent="LeaderboardBG" unique_id=2033447415]
+layout_mode = 0
+offset_left = 581.0
+offset_top = 35.0
+offset_right = 696.0
+offset_bottom = 61.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("4_tyo51")
+theme_override_font_sizes/font_size = 23
+text = "GRADE"
+
+[node name="NumberLbl" type="Label" parent="LeaderboardBG" unique_id=1577134468]
+layout_mode = 0
+offset_left = 77.0
+offset_top = 35.0
+offset_right = 146.0
+offset_bottom = 61.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("4_tyo51")
+theme_override_font_sizes/font_size = 23
+text = "NO."
+
+[node name="PercentageLbl" type="Label" parent="LeaderboardBG" unique_id=1605876108]
+layout_mode = 0
+offset_left = 778.0
+offset_top = 35.0
+offset_right = 985.0
+offset_bottom = 61.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("4_tyo51")
+theme_override_font_sizes/font_size = 23
+text = "PERCETAGE"
+
+[node name="NameLbl" type="Label" parent="LeaderboardBG" unique_id=238643091]
+layout_mode = 0
+offset_left = 301.0
+offset_top = 35.0
+offset_right = 393.0
+offset_bottom = 61.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("4_tyo51")
+theme_override_font_sizes/font_size = 23
+text = "NAME"

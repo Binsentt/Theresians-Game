@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://cbfuk25bb15sp"]
+
+[ext_resource type="PackedScene" uid="uid://dagwv6q6i5o1a" path="res://Battle/Bg-battle.tscn" id="1_ihtg2"]
+[ext_resource type="PackedScene" uid="uid://sdrreans0p5w" path="res://Battle/boss_bandit_battle.tscn" id="2_68w31"]
+[ext_resource type="PackedScene" uid="uid://b42kw413cgnqt" path="res://Battle/Player-male-battle.tscn" id="3_l1n8s"]
+[ext_resource type="PackedScene" uid="uid://bcuqtpfhpay8c" path="res://ui/battle_life_display.tscn" id="4_hud"]
+
+[node name="male_vs_boss-bandit" type="Node2D" unique_id=1765465242]
+
+[node name="Sprite2D" parent="." unique_id=1652551668 instance=ExtResource("1_ihtg2")]
+position = Vector2(607, 270)
+
+[node name="Boss_Bandit_Battle" parent="." unique_id=1582334348 instance=ExtResource("2_68w31")]
+position = Vector2(965, 209)
+
+[node name="player-male" parent="." unique_id=613505580 instance=ExtResource("3_l1n8s")]
+position = Vector2(317, 211)
+
+[node name="BattleLifeDisplay" parent="." unique_id=837431382 instance=ExtResource("4_hud")]

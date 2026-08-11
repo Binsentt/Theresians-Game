@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://c2otnnwgjupjt"]
+
+[ext_resource type="Texture2D" uid="uid://kuw4xtpryua6" path="res://City Pack/Sprites/Animations/BD001.png" id="1_0piin"]
+[ext_resource type="Script" uid="uid://b5okpxc7pdpo" path="res://houses/shop_1.gd" id="2_2aodw"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_af214"]
+atlas = ExtResource("1_0piin")
+region = Rect2(0, 981, 118, 109)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i8gms"]
+atlas = ExtResource("1_0piin")
+region = Rect2(118, 981, 118, 109)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ejvnu"]
+atlas = ExtResource("1_0piin")
+region = Rect2(236, 981, 118, 109)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_vwd2e"]
+animations = [{
+"frames": [],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_af214")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i8gms")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ejvnu")
+}],
+"loop": true,
+"name": &"door-open",
+"speed": 5.0
+}]
+
+[node name="Shop1" type="AnimatedSprite2D" unique_id=574339347]
+position = Vector2(-8, -8)
+sprite_frames = SubResource("SpriteFrames_vwd2e")
+animation = &"door-open"
+frame_progress = 0.5065016
+script = ExtResource("2_2aodw")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1374352805]
+
+[node name="Area2D" type="Area2D" parent="." unique_id=850013785]
+position = Vector2(0, 8)

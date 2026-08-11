@@ -1,0 +1,22 @@
+[gd_resource type="TileSet" format=3 uid="uid://dgtmuwn4dd3e7"]
+
+[ext_resource type="Texture2D" uid="uid://c0kmyteqca1tc" path="res://Village/MetroCIty/Tree-Sheet.png" id="1_eqlt4"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_vmlq7"]
+texture = ExtResource("1_eqlt4")
+9:1/size_in_atlas = Vector2i(3, 3)
+9:1/0 = 0
+9:1/0/y_sort_origin = 7
+9:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, 6.6336803, 6.8302326, 6.7319565, 3.488823, 9.385427, -2.800887, 9.385427)
+6:0/size_in_atlas = Vector2i(3, 4)
+6:0/0 = 0
+6:0/0/y_sort_origin = 15
+6:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6.3547688, 14.711723, 6.180666, 14.537621, 8.444008, 19.064304, -8.0958, 18.890202)
+0:0/size_in_atlas = Vector2i(3, 4)
+0:0/0 = 0
+0:0/0/y_sort_origin = 15
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-6.0065613, 14.015312, 6.3547688, 14.363518, 7.9216976, 18.890202, -9.4886265, 19.23841)
+
+[resource]
+physics_layer_0/collision_layer = 1
+sources/1 = SubResource("TileSetAtlasSource_vmlq7")

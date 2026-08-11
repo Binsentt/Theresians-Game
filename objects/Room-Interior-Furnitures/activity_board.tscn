@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://dt787dlytngo1"]
+
+[ext_resource type="Texture2D" uid="uid://1kkwwl8p0tyr" path="res://living&room/actvity-board.png" id="1_duee2"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=2014400253]
+position = Vector2(-3.8146973e-06, -1.9073486e-06)
+scale = Vector2(0.17096774, 0.18877554)
+texture = ExtResource("1_duee2")

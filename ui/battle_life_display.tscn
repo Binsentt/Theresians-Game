@@ -1,0 +1,122 @@
+[gd_scene format=3 uid="uid://tunret6tnlxb"]
+
+[ext_resource type="PackedScene" uid="uid://b6iyx8kbqjv06" path="res://player/life.tscn" id="1_life"]
+[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="3_font"]
+
+[sub_resource type="StyleBoxFlat" id="1_player_panel"]
+bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.92)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.94902, 0.823529, 0.443137, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="2_enemy_panel"]
+bg_color = Color(0.0823529, 0.109804, 0.215686, 0.92)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.94902, 0.823529, 0.443137, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 6
+
+[node name="BattleLifeDisplay" type="CanvasLayer" unique_id=232234101]
+
+[node name="PlayerMarginContainer" type="MarginContainer" parent="." unique_id=1760068026]
+offset_left = 124.0
+offset_top = 9.0
+offset_right = 305.0
+offset_bottom = 79.0
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="PlayerPanel" type="PanelContainer" parent="PlayerMarginContainer" unique_id=867744568]
+layout_mode = 2
+theme_override_styles/panel = SubResource("1_player_panel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PlayerMarginContainer/PlayerPanel" unique_id=270291785]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PlayerLabel" type="Label" parent="PlayerMarginContainer/PlayerPanel/VBoxContainer" unique_id=198661323]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "HP"
+horizontal_alignment = 1
+
+[node name="PlayerLivesRow" type="HBoxContainer" parent="PlayerMarginContainer/PlayerPanel/VBoxContainer" unique_id=212625007]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Heart1" parent="PlayerMarginContainer/PlayerPanel/VBoxContainer/PlayerLivesRow" unique_id=1053564861 instance=ExtResource("1_life")]
+layout_mode = 2
+
+[node name="Heart2" parent="PlayerMarginContainer/PlayerPanel/VBoxContainer/PlayerLivesRow" unique_id=555206094 instance=ExtResource("1_life")]
+layout_mode = 2
+
+[node name="Heart3" parent="PlayerMarginContainer/PlayerPanel/VBoxContainer/PlayerLivesRow" unique_id=1062249660 instance=ExtResource("1_life")]
+layout_mode = 2
+
+[node name="EnemyMarginContainer" type="MarginContainer" parent="." unique_id=1936496152]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -317.0
+offset_top = 8.0
+offset_right = -143.0
+offset_bottom = 77.0
+grow_horizontal = 0
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="EnemyPanel" type="PanelContainer" parent="EnemyMarginContainer" unique_id=3089438]
+layout_mode = 2
+theme_override_styles/panel = SubResource("2_enemy_panel")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="EnemyMarginContainer/EnemyPanel" unique_id=268654197]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EnemyLabel" type="Label" parent="EnemyMarginContainer/EnemyPanel/VBoxContainer" unique_id=124790212]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 14
+text = "HP"
+horizontal_alignment = 1
+
+[node name="EnemyLivesRow" type="HBoxContainer" parent="EnemyMarginContainer/EnemyPanel/VBoxContainer" unique_id=1798125513]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Heart1" parent="EnemyMarginContainer/EnemyPanel/VBoxContainer/EnemyLivesRow" unique_id=2057390316 instance=ExtResource("1_life")]
+layout_mode = 2
+
+[node name="Heart2" parent="EnemyMarginContainer/EnemyPanel/VBoxContainer/EnemyLivesRow" unique_id=1404830301 instance=ExtResource("1_life")]
+layout_mode = 2
+
+[node name="Heart3" parent="EnemyMarginContainer/EnemyPanel/VBoxContainer/EnemyLivesRow" unique_id=1880980880 instance=ExtResource("1_life")]
+layout_mode = 2

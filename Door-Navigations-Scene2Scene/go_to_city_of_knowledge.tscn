@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://b0bf0rsjkiju2"]
+
+[ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="1_door"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5qxyk"]
+size = Vector2(14.75, 22.8125)
+
+[node name="Go-to-City-of-Knowledge" type="Area2D" unique_id=1204046067]
+script = ExtResource("1_door")
+destination_scene_path = "res://scenes/city_of_knowledge.tscn"
+destination_spawn_position = Vector2(1172, 96)
+destination_facing_direction = "left"
+play_fade_transition = true
+requires_city_of_knowledge_unlock = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1368413493]
+shape = SubResource("RectangleShape2D_5qxyk")

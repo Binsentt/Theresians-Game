@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://b42kw413cgnqt"]
+
+[ext_resource type="Texture2D" uid="uid://c8ekvfmw5elix" path="res://Battle/Player-Male-Battle.png" id="1_0qmad"]
+
+[node name="player-male" type="Sprite2D" unique_id=613505580]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("1_0qmad")

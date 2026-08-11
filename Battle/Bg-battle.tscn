@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://dagwv6q6i5o1a"]
+
+[ext_resource type="Texture2D" uid="uid://cnxb5iviydycj" path="res://Battle/Battle-Enemy/battleBg.png" id="1_8lv0h"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1652551668]
+position = Vector2(606, 274)
+scale = Vector2(0.7903645, 0.53515625)
+texture = ExtResource("1_8lv0h")

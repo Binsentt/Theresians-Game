@@ -1,0 +1,28 @@
+﻿# Godot generated files
+.godot/
+.import/
+.export/
+
+# Local development tools
+.codex/
+.serena/
+.worktrees/
+
+# Node dependencies
+node_modules/
+
+# Local Godot executable
+tools/Godot_v4.6.1-stable_win64.exe
+
+# Build output
+build/
+dist/
+
+# Temporary files
+*.tmp
+*.log
+
+# macOS metadata
+.DS_Store
+._*
+__MACOSX/

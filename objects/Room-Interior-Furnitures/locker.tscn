@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://b2rup2euehwaw"]
+
+[ext_resource type="Texture2D" uid="uid://djhgbj0oed0s" path="res://living&room/locker.png" id="1_fb3ri"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=985244182]
+position = Vector2(-1, 0)
+scale = Vector2(0.13, 0.13)
+texture = ExtResource("1_fb3ri")

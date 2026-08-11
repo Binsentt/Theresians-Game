@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cooiuho1nfppg"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vmv3g"]
+
+[node name="City-of-knowlwedge-to-PineHill" type="Area2D" unique_id=1162980262]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2082873184]
+shape = SubResource("RectangleShape2D_vmv3g")

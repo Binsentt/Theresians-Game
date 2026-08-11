@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://scuelh7x13ux"]
+
+[ext_resource type="Texture2D" uid="uid://dg618e0c4krep" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/2 Objects/8 Camp/4.png" id="1_matx0"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=600864129]
+position = Vector2(0, 1.7881393e-07)
+rotation = -0.12641501
+scale = Vector2(0.625, 0.38815787)
+texture = ExtResource("1_matx0")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2017825901]

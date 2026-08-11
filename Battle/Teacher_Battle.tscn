@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://fgxum0ffciey"]
+
+[ext_resource type="Texture2D" uid="uid://8gh5u87pbg02" path="res://Battle/Teacher-Battle.png" id="1_war0c"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=85654838]
+scale = Vector2(0.36, 0.36)
+texture = ExtResource("1_war0c")
+flip_h = true

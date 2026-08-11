@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://b6jbuwfysxfsg"]
+
+[ext_resource type="Texture2D" uid="uid://djeof8jp6her8" path="res://living&room/tileset_C.png" id="1_f06vv"]
+
+[node name="Stair" type="Sprite2D" unique_id=2069061971]
+position = Vector2(8, 6.1035156e-05)
+scale = Vector2(0.65625, 0.6562494)
+texture = ExtResource("1_f06vv")
+hframes = 6
+vframes = 6
+frame = 4

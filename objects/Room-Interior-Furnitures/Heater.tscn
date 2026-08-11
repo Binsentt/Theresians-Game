@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cqroj1plp8pvv"]
+
+[ext_resource type="Texture2D" uid="uid://444ag1t6rhvh" path="res://living&room/Heater.png" id="1_dovg7"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1733427854]
+position = Vector2(3.0624995, -3.6874986)
+scale = Vector2(0.15, 0.168)
+texture = ExtResource("1_dovg7")

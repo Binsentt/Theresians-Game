@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://ixpuacp4543x"]
+
+[ext_resource type="Texture2D" uid="uid://blyrjwu7nfik2" path="res://living&room/kitchen.png" id="1_54ro0"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=686179381]
+position = Vector2(-9.536743e-07, -4.7683716e-07)
+scale = Vector2(0.07, 0.063)
+texture = ExtResource("1_54ro0")

@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://cwpioisofkfk6"]
+
+[ext_resource type="Texture2D" uid="uid://g6uurc3fv5ek" path="res://MetroCity .2/MetroCity 2.1/Blue Building WIth Animation.png" id="1_pik5w"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_we077"]
+atlas = ExtResource("1_pik5w")
+region = Rect2(0, 0, 225, 363)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3oy2r"]
+atlas = ExtResource("1_pik5w")
+region = Rect2(225, 0, 225, 363)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rs645"]
+atlas = ExtResource("1_pik5w")
+region = Rect2(450, 0, 225, 363)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_0t8tn"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_we077")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3oy2r")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rs645")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_blue_left"]
+size = Vector2(35.85246, 74.11139)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_blue_center"]
+size = Vector2(44.262295, 33.67595)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_blue_right"]
+size = Vector2(41.754105, 73.51899)
+
+[node name="blue-building-animation" type="AnimatedSprite2D" unique_id=1715095049]
+position = Vector2(-3.8146973e-06, 3.8146973e-06)
+scale = Vector2(0.3388889, 0.27203858)
+sprite_frames = SubResource("SpriteFrames_0t8tn")
+
+[node name="BuildingCollisionLeft" type="StaticBody2D" parent="." unique_id=1456075816]
+position = Vector2(-56, 118)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionLeft" unique_id=519219309]
+position = Vector2(32.61476, -36.832924)
+scale = Vector2(0.9999998, 0.9999999)
+shape = SubResource("RectangleShape2D_blue_left")
+
+[node name="BuildingCollisionCenter" type="StaticBody2D" parent="." unique_id=49673045]
+position = Vector2(0, 118)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionCenter" unique_id=1927043107]
+position = Vector2(16.229515, -57.050648)
+scale = Vector2(0.99999976, 0.9999999)
+shape = SubResource("RectangleShape2D_blue_center")
+
+[node name="BuildingCollisionRight" type="StaticBody2D" parent="." unique_id=1721068446]
+position = Vector2(56, 118)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionRight" unique_id=1825197200]
+position = Vector2(5.7459106, -37.129128)
+scale = Vector2(0.9999998, 0.9999999)
+shape = SubResource("RectangleShape2D_blue_right")

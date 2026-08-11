@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://bbmygheuchcko"]
+
+[ext_resource type="Texture2D" uid="uid://qei7gjxpciwi" path="res://houses/outside-decor/House.png" id="1_yrwwl"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_house_blocker"]
+size = Vector2(62, 30)
+
+[node name="House-Display" type="Sprite2D" unique_id=1124191103]
+scale = Vector2(0.625, 0.6302632)
+texture = ExtResource("1_yrwwl")
+region_enabled = true
+region_rect = Rect2(148, 3, 72, 95)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2043911979]
+
+[node name="Area2D" type="Area2D" parent="." unique_id=586235297]
+
+[node name="HouseCollision" type="StaticBody2D" parent="."]
+position = Vector2(0, 27)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="HouseCollision"]
+shape = SubResource("RectangleShape2D_house_blocker")

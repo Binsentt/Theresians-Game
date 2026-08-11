@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://2i73kd2eyoqu"]
+
+[ext_resource type="Texture2D" uid="uid://dlg57pv1c6xmj" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/2 Objects/3 Pointer/3.png" id="1_nivvr"]
+[ext_resource type="Script" path="res://scripts/outside_object_prop.gd" id="2_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pointer_up"]
+size = Vector2(16, 10)
+
+[node name="pointer-up" type="StaticBody2D" unique_id=274239494]
+position = Vector2(0, 1.1920929e-07)
+scale = Vector2(0.625, 0.3472222)
+script = ExtResource("2_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_nivvr")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1390325385]
+position = Vector2(0, 12)
+shape = SubResource("RectangleShape2D_pointer_up")

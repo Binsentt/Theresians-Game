@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://cks7gnurebwoo"]
+
+[ext_resource type="Texture2D" uid="uid://b3hloulmt4vr4" path="res://living&room/ceiling-decor.png" id="1_sm23j"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=870158301]
+position = Vector2(0, -4.7683716e-07)
+scale = Vector2(0.13888891, 0.126923)
+texture = ExtResource("1_sm23j")

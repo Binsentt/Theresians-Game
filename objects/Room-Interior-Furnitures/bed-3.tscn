@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://c6t57wqapqlne"]
+
+[ext_resource type="Texture2D" uid="uid://du1yihjwx4c8j" path="res://Furniture_pixel_art_assets/Prefabs/room furni/Furniture_props_04.png" id="1_38ce7"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1330472326]
+scale = Vector2(0.563, 0.563)
+texture = ExtResource("1_38ce7")

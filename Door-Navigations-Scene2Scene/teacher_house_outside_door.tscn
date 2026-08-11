@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://csmdy8fn5lpvo"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8rr1r"]
+
+[node name="teacher_house_outside_door" type="Area2D" unique_id=476458863]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=693430100]
+shape = SubResource("RectangleShape2D_8rr1r")

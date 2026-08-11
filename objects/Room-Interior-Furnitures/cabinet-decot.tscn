@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://bxoqspxupsiwh"]
+
+[ext_resource type="Texture2D" uid="uid://d3ou2rmgjpswq" path="res://living&room/cabinet-decor.png" id="1_p307x"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1134748939]
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("1_p307x")

@@ -1,0 +1,257 @@
+[gd_scene format=3 uid="uid://c1lpjvyk18oh5"]
+
+[ext_resource type="Texture2D" uid="uid://cye4hy5o2054t" path="res://Images/settings-logo.png" id="1_5kl81"]
+[ext_resource type="Texture2D" uid="uid://dvxojb3lpqahx" path="res://Images/popup.png" id="3_hu1oc"]
+[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="4_y7tm3"]
+[ext_resource type="Texture2D" uid="uid://cg4wtlqou0rd2" path="res://Images/grabber.png" id="6_j8nds"]
+[ext_resource type="Texture2D" uid="uid://b10upp8m1yaof" path="res://Images/slide bar.png" id="7_geh8q"]
+[ext_resource type="Texture2D" uid="uid://dhtn0o3ukx2t0" path="res://Images/btn.png" id="8_hrtxq"]
+[ext_resource type="Script" uid="uid://c2l2xw77hfi57" path="res://scenes/Settings-Ingame/settings_ingame_controller.gd" id="9_controller"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_save_toast"]
+bg_color = Color(0.08235294, 0.08235294, 0.08235294, 0.9019608)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_on2qd"]
+texture = ExtResource("7_geh8q")
+expand_margin_left = 8.0
+expand_margin_top = 8.0
+expand_margin_right = 8.0
+expand_margin_bottom = 8.0
+
+[node name="Settings-Ingame" type="Control" unique_id=1187377283]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("9_controller")
+
+[node name="Settings-Logo-Button" type="Button" parent="." unique_id=447497492]
+process_mode = 3
+layout_mode = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -124.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = 120.0
+icon = ExtResource("1_5kl81")
+flat = true
+
+[node name="SaveToast" type="PanelContainer" parent="." unique_id=1700010001]
+visible = false
+modulate = Color(1, 1, 1, 0)
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -225.0
+offset_top = 18.0
+offset_right = 225.0
+offset_bottom = 70.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_save_toast")
+
+[node name="Label" type="Label" parent="SaveToast" unique_id=1700010002]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 14
+text = "Successfully saved game"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SettingsPopup" type="Control" parent="." unique_id=1889347194]
+process_mode = 3
+anchors_preset = 0
+offset_left = 597.00006
+offset_top = 271.00003
+offset_right = 637.00006
+offset_bottom = 311.00003
+
+[node name="TextureRect" type="TextureRect" parent="SettingsPopup" unique_id=296293124]
+custom_minimum_size = Vector2(-0.43, 0)
+layout_mode = 0
+offset_left = -604.00006
+offset_top = -290.00003
+offset_right = 403.99994
+offset_bottom = 330.99997
+texture = ExtResource("3_hu1oc")
+expand_mode = 1
+
+[node name="X" type="Button" parent="SettingsPopup/TextureRect" unique_id=840359719]
+layout_mode = 0
+offset_left = 791.0
+offset_top = 181.0
+offset_right = 829.0
+offset_bottom = 219.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_hover_color = Color(0.8999648, 0.9858591, 0.79900074, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 30
+text = "X"
+flat = true
+
+[node name="MusicLabel" type="Label" parent="SettingsPopup/TextureRect" unique_id=1916982620]
+layout_mode = 0
+offset_left = 231.0
+offset_top = 485.0
+offset_right = 387.0
+offset_bottom = 498.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 13
+text = "MUSIC VOLUME"
+
+[node name="SfxLabel" type="Label" parent="SettingsPopup/TextureRect" unique_id=370388374]
+layout_mode = 0
+offset_left = 543.0
+offset_top = 484.0
+offset_right = 673.0
+offset_bottom = 497.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 13
+text = "SFX VOLUME"
+
+[node name="MusicVolume" type="HSlider" parent="SettingsPopup/TextureRect" unique_id=328446895]
+layout_mode = 0
+offset_left = 231.0
+offset_top = 493.0
+offset_right = 455.0
+offset_bottom = 526.0
+theme_override_icons/grabber = ExtResource("6_j8nds")
+theme_override_icons/grabber_highlight = ExtResource("6_j8nds")
+theme_override_icons/grabber_disabled = ExtResource("6_j8nds")
+theme_override_styles/slider = SubResource("StyleBoxTexture_on2qd")
+max_value = 1.0
+step = 0.01
+value = 0.8
+
+[node name="SfxVolume" type="HSlider" parent="SettingsPopup/TextureRect" unique_id=385191676]
+layout_mode = 0
+offset_left = 543.0
+offset_top = 493.0
+offset_right = 775.0
+offset_bottom = 526.0
+theme_override_icons/grabber = ExtResource("6_j8nds")
+theme_override_icons/grabber_highlight = ExtResource("6_j8nds")
+theme_override_icons/grabber_disabled = ExtResource("6_j8nds")
+theme_override_styles/slider = SubResource("StyleBoxTexture_on2qd")
+max_value = 1.0
+step = 0.01
+value = 0.8
+
+[node name="LoadGameBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=169047210]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.1
+anchor_bottom = 0.10300001
+offset_left = 338.0
+offset_top = 253.0
+offset_right = 545.2
+offset_bottom = 397.037
+icon = ExtResource("8_hrtxq")
+flat = true
+
+[node name="Label" type="Label" parent="SettingsPopup/TextureRect/LoadGameBtn" unique_id=686641483]
+layout_mode = 0
+offset_left = 41.0
+offset_top = 89.0
+offset_right = 266.0
+offset_bottom = 114.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 25
+text = "LOAD GAME"
+
+[node name="ExitBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1004605551]
+layout_mode = 0
+offset_left = 338.0
+offset_top = 331.0
+offset_right = 646.0
+offset_bottom = 539.0
+icon = ExtResource("8_hrtxq")
+flat = true
+
+[node name="Label" type="Label" parent="SettingsPopup/TextureRect/ExitBtn" unique_id=771607587]
+layout_mode = 0
+offset_left = 101.0
+offset_top = 87.0
+offset_right = 201.0
+offset_bottom = 112.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 25
+text = "EXIT"
+
+[node name="ResumeBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1600404717]
+layout_mode = 0
+offset_left = 338.0
+offset_top = 97.0
+offset_right = 646.0
+offset_bottom = 305.0
+icon = ExtResource("8_hrtxq")
+flat = true
+
+[node name="Label" type="Label" parent="SettingsPopup/TextureRect/ResumeBtn" unique_id=1048843531]
+layout_mode = 0
+offset_left = 80.00003
+offset_top = 88.0
+offset_right = 230.00003
+offset_bottom = 113.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 25
+text = "RESUME"
+
+[node name="SaveBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1858043335]
+layout_mode = 0
+offset_left = 338.0
+offset_top = 175.0
+offset_right = 646.0
+offset_bottom = 383.0
+icon = ExtResource("8_hrtxq")
+flat = true
+
+[node name="Label" type="Label" parent="SettingsPopup/TextureRect/SaveBtn" unique_id=1868119323]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 25
+text = "SAVE"
+horizontal_alignment = 1
+vertical_alignment = 1

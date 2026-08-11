@@ -1,0 +1,165 @@
+[gd_scene format=3 uid="uid://b6imelcni3dtu"]
+
+[ext_resource type="Script" uid="uid://jsx5arkomslh" path="res://Battle/Battle-Enemy/QuizManager.gd" id="1_xboir"]
+[ext_resource type="PackedScene" uid="uid://dagwv6q6i5o1a" path="res://Battle/Bg-battle.tscn" id="2_76e14"]
+[ext_resource type="PackedScene" uid="uid://bffeji4prlf5a" path="res://Battle/Bandit-Battle.tscn" id="3_kyxq5"]
+[ext_resource type="PackedScene" uid="uid://c6nx67r00wkj" path="res://assets/Effects/SlashEffect.tscn" id="4_rk7g7"]
+[ext_resource type="PackedScene" uid="uid://b2wyujve0kyxn" path="res://Battle/player_female_battle.tscn" id="5_xboir"]
+[ext_resource type="Texture2D" uid="uid://da70ungunse5q" path="res://assets/playerHp.png" id="6_quk0b"]
+[ext_resource type="Script" uid="uid://772j8jmbe7wn" path="res://Battle/Battle-Enemy/PlayerHealth.gd" id="7_is0v8"]
+[ext_resource type="Texture2D" uid="uid://b6hhnyruov6t5" path="res://assets/hearth.png" id="8_pq36k"]
+[ext_resource type="Script" uid="uid://ddpieb4ag2xuh" path="res://Battle/Battle-Enemy/EnemyHealth.gd" id="9_c0725"]
+
+[node name="female_vs_bandit" type="Node2D" unique_id=2010041141]
+script = ExtResource("1_xboir")
+
+[node name="Sprite2D" parent="." unique_id=1652551668 instance=ExtResource("2_76e14")]
+position = Vector2(605.5, 275.5)
+scale = Vector2(0.36901155, 0.3699461)
+
+[node name="player" parent="." unique_id=1697331761 instance=ExtResource("5_xboir")]
+position = Vector2(299.07806, 296.5625)
+scale = Vector2(0.27463785, 0.27624518)
+
+[node name="SlashEffect" parent="player" unique_id=564064422 instance=ExtResource("4_rk7g7")]
+position = Vector2(-976.11505, -512.4525)
+scale = Vector2(3.6411588, 3.6199732)
+
+[node name="Bandit" parent="." unique_id=1578274707 instance=ExtResource("3_kyxq5")]
+position = Vector2(988.56, 326.96)
+scale = Vector2(0.16072915, 0.19132812)
+
+[node name="SlashEffect" parent="Bandit" unique_id=1705485500 instance=ExtResource("4_rk7g7")]
+position = Vector2(-1540.2306, -903.99677)
+scale = Vector2(6.221647, 5.2266235)
+
+[node name="PlayerHp" type="Sprite2D" parent="." unique_id=585744608]
+position = Vector2(178, 62)
+scale = Vector2(0.22470587, 0.25)
+texture = ExtResource("6_quk0b")
+
+[node name="PlayerHp2" type="Sprite2D" parent="." unique_id=1153326533]
+position = Vector2(1091, 62)
+scale = Vector2(0.22470587, 0.25)
+texture = ExtResource("6_quk0b")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1906612732]
+
+[node name="Panel" type="Panel" parent="CanvasLayer" unique_id=1970959757 groups=["dialogue_ui", "npc"]]
+anchors_preset = -1
+anchor_left = 0.21000001
+anchor_top = 0.625
+anchor_right = 0.80700004
+anchor_bottom = 1.0
+offset_left = 67.84999
+offset_top = -244.625
+offset_right = -128.50507
+offset_bottom = -318.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="QuestionLabel" type="Label" parent="CanvasLayer/Panel" unique_id=152173940]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.078
+anchor_top = 0.115
+anchor_right = 0.906
+anchor_bottom = 0.924
+offset_left = -0.26200485
+offset_top = -0.065000534
+offset_right = 0.21002197
+offset_bottom = -0.044006348
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="ChoiceA" type="Button" parent="CanvasLayer/Panel" unique_id=1805345444 groups=["dialogue_ui", "npc"]]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 155.0
+offset_right = 472.0
+offset_bottom = 186.0
+text = "Next"
+
+[node name="ChoiceB" type="Button" parent="CanvasLayer/Panel" unique_id=639686116 groups=["dialogue_ui", "npc"]]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 190.0
+offset_right = 472.0
+offset_bottom = 221.0
+text = "Next"
+
+[node name="ChoiceC" type="Button" parent="CanvasLayer/Panel" unique_id=678988720 groups=["dialogue_ui", "npc"]]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 225.0
+offset_right = 472.0
+offset_bottom = 256.0
+text = "Next"
+
+[node name="ChoiceD" type="Button" parent="CanvasLayer/Panel" unique_id=509893750 groups=["dialogue_ui", "npc"]]
+layout_mode = 0
+offset_left = 40.0
+offset_top = 260.0
+offset_right = 472.0
+offset_bottom = 291.0
+text = "Next"
+
+[node name="PlayerHealth" type="Node2D" parent="." unique_id=2138523422]
+position = Vector2(135, 59)
+script = ExtResource("7_is0v8")
+
+[node name="Hearts" type="HBoxContainer" parent="PlayerHealth" unique_id=1232571017]
+offset_right = 86.0
+offset_bottom = 24.0
+size_flags_horizontal = 3
+size_flags_vertical = 0
+size_flags_stretch_ratio = 0.0
+
+[node name="Heart1" type="TextureRect" parent="PlayerHealth/Hearts" unique_id=934430920]
+layout_mode = 2
+texture = ExtResource("8_pq36k")
+expand_mode = 3
+
+[node name="Heart2" type="TextureRect" parent="PlayerHealth/Hearts" unique_id=1101661845]
+layout_mode = 2
+texture = ExtResource("8_pq36k")
+expand_mode = 3
+
+[node name="Heart3" type="TextureRect" parent="PlayerHealth/Hearts" unique_id=905673802]
+layout_mode = 2
+texture = ExtResource("8_pq36k")
+expand_mode = 3
+
+[node name="EnemyHealth" type="Node2D" parent="." unique_id=1022832029]
+position = Vector2(135, 59)
+script = ExtResource("9_c0725")
+
+[node name="Hearts" type="HBoxContainer" parent="EnemyHealth" unique_id=515952683]
+offset_left = 916.0
+offset_right = 1002.0
+offset_bottom = 24.0
+size_flags_horizontal = 3
+size_flags_vertical = 0
+size_flags_stretch_ratio = 0.0
+
+[node name="Heart1" type="TextureRect" parent="EnemyHealth/Hearts" unique_id=1579133023]
+layout_mode = 2
+texture = ExtResource("8_pq36k")
+expand_mode = 3
+
+[node name="Heart2" type="TextureRect" parent="EnemyHealth/Hearts" unique_id=1890307404]
+layout_mode = 2
+texture = ExtResource("8_pq36k")
+expand_mode = 3
+
+[node name="Heart3" type="TextureRect" parent="EnemyHealth/Hearts" unique_id=950681664]
+layout_mode = 2
+texture = ExtResource("8_pq36k")
+expand_mode = 3
+
+[connection signal="pressed" from="CanvasLayer/Panel/ChoiceA" to="." method="_on_choice_a_pressed"]
+[connection signal="pressed" from="CanvasLayer/Panel/ChoiceB" to="." method="_on_choice_b_pressed"]
+[connection signal="pressed" from="CanvasLayer/Panel/ChoiceC" to="." method="_on_choice_c_pressed"]
+[connection signal="pressed" from="CanvasLayer/Panel/ChoiceD" to="." method="_on_choice_d_pressed"]

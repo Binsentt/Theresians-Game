@@ -1,0 +1,45 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Capstone Theresians Quest_v6"
+run/main_scene="res://scenes/loading_screen.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+boot_splash/image="res://Images/Loading Backgroud.png"
+config/icon="res://Images/Application-Logo.png"
+
+[autoload]
+
+GameState="*res://scripts/game_state.gd"
+InputManager="*res://scripts/input_manager.gd"
+InteractionManager="*res://scripts/interaction_manager.gd"
+QuestNotificationManager="*res://scripts/quest_notification_manager.gd"
+QuestionProvider="*res://scripts/question_provider.gd"
+NpcCollisionManager="*res://scripts/npc_collision_manager.gd"
+AudioSettingsManager="*res://scripts/audio_settings_manager.gd"
+MusicManager="*res://scripts/music_manager.gd"
+
+[display]
+
+window/size/viewport_width=1215
+window/size/viewport_height=545
+window/stretch/mode="canvas_items"
+window/main_scene="uid://b7nrqn7vff7db"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+rendering_device/driver.windows="d3d12"
+renderer/rendering_method="mobile"

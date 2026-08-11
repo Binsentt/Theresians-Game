@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://drfi10idiej2x"]
+
+[ext_resource type="Texture2D" uid="uid://dsqp4x8txm36u" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/2 Objects/7 Decor/Lamp1.png" id="1_xrxap"]
+[ext_resource type="Script" path="res://scripts/outside_object_prop.gd" id="2_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_forest_light"]
+size = Vector2(18, 10)
+
+[node name="forest-light" type="StaticBody2D" unique_id=1179956632]
+position = Vector2(-2.3841858e-07, 0)
+scale = Vector2(0.4, 0.5)
+script = ExtResource("2_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_xrxap")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=468038360]
+position = Vector2(0, 12)
+shape = SubResource("RectangleShape2D_forest_light")

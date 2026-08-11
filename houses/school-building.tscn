@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://cjpd7ex4yxube"]
+
+[ext_resource type="Texture2D" uid="uid://baj0qgq7ac3c5" path="res://MetroCity .2/MetroCity 2.1/school (1).png" id="1_kot5p"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_s303n"]
+atlas = ExtResource("1_kot5p")
+region = Rect2(0, 0, 455, 768)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xhfni"]
+atlas = ExtResource("1_kot5p")
+region = Rect2(455, 0, 455, 768)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_orem3"]
+atlas = ExtResource("1_kot5p")
+region = Rect2(910, 0, 455, 768)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_6nb87"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_s303n")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xhfni")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_orem3")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_school_left"]
+size = Vector2(81.80733, 180)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_school_center"]
+size = Vector2(60.466286, 145)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_school_right"]
+size = Vector2(286.9518, 178)
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" unique_id=919284061]
+position = Vector2(-7.9999924, 16)
+scale = Vector2(0.57032967, 0.5)
+sprite_frames = SubResource("SpriteFrames_6nb87")
+
+[node name="BuildingCollisionLeft" type="StaticBody2D" parent="." unique_id=1705712520]
+position = Vector2(-130, 28)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionLeft" unique_id=2135015374]
+position = Vector2(-52.926804, 2)
+shape = SubResource("RectangleShape2D_school_left")
+
+[node name="BuildingCollisionCenter" type="StaticBody2D" parent="." unique_id=525624258]
+position = Vector2(0, 28)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionCenter" unique_id=890901519]
+position = Vector2(-110.88826, -17.5)
+shape = SubResource("RectangleShape2D_school_center")
+
+[node name="BuildingCollisionRight" type="StaticBody2D" parent="." unique_id=1586184139]
+position = Vector2(130, 28)
+
+[node name="BlockerShape" type="CollisionShape2D" parent="BuildingCollisionRight" unique_id=202488560]
+position = Vector2(-68.631996, 2)
+shape = SubResource("RectangleShape2D_school_right")

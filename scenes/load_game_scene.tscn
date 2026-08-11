@@ -1,0 +1,125 @@
+[gd_scene format=3 uid="uid://d1vrflc3gd21n"]
+
+[ext_resource type="Texture2D" uid="uid://c5cd1rgyki63p" path="res://Images/Background-Menu.png" id="1_fluog"]
+[ext_resource type="Texture2D" uid="uid://dyn5rg0xmcobe" path="res://Images/loadgame.png" id="2_cwdwd"]
+[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="3_4ntfu"]
+[ext_resource type="Script" uid="uid://b44bhscs5echs" path="res://scripts/back_btn.gd" id="4_cwdwd"]
+[ext_resource type="Script" path="res://scripts/load_game_scene.gd" id="5_scene"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_saves"]
+bg_color = Color(0.0627451, 0.0862745, 0.172549, 0.86)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.898039, 0.752941, 0.415686, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[node name="LoadGameScene" type="Control" unique_id=395386632]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_scene")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=414615538]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="BackgroundMenu" type="Sprite2D" parent="TextureRect" unique_id=948205012]
+position = Vector2(608, 271)
+scale = Vector2(0.7916665, 0.53320307)
+texture = ExtResource("1_fluog")
+
+[node name="Loadgame" type="Sprite2D" parent="TextureRect" unique_id=648768477]
+position = Vector2(608, 304)
+scale = Vector2(0.82747394, 0.6645508)
+texture = ExtResource("2_cwdwd")
+
+[node name="SavePanel" type="PanelContainer" parent="TextureRect" unique_id=1270320874]
+layout_mode = 0
+offset_left = 238.0
+offset_top = 118.0
+offset_right = 988.0
+offset_bottom = 492.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_saves")
+
+[node name="MarginContainer" type="MarginContainer" parent="TextureRect/SavePanel" unique_id=93650472]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Content" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer" unique_id=1876031187]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EmptyLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content" unique_id=1857020770]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_fonts/font = ExtResource("3_4ntfu")
+theme_override_font_sizes/font_size = 18
+text = "No save data found"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="TextureRect/SavePanel/MarginContainer/Content" unique_id=1524710865]
+custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SavesContainer" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content/ScrollContainer" unique_id=1197784146]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Fade" type="ColorRect" parent="." unique_id=2010100567]
+modulate = Color(1, 1, 1, 0)
+z_index = 100
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+metadata/_edit_lock_ = true
+
+[node name="Label" type="Label" parent="." unique_id=278067490]
+layout_mode = 0
+offset_left = 400.0
+offset_top = 58.0
+offset_right = 814.0
+offset_bottom = 104.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_4ntfu")
+theme_override_font_sizes/font_size = 46
+text = "LOAD GAME"
+
+[node name="Button" type="Button" parent="." unique_id=356833224]
+layout_mode = 0
+offset_left = 25.0
+offset_top = 29.0
+offset_right = 141.0
+offset_bottom = 75.0
+theme_override_colors/font_color = Color(0, 0.039215688, 0.60784316, 1)
+theme_override_colors/font_pressed_color = Color(0.3078449, 0.14900312, 0.026899772, 1)
+theme_override_colors/font_hover_color = Color(0.24705882, 0.3019608, 0.5411765, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("3_4ntfu")
+theme_override_font_sizes/font_size = 38
+text = "←
+"
+flat = true
+script = ExtResource("4_cwdwd")

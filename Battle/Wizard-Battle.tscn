@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://d064spd13o2kv"]
+
+[ext_resource type="Texture2D" uid="uid://cijkt33wb0j4e" path="res://Battle/Wizard-Battle.png" id="1_l38do"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1165125145]
+scale = Vector2(0.33, 0.33)
+texture = ExtResource("1_l38do")
+flip_h = true

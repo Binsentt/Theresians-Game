@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://dithkvvrxwh1l"]
+
+[ext_resource type="Texture2D" uid="uid://b54x760twqcvn" path="res://living&room/Table.png" id="1_x3mmp"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=588359]
+position = Vector2(-2.3841858e-07, 0)
+scale = Vector2(0.2, 0.209)
+texture = ExtResource("1_x3mmp")

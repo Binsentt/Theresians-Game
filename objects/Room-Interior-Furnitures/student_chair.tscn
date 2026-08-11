@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://b1ds6cvj6my25"]
+
+[ext_resource type="Texture2D" uid="uid://hydlbmqe7s1m" path="res://living&room/student-chair.png" id="1_lnhe5"]
+
+[node name="student-chair" type="Sprite2D" unique_id=811368023]
+position = Vector2(1, -2.801)
+scale = Vector2(0.126, 0.14784783)
+texture = ExtResource("1_lnhe5")

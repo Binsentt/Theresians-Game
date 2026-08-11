@@ -1,0 +1,169 @@
+[gd_scene format=3 uid="uid://cocxug131jbkm"]
+
+[ext_resource type="Texture2D" uid="uid://dxy6bktyhheoo" path="res://NPC/Teacher male.png" id="1_5k0dm"]
+[ext_resource type="Script" uid="uid://dy36lkamlo1ya" path="res://scripts/battle_enemy.gd" id="2_battle"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_elawb"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(0, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5k0dm"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(0, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_droyi"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(160, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0lf5g"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(320, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5bfw1"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(480, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x71py"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(1760, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dlu6s"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(1600, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_drier"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(1440, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3dwq6"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(1280, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_viagi"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(640, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4sxe7"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(800, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ec8o3"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(960, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3ek7a"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(1120, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_70q4n"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(2400, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o5d42"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(2240, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kin2l"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(2080, 0, 160, 177)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_l0cet"]
+atlas = ExtResource("1_5k0dm")
+region = Rect2(1920, 0, 160, 177)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_droyi"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_elawb")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5k0dm")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_droyi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0lf5g")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5bfw1")
+}],
+"loop": true,
+"name": &"walk_down",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_x71py")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dlu6s")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_drier")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3dwq6")
+}],
+"loop": true,
+"name": &"walk_left",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_viagi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4sxe7")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ec8o3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3ek7a")
+}],
+"loop": true,
+"name": &"walk_right",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_70q4n")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o5d42")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kin2l")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_l0cet")
+}],
+"loop": true,
+"name": &"walk_up",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_elawb"]
+size = Vector2(1.876173, 24.64576)
+
+[node name="Teacher" type="AnimatedSprite2D" unique_id=316579338]
+position = Vector2(-1.5258797e-06, -1.881124)
+scale = Vector2(0.065, 0.065)
+sprite_frames = SubResource("SpriteFrames_droyi")
+animation = &"walk_down"
+script = ExtResource("2_battle")
+battle_name = "Teacher"
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1251849657]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=100424970]
+position = Vector2(-7.69227, 9.4702)
+scale = Vector2(40.999996, 4.076921)
+shape = SubResource("RectangleShape2D_elawb")

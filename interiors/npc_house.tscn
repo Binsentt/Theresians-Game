@@ -1,0 +1,562 @@
+[gd_scene format=4 uid="uid://qm0827mck517"]
+
+[ext_resource type="Texture2D" uid="uid://c83fju3bs52tr" path="res://Village/tilesheet_16x16-removebg-preview.png" id="1_c3wwp"]
+[ext_resource type="PackedScene" uid="uid://b7phmgjyoh8u3" path="res://objects/Room-Interior-Furnitures/bed-2.tscn" id="2_tjc36"]
+[ext_resource type="PackedScene" uid="uid://bxoqspxupsiwh" path="res://objects/Room-Interior-Furnitures/cabinet-decot.tscn" id="4_pjpmn"]
+[ext_resource type="PackedScene" uid="uid://c8q2n0bn6tgrj" path="res://objects/Room-Interior-Furnitures/carpet.tscn" id="5_do1m3"]
+[ext_resource type="PackedScene" uid="uid://dithkvvrxwh1l" path="res://objects/Room-Interior-Furnitures/diningtable.tscn" id="8_jygow"]
+[ext_resource type="PackedScene" uid="uid://60plh0b47vxl" path="res://objects/Room-Interior-Furnitures/living-clock.tscn" id="8_rjlji"]
+[ext_resource type="PackedScene" uid="uid://ixpuacp4543x" path="res://objects/Room-Interior-Furnitures/kitchen.tscn" id="10_o6w4b"]
+[ext_resource type="PackedScene" uid="uid://jwndqaqic6l1" path="res://objects/Room-Interior-Furnitures/longchair-1.tscn" id="11_2sule"]
+[ext_resource type="PackedScene" uid="uid://cqeg4jvn4tiew" path="res://objects/Room-Interior-Furnitures/living-tv.tscn" id="11_qmsgc"]
+[ext_resource type="PackedScene" uid="uid://dtgi0ns1imagj" path="res://objects/Room-Interior-Furnitures/computertable.tscn" id="12_0n10y"]
+[ext_resource type="PackedScene" uid="uid://buojftrwe2wj1" path="res://objects/Room-Interior-Furnitures/longchair-2.tscn" id="12_1y2t2"]
+[ext_resource type="PackedScene" uid="uid://ujgo8vxgu6ty" path="res://objects/Room-Interior-Furnitures/computer.tscn" id="13_pjpmn"]
+[ext_resource type="PackedScene" uid="uid://diyid07shna6l" path="res://objects/Room-Interior-Furnitures/side-sofa.tscn" id="14_20dav"]
+[ext_resource type="PackedScene" uid="uid://ddougyp1cydrq" path="res://objects/Room-Interior-Furnitures/stove.tscn" id="14_do1m3"]
+[ext_resource type="PackedScene" uid="uid://cqroj1plp8pvv" path="res://objects/Room-Interior-Furnitures/Heater.tscn" id="15_2unkd"]
+[ext_resource type="PackedScene" uid="uid://cks7gnurebwoo" path="res://objects/Room-Interior-Furnitures/ceiling-decor.tscn" id="16_tf0yf"]
+[ext_resource type="PackedScene" uid="uid://b4fesxwsv7v1t" path="res://objects/Room-Interior-Furnitures/plate-cabinet.tscn" id="17_jygow"]
+[ext_resource type="PackedScene" uid="uid://d2ukdnkj44hyc" path="res://objects/Room-Interior-Furnitures/door-carpet.tscn" id="18_pjpmn"]
+[ext_resource type="Script" uid="uid://cv4g5p3cow42t" path="res://scripts/gameplay_scene.gd" id="19_gameplay"]
+[ext_resource type="Script" path="res://scripts/interior_collision_builder.gd" id="20_collisions"]
+[ext_resource type="Script" uid="uid://81xohjhy77e3" path="res://scripts/map_camera_bounds.gd" id="21_bounds"]
+[ext_resource type="PackedScene" uid="uid://c8kt3owriwm77" path="res://Door-Navigations-Scene2Scene/interior_house_door.tscn" id="22_door"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_c3wwp"]
+texture = ExtResource("1_c3wwp")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+6:0/0 = 0
+7:0/0 = 0
+8:0/0 = 0
+9:0/0 = 0
+10:0/0 = 0
+11:0/0 = 0
+12:0/0 = 0
+13:0/0 = 0
+14:0/0 = 0
+15:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+4:1/0 = 0
+5:1/0 = 0
+6:1/0 = 0
+7:1/0 = 0
+8:1/0 = 0
+9:1/0 = 0
+10:1/0 = 0
+11:1/0 = 0
+12:1/0 = 0
+13:1/0 = 0
+14:1/0 = 0
+15:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+2:2/0 = 0
+3:2/0 = 0
+4:2/0 = 0
+5:2/0 = 0
+6:2/0 = 0
+7:2/0 = 0
+8:2/0 = 0
+9:2/0 = 0
+10:2/0 = 0
+11:2/0 = 0
+12:2/0 = 0
+13:2/0 = 0
+14:2/0 = 0
+15:2/0 = 0
+0:3/0 = 0
+1:3/0 = 0
+2:3/0 = 0
+3:3/0 = 0
+4:3/0 = 0
+5:3/0 = 0
+6:3/0 = 0
+7:3/0 = 0
+8:3/0 = 0
+9:3/0 = 0
+10:3/0 = 0
+11:3/0 = 0
+12:3/0 = 0
+13:3/0 = 0
+14:3/0 = 0
+15:3/0 = 0
+0:4/0 = 0
+1:4/0 = 0
+2:4/0 = 0
+3:4/0 = 0
+4:4/0 = 0
+5:4/0 = 0
+6:4/0 = 0
+7:4/0 = 0
+8:4/0 = 0
+9:4/0 = 0
+10:4/0 = 0
+11:4/0 = 0
+12:4/0 = 0
+13:4/0 = 0
+14:4/0 = 0
+15:4/0 = 0
+0:5/0 = 0
+1:5/0 = 0
+2:5/0 = 0
+3:5/0 = 0
+4:5/0 = 0
+5:5/0 = 0
+6:5/0 = 0
+7:5/0 = 0
+8:5/0 = 0
+9:5/0 = 0
+10:5/0 = 0
+11:5/0 = 0
+12:5/0 = 0
+13:5/0 = 0
+14:5/0 = 0
+15:5/0 = 0
+0:6/0 = 0
+1:6/0 = 0
+2:6/0 = 0
+3:6/0 = 0
+4:6/0 = 0
+5:6/0 = 0
+6:6/0 = 0
+7:6/0 = 0
+8:6/0 = 0
+9:6/0 = 0
+10:6/0 = 0
+11:6/0 = 0
+12:6/0 = 0
+13:6/0 = 0
+14:6/0 = 0
+15:6/0 = 0
+0:7/0 = 0
+1:7/0 = 0
+2:7/0 = 0
+3:7/0 = 0
+4:7/0 = 0
+5:7/0 = 0
+6:7/0 = 0
+7:7/0 = 0
+8:7/0 = 0
+9:7/0 = 0
+10:7/0 = 0
+11:7/0 = 0
+12:7/0 = 0
+13:7/0 = 0
+14:7/0 = 0
+15:7/0 = 0
+0:8/0 = 0
+1:8/0 = 0
+2:8/0 = 0
+3:8/0 = 0
+4:8/0 = 0
+5:8/0 = 0
+6:8/0 = 0
+7:8/0 = 0
+8:8/0 = 0
+9:8/0 = 0
+10:8/0 = 0
+11:8/0 = 0
+12:8/0 = 0
+13:8/0 = 0
+14:8/0 = 0
+15:8/0 = 0
+0:9/0 = 0
+1:9/0 = 0
+2:9/0 = 0
+3:9/0 = 0
+4:9/0 = 0
+5:9/0 = 0
+6:9/0 = 0
+7:9/0 = 0
+8:9/0 = 0
+9:9/0 = 0
+10:9/0 = 0
+11:9/0 = 0
+12:9/0 = 0
+13:9/0 = 0
+14:9/0 = 0
+15:9/0 = 0
+0:10/0 = 0
+1:10/0 = 0
+2:10/0 = 0
+3:10/0 = 0
+4:10/0 = 0
+5:10/0 = 0
+6:10/0 = 0
+7:10/0 = 0
+8:10/0 = 0
+9:10/0 = 0
+10:10/0 = 0
+11:10/0 = 0
+12:10/0 = 0
+13:10/0 = 0
+14:10/0 = 0
+15:10/0 = 0
+0:11/0 = 0
+1:11/0 = 0
+2:11/0 = 0
+3:11/0 = 0
+4:11/0 = 0
+5:11/0 = 0
+6:11/0 = 0
+7:11/0 = 0
+8:11/0 = 0
+9:11/0 = 0
+10:11/0 = 0
+11:11/0 = 0
+12:11/0 = 0
+13:11/0 = 0
+14:11/0 = 0
+15:11/0 = 0
+0:12/0 = 0
+1:12/0 = 0
+2:12/0 = 0
+3:12/0 = 0
+4:12/0 = 0
+5:12/0 = 0
+6:12/0 = 0
+7:12/0 = 0
+8:12/0 = 0
+9:12/0 = 0
+10:12/0 = 0
+11:12/0 = 0
+12:12/0 = 0
+13:12/0 = 0
+14:12/0 = 0
+15:12/0 = 0
+0:13/0 = 0
+1:13/0 = 0
+2:13/0 = 0
+3:13/0 = 0
+4:13/0 = 0
+5:13/0 = 0
+6:13/0 = 0
+7:13/0 = 0
+8:13/0 = 0
+9:13/0 = 0
+10:13/0 = 0
+11:13/0 = 0
+12:13/0 = 0
+13:13/0 = 0
+14:13/0 = 0
+15:13/0 = 0
+0:14/0 = 0
+1:14/0 = 0
+2:14/0 = 0
+3:14/0 = 0
+4:14/0 = 0
+5:14/0 = 0
+6:14/0 = 0
+7:14/0 = 0
+8:14/0 = 0
+9:14/0 = 0
+10:14/0 = 0
+11:14/0 = 0
+12:14/0 = 0
+13:14/0 = 0
+14:14/0 = 0
+15:14/0 = 0
+0:15/0 = 0
+1:15/0 = 0
+2:15/0 = 0
+3:15/0 = 0
+4:15/0 = 0
+5:15/0 = 0
+6:15/0 = 0
+7:15/0 = 0
+8:15/0 = 0
+9:15/0 = 0
+10:15/0 = 0
+11:15/0 = 0
+12:15/0 = 0
+13:15/0 = 0
+14:15/0 = 0
+15:15/0 = 0
+0:16/0 = 0
+1:16/0 = 0
+2:16/0 = 0
+3:16/0 = 0
+4:16/0 = 0
+5:16/0 = 0
+6:16/0 = 0
+7:16/0 = 0
+8:16/0 = 0
+9:16/0 = 0
+10:16/0 = 0
+11:16/0 = 0
+12:16/0 = 0
+13:16/0 = 0
+14:16/0 = 0
+15:16/0 = 0
+0:17/0 = 0
+1:17/0 = 0
+2:17/0 = 0
+3:17/0 = 0
+4:17/0 = 0
+5:17/0 = 0
+6:17/0 = 0
+7:17/0 = 0
+8:17/0 = 0
+9:17/0 = 0
+10:17/0 = 0
+11:17/0 = 0
+12:17/0 = 0
+13:17/0 = 0
+14:17/0 = 0
+15:17/0 = 0
+0:18/0 = 0
+1:18/0 = 0
+2:18/0 = 0
+3:18/0 = 0
+4:18/0 = 0
+5:18/0 = 0
+6:18/0 = 0
+7:18/0 = 0
+8:19/0 = 0
+9:19/0 = 0
+10:19/0 = 0
+11:19/0 = 0
+12:19/0 = 0
+13:19/0 = 0
+14:19/0 = 0
+15:19/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_stme6"]
+sources/0 = SubResource("TileSetAtlasSource_c3wwp")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_rwdoi"]
+texture = ExtResource("1_c3wwp")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+6:0/0 = 0
+7:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+4:1/0 = 0
+5:1/0 = 0
+6:1/0 = 0
+7:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+2:2/0 = 0
+3:2/0 = 0
+4:2/0 = 0
+5:2/0 = 0
+6:2/0 = 0
+7:2/0 = 0
+0:3/0 = 0
+1:3/0 = 0
+2:3/0 = 0
+3:3/0 = 0
+4:3/0 = 0
+5:3/0 = 0
+6:3/0 = 0
+7:3/0 = 0
+0:4/0 = 0
+1:4/0 = 0
+2:4/0 = 0
+3:4/0 = 0
+4:4/0 = 0
+5:4/0 = 0
+6:4/0 = 0
+7:4/0 = 0
+0:5/0 = 0
+1:5/0 = 0
+2:5/0 = 0
+3:5/0 = 0
+4:5/0 = 0
+5:5/0 = 0
+6:5/0 = 0
+7:5/0 = 0
+0:6/0 = 0
+1:6/0 = 0
+2:6/0 = 0
+3:6/0 = 0
+4:6/0 = 0
+5:6/0 = 0
+6:6/0 = 0
+7:6/0 = 0
+0:7/0 = 0
+1:7/0 = 0
+2:7/0 = 0
+3:7/0 = 0
+4:7/0 = 0
+5:7/0 = 0
+6:7/0 = 0
+7:7/0 = 0
+0:8/0 = 0
+1:8/0 = 0
+2:8/0 = 0
+3:8/0 = 0
+4:8/0 = 0
+5:8/0 = 0
+6:8/0 = 0
+7:8/0 = 0
+0:9/0 = 0
+1:9/0 = 0
+2:9/0 = 0
+3:9/0 = 0
+4:9/0 = 0
+5:9/0 = 0
+6:9/0 = 0
+7:9/0 = 0
+2:11/0 = 0
+0:11/0 = 0
+1:11/0 = 0
+3:11/0 = 0
+4:11/0 = 0
+5:11/0 = 0
+6:11/0 = 0
+7:11/0 = 0
+1:12/0 = 0
+0:12/0 = 0
+4:12/0 = 0
+5:12/0 = 0
+5:13/0 = 0
+6:13/0 = 0
+4:13/0 = 0
+3:13/0 = 0
+2:13/0 = 0
+7:13/0 = 0
+8:11/0 = 0
+9:11/0 = 0
+10:11/0 = 0
+11:11/0 = 0
+12:11/0 = 0
+8:10/0 = 0
+9:10/0 = 0
+10:10/0 = 0
+11:10/0 = 0
+12:10/0 = 0
+13:10/0 = 0
+13:11/0 = 0
+14:11/0 = 0
+7:10/0 = 0
+6:10/0 = 0
+5:10/0 = 0
+4:10/0 = 0
+3:10/0 = 0
+2:10/0 = 0
+1:10/0 = 0
+0:10/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_pjpmn"]
+sources/2 = SubResource("TileSetAtlasSource_rwdoi")
+
+[node name="NPC-house-1" type="Node2D" unique_id=138512965]
+script = ExtResource("19_gameplay")
+
+[node name="TileMapLayer" type="TileMapLayer" parent="." unique_id=664018000]
+tile_map_data = PackedByteArray("AAAQAAsAAAABAAwAAAAPAAsAAAABAAwAAAAOAAsAAAABAAwAAAAOAAoAAAABAAwAAAAPAAoAAAABAAwAAAAQAAoAAAABAAwAAAAQAAkAAAABAAwAAAAPAAkAAAABAAwAAAAOAAkAAAABAAwAAAAOAAgAAAABAAwAAAAPAAgAAAABAAwAAAAQAAgAAAABAAwAAAARAAgAAAABAAwAAAARAAcAAAABAAwAAAAQAAcAAAABAAwAAAAPAAcAAAABAAwAAAAOAAcAAAABAAwAAAAOAAYAAAABAAwAAAAPAAYAAAABAAwAAAAQAAYAAAABAAwAAAARAAYAAAABAAwAAAASAAYAAAABAAwAAAATAAYAAAABAAwAAAATAAcAAAABAAwAAAASAAcAAAABAAwAAAASAAgAAAABAAwAAAATAAgAAAABAAwAAAATAAkAAAABAAwAAAASAAkAAAABAAwAAAASAAoAAAABAAwAAAASAAsAAAABAAwAAAATAAsAAAABAAwAAAATAAoAAAABAAwAAAAUAAoAAAABAAwAAAAUAAkAAAABAAwAAAAUAAsAAAABAAwAAAAVAAsAAAABAAwAAAAVAAoAAAABAAwAAAAVAAkAAAABAAwAAAAVAAYAAAABAAwAAAAVAAcAAAABAAwAAAAWAAYAAAABAAwAAAAWAAcAAAABAAwAAAAWAAgAAAABAAwAAAAWAAkAAAABAAwAAAAWAAoAAAABAAwAAAAWAAsAAAABAAwAAAAUAAcAAAABAAwAAAAUAAYAAAABAAwAAAARAAsAAAABAAwAAAARAAoAAAABAAwAAAARAAkAAAABAAwAAAAXAAsAAAABAAwAAAAXAAoAAAABAAwAAAAXAAkAAAABAAwAAAAXAAgAAAABAAwAAAAXAAcAAAABAAwAAAAXAAYAAAABAAwAAAA=")
+tile_set = SubResource("TileSet_stme6")
+
+[node name="wall" type="TileMapLayer" parent="." unique_id=1320429361]
+tile_map_data = PackedByteArray("AAAOAAwAAgADAAkAAAAPAAwAAgADAAkAAAAQAAwAAgADAAkAAAARAAwAAgADAAkAAAASAAwAAgACAAkAAAATAAwAAgACAAkAAAAUAAwAAgACAAkAAAAVAAwAAgACAAkAAAANAAwAAgADAAkAAAAOAAUAAgACAAkAAAAPAAUAAgACAAkAAAAQAAUAAgACAAkAAAARAAUAAgACAAkAAAASAAUAAgACAAkAAAATAAUAAgABAAYAAAAVAAUAAgACAAkAAAAVAAgAAgACAAkAAAAUAAgAAgACAAkAAAANAAUAAgAAAAYAAAANAAYAAgAAAAYAAAANAAcAAgAAAAYAAAANAAgAAgAAAAYAAAANAAkAAgAAAAYAAAANAAoAAgAAAAYAAAANAAsAAgAAAAYAAAAWAAUAAgABAAkAAAAWAAwAAgADAAkAAAATAAYAAgABAAYAAAATAAcAAgABAAYAAAATAAgAAgACAAkAAAAUAAUAAgACAAkAAAAQAAsAAgABAAYAAAAQAAoAAgABAAYAAAAQAAkAAgABAAYAAAAXAAwAAgACAAkAAAAYAAwAAgACAAkAAAAYAAsAAgABAAYAAAAYAAoAAgABAAYAAAAYAAkAAgABAAYAAAAYAAgAAgABAAYAAAAYAAcAAgABAAYAAAAYAAYAAgABAAYAAAAYAAUAAgABAAYAAAAXAAUAAgACAAkAAAAWAAgAAgABAAkAAAA=")
+tile_set = SubResource("TileSet_pjpmn")
+
+[node name="Sprite2D" parent="." unique_id=19070041 instance=ExtResource("2_tjc36")]
+position = Vector2(331, 99)
+
+[node name="Sprite2D2" parent="." unique_id=1134748939 instance=ExtResource("4_pjpmn")]
+position = Vector2(310.00003, 142)
+scale = Vector2(0.24545455, 0.2)
+
+[node name="Sprite2D3" parent="." unique_id=588359 instance=ExtResource("8_jygow")]
+position = Vector2(291, 173)
+scale = Vector2(0.2310811, 0.24186589)
+
+[node name="Sprite2D4" parent="." unique_id=686179381 instance=ExtResource("10_o6w4b")]
+position = Vector2(283, 95)
+
+[node name="Sprite2D9" parent="." unique_id=1247110685 instance=ExtResource("5_do1m3")]
+position = Vector2(348, 158)
+
+[node name="Sprite2D5" parent="." unique_id=2058263476 instance=ExtResource("8_rjlji")]
+position = Vector2(320, 141)
+scale = Vector2(0.19642821, 0.16282858)
+
+[node name="Sprite2D6" parent="." unique_id=875303579 instance=ExtResource("11_qmsgc")]
+position = Vector2(347.44998, 140.13776)
+scale = Vector2(0.1434213, 0.11059016)
+
+[node name="Sprite2D7" parent="." unique_id=2019817741 instance=ExtResource("14_20dav")]
+y_sort_enabled = true
+position = Vector2(339.00003, 158)
+scale = Vector2(0.45468807, 0.5164064)
+
+[node name="Sprite2D8" parent="." unique_id=1551332602 instance=ExtResource("14_20dav")]
+y_sort_enabled = true
+position = Vector2(356, 158)
+scale = Vector2(0.45393836, 0.5234369)
+flip_h = true
+
+[node name="Sprite2D10" parent="." unique_id=2092500580 instance=ExtResource("11_2sule")]
+position = Vector2(277.00003, 174.5458)
+scale = Vector2(0.18629007, 0.21255794)
+
+[node name="Sprite2D11" parent="." unique_id=689457295 instance=ExtResource("12_1y2t2")]
+position = Vector2(291, 187.00002)
+scale = Vector2(0.14070262, 0.12666605)
+
+[node name="Sprite2D12" parent="." unique_id=909696059 instance=ExtResource("11_2sule")]
+position = Vector2(304, 174)
+
+[node name="Sprite2D13" parent="." unique_id=271506575 instance=ExtResource("12_1y2t2")]
+position = Vector2(291, 160)
+
+[node name="Computertable" parent="." unique_id=343423667 instance=ExtResource("12_0n10y")]
+position = Vector2(364, 95)
+scale = Vector2(0.6, 0.6)
+
+[node name="computer" parent="." unique_id=1228563126 instance=ExtResource("13_pjpmn")]
+position = Vector2(368, 91)
+
+[node name="Sprite2D14" parent="." unique_id=1603508826 instance=ExtResource("14_do1m3")]
+position = Vector2(244, 95)
+
+[node name="Sprite2D15" parent="." unique_id=1733427854 instance=ExtResource("15_2unkd")]
+position = Vector2(231.99998, 92)
+
+[node name="Sprite2D16" parent="." unique_id=870158301 instance=ExtResource("16_tf0yf")]
+position = Vector2(294, 90.9375)
+scale = Vector2(0.05555566, 0.0634615)
+
+[node name="Sprite2D17" parent="." unique_id=482482669 instance=ExtResource("17_jygow")]
+position = Vector2(268, 93)
+
+[node name="Sprite2D18" parent="." unique_id=96705919 instance=ExtResource("18_pjpmn")]
+position = Vector2(239.00002, 187)
+scale = Vector2(0.07, 0.078)
+
+[node name="PlayerSpawn" type="Marker2D" parent="."]
+position = Vector2(239, 160)
+
+[node name="InteriorCollisionBuilder" type="Node" parent="."]
+script = ExtResource("20_collisions")
+
+[node name="MapCameraBounds" type="Node2D" parent="."]
+script = ExtResource("21_bounds")
+limit_right = 416
+limit_bottom = 224
+
+[node name="Interior-House Door" parent="." instance=ExtResource("22_door")]
+position = Vector2(239, 187)
+destination_scene_path = "res://scenes/oak_leaf_village.tscn"
+destination_spawn_position = Vector2(952, 283)
+destination_spawn_marker_name = "NpcHouseExitSpawn"
+destination_facing_direction = "down"

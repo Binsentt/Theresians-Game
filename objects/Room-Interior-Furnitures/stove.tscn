@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://ddougyp1cydrq"]
+
+[ext_resource type="Texture2D" uid="uid://bfl3d5hfwg3m3" path="res://living&room/stove.png" id="1_ir2j5"]
+
+[node name="Sprite2D" type="Sprite2D" unique_id=1603508826]
+position = Vector2(0, 2.3841858e-07)
+scale = Vector2(0.075, 0.063)
+texture = ExtResource("1_ir2j5")

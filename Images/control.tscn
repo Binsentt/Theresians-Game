@@ -1,0 +1,210 @@
+[gd_scene format=3 uid="uid://dr4na17a0cnpb"]
+
+[ext_resource type="Texture2D" uid="uid://dvxojb3lpqahx" path="res://Images/popup.png" id="1_ee4bf"]
+[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="3_kbped"]
+[ext_resource type="Texture2D" uid="uid://cg4wtlqou0rd2" path="res://Images/grabber.png" id="4_6a6wx"]
+[ext_resource type="Texture2D" uid="uid://dhtn0o3ukx2t0" path="res://Images/btn.png" id="4_iy58a"]
+[ext_resource type="Texture2D" uid="uid://b10upp8m1yaof" path="res://Images/slide bar.png" id="5_sky72"]
+[ext_resource type="Texture2D" uid="uid://dgc2jjg1875wh" path="res://Images/unchecked.png" id="6_0ytqx"]
+[ext_resource type="Texture2D" uid="uid://tsjhtfh6eb0w" path="res://Images/checked.png" id="7_pxugv"]
+[ext_resource type="Script" uid="uid://dwgs0fanbyyob" path="res://Images/settingsbtn.gd" id="9_wykrl"]
+[ext_resource type="Texture2D" uid="uid://cye4hy5o2054t" path="res://Images/settings-logo.png" id="10_pxugv"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_eh0v1"]
+texture = ExtResource("5_sky72")
+expand_margin_left = 8.0
+expand_margin_top = 8.0
+expand_margin_right = 8.0
+expand_margin_bottom = 8.0
+
+[node name="Control" type="Control" unique_id=1863059356]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_horizontal_guides_ = [-208.0]
+
+[node name="SettingsPopup" type="Control" parent="." unique_id=564026973]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="SettingsPopup" unique_id=1618288385]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -331.0
+offset_top = -243.5
+offset_right = 331.0
+offset_bottom = 243.5
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_ee4bf")
+expand_mode = 1
+
+[node name="Button" type="Button" parent="SettingsPopup/TextureRect" unique_id=1772647660]
+layout_mode = 0
+offset_left = 512.5
+offset_top = 135.0
+offset_right = 545.5
+offset_bottom = 168.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_hover_color = Color(0.8999648, 0.9858591, 0.79900074, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("3_kbped")
+theme_override_font_sizes/font_size = 25
+text = "X"
+flat = true
+
+[node name="Label" type="Label" parent="SettingsPopup/TextureRect" unique_id=1749267300]
+layout_mode = 0
+offset_left = 149.5
+offset_top = 363.0
+offset_right = 209.5
+offset_bottom = 373.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_kbped")
+theme_override_font_sizes/font_size = 10
+text = "VOLUME"
+
+[node name="Label2" type="Label" parent="SettingsPopup/TextureRect" unique_id=1109438978]
+layout_mode = 0
+offset_left = 443.5
+offset_top = 377.0
+offset_right = 523.5
+offset_bottom = 389.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 10
+theme_override_fonts/font = ExtResource("3_kbped")
+theme_override_font_sizes/font_size = 10
+text = "MUTE SFX"
+
+[node name="Volume" type="HSlider" parent="SettingsPopup/TextureRect" unique_id=1838033773]
+layout_mode = 0
+offset_left = 149.5
+offset_top = 379.0
+offset_right = 349.5
+offset_bottom = 405.0
+theme_override_icons/grabber = ExtResource("4_6a6wx")
+theme_override_icons/grabber_highlight = ExtResource("4_6a6wx")
+theme_override_icons/grabber_disabled = ExtResource("4_6a6wx")
+theme_override_styles/slider = SubResource("StyleBoxTexture_eh0v1")
+
+[node name="TextureButton" type="TextureButton" parent="SettingsPopup/TextureRect" unique_id=2035924621]
+layout_mode = 0
+offset_left = 395.5
+offset_top = 363.0
+offset_right = 878.5
+offset_bottom = 834.0
+scale = Vector2(0.07999514, 0.07999264)
+toggle_mode = true
+texture_normal = ExtResource("6_0ytqx")
+texture_pressed = ExtResource("7_pxugv")
+
+[node name="Btn1" type="Sprite2D" parent="SettingsPopup" unique_id=206965514]
+position = Vector2(12.500061, -60.5)
+scale = Vector2(0.91, 0.8)
+texture = ExtResource("4_iy58a")
+
+[node name="Label" type="Label" parent="SettingsPopup/Btn1" unique_id=480481676]
+offset_left = -64.0
+offset_top = -20.0
+offset_right = 72.0
+offset_bottom = 14.0
+theme_override_colors/font_color = Color(0.9869247, 0.84910834, 0.8752673, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 3
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = ExtResource("3_kbped")
+text = "RESUME"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Btn2" type="Sprite2D" parent="SettingsPopup" unique_id=1042930902]
+position = Vector2(12.5, -4.5)
+scale = Vector2(0.9, 0.81)
+texture = ExtResource("4_iy58a")
+
+[node name="Label" type="Label" parent="SettingsPopup/Btn2" unique_id=1471685363]
+offset_left = -30.0
+offset_top = -20.0
+offset_right = 34.0
+offset_bottom = 14.0
+theme_override_colors/font_color = Color(0.9869247, 0.84910834, 0.8752673, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 3
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = ExtResource("3_kbped")
+text = "SAVE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Btn3" type="Sprite2D" parent="SettingsPopup" unique_id=1569017800]
+position = Vector2(12.5, 51.5)
+scale = Vector2(0.9, 0.81)
+texture = ExtResource("4_iy58a")
+
+[node name="Label" type="Label" parent="SettingsPopup/Btn3" unique_id=1648048827]
+offset_left = -64.0
+offset_top = -20.0
+offset_right = 72.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.9869247, 0.84910834, 0.8752673, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 3
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = ExtResource("3_kbped")
+text = "SETTINGS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Btn4" type="Sprite2D" parent="SettingsPopup" unique_id=1228445169]
+position = Vector2(12.5, 107.5)
+scale = Vector2(0.9, 0.81)
+texture = ExtResource("4_iy58a")
+
+[node name="Label" type="Label" parent="SettingsPopup/Btn4" unique_id=1109834711]
+offset_left = -69.0
+offset_top = -20.0
+offset_right = 67.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.9869247, 0.84910834, 0.8752673, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 3
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = ExtResource("3_kbped")
+text = "EXIT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Button" type="Button" parent="." unique_id=1851166817]
+layout_mode = 0
+offset_left = -6.0
+offset_top = -4.0
+offset_right = 507.0
+offset_bottom = 498.0
+scale = Vector2(0.1, 0.1)
+icon = ExtResource("10_pxugv")
+flat = true
+script = ExtResource("9_wykrl")

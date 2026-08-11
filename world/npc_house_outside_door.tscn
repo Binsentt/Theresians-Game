@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="1_door"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_npc_house_world"]
+size = Vector2(15, 12)
+
+[node name="NPC_House_Outside-door" type="Area2D"]
+script = ExtResource("1_door")
+destination_scene_path = "res://interiors/npc_house.tscn"
+destination_spawn_position = Vector2(239, 160)
+destination_spawn_marker_name = "PlayerSpawn"
+destination_facing_direction = "down"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_npc_house_world")
