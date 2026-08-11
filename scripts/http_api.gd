@@ -89,17 +89,3 @@ func post(path: String, payload: Dictionary, timeout_ms: int = -1) -> Dictionary
 	http.queue_free()
 	return {"ok": true, "status": response_code, "body": parsed}
 
-# compatibility helper for await signal
-func await_signal(node: Node, signal_name: String) -> Array:
-	var completed := false
-	var result := []
-	var conn = null
-	func _on_signal(a, b, c, d, e):
-		result = [a, b, c, d, e]
-		completed = true
-		if conn:
-			node.disconnect(signal_name, self, "_on_signal")
-	conn = node.connect(signal_name, self, "_on_signal")
-	while not completed:
-		OS.delay_msec(10)
-	return result

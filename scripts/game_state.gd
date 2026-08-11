@@ -10,6 +10,7 @@ signal battle_ended
 signal mode_changed(previous_mode: GameMode, current_mode: GameMode)
 signal task_state_changed(previous_index: int, current_index: int, event: Dictionary)
 signal progression_session_reset(source: String)
+signal time_limit_reached
 
 enum GameMode { EXPLORATION, DIALOGUE, CUTSCENE, BATTLE, MENU }
 
@@ -61,6 +62,14 @@ var battle_active: bool = false
 var current_battle_enemy_path: NodePath = NodePath()
 
 var city_of_knowledge_unlocked := false
+
+const DEFAULT_PLAYTIME_LIMIT_MINUTES := 60
+var playtime_limit_minutes: int = DEFAULT_PLAYTIME_LIMIT_MINUTES
+var playtime_remaining_minutes: int = DEFAULT_PLAYTIME_LIMIT_MINUTES
+var playtime_remaining_seconds: float = DEFAULT_PLAYTIME_LIMIT_MINUTES * 60.0
+var playtime_authorized: bool = true
+var playtime_countdown_active: bool = false
+var _playtime_limit_triggered: bool = false
 
 var _pending_scene_spawn: Dictionary = {}
 var _return_context: Dictionary = {}
@@ -224,7 +233,7 @@ func is_valid_new_game_registration(values: Dictionary) -> bool:
 	)
 
 
-func start_new_game(profile: Dictionary) -> void:
+func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = true) -> void:
 	player_name = String(profile.get("player_name", "")).strip_edges()
 	gender = String(profile.get("gender", "male")).to_lower()
 	grade_level = String(profile.get("grade_level", "")).strip_edges()
@@ -245,12 +254,102 @@ func start_new_game(profile: Dictionary) -> void:
 
 	lives_changed.emit(current_lives, max_lives)
 	quest_changed.emit(current_quest)
-	progression_session_reset.emit("new_game")
+	if emit_progression_session_reset:
+		progression_session_reset.emit("new_game")
 
+
+func configure_playtime_allowance(response_body: Dictionary) -> void:
+	if response_body.is_empty():
+		playtime_authorized = false
+		playtime_countdown_active = false
+		playtime_remaining_minutes = 0
+		playtime_remaining_seconds = 0.0
+		playtime_limit_minutes = DEFAULT_PLAYTIME_LIMIT_MINUTES
+		_playtime_limit_triggered = false
+		return
+
+	var daily_limit := int(response_body.get("daily_limit_minutes", DEFAULT_PLAYTIME_LIMIT_MINUTES))
+	if daily_limit <= 0:
+		daily_limit = DEFAULT_PLAYTIME_LIMIT_MINUTES
+
+	var remaining_minutes := int(response_body.get("remaining_minutes", daily_limit))
+	var api_authorized := bool(response_body.get("can_play", true))
+	if response_body.has("should_block"):
+		api_authorized = api_authorized and not bool(response_body.get("should_block", false))
+
+	playtime_limit_minutes = max(0, daily_limit)
+	playtime_remaining_minutes = max(0, remaining_minutes)
+	playtime_remaining_seconds = float(playtime_remaining_minutes) * 60.0
+	playtime_authorized = api_authorized
+	playtime_countdown_active = api_authorized and playtime_limit_minutes > 0 and playtime_remaining_seconds > 0.0
+	_playtime_limit_triggered = false
+
+	if playtime_remaining_seconds <= 0.0:
+		playtime_countdown_active = false
+		playtime_authorized = false
+		playtime_remaining_minutes = 0
+		playtime_remaining_seconds = 0.0
+
+func consume_playtime_clock(delta: float) -> void:
+	if not playtime_countdown_active:
+		return
+	if delta <= 0.0:
+		return
+	if playtime_remaining_seconds <= 0.0:
+		playtime_countdown_active = false
+		playtime_authorized = false
+		playtime_remaining_minutes = 0
+		playtime_remaining_seconds = 0.0
+		if not _playtime_limit_triggered:
+			_playtime_limit_triggered = true
+			time_limit_reached.emit()
+		return
+
+	playtime_remaining_seconds = maxf(0.0, playtime_remaining_seconds - delta)
+	if playtime_remaining_seconds <= 0.0:
+		playtime_remaining_seconds = 0.0
+		playtime_remaining_minutes = 0
+		playtime_authorized = false
+		playtime_countdown_active = false
+		if not _playtime_limit_triggered:
+			_playtime_limit_triggered = true
+			time_limit_reached.emit()
+		return
+
+	playtime_remaining_minutes = int(ceil(playtime_remaining_seconds / 60.0))
+
+func get_playtime_remaining_seconds() -> float:
+	return playtime_remaining_seconds
+
+func has_existing_game_profile_for_student_id(student_id: String) -> bool:
+	var normalized_id := String(student_id).strip_edges()
+	if not is_valid_six_digit_id(normalized_id):
+		return false
+
+	var directory := DirAccess.open(ProjectSettings.globalize_path(SAVE_DIRECTORY))
+	if directory == null:
+		return false
+
+	directory.list_dir_begin()
+	var file_name := directory.get_next()
+	while not file_name.is_empty():
+		if not directory.current_is_dir() and file_name.ends_with(".json"):
+			var save_path := SAVE_DIRECTORY + "/" + file_name
+			var save_data := _read_save_file(save_path)
+			if not save_data.is_empty():
+				var saved_student_id := String(save_data.get("student_id", ""))
+				if saved_student_id == normalized_id:
+					directory.list_dir_end()
+					return true
+		file_name = directory.get_next()
+	directory.list_dir_end()
+	return false
 
 func finalize_new_game_registration() -> bool:
 	var values := get_new_game_registration()
 	if not is_valid_new_game_registration(values):
+		return false
+	if has_existing_game_profile_for_student_id(String(values.get("student_id", ""))):
 		return false
 
 	start_new_game({
@@ -259,7 +358,7 @@ func finalize_new_game_registration() -> bool:
 		"student_id": String(values.get("student_id", "")),
 		"parent_id": String(values.get("parent_id", "")),
 		"grade_level": String(values.get("grade", ""))
-	})
+	}, false)
 	clear_new_game_registration()
 	return true
 
@@ -407,17 +506,20 @@ func list_saves() -> Array[Dictionary]:
 	return saves
 
 
-func load_save(path: String) -> Dictionary:
+func load_save(path: String, emit_progression_session_reset: bool = true) -> Dictionary:
 	var data := _read_save_file(path)
 	if data.is_empty():
 		return {}
 
-	apply_save_data(data)
+	apply_save_data(data, emit_progression_session_reset)
 	data["scene_path"] = current_scene_path
 	return data
 
+func peek_save_data(path: String) -> Dictionary:
+	return _read_save_file(path)
 
-func apply_save_data(data: Dictionary) -> void:
+
+func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = true) -> void:
 	_clear_battle_state()
 	player_name = String(data.get("player_name", ""))
 	gender = String(data.get("gender", "male")).to_lower()
@@ -444,7 +546,8 @@ func apply_save_data(data: Dictionary) -> void:
 
 	lives_changed.emit(current_lives, max_lives)
 	quest_changed.emit(current_quest)
-	progression_session_reset.emit("load")
+	if emit_progression_session_reset:
+		progression_session_reset.emit("load")
 
 # ================================
 # HELPERS
