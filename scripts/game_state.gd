@@ -91,8 +91,6 @@ var tasks = [
 	}
 ]
 
-var city_of_knowledge_unlocked := false
-
 const DEFAULT_PLAYTIME_LIMIT_MINUTES := 60
 var playtime_limit_minutes: int = DEFAULT_PLAYTIME_LIMIT_MINUTES
 var playtime_remaining_minutes: int = DEFAULT_PLAYTIME_LIMIT_MINUTES
