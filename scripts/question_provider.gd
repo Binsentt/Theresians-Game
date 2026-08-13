@@ -176,7 +176,7 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 	if id_value is String:
 		normalized["id"] = id_value
 	elif id_value is int or id_value is float:
-		normalized["id"] = String(id_value)
+		normalized["id"] = str(id_value)
 	else:
 		return {}
 

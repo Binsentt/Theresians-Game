@@ -6,9 +6,6 @@ const TRACK_ADVENTURE := "adventure"
 const FADE_DURATION := 0.2
 const SILENT_VOLUME_DB := -60.0
 const TARGET_VOLUME_DB := 0.0
-const MENU_STREAM := preload("res://bg-musics/menu.mp3")
-const HOME_STREAM := preload("res://bg-musics/schoolorhouse.mp3")
-const ADVENTURE_STREAM := preload("res://bg-musics/adventure3.mp3")
 const SCENE_TRACKS := {
 	"res://scenes/main_menu.tscn": TRACK_MENU,
 	"res://scenes/new_game_scene.tscn": TRACK_MENU,
@@ -137,10 +134,10 @@ func _get_looping_stream(track_key: String) -> AudioStream:
 func _get_stream_for_track(track_key: String) -> AudioStream:
 	match track_key:
 		TRACK_MENU:
-			return MENU_STREAM
+			return load("res://bg-musics/menu.mp3") as AudioStream
 		TRACK_HOME:
-			return HOME_STREAM
+			return load("res://bg-musics/schoolorhouse.mp3") as AudioStream
 		TRACK_ADVENTURE:
-			return ADVENTURE_STREAM
+			return load("res://bg-musics/adventure3.mp3") as AudioStream
 		_:
 			return null
