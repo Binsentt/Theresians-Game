@@ -28,6 +28,7 @@ var current_question := 0
 var questions: Array[Dictionary] = []
 var _provider: Node = null
 var _current_question_data: Dictionary = {}
+var _provider_load_completed := false
 
 func _ready():
 	_provider = get_node_or_null("/root/QuestionProvider")
@@ -38,7 +39,15 @@ func _ready():
 
 	# Load questions from provider if available, otherwise empty
 	if _provider != null and _provider.has_method("load_questions"):
-		var loaded = _provider.call("load_questions")
+		_provider_load_completed = false
+		var connected := false
+		if _provider.has_signal("questions_loaded"):
+			connected = _provider.connect("questions_loaded", Callable(self, "_on_questions_loaded"), CONNECT_ONE_SHOT) == OK
+		_provider.call("load_questions")
+		if connected:
+			while not _provider_load_completed:
+				await get_tree().process_frame
+		var loaded = _provider.call("get_questions") if _provider.has_method("get_questions") else []
 		if loaded is Array:
 			questions = Array(loaded)
 		else:
@@ -53,6 +62,10 @@ func _ready():
 
 	# Initialize the first question
 	load_question()
+
+
+func _on_questions_loaded(_count: int) -> void:
+	_provider_load_completed = true
 
 
 func load_question():

@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://r0ve0wtobq1r"]
 
+[ext_resource type="Script" uid="uid://c6hlo3i2jfsl4" path="res://scripts/leaderboard_scene_controller.gd" id="2"]
 [ext_resource type="Texture2D" uid="uid://c5cd1rgyki63p" path="res://Images/Background-Menu.png" id="2_eq4f2"]
 [ext_resource type="Texture2D" uid="uid://d0vo1jkxt3gam" path="res://Images/newgame.png" id="3_1equp"]
 [ext_resource type="Script" uid="uid://d1ujh3ar0mayx" path="res://scripts/newgm_back.gd" id="4_eq4f2"]

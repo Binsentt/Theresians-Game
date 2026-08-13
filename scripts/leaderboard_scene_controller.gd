@@ -49,7 +49,7 @@ func _refresh_leaderboard_from_api() -> void:
 		_set_connection_error_state()
 		return
 
-	var result := await http.request_get(API_PATH)
+	var result: Dictionary = await http.request_get(API_PATH)
 	if not result.get("ok", false):
 		print("Leaderboard: API request failed: %s" % str(result))
 		_set_connection_error_state()
@@ -63,7 +63,7 @@ func _refresh_leaderboard_from_api() -> void:
 	if typeof(result.get("body", [])) == TYPE_ARRAY:
 		rows = result.get("body", [])
 	elif typeof(result.get("body", {})) == TYPE_DICTIONARY:
-		var data := result.get("body", {})
+		var data: Dictionary = result.get("body", {})
 		if data.has("data") and typeof(data.get("data", [])) == TYPE_ARRAY:
 			rows = data.get("data", [])
 		else:
@@ -92,7 +92,7 @@ func _refresh_leaderboard_from_api() -> void:
 	if grade_label != null:
 		grade_label.text = String(rows[0].get("grade_level", "--"))
 	if percentage_label != null:
-		var pm := rows[0].get("progress_percentage", rows[0].get("completion_percentage", 0))
+		var pm: Variant = rows[0].get("progress_percentage", rows[0].get("completion_percentage", 0))
 		percentage_label.text = "%s%%" % String(pm)
 
 	if rank_label != null:

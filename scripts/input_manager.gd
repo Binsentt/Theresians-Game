@@ -132,5 +132,5 @@ func _on_game_mode_changed(_previous_mode: Variant, current_mode: Variant) -> vo
 		clear_mobile_state()
 
 
-func _on_scene_changed(_new_scene: Node) -> void:
+func _on_scene_changed() -> void:
 	clear_mobile_state()

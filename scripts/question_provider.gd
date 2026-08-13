@@ -203,7 +203,7 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 		correct = question.get("correct_answer")
 	if correct == null:
 		return {}
-	normalized["correct"] = String(correct)
+	normalized["correct"] = str(correct)
 
 	# optional metadata passthrough
 	for key in ["grade", "grade_level", "difficulty", "topic", "math_topic", "source"]:

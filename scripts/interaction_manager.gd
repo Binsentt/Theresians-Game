@@ -125,7 +125,8 @@ func _on_input_lock_changed(is_locked: bool) -> void:
 	_refresh_active_interactable()
 
 
-func _on_scene_changed(current_scene: Node) -> void:
+func _on_scene_changed() -> void:
+	var current_scene: Node = get_tree().current_scene if get_tree() != null else null
 	var stale_components: Array = []
 	for component in _registrations.keys():
 		if not _is_component_in_current_scene(component, current_scene):

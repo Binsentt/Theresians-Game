@@ -293,8 +293,42 @@ func _on_ids_next_pressed() -> void:
 		parent_id_input.grab_focus()
 		return
 
+	_step_transitioning = true
+	var validation_result := await _validate_ids_with_backend()
+	_step_transitioning = false
+	if not validation_result.get("ok", false):
+		_show_validation(String(validation_result.get("error", "Unable to validate registration.")))
+		return
+
 	_hide_validation()
 	await _show_step(RegistrationStep.NAME_GRADE)
+
+func _validate_ids_with_backend() -> Dictionary:
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		return {"ok": false, "error": "Unable to validate registration. Check your connection and retry."}
+
+	var parent_result: Dictionary = await http.request_post("/api/game/parent/validate", {
+		"parent_id": parent_id_input.text
+	})
+	if not parent_result.get("ok", false) or int(parent_result.get("status", 0)) < 200 or int(parent_result.get("status", 0)) >= 300:
+		return {"ok": false, "error": _registration_api_error(parent_result, "Parent ID could not be validated. Check your connection and retry.")}
+
+	var profile_result: Dictionary = await http.request_get("/api/game/profile/check/" + student_id_input.text, {
+		"parent_id": parent_id_input.text
+	})
+	if not profile_result.get("ok", false) or int(profile_result.get("status", 0)) < 200 or int(profile_result.get("status", 0)) >= 300:
+		return {"ok": false, "error": _registration_api_error(profile_result, "Student ID could not be validated. Check your connection and retry.")}
+	if profile_result.get("body", {}).get("should_block", false):
+		return {"ok": false, "error": String(profile_result.get("body", {}).get("error", "Student ID already has an existing game profile. Please use Load Game."))}
+
+	return {"ok": true}
+
+func _registration_api_error(result: Dictionary, fallback: String) -> String:
+	var body: Variant = result.get("body", {})
+	if body is Dictionary and not String(body.get("error", "")).is_empty():
+		return String(body.get("error", ""))
+	return fallback
 
 func _on_male_btn_mouse_entered() -> void:
 	if selected_gender == "male":
