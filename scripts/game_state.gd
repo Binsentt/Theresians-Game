@@ -1,4 +1,4 @@
-extends Node
+﻿xtends Node
 
 signal lives_changed(current_lives: int, max_lives: int)
 signal quest_changed(current_quest: String)
@@ -57,9 +57,39 @@ var current_lives := 3
 var max_lives := 3
 
 var current_scene_path := START_SCENE_PATH
+var current_map := ""
 var player_position := Vector2.ZERO
 var battle_active: bool = false
 var current_battle_enemy_path: NodePath = NodePath()
+
+var city_of_knowledge_unlocked := false
+var score: int = 0
+var correct_answers: int = 0
+var incorrect_answers: int = 0
+var total_questions: int = 0
+var progress_percentage: int = 0
+var lesson_progress: int = 0
+var total_quests_completed: int = 0
+var total_play_time: int = 0
+var difficulty_level: String = "Unknown"
+
+var current_task_index: int = 0
+var tasks = [
+	{
+		"quest_text": "Go to the Teacherâ€™s house",
+		"dialogue": ["Get inside the house", "The teacher is waiting."]
+	},
+	{
+		"quest_text": "Talk to the Teacher",
+		"dialogue": ["You are ready. Travel through the forest and reach the City of Knowledge.", "Reward: Forest Path unlocked"]
+	},
+	{
+		"quest_text": "Challenge the player with math questions ",
+		"dialogue": ["You want to pass? Solve this first!"],
+		"next_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
+		"complete_after_battle": true
+	}
+]
 
 var city_of_knowledge_unlocked := false
 
@@ -79,29 +109,10 @@ var _resume_player_position: Vector2 = Vector2.ZERO
 var _resume_facing_direction: String = ""
 var _current_battle_enemy: Node = null
 
-var score: int = 0
 var player_won: bool = false
 var enemy_hp: int = 100
 
 var _mode_stack: Array[GameMode] = [GameMode.MENU]
-
-var current_task_index: int = 0
-var tasks = [
-	{
-		"quest_text": "Go to the Teacher’s house",
-		"dialogue": ["Get inside the house", "The teacher is waiting."]
-	},
-	{
-		"quest_text": "Talk to the Teacher",
-		"dialogue": ["You are ready. Travel through the forest and reach the City of Knowledge.", "Reward: Forest Path unlocked"]
-	},
-	{
-		"quest_text": "Challenge the player with math questions ",
-		"dialogue": ["You want to pass? Solve this first!"],
-		"next_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
-		"complete_after_battle": true
-	}
-]
 
 
 func get_mode() -> GameMode:
@@ -471,6 +482,7 @@ func build_save_data() -> Dictionary:
 		"parent_id": parent_id,
 		"current_quest": current_quest,
 		"scene_path": current_scene_path,
+		"current_map": current_map,
 		"player_position": {
 			"x": player_position.x,
 			"y": player_position.y
@@ -479,6 +491,15 @@ func build_save_data() -> Dictionary:
 		"max_lives": max_lives,
 		"city_of_knowledge_unlocked": city_of_knowledge_unlocked,
 		"current_task_index": current_task_index,
+		"score": score,
+		"correct_answers": correct_answers,
+		"incorrect_answers": incorrect_answers,
+		"total_questions": total_questions,
+		"progress_percentage": progress_percentage,
+		"lesson_progress": lesson_progress,
+		"total_quests_completed": total_quests_completed,
+		"total_play_time": total_play_time,
+		"difficulty_level": difficulty_level,
 		"save_date": save_date,
 		"save_time": save_time,
 		"save_timestamp": timestamp
@@ -529,6 +550,9 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 
 	current_quest = String(data.get("current_quest", DEFAULT_QUEST))
 	current_scene_path = _normalize_scene_path(String(data.get("scene_path", START_SCENE_PATH)))
+	current_map = String(data.get("current_map", ""))
+	if current_map.strip_edges().is_empty():
+		current_map = String(data.get("scene_path", ""))
 
 	var pos = data.get("player_position", {})
 	player_position = Vector2(
@@ -541,6 +565,15 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	current_lives = clampi(current_lives, 0, max_lives)
 	city_of_knowledge_unlocked = bool(data.get("city_of_knowledge_unlocked", false))
 	current_task_index = clampi(int(data.get("current_task_index", 0)), 0, tasks.size())
+	score = int(data.get("score", 0))
+	correct_answers = int(data.get("correct_answers", 0))
+	incorrect_answers = int(data.get("incorrect_answers", 0))
+	total_questions = int(data.get("total_questions", 0))
+	progress_percentage = int(data.get("progress_percentage", 0))
+	lesson_progress = int(data.get("lesson_progress", 0))
+	total_quests_completed = int(data.get("total_quests_completed", 0))
+	total_play_time = int(data.get("total_play_time", 0))
+	difficulty_level = String(data.get("difficulty_level", "Unknown"))
 	set_mode(GameMode.EXPLORATION)
 	queue_scene_spawn(current_scene_path, player_position)
 

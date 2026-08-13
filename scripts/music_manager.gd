@@ -1,4 +1,4 @@
-extends Node
+﻿xtends Node
 
 const TRACK_MENU := "menu"
 const TRACK_HOME := "school_or_house"

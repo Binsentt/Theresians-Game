@@ -1,4 +1,4 @@
-extends TextureRect
+﻿xtends TextureRect
 
 enum RegistrationStep { GENDER, IDS, NAME_GRADE }
 
@@ -367,6 +367,22 @@ func _on_start_pressed() -> void:
 		return
 
 	_hide_validation()
+	var registration := GameState.get_new_game_registration()
+	var playtimeResult := RemoteSync.request_playtime_session({
+		"student_id": String(registration.get("student_id", "")),
+		"parent_id": String(registration.get("parent_id", "")),
+		"student_name": String(registration.get("student_name", "")),
+		"grade_level": String(registration.get("grade", "")),
+		"section": ""
+	})
+	if not playtimeResult.ok or playtimeResult.get("can_play", true) == false or playtimeResult.get("should_block", false) == true:
+		var errorText := String(playtimeResult.get("error", "Unable to connect to playtime service."))
+		if playtimeResult.get("status", 0) == 403 or playtimeResult.get("should_block", false) == true:
+			errorText = String(playtimeResult.get("error", "Daily playtime limit reached."))
+		_show_validation(errorText)
+		_play_transitioning = false
+		return
+
 	if not GameState.finalize_new_game_registration():
 		_show_validation(_first_registration_error())
 		_play_transitioning = false

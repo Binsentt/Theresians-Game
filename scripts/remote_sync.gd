@@ -1,4 +1,4 @@
-extends Node
+﻿xtends Node
 
 var _pending_file := "user://pending_syncs.json"
 
@@ -45,7 +45,7 @@ func _on_time_limit_reached() -> void:
 	var current_scene: Node = get_tree().current_scene
 	if current_scene != null:
 		GameState.capture_runtime(current_scene.scene_file_path, get_tree().get_first_node_in_group("player_character").global_position if get_tree().get_first_node_in_group("player_character") != null else Vector2.ZERO)
-	var auto_save_path := GameState.save_game()
+	var auto_save_path: String = GameState.save_game()
 	_async_send_progress(GameState.build_save_data())
 	await _end_playtime_session()
 	_create_activity_log("Auto Save", "Auto-save due to daily playtime limit reached", {})
@@ -66,22 +66,33 @@ func _async_send_progress(save_data: Dictionary) -> void:
 		print("RemoteSync: HttpApi unavailable; queueing sync")
 		_enqueue_pending(save_data)
 		return
-	# build payload mapping to backend expectations
+	# Build the payload as a real Save Game projection of the authoritative runtime fields.
+	# The backend already normalizes these fields into student_game_progress and activity_logs.
 	var payload := {
 		"parent_id": String(save_data.get("parent_id", "")),
 		"student_id": String(save_data.get("student_id", "")),
-		"student_name": String(save_data.get("player_name", "")),
+		"student_name": String(save_data.get("player_name", save_data.get("student_name", ""))),
 		"grade_level": String(save_data.get("grade_level", "")),
+		"gender": String(save_data.get("gender", "")),
 		"current_quest": String(save_data.get("current_quest", "")),
-		"current_scene": String(save_data.get("scene_path", "")),
-		"current_map": String(save_data.get("scene_path", "")),
+		"quest_progress": int(save_data.get("current_task_index", 0)),
+		"lesson_progress": int(save_data.get("lesson_progress", save_data.get("lesson_progress", 0))),
+		"progress_percentage": int(save_data.get("progress_percentage", save_data.get("completion_percentage", 0))),
+		"current_scene": String(save_data.get("scene_path", save_data.get("current_scene", ""))),
+		"current_map": String(save_data.get("current_map", save_data.get("scene_path", ""))),
 		"save_timestamp": int(save_data.get("save_timestamp", 0)),
 		"save_time": String(save_data.get("save_time", "")),
+		"save_date": String(save_data.get("save_date", "")),
 		"score": int(save_data.get("score", 0)),
+		"correct_answers": int(save_data.get("correct_answers", 0)),
+		"incorrect_answers": int(save_data.get("incorrect_answers", 0)),
+		"total_questions": int(save_data.get("total_questions", 0)),
 		"total_play_time": int(save_data.get("total_play_time", 0)),
+		"total_quests_completed": int(save_data.get("total_quests_completed", 0)),
+		"difficulty_level": String(save_data.get("difficulty_level", "Unknown")),
 		"save_status": "saved"
 	}
-	var result = http.post("/api/game/progress", payload)
+	var result = http.request_post("/api/game/progress", payload)
 	if not result.ok:
 		print("RemoteSync: progress sync failed, queuing: %s" % str(result))
 		_enqueue_pending(save_data)
@@ -113,7 +124,7 @@ func _send_playtime_start_request(override_payload: Dictionary = {}) -> Dictiona
 	if not GameState.is_valid_six_digit_id(payload.get("student_id", "")) or not GameState.is_valid_six_digit_id(payload.get("parent_id", "")):
 		return {"ok": false, "error": "Invalid student or parent ID", "should_block": false}
 
-	return http.post("/api/playtime/start", payload)
+	return http.request_post("/api/playtime/start", payload)
 
 func _send_playtime_end_request() -> Dictionary:
 	var http := get_node_or_null("/root/HttpApi")
@@ -126,7 +137,7 @@ func _send_playtime_end_request() -> Dictionary:
 	if _current_playtime_session_id != 0:
 		payload["session_id"] = _current_playtime_session_id
 
-	return http.post("/api/playtime/end", payload)
+	return http.request_post("/api/playtime/end", payload)
 
 func _create_activity_log(status: String, description: String, override_payload: Dictionary = {}) -> void:
 	var http := get_node_or_null("/root/HttpApi")
@@ -143,7 +154,7 @@ func _create_activity_log(status: String, description: String, override_payload:
 		"grade_level": String(override_payload.get("grade_level", GameState.grade_level)),
 		"section": String(override_payload.get("section", "")),
 		"current_quest": String(override_payload.get("current_quest", GameState.current_quest)),
-		"save_status": status == "Playing" ? "playing" : "saved",
+		"save_status": "playing" if status == "Playing" else "saved",
 		"total_play_time": 0,
 		"quest_progress": int(override_payload.get("quest_progress", GameState.current_task_index)),
 		"role": "Student",
@@ -151,7 +162,7 @@ func _create_activity_log(status: String, description: String, override_payload:
 		"activity_description": description
 	}
 
-	var result := http.post("/api/activity-logs", payload)
+	var result: Dictionary = http.request_post("/api/activity-logs", payload)
 	if not result.ok:
 		print("RemoteSync: activity log failed: %s" % str(result.error))
 
@@ -267,7 +278,7 @@ func _flush_pending() -> void:
 		return
 	var remaining := []
 	for item in pending:
-		var result = http.post("/api/game/progress", item)
+		var result: Dictionary = http.request_post("/api/game/progress", item)
 		if not result.ok or result.status < 200 or result.status >= 300:
 			remaining.append(item)
 	# overwrite pending file

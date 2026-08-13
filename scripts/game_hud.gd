@@ -1,4 +1,4 @@
-extends CanvasLayer
+﻿xtends CanvasLayer
 
 const LIFE_SCENE := preload("res://player/life.tscn")
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
@@ -20,6 +20,7 @@ const SETTINGS_INGAME_SCENE := preload("res://scenes/Settings-Ingame/settings_in
 @onready var return_button: Button = $GameOverOverlay/PanelContainer/VBoxContainer/ReturnButton
 
 var _life_icons: Array[Control] = []
+var _playtime_label: Label = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -29,6 +30,8 @@ func _ready() -> void:
 	refresh_lives(GameState.current_lives, GameState.max_lives)
 	save_status_label.text = ""
 	_update_quest_label()
+	_ensure_playtime_label()
+	_update_playtime_label()
 	game_over_overlay.visible = false
 
 	if not GameState.lives_changed.is_connected(refresh_lives):
@@ -39,11 +42,36 @@ func _ready() -> void:
 		GameState.save_created.connect(_on_save_created)
 	if not GameState.game_over.is_connected(_on_game_over):
 		GameState.game_over.connect(_on_game_over)
+	if not GameState.time_limit_reached.is_connected(_on_time_limit_reached):
+		GameState.time_limit_reached.connect(_on_time_limit_reached)
 
 	if not save_button.pressed.is_connected(_on_save_button_pressed):
 		save_button.pressed.connect(_on_save_button_pressed)
 	if not return_button.pressed.is_connected(_on_return_button_pressed):
 		return_button.pressed.connect(_on_return_button_pressed)
+
+func _ensure_playtime_label() -> void:
+	if _playtime_label != null and is_instance_valid(_playtime_label):
+		return
+	_playtime_label = Label.new()
+	_playtime_label.name = "PlaytimeLabel"
+	_playtime_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_playtime_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_playtime_label.theme_override_fonts/font = quest_label.get_theme_font_override("font") if quest_label != null else null
+	_playtime_label.theme_override_font_sizes/font_size = 9
+	_playtime_label.visible = true
+	_playtime_label.text = ""
+	$MarginContainer/PlayerPanel/VBoxContainer.add_child(_playtime_label)
+
+func _update_playtime_label() -> void:
+	if _playtime_label == null or not is_instance_valid(_playtime_label):
+		return
+	if GameState.playtime_limit_minutes <= 0:
+		_playtime_label.text = "Time Left: --"
+		return
+	var remaining_seconds := maxf(0.0, GameState.get_playtime_remaining_seconds())
+	var minutes := int(ceil(remaining_seconds / 60.0))
+	_playtime_label.text = "Time Left: %s min" % String(minutes)
 
 func refresh_lives(current_lives: int, total_lives: int) -> void:
 	if _life_icons.size() != total_lives:
@@ -53,6 +81,9 @@ func refresh_lives(current_lives: int, total_lives: int) -> void:
 
 	for index in range(_life_icons.size()):
 		_life_icons[index].visible = index < current_lives
+
+func _process(_delta: float) -> void:
+	_update_playtime_label()
 
 func _build_life_icons() -> void:
 	_rebuild_life_icons(GameState.max_lives)
@@ -97,6 +128,23 @@ func _on_game_over() -> void:
 		return
 
 	game_over_overlay.visible = true
+
+func _on_time_limit_reached() -> void:
+	var label := get_node_or_null("GameOverOverlay/PanelContainer/VBoxContainer/Label") as Label
+	var description := get_node_or_null("GameOverOverlay/PanelContainer/VBoxContainer/Description") as Label
+	if label != null:
+		label.text = "TIME LIMIT REACHED"
+	if description != null:
+		description.text = "Daily playtime allowance is complete."
+	if game_over_overlay != null:
+		game_over_overlay.visible = true
+	if save_button != null:
+		save_button.disabled = true
+	if return_button != null:
+		return_button.disabled = false
+
+func show_time_limit_reached() -> void:
+	_on_time_limit_reached()
 
 func _on_return_button_pressed() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)

@@ -1,4 +1,4 @@
-extends Control
+﻿xtends Control
 
 const API_PATH := "/api/leaderboard/top-achievers"
 
@@ -49,7 +49,7 @@ func _refresh_leaderboard_from_api() -> void:
 		_set_connection_error_state()
 		return
 
-	var result := await http.get(API_PATH)
+	var result := await http.request_get(API_PATH)
 	if not result.get("ok", false):
 		print("Leaderboard: API request failed: %s" % str(result))
 		_set_connection_error_state()

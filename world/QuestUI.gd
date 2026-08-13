@@ -109,7 +109,7 @@ func show_completed_with_dialogue():
 func play_teacher_dialogue():
 	# Keep the existing dialogue, battle, cutscene/animation, and completion
 	# behavior in one implementation; TeacherTaskInteraction only awaits it.
-	var previous_task_index := GameState.current_task_index
+	var previous_task_index: int = GameState.current_task_index
 	await show_completed_with_dialogue()
 	if GameState.current_task_index > previous_task_index:
 		# The legacy completion routine advances the in-memory index but does not

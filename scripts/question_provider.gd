@@ -1,4 +1,4 @@
-extends Node
+﻿xtends Node
 
 signal questions_loaded(count: int)
 signal question_requested(question: Dictionary)
@@ -12,14 +12,15 @@ var _last_requested_id: String = ""
 
 
 func _ready() -> void:
-	load_questions(_source_path)
+	# Call async load_questions without awaiting; it will emit signal when done
+	load_questions.call_deferred(_source_path)
 
 
 func set_source_path(path: String) -> void:
 	_source_path = path.strip_edges()
 	if _source_path.is_empty():
 		_source_path = DEFAULT_SOURCE_PATH
-	load_questions(_source_path)
+	load_questions.call_deferred(_source_path)
 
 
 func get_source_path() -> String:
@@ -44,18 +45,19 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 		var params := {}
 		# allow callers to pass grade/difficulty/topic via source path encoded query-like string
 		# e.g. res://Data/questions.json?grade=Grade%201
-		var qindex := resolved_path.find_first("?")
+		var qindex := resolved_path.find("?")
 		if qindex >= 0:
 			var qs := resolved_path.substr(qindex + 1, resolved_path.length())
 			for part in qs.split("&"):
 				if part.find("=") >= 0:
-					var kv = part.split("=")
-					params[kv[0]] = URI.decode_component(kv[1])
-		var result := http.get("/api/game/questions", params)
-		if result.ok and result.status >= 200 and result.status < 300:
-			var body := result.body
+					var kv: PackedStringArray = part.split("=")
+					params[kv[0]] = kv[1].uri_decode()
+		var result: Dictionary = await http.request_get("/api/game/questions", params)
+		if result.get("ok", false) and int(result.get("status", 0)) >= 200 and int(result.get("status", 0)) < 300:
+			var body: Variant = result.get("body", {})
 			if typeof(body) == TYPE_DICTIONARY and body.has("questions"):
-				for entry in body.questions:
+				var question_entries: Array = body.get("questions", [])
+				for entry in question_entries:
 					if entry is Dictionary:
 						var normalized := _normalize_question(entry)
 						if not normalized.is_empty():
@@ -80,7 +82,7 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 		questions_loaded.emit(0)
 		return []
 
-	var parsed := json.data
+	var parsed: Variant = json.data
 	if parsed is Array:
 		for entry in parsed:
 			if entry is Dictionary:
