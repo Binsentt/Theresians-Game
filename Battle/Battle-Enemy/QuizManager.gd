@@ -35,28 +35,24 @@ func _ready():
 		_provider = QuestionProviderScript.new()
 		_provider.name = "QuestionProvider"
 		get_tree().root.add_child(_provider)
-	_provider.call("load_questions")
-	questions = _provider.call("load_questions") if _provider.has_method("load_questions") else []
+
+	# Load questions from provider if available, otherwise empty
+	if _provider != null and _provider.has_method("load_questions"):
+		var loaded = _provider.call("load_questions")
+		if loaded is Array:
+			questions = Array(loaded)
+		else:
+			questions = []
+	else:
+		questions = []
 
 	if questions.is_empty():
 		question_label.text = "No questions found!"
 		disable_buttons()
 		return
 
+	# Initialize the first question
 	load_question()
-		# Prefer using the shared QuestionProvider autoload for question data.
-		if _provider != null and _provider.has_method("load_questions"):
-			questions = Array(_provider.call("load_questions"))
-			return
-
-		# If provider is unexpectedly missing, ensure UI is disabled and log.
-		questions = []
-		push_error("QuestionProvider not available; no questions loaded")
-		disable_buttons()
-	if json.data is Array:
-		for entry in json.data:
-			if entry is Dictionary:
-				questions.append(entry)
 
 
 func load_question():
