@@ -1,4 +1,4 @@
-﻿xtends TextureRect
+﻿extends TextureRect
 
 enum RegistrationStep { GENDER, IDS, NAME_GRADE }
 
@@ -64,7 +64,7 @@ var grade_tweens := {}
 
 func _ready() -> void:
 	var current_scene: Node = get_tree().current_scene
-	if current_scene != null:
+	if current_scene != null and MusicManager != null:
 		MusicManager.play_for_scene(current_scene.scene_file_path)
 
 	_hydrate_registration()

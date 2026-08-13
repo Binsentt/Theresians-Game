@@ -1,4 +1,4 @@
-﻿xtends Node
+﻿extends Node
 
 var _pending_file := "user://pending_syncs.json"
 

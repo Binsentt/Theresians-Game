@@ -1,4 +1,4 @@
-﻿xtends Node
+﻿extends Node
 
 signal request_completed(status_code: int, result: Dictionary)
 signal request_failed(error: String)

@@ -1,4 +1,4 @@
-﻿xtends Control
+﻿extends Control
 
 const API_PATH := "/api/leaderboard/top-achievers"
 

@@ -1,4 +1,4 @@
-﻿xtends Node
+﻿extends Node
 
 signal questions_loaded(count: int)
 signal question_requested(question: Dictionary)

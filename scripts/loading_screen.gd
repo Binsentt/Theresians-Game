@@ -61,7 +61,8 @@ static func cancel_pending_request() -> void:
 
 func _ready() -> void:
 	_consume_pending_request()
-	MusicManager.play_for_scene(scene_file_path)
+	if MusicManager != null:
+		MusicManager.play_for_scene(scene_file_path)
 	_connect_signals_once()
 	_apply_mode_copy()
 

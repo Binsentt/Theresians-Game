@@ -1,4 +1,4 @@
-﻿xtends Control
+﻿extends Control
 
 const SAVE_ENTRY_SCENE := preload("res://ui/save_entry.tscn")
 const LoadingScreenController := preload("res://scripts/loading_screen.gd")

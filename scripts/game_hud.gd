@@ -1,4 +1,4 @@
-﻿xtends CanvasLayer
+﻿extends CanvasLayer
 
 const LIFE_SCENE := preload("res://player/life.tscn")
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"

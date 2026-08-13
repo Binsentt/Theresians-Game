@@ -1,4 +1,4 @@
-﻿xtends Node
+﻿extends Node
 
 signal lives_changed(current_lives: int, max_lives: int)
 signal quest_changed(current_quest: String)
