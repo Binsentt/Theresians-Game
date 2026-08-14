@@ -19,6 +19,7 @@ const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
 const SAVE_DIRECTORY := "user://saves"
 const VALID_REGISTRATION_GRADES := ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
+const ALLOW_OFFLINE_NEW_GAME_TESTING := true
 
 const PLAYER_SCENES := {
 	"male": "res://player/player_male.tscn",

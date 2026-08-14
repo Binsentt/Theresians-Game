@@ -1,20 +1,20 @@
 [gd_scene format=3 uid="uid://b62umhgfwqjyp"]
 
-[ext_resource type="Texture2D" path="res://Images/Background-Menu.png" id="1_wu84c"]
-[ext_resource type="FontFile" path="res://Font/PressStart2P.ttf" id="2_8ln24"]
+[ext_resource type="Texture2D" uid="uid://g2muc8pyh7m7" path="res://Images/Background-Menu.png" id="1_wu84c"]
+[ext_resource type="FontFile" uid="uid://e1m7150gckir" path="res://Font/PressStart2P.ttf" id="2_8ln24"]
 [ext_resource type="Script" uid="uid://davsesndc84nc" path="res://scripts/new_game_btn.gd" id="3_rtw2f"]
 [ext_resource type="Script" uid="uid://iirppoqudwjg" path="res://scripts/load_game_btn.gd" id="4_oa1go"]
 [ext_resource type="Script" uid="uid://cfi40hnecbodg" path="res://scripts/quit_btn.gd" id="5_8ln24"]
 [ext_resource type="Script" uid="uid://cnbbvkoh5mdpe" path="res://scripts/option_btn.gd" id="5_rtw2f"]
 [ext_resource type="Script" uid="uid://c17evbjb02wg3" path="res://scripts/main_menu_scene.gd" id="6_menu"]
 [ext_resource type="Script" uid="uid://c2auqhiu5hsox" path="res://scripts/settings.gd" id="6_settings"]
-[ext_resource type="Texture2D" path="res://Images/popup.png" id="7_jk1qb"]
+[ext_resource type="Texture2D" uid="uid://dm5fp85ae3mkc" path="res://Images/popup.png" id="7_jk1qb"]
 [ext_resource type="Texture2D" uid="uid://bqf8en6nqes7p" path="res://Images/trophy.png" id="8_7b55j"]
-[ext_resource type="Texture2D" path="res://Images/grabber.png" id="8_lgwnu"]
-[ext_resource type="Texture2D" path="res://Images/slide bar.png" id="9_flqon"]
+[ext_resource type="Texture2D" uid="uid://cup28rtopsysn" path="res://Images/grabber.png" id="8_lgwnu"]
+[ext_resource type="Texture2D" uid="uid://bmiv166npewvs" path="res://Images/slide bar.png" id="9_flqon"]
 [ext_resource type="Script" uid="uid://dx8eejv0anvle" path="res://scenes/exit_popup.gd" id="12_flqon"]
-[ext_resource type="Texture2D" path="res://player/male.png" id="13_1ajci"]
-[ext_resource type="Texture2D" path="res://player/female.png" id="14_7b55j"]
+[ext_resource type="Texture2D" uid="uid://4546uxivqpna" path="res://player/male.png" id="13_1ajci"]
+[ext_resource type="Texture2D" uid="uid://dxplij8yoku2e" path="res://player/female.png" id="14_7b55j"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_menu_button_normal"]
 bg_color = Color(0.024, 0.08, 0.22, 0.88)
@@ -265,12 +265,13 @@ script = ExtResource("5_8ln24")
 
 [node name="LeaderboardButton" type="Button" parent="." unique_id=1877699982]
 layout_mode = 0
-offset_left = 1115.0
-offset_top = 16.0
-offset_right = 1203.0
-offset_bottom = 104.0
+offset_left = 1096.0
+offset_top = 23.0
+offset_right = 1216.0
+offset_bottom = 123.0
 icon = ExtResource("8_7b55j")
 flat = true
+expand_icon = true
 
 [node name="OptionsPopup" type="Control" parent="." unique_id=1220119447]
 visible = false

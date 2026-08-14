@@ -41,7 +41,7 @@ func _on_save_selected(save_path: String) -> void:
 		_save_transitioning = false
 		return
 
-	var playtime_result: Dictionary = RemoteSync.request_playtime_session({
+	var playtime_result: Dictionary = await RemoteSync.request_playtime_session({
 		"student_id": String(save_data.get("student_id", "")),
 		"parent_id": String(save_data.get("parent_id", "")),
 		"student_name": String(save_data.get("player_name", "")),

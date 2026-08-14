@@ -5,6 +5,8 @@ var _pending_file := "user://pending_syncs.json"
 var _current_playtime_session_id: int = 0
 var _session_start_in_progress: bool = false
 
+const PLAYTIME_DAILY_LIMIT_MINUTES := 60
+
 func _ready() -> void:
 	var game_state := get_node_or_null("/root/GameState")
 	if game_state:
@@ -23,13 +25,13 @@ func _process(delta: float) -> void:
 
 func _on_save_created(save_data: Dictionary) -> void:
 	# Always allow local save to complete; attempt remote sync but do not block
-	_async_send_progress(save_data)
+	await _async_send_progress(save_data)
 
 func _on_progression_session_reset(source: String) -> void:
 	if source == "new_game":
-		_create_activity_log("New Game", "New Game profile initialized", {})
+		await _create_activity_log("New Game", "New Game profile initialized", {})
 	elif source == "load":
-		_create_activity_log("Load Game", "Existing game profile loaded", {})
+		await _create_activity_log("Load Game", "Existing game profile loaded", {})
 
 	if source == "new_game" or source == "load":
 		await _start_playtime_session()
@@ -46,10 +48,10 @@ func _on_time_limit_reached() -> void:
 	if current_scene != null:
 		GameState.capture_runtime(current_scene.scene_file_path, get_tree().get_first_node_in_group("player_character").global_position if get_tree().get_first_node_in_group("player_character") != null else Vector2.ZERO)
 	var auto_save_path: String = GameState.save_game()
-	_async_send_progress(GameState.build_save_data())
+	await _async_send_progress(GameState.build_save_data())
 	await _end_playtime_session()
-	_create_activity_log("Auto Save", "Auto-save due to daily playtime limit reached", {})
-	_create_activity_log("Timeout", "Gameplay session timed out after daily limit reached", {})
+	await _create_activity_log("Auto Save", "Auto-save due to daily playtime limit reached", {})
+	await _create_activity_log("Timeout", "Gameplay session timed out after daily limit reached", {})
 	GameState.time_limit_reached.emit()
 	var hud := get_node_or_null("/root/GameHUD")
 	if hud != null and hud.has_method("show_time_limit_reached"):
@@ -92,7 +94,7 @@ func _async_send_progress(save_data: Dictionary) -> void:
 		"difficulty_level": String(save_data.get("difficulty_level", "Unknown")),
 		"save_status": "saved"
 	}
-	var result = http.request_post("/api/game/progress", payload)
+	var result: Dictionary = await http.request_post("/api/game/progress", payload)
 	if not result.ok:
 		print("RemoteSync: progress sync failed, queuing: %s" % str(result))
 		_enqueue_pending(save_data)
@@ -124,7 +126,7 @@ func _send_playtime_start_request(override_payload: Dictionary = {}) -> Dictiona
 	if not GameState.is_valid_six_digit_id(payload.get("student_id", "")) or not GameState.is_valid_six_digit_id(payload.get("parent_id", "")):
 		return {"ok": false, "error": "Invalid student or parent ID", "should_block": false}
 
-	return http.request_post("/api/playtime/start", payload)
+	return await http.request_post("/api/playtime/start", payload)
 
 func _send_playtime_end_request() -> Dictionary:
 	var http := get_node_or_null("/root/HttpApi")
@@ -137,7 +139,7 @@ func _send_playtime_end_request() -> Dictionary:
 	if _current_playtime_session_id != 0:
 		payload["session_id"] = _current_playtime_session_id
 
-	return http.request_post("/api/playtime/end", payload)
+	return await http.request_post("/api/playtime/end", payload)
 
 func _create_activity_log(status: String, description: String, override_payload: Dictionary = {}) -> void:
 	var http := get_node_or_null("/root/HttpApi")
@@ -162,7 +164,7 @@ func _create_activity_log(status: String, description: String, override_payload:
 		"activity_description": description
 	}
 
-	var result: Dictionary = http.request_post("/api/activity-logs", payload)
+	var result: Dictionary = await http.request_post("/api/activity-logs", payload)
 	if not result.ok:
 		print("RemoteSync: activity log failed: %s" % str(result.error))
 
@@ -176,9 +178,11 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 	var result: Dictionary = {}
 	var final_result: Dictionary = {}
 	
-	result = _send_playtime_start_request(override_payload)
+	result = await _send_playtime_start_request(override_payload)
 	if result.ok and (result.status == 201 or result.status == 200):
 		var api_can_play := bool(result.body.get("can_play", true))
+		var is_new_registration := bool(result.body.get("is_new_registration", false))
+		
 		if api_can_play == false:
 			GameState.configure_playtime_allowance(result.body)
 			final_result = {
@@ -191,11 +195,25 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 				"remaining_minutes": int(result.body.get("remaining_minutes", 0)),
 				"daily_limit_minutes": int(result.body.get("daily_limit_minutes", 60)),
 			}
+		elif is_new_registration:
+			# New student registration: allow without creating session yet
+			GameState.configure_playtime_allowance(result.body)
+			_current_playtime_session_id = 0
+			final_result = {
+				"ok": true,
+				"session_id": 0,
+				"is_new_registration": true,
+				"remaining_minutes": int(result.body.get("remaining_minutes", PLAYTIME_DAILY_LIMIT_MINUTES)),
+				"daily_limit_minutes": int(result.body.get("daily_limit_minutes", PLAYTIME_DAILY_LIMIT_MINUTES)),
+				"total_playtime_today": int(result.body.get("total_playtime_today", 0)),
+				"can_play": true,
+				"message": String(result.body.get("message", "New student registration ready.")),
+			}
 		else:
 			GameState.configure_playtime_allowance(result.body)
 			_current_playtime_session_id = int(result.body.get("session_id", 0))
 			if _current_playtime_session_id != 0:
-				_create_activity_log("Playing", "Gameplay session started", override_payload)
+				await _create_activity_log("Playing", "Gameplay session started", override_payload)
 				final_result = {
 					"ok": true,
 					"session_id": _current_playtime_session_id,
@@ -227,12 +245,12 @@ func _end_playtime_session() -> Dictionary:
 	if _current_playtime_session_id == 0 and not GameState.is_valid_six_digit_id(GameState.student_id):
 		return {"ok": false, "error": "Missing session or student ID", "should_block": false}
 
-	var result := _send_playtime_end_request()
+	var result := await _send_playtime_end_request()
 	if not result.ok:
 		return result
 
 	if result.status == 200:
-		_create_activity_log("Offline", "Gameplay session ended")
+		await _create_activity_log("Offline", "Gameplay session ended")
 		_current_playtime_session_id = 0
 		return {"ok": true}
 
@@ -244,11 +262,11 @@ func _end_playtime_session() -> Dictionary:
 
 func request_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 	# Public wrapper for UI code to start or resume a backend-authoritative playtime session.
-	return _start_playtime_session(override_payload)
+	return await _start_playtime_session(override_payload)
 
 func request_end_playtime_session() -> Dictionary:
 	# Public wrapper for UI or scene lifecycle code to cleanly end the current playtime session.
-	return _end_playtime_session()
+	return await _end_playtime_session()
 
 func _enqueue_pending(save_data: Dictionary) -> void:
 	var pending := _load_pending()
@@ -278,7 +296,7 @@ func _flush_pending() -> void:
 		return
 	var remaining := []
 	for item in pending:
-		var result: Dictionary = http.request_post("/api/game/progress", item)
+		var result: Dictionary = await http.request_post("/api/game/progress", item)
 		if not result.ok or result.status < 200 or result.status >= 300:
 			remaining.append(item)
 	# overwrite pending file

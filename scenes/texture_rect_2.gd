@@ -86,11 +86,15 @@ func _ready() -> void:
 	_show_initial_gender()
 
 func _connect_signals() -> void:
+	if not male_btn.pressed.is_connected(_on_male_btn_pressed):
+		male_btn.pressed.connect(_on_male_btn_pressed)
 	if not male_btn.mouse_entered.is_connected(_on_male_btn_mouse_entered):
 		male_btn.mouse_entered.connect(_on_male_btn_mouse_entered)
 	if not male_btn.mouse_exited.is_connected(_on_male_btn_mouse_exited):
 		male_btn.mouse_exited.connect(_on_male_btn_mouse_exited)
 
+	if not female_btn.pressed.is_connected(_on_female_btn_pressed):
+		female_btn.pressed.connect(_on_female_btn_pressed)
 	if not female_btn.mouse_entered.is_connected(_on_female_btn_mouse_entered):
 		female_btn.mouse_entered.connect(_on_female_btn_mouse_entered)
 	if not female_btn.mouse_exited.is_connected(_on_female_btn_mouse_exited):
@@ -100,6 +104,8 @@ func _connect_signals() -> void:
 		gender_continue_btn.pressed.connect(_on_gender_continue_pressed)
 	if not ids_next_btn.pressed.is_connected(_on_ids_next_pressed):
 		ids_next_btn.pressed.connect(_on_ids_next_pressed)
+	if not start_btn.pressed.is_connected(_on_start_pressed):
+		start_btn.pressed.connect(_on_start_pressed)
 
 	if not student_id_input.text_changed.is_connected(_on_student_id_changed):
 		student_id_input.text_changed.connect(_on_student_id_changed)
@@ -300,34 +306,57 @@ func _on_ids_next_pressed() -> void:
 		_show_validation(String(validation_result.get("error", "Unable to validate registration.")))
 		return
 
+	if validation_result.get("offline", false):
+		_show_validation(String(validation_result.get("warning", "Offline test mode: Parent ID could not be verified.")))
+		await _show_step(RegistrationStep.NAME_GRADE)
+		return
+
 	_hide_validation()
 	await _show_step(RegistrationStep.NAME_GRADE)
 
 func _validate_ids_with_backend() -> Dictionary:
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
-		return {"ok": false, "error": "Unable to validate registration. Check your connection and retry."}
+		if GameState.ALLOW_OFFLINE_NEW_GAME_TESTING and GameState.is_valid_six_digit_id(student_id_input.text) and GameState.is_valid_six_digit_id(parent_id_input.text):
+			return {"ok": true, "offline": true, "warning": "Offline test mode: Parent ID could not be verified."}
+		return {"ok": false, "error": "Unable to connect to the server. Please try again."}
 
 	var parent_result: Dictionary = await http.request_post("/api/game/parent/validate", {
 		"parent_id": parent_id_input.text
 	})
-	if not parent_result.get("ok", false) or int(parent_result.get("status", 0)) < 200 or int(parent_result.get("status", 0)) >= 300:
-		return {"ok": false, "error": _registration_api_error(parent_result, "Parent ID could not be validated. Check your connection and retry.")}
+	var parent_body: Dictionary = parent_result.get("body", {})
+	var parent_ok := bool(parent_result.get("ok", false)) or bool(parent_result.get("success", false)) or bool(parent_body.get("ok", false)) or bool(parent_body.get("success", false))
+	var parent_status: int = int(parent_result.get("status", 0))
+	if not parent_ok or parent_status < 200 or parent_status >= 300:
+		if GameState.ALLOW_OFFLINE_NEW_GAME_TESTING and GameState.is_valid_six_digit_id(student_id_input.text) and GameState.is_valid_six_digit_id(parent_id_input.text):
+			return {"ok": true, "offline": true, "warning": "Offline test mode: Parent ID could not be verified."}
+		return {"ok": false, "error": _registration_api_error(parent_result, "Parent ID does not exist.")}
 
 	var profile_result: Dictionary = await http.request_get("/api/game/profile/check/" + student_id_input.text, {
 		"parent_id": parent_id_input.text
 	})
-	if not profile_result.get("ok", false) or int(profile_result.get("status", 0)) < 200 or int(profile_result.get("status", 0)) >= 300:
-		return {"ok": false, "error": _registration_api_error(profile_result, "Student ID could not be validated. Check your connection and retry.")}
-	if profile_result.get("body", {}).get("should_block", false):
-		return {"ok": false, "error": String(profile_result.get("body", {}).get("error", "Student ID already has an existing game profile. Please use Load Game."))}
+	var profile_body: Dictionary = profile_result.get("body", {})
+	var profile_ok := bool(profile_result.get("ok", false)) or bool(profile_body.get("ok", false))
+	var profile_status: int = int(profile_result.get("status", 0))
+	if not profile_ok or profile_status < 200 or profile_status >= 300:
+		if GameState.ALLOW_OFFLINE_NEW_GAME_TESTING and GameState.is_valid_six_digit_id(student_id_input.text) and GameState.is_valid_six_digit_id(parent_id_input.text):
+			return {"ok": true, "offline": true, "warning": "Offline test mode: Parent ID could not be verified."}
+		return {"ok": false, "error": _registration_api_error(profile_result, "Unable to connect to the server. Please try again.")}
+	if profile_body.get("should_block", false):
+		return {"ok": false, "error": String(profile_body.get("error", "Student ID already has an existing game profile. Please use Load Game."))}
 
 	return {"ok": true}
 
 func _registration_api_error(result: Dictionary, fallback: String) -> String:
 	var body: Variant = result.get("body", {})
-	if body is Dictionary and not String(body.get("error", "")).is_empty():
-		return String(body.get("error", ""))
+	if body is Dictionary:
+		var message: String = String(body.get("error", body.get("message", ""))).strip_edges()
+		if not message.is_empty():
+			if message.to_lower() == "parent id not found." or message.to_lower() == "parent id does not exist.":
+				return "Parent ID does not exist."
+			if message.to_lower() == "parent account is no longer active.":
+				return "Parent account is no longer active."
+			return message
 	return fallback
 
 func _on_male_btn_mouse_entered() -> void:
@@ -402,7 +431,7 @@ func _on_start_pressed() -> void:
 
 	_hide_validation()
 	var registration := GameState.get_new_game_registration()
-	var playtimeResult := RemoteSync.request_playtime_session({
+	var playtimeResult := await RemoteSync.request_playtime_session({
 		"student_id": String(registration.get("student_id", "")),
 		"parent_id": String(registration.get("parent_id", "")),
 		"student_name": String(registration.get("student_name", "")),

@@ -8,13 +8,9 @@ extends Button
 @export var press_duration: float = 0.05
 @export var release_duration: float = 0.10
 
-@onready var fade: CanvasItem = get_tree().current_scene.get_node_or_null("Fade") as CanvasItem
-@onready var menu: Control = get_tree().current_scene.get_node_or_null("VBoxContainer") as Control
-
 var _tween: Tween
 var _is_hovered := false
 var _is_pressed := false
-var _should_change_scene := false
 var _transitioning := false
 
 func _ready() -> void:
@@ -60,26 +56,21 @@ func _on_button_down() -> void:
 		return
 
 	_is_pressed = true
-	_should_change_scene = true
 	_animate_to(pressed_scale, press_duration)
 
 func _on_button_up() -> void:
 	if _transitioning:
 		return
 
-	var should_change_scene := _should_change_scene
 	_is_pressed = false
-	_should_change_scene = false
 	_animate_to(_target_scale(), release_duration)
-
-	if should_change_scene:
-		_begin_scene_transition()
+	_begin_scene_transition()
 
 func _on_button_pressed() -> void:
 	if _transitioning or disabled:
 		return
 
-	if not _should_change_scene:
+	if not _is_pressed:
 		_on_button_down()
 	_on_button_up()
 
@@ -91,35 +82,16 @@ func _begin_scene_transition() -> void:
 	disabled = true
 	GameState.begin_new_game_registration()
 
-	var release_tween := _tween
-	if release_tween != null and release_tween.is_valid():
-		await release_tween.finished
+	var active_tween := _tween
+	if active_tween != null and active_tween.is_valid() and active_tween.is_running():
+		await active_tween.finished
 
-	await _fade_and_change_scene()
-
-func _fade_and_change_scene() -> void:
-	if menu != null:
-		menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_SINE)
-	tween.set_ease(Tween.EASE_OUT)
-	var has_tween := false
-
-	if menu != null:
-		tween.tween_property(menu, "modulate:a", 0.0, 0.15)
-		has_tween = true
-	if fade != null:
-		if has_tween:
-			tween.parallel().tween_property(fade, "modulate:a", 1.0, 0.25)
-		else:
-			tween.tween_property(fade, "modulate:a", 1.0, 0.25)
-			has_tween = true
-
-	if has_tween:
-		await tween.finished
-
-	get_tree().change_scene_to_file(target_scene)
+	var result := get_tree().change_scene_to_file(target_scene)
+	if result != OK:
+		_transitioning = false
+		disabled = false
+		_is_pressed = false
+		_animate_to(normal_scale, release_duration)
 
 func _on_mouse_entered() -> void:
 	_is_hovered = true

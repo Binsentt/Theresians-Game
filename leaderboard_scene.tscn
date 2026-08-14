@@ -1,13 +1,13 @@
 [gd_scene format=3 uid="uid://r0ve0wtobq1r"]
 
 [ext_resource type="Script" uid="uid://c6hlo3i2jfsl4" path="res://scripts/leaderboard_scene_controller.gd" id="2"]
-[ext_resource type="Texture2D" uid="uid://c5cd1rgyki63p" path="res://Images/Background-Menu.png" id="2_eq4f2"]
-[ext_resource type="Texture2D" uid="uid://d0vo1jkxt3gam" path="res://Images/newgame.png" id="3_1equp"]
+[ext_resource type="Texture2D" uid="uid://g2muc8pyh7m7" path="res://Images/Background-Menu.png" id="2_eq4f2"]
+[ext_resource type="Texture2D" uid="uid://bgtilkgdrpwjb" path="res://Images/newgame.png" id="3_1equp"]
 [ext_resource type="Script" uid="uid://d1ujh3ar0mayx" path="res://scripts/newgm_back.gd" id="4_eq4f2"]
-[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="4_tyo51"]
-[ext_resource type="Texture2D" uid="uid://djdx0lkuikeyl" path="res://dahonleft.png" id="5_nxn1u"]
-[ext_resource type="Texture2D" uid="uid://dx21esim7hahd" path="res://dahonright.png" id="6_6mmcl"]
-[ext_resource type="Texture2D" uid="uid://luhasdx08eox" path="res://lboard.png" id="7_a4r0e"]
+[ext_resource type="FontFile" uid="uid://e1m7150gckir" path="res://Font/PressStart2P.ttf" id="4_tyo51"]
+[ext_resource type="Texture2D" uid="uid://3wdqk41yc0a5" path="res://dahonleft.png" id="5_nxn1u"]
+[ext_resource type="Texture2D" uid="uid://dtb87m813s1o2" path="res://dahonright.png" id="6_6mmcl"]
+[ext_resource type="Texture2D" uid="uid://6if74qdu0ch7" path="res://lboard.png" id="7_a4r0e"]
 
 [node name="LeaderboardScene" type="Control" unique_id=1313402708]
 layout_mode = 3
@@ -80,7 +80,7 @@ offset_top = 133.0
 offset_right = 1133.0
 offset_bottom = 516.0
 texture = ExtResource("7_a4r0e")
-metadata/_edit_lock_ = true
+expand_mode = 1
 
 [node name="GradeLbl" type="Label" parent="LeaderboardBG" unique_id=2033447415]
 layout_mode = 0

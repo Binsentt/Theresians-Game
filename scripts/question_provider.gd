@@ -102,23 +102,22 @@ func get_question(filters: Dictionary = {}) -> Dictionary:
 
 	candidates.shuffle()
 	for candidate in candidates:
-		var id := String(candidate.get("id", ""))
-		if id.is_empty():
-			continue
-		if _history.has(id) and _history.size() >= candidates.size():
-			continue
-		_history.append(id)
-		if _history.size() > 32:
-			_history.remove_at(0)
-		_last_requested_id = id
-		var question_copy := _clone_question(candidate)
-		question_requested.emit(question_copy)
-		return question_copy
+			var id := str(candidate.get("id", ""))
+			if id.is_empty():
+				continue
+			if _history.has(id) and _history.size() >= candidates.size():
+				continue
+			_history.append(id)
+			if _history.size() > 32:
+				_history.remove_at(0)
+			_last_requested_id = id
+			var question_copy := _clone_question(candidate)
+			question_requested.emit(question_copy)
+			return question_copy
 
 	var fallback := _clone_question(candidates[0])
-	_history.append(String(fallback.get("id", "")))
-	_last_requested_id = String(fallback.get("id", ""))
-	question_requested.emit(fallback)
+	_history.append(str(fallback.get("id", "")))
+	_last_requested_id = str(fallback.get("id", ""))
 	return fallback
 
 
@@ -134,18 +133,18 @@ func _filter_questions(filters: Dictionary) -> Array[Dictionary]:
 			continue
 		var matches := true
 		if filters.has("grade"):
-			var grade_value := String(filters.get("grade", ""))
-			var question_grade := String(question.get("grade", ""))
+			var grade_value := str(filters.get("grade", ""))
+			var question_grade := str(question.get("grade", ""))
 			if not grade_value.is_empty() and question_grade != grade_value:
 				matches = false
 		if matches and filters.has("topic"):
-			var topic_value := String(filters.get("topic", ""))
-			var question_topic := String(question.get("topic", ""))
+			var topic_value := str(filters.get("topic", ""))
+			var question_topic := str(question.get("topic", ""))
 			if not topic_value.is_empty() and question_topic != topic_value:
 				matches = false
 		if matches and filters.has("difficulty"):
-			var difficulty_value := String(filters.get("difficulty", ""))
-			var question_difficulty := String(question.get("difficulty", ""))
+			var difficulty_value := str(filters.get("difficulty", ""))
+			var question_difficulty := str(question.get("difficulty", ""))
 			if not difficulty_value.is_empty() and question_difficulty != difficulty_value:
 				matches = false
 		if matches:
