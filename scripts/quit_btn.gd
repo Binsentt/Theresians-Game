@@ -16,7 +16,7 @@ var _is_pressed := false
 var _should_quit := false
 
 func _ready() -> void:
-	flat = true
+	flat = false
 	focus_mode = Control.FOCUS_NONE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 

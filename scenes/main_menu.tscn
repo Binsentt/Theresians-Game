@@ -350,11 +350,12 @@ theme_override_font_sizes/font_size = 18
 text = "SFX VOLUME"
 
 [node name="MusicVolume" type="HSlider" parent="OptionsPopup/TextureRect" unique_id=463627376]
+custom_minimum_size = Vector2(331, 38)
 layout_mode = 0
 offset_left = 144.0
 offset_top = 223.5
 offset_right = 475.0
-offset_bottom = 249.5
+offset_bottom = 261.5
 theme_override_icons/grabber = ExtResource("8_lgwnu")
 theme_override_icons/grabber_highlight = ExtResource("8_lgwnu")
 theme_override_icons/grabber_disabled = ExtResource("8_lgwnu")
@@ -364,11 +365,12 @@ step = 0.01
 value = 0.8
 
 [node name="SfxVolume" type="HSlider" parent="OptionsPopup/TextureRect" unique_id=394207342]
+custom_minimum_size = Vector2(331, 38)
 layout_mode = 0
 offset_left = 139.0
 offset_top = 329.5
 offset_right = 470.0
-offset_bottom = 355.5
+offset_bottom = 367.5
 theme_override_icons/grabber = ExtResource("8_lgwnu")
 theme_override_icons/grabber_highlight = ExtResource("8_lgwnu")
 theme_override_icons/grabber_disabled = ExtResource("8_lgwnu")

@@ -19,7 +19,7 @@ var _is_pressed: bool = false
 var _should_change_scene: bool = false
 
 func _ready() -> void:
-	flat = true
+	flat = false
 	focus_mode = Control.FOCUS_NONE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	
