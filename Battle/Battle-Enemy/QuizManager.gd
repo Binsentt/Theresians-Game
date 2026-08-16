@@ -98,7 +98,9 @@ func answer_selected(index:int):
 	if q.is_empty() and current_question < questions.size():
 		q = questions[current_question]
 	if q is Dictionary:
-		if index == int(q.get("correct", -1)):
+		var is_correct := index == int(q.get("correct", -1))
+		_record_question_attempt(q, is_correct)
+		if is_correct:
 			print("Correct!")
 			enemy_effect.play_effect()
 			enemy.take_damage()
@@ -118,6 +120,12 @@ func answer_selected(index:int):
 		return
 
 	load_question()
+
+
+func _record_question_attempt(question: Dictionary, is_correct: bool) -> void:
+	var remote_sync := get_node_or_null("/root/RemoteSync")
+	if remote_sync != null and remote_sync.has_method("record_question_attempt"):
+		remote_sync.call_deferred("record_question_attempt", question.duplicate(true), is_correct)
 
 
 func disable_buttons():

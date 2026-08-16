@@ -268,6 +268,34 @@ func request_end_playtime_session() -> Dictionary:
 	# Public wrapper for UI or scene lifecycle code to cleanly end the current playtime session.
 	return await _end_playtime_session()
 
+
+func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		return
+	if not GameState.is_valid_six_digit_id(GameState.student_id) or not GameState.is_valid_six_digit_id(GameState.parent_id):
+		return
+
+	var payload := {
+		"parent_id": GameState.parent_id,
+		"student_id": GameState.student_id,
+		"student_name": GameState.player_name,
+		"grade_level": GameState.grade_level,
+		"difficulty": String(question.get("difficulty", "Unknown")).strip_edges(),
+		"math_topic": String(question.get("topic", question.get("math_topic", ""))).strip_edges(),
+		"score": 1 if is_correct else 0,
+		"total_items": 1,
+		"timestamp": Time.get_datetime_string_from_system(true, true)
+	}
+	var question_set_id: Variant = question.get("question_set_id", null)
+	if question_set_id is int and question_set_id > 0:
+		payload["question_set_id"] = question_set_id
+
+	var result: Dictionary = await http.request_post("/api/game/result", payload)
+	if not result.get("ok", false) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
+		print("RemoteSync: question result sync failed; local gameplay continues: %s" % str(result))
+
+
 func _enqueue_pending(save_data: Dictionary) -> void:
 	var pending := _load_pending()
 	pending.append(save_data)
