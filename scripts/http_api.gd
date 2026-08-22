@@ -4,7 +4,7 @@ signal request_completed(status_code: int, result: Dictionary)
 signal request_failed(error: String)
 
 const DEFAULT_CONFIG_PATH := "res://Data/api_config.json"
-var base_url: String = "http://localhost:5000"
+var base_url: String = ""
 var default_timeout_ms: int = 10000
 
 func _ready() -> void:
@@ -15,11 +15,25 @@ func _ready() -> void:
 		var parsed_config = JSON.parse_string(text)
 		if typeof(parsed_config) == TYPE_DICTIONARY:
 			var cfg: Dictionary = parsed_config
-			if cfg.has("development_url"):
-				base_url = String(cfg.get("development_url"))
+			var configured_url := resolve_configured_base_url(cfg, OS.is_debug_build())
+			if _is_usable_base_url(configured_url):
+				base_url = configured_url.rstrip("/")
+			else:
+				base_url = ""
+				push_warning("HttpApi: no usable API URL is configured for this build; remote API requests are disabled.")
 			if cfg.has("timeout_ms"):
 				default_timeout_ms = int(cfg.get("timeout_ms"))
 	# no persistent HTTPRequest node: create per-request nodes to avoid blocking and allow concurrency
+
+
+func resolve_configured_base_url(config: Dictionary, is_debug_build: bool) -> String:
+	var config_key := "development_url" if is_debug_build else "production_url"
+	return String(config.get(config_key, "")).strip_edges()
+
+
+func _is_usable_base_url(value: String) -> bool:
+	var url := value.strip_edges().to_lower()
+	return (url.begins_with("https://") or url.begins_with("http://")) and not url.contains("example.com")
 
 func _build_url(path: String, params: Dictionary = {}) -> String:
 	var url := path.strip_edges()
@@ -90,4 +104,3 @@ func request_post(path: String, payload: Dictionary, timeout_ms: int = -1) -> Di
 			parsed = parsed_body
 	http.queue_free()
 	return {"ok": true, "status": response_code, "body": parsed}
-
