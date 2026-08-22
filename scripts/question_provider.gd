@@ -210,14 +210,10 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 		return {}
 	normalized["choices"] = Array(choices)
 
-	var correct = null
-	if question.has("correct"):
-		correct = question.get("correct")
-	elif question.has("correct_answer"):
-		correct = question.get("correct_answer")
+	var correct: Variant = _normalize_correct_answer(question, normalized["choices"])
 	if correct == null:
 		return {}
-	normalized["correct"] = str(correct)
+	normalized["correct"] = correct
 
 	var learning_file_id: Variant = question.get("learning_file_id", null)
 	if learning_file_id is int and learning_file_id > 0:
@@ -233,3 +229,47 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 			normalized[key] = question.get(key)
 
 	return normalized
+
+
+func _normalize_correct_answer(question: Dictionary, choices: Array) -> Variant:
+	# Local fallback questions already use QuizManager's zero-based `correct`
+	# index. Published backend questions use `correct_answer` as choice text.
+	if question.has("correct"):
+		return _normalize_choice_index(question.get("correct"), choices.size())
+	if question.has("correct_answer"):
+		return _resolve_unique_choice_index(question.get("correct_answer"), choices)
+	return null
+
+
+func _normalize_choice_index(value: Variant, choice_count: int) -> Variant:
+	var index := -1
+	if value is int:
+		index = value
+	elif value is float:
+		if value != floor(value):
+			return null
+		index = int(value)
+	elif value is String:
+		var index_text: String = value.strip_edges()
+		if not index_text.is_valid_int():
+			return null
+		index = index_text.to_int()
+	else:
+		return null
+	if index < 0 or index >= choice_count:
+		return null
+	return str(index)
+
+
+func _resolve_unique_choice_index(answer: Variant, choices: Array) -> Variant:
+	var answer_text := str(answer)
+	var matching_index := -1
+	for index in range(choices.size()):
+		if str(choices[index]) != answer_text:
+			continue
+		if matching_index != -1:
+			return null
+		matching_index = index
+	if matching_index == -1:
+		return null
+	return str(matching_index)
