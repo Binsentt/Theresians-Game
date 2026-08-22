@@ -7,14 +7,17 @@ signal game_over
 signal battle_started(enemy: Node)
 signal battle_enemy_changed(enemy: Node)
 signal battle_ended
+signal encounter_lifecycle_changed(context: Dictionary)
+signal encounter_game_over(context: Dictionary)
 signal mode_changed(previous_mode: GameMode, current_mode: GameMode)
 signal task_state_changed(previous_index: int, current_index: int, event: Dictionary)
 signal progression_session_reset(source: String)
 signal time_limit_reached
+signal playtime_warning(remaining_minutes: int)
 
 enum GameMode { EXPLORATION, DIALOGUE, CUTSCENE, BATTLE, MENU }
 
-const SAVE_VERSION := 6
+const SAVE_VERSION := 7
 const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
 const SAVE_DIRECTORY := "user://saves"
@@ -62,6 +65,7 @@ var current_map := ""
 var player_position := Vector2.ZERO
 var battle_active: bool = false
 var current_battle_enemy_path: NodePath = NodePath()
+var encounter_context: Dictionary = {}
 
 var city_of_knowledge_unlocked := false
 var score: int = 0
@@ -93,12 +97,15 @@ var tasks = [
 ]
 
 const DEFAULT_PLAYTIME_LIMIT_MINUTES := 60
+const MAX_ENCOUNTER_LOSSES := 3
+const PLAYTIME_WARNING_MINUTES := [30, 20, 15, 5, 1]
 var playtime_limit_minutes: int = DEFAULT_PLAYTIME_LIMIT_MINUTES
 var playtime_remaining_minutes: int = DEFAULT_PLAYTIME_LIMIT_MINUTES
 var playtime_remaining_seconds: float = DEFAULT_PLAYTIME_LIMIT_MINUTES * 60.0
 var playtime_authorized: bool = true
 var playtime_countdown_active: bool = false
 var _playtime_limit_triggered: bool = false
+var _playtime_warning_notified: Dictionary = {}
 
 var _pending_scene_spawn: Dictionary = {}
 var _return_context: Dictionary = {}
@@ -258,6 +265,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	current_task_index = 0
 	_pending_scene_spawn.clear()
 	_return_context.clear()
+	encounter_context.clear()
 	_clear_battle_state()
 	_clear_resume_state()
 	set_mode(GameMode.EXPLORATION)
@@ -268,7 +276,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 		progression_session_reset.emit("new_game")
 
 
-func configure_playtime_allowance(response_body: Dictionary) -> void:
+func configure_playtime_allowance(response_body: Dictionary, reset_warning_state: bool = false) -> void:
 	if response_body.is_empty():
 		playtime_authorized = false
 		playtime_countdown_active = false
@@ -276,6 +284,7 @@ func configure_playtime_allowance(response_body: Dictionary) -> void:
 		playtime_remaining_seconds = 0.0
 		playtime_limit_minutes = DEFAULT_PLAYTIME_LIMIT_MINUTES
 		_playtime_limit_triggered = false
+		_playtime_warning_notified.clear()
 		return
 
 	var daily_limit := int(response_body.get("daily_limit_minutes", DEFAULT_PLAYTIME_LIMIT_MINUTES))
@@ -283,22 +292,30 @@ func configure_playtime_allowance(response_body: Dictionary) -> void:
 		daily_limit = DEFAULT_PLAYTIME_LIMIT_MINUTES
 
 	var remaining_minutes := int(response_body.get("remaining_minutes", daily_limit))
+	var response_remaining_seconds := float(response_body.get("remaining_seconds", remaining_minutes * 60))
 	var api_authorized := bool(response_body.get("can_play", true))
 	if response_body.has("should_block"):
 		api_authorized = api_authorized and not bool(response_body.get("should_block", false))
 
+	var previous_remaining_seconds := playtime_remaining_seconds
+	if reset_warning_state:
+		_playtime_warning_notified.clear()
+		_playtime_limit_triggered = false
+		previous_remaining_seconds = response_remaining_seconds
+
 	playtime_limit_minutes = max(0, daily_limit)
-	playtime_remaining_minutes = max(0, remaining_minutes)
-	playtime_remaining_seconds = float(playtime_remaining_minutes) * 60.0
+	playtime_remaining_seconds = maxf(0.0, response_remaining_seconds)
+	playtime_remaining_minutes = int(ceil(playtime_remaining_seconds / 60.0))
 	playtime_authorized = api_authorized
 	playtime_countdown_active = api_authorized and playtime_limit_minutes > 0 and playtime_remaining_seconds > 0.0
-	_playtime_limit_triggered = false
+	_emit_crossed_playtime_warnings(previous_remaining_seconds, playtime_remaining_seconds)
 
 	if playtime_remaining_seconds <= 0.0:
 		playtime_countdown_active = false
 		playtime_authorized = false
 		playtime_remaining_minutes = 0
 		playtime_remaining_seconds = 0.0
+		_emit_time_limit_reached_once()
 
 func consume_playtime_clock(delta: float) -> void:
 	if not playtime_countdown_active:
@@ -310,26 +327,41 @@ func consume_playtime_clock(delta: float) -> void:
 		playtime_authorized = false
 		playtime_remaining_minutes = 0
 		playtime_remaining_seconds = 0.0
-		if not _playtime_limit_triggered:
-			_playtime_limit_triggered = true
-			time_limit_reached.emit()
+		_emit_time_limit_reached_once()
 		return
 
+	var previous_remaining_seconds := playtime_remaining_seconds
 	playtime_remaining_seconds = maxf(0.0, playtime_remaining_seconds - delta)
+	_emit_crossed_playtime_warnings(previous_remaining_seconds, playtime_remaining_seconds)
 	if playtime_remaining_seconds <= 0.0:
 		playtime_remaining_seconds = 0.0
 		playtime_remaining_minutes = 0
 		playtime_authorized = false
 		playtime_countdown_active = false
-		if not _playtime_limit_triggered:
-			_playtime_limit_triggered = true
-			time_limit_reached.emit()
+		_emit_time_limit_reached_once()
 		return
 
 	playtime_remaining_minutes = int(ceil(playtime_remaining_seconds / 60.0))
 
 func get_playtime_remaining_seconds() -> float:
 	return playtime_remaining_seconds
+
+
+func _emit_crossed_playtime_warnings(previous_seconds: float, current_seconds: float) -> void:
+	if previous_seconds <= 0.0 or current_seconds >= previous_seconds:
+		return
+	for warning_minutes in PLAYTIME_WARNING_MINUTES:
+		var threshold_seconds := float(warning_minutes * 60)
+		if previous_seconds > threshold_seconds and current_seconds <= threshold_seconds and not _playtime_warning_notified.has(warning_minutes):
+			_playtime_warning_notified[warning_minutes] = true
+			playtime_warning.emit(warning_minutes)
+
+
+func _emit_time_limit_reached_once() -> void:
+	if _playtime_limit_triggered:
+		return
+	_playtime_limit_triggered = true
+	time_limit_reached.emit()
 
 func has_existing_game_profile_for_student_id(student_id: String) -> bool:
 	var normalized_id := String(student_id).strip_edges()
@@ -395,6 +427,100 @@ func begin_battle(enemy: Node) -> void:
 		push_mode(GameMode.BATTLE)
 	battle_started.emit(enemy)
 	battle_enemy_changed.emit(enemy)
+
+
+func begin_encounter(options: Dictionary = {}) -> Dictionary:
+	var encounter_id := String(options.get("encounter_id", "")).strip_edges()
+	if encounter_id.is_empty():
+		encounter_id = "encounter:%d" % current_task_index
+	var preserved_retry_count := 0
+	if String(encounter_context.get("encounter_id", "")) == encounter_id \
+			and int(encounter_context.get("quest_checkpoint", -1)) == current_task_index:
+		preserved_retry_count = maxi(0, int(encounter_context.get("retry_count", 0)))
+	var source_scene_path := _normalize_scene_path(String(options.get("source_scene_path", current_scene_path)))
+	var source_position := player_position
+	var requested_position: Variant = options.get("source_position", source_position)
+	if requested_position is Vector2:
+		source_position = requested_position
+	elif requested_position is Dictionary:
+		source_position = _dictionary_to_vector2(requested_position)
+
+	encounter_context = {
+		"encounter_id": encounter_id,
+		"source_scene_path": source_scene_path,
+		"source_position": _vector2_to_dictionary(source_position),
+		"quest_checkpoint": clampi(int(options.get("quest_checkpoint", current_task_index)), 0, tasks.size()),
+		"retry_count": maxi(0, int(options.get("retry_count", preserved_retry_count))),
+		"question_scope": _normalize_question_scope(options.get("question_scope", {}), source_scene_path),
+	}
+	battle_active = true
+	if get_mode() != GameMode.BATTLE:
+		push_mode(GameMode.BATTLE)
+	encounter_lifecycle_changed.emit(encounter_context.duplicate(true))
+	return encounter_context.duplicate(true)
+
+
+func get_active_encounter_context() -> Dictionary:
+	return encounter_context.duplicate(true)
+
+
+func get_encounter_question_scope() -> Dictionary:
+	if encounter_context.is_empty():
+		return _normalize_question_scope({}, current_scene_path)
+	return _normalize_question_scope(
+		encounter_context.get("question_scope", {}),
+		String(encounter_context.get("source_scene_path", current_scene_path))
+	)
+
+
+func record_encounter_loss() -> Dictionary:
+	if encounter_context.is_empty():
+		return {"retry_count": 0, "game_over": false, "action": "none"}
+
+	var retry_count := int(encounter_context.get("retry_count", 0)) + 1
+	encounter_context["retry_count"] = retry_count
+	_clear_battle_state()
+	if get_mode() == GameMode.BATTLE:
+		pop_mode()
+
+	if retry_count < MAX_ENCOUNTER_LOSSES:
+		_restore_encounter_return_position()
+		var retry_result := {
+			"retry_count": retry_count,
+			"game_over": false,
+			"action": "retry",
+			"context": encounter_context.duplicate(true),
+		}
+		encounter_lifecycle_changed.emit(encounter_context.duplicate(true))
+		battle_ended.emit()
+		return retry_result
+
+	var game_over_context := encounter_context.duplicate(true)
+	current_task_index = clampi(int(encounter_context.get("quest_checkpoint", current_task_index)), 0, tasks.size())
+	encounter_context.clear()
+	quest_changed.emit(current_quest)
+	battle_ended.emit()
+	encounter_game_over.emit(game_over_context)
+	game_over.emit()
+	return {
+		"retry_count": retry_count,
+		"game_over": true,
+		"action": "game_over",
+		"context": game_over_context,
+	}
+
+
+func record_encounter_victory() -> Dictionary:
+	if encounter_context.is_empty():
+		return {"success": true, "action": "none"}
+	var completed_context := encounter_context.duplicate(true)
+	encounter_context.clear()
+	_clear_battle_state()
+	if get_mode() == GameMode.BATTLE:
+		pop_mode()
+	battle_ended.emit()
+	encounter_lifecycle_changed.emit({})
+	return {"success": true, "action": "victory", "context": completed_context}
 
 
 func end_battle() -> void:
@@ -488,6 +614,7 @@ func build_save_data() -> Dictionary:
 		},
 		"current_lives": current_lives,
 		"max_lives": max_lives,
+		"encounter_context": encounter_context.duplicate(true),
 		"city_of_knowledge_unlocked": city_of_knowledge_unlocked,
 		"current_task_index": current_task_index,
 		"score": score,
@@ -562,6 +689,7 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	current_lives = int(data.get("current_lives", 3))
 	max_lives = maxi(1, int(data.get("max_lives", 3)))
 	current_lives = clampi(current_lives, 0, max_lives)
+	encounter_context = _normalize_encounter_context(data.get("encounter_context", {}))
 	city_of_knowledge_unlocked = bool(data.get("city_of_knowledge_unlocked", false))
 	current_task_index = clampi(int(data.get("current_task_index", 0)), 0, tasks.size())
 	score = int(data.get("score", 0))
@@ -727,6 +855,85 @@ func lose_life(amount: int = 1) -> void:
 
 	if current_lives <= 0:
 		game_over.emit()
+
+
+func _normalize_question_scope(scope: Variant, source_scene_path: String) -> Dictionary:
+	var normalized: Dictionary = {}
+	if scope is Dictionary:
+		var grade := String(scope.get("grade", scope.get("grade_level", ""))).strip_edges()
+		var difficulty := _normalize_difficulty(String(scope.get("difficulty", "")))
+		var topic := String(scope.get("topic", scope.get("math_topic", ""))).strip_edges()
+		if not grade.is_empty():
+			normalized["grade"] = grade
+		if not difficulty.is_empty():
+			normalized["difficulty"] = difficulty
+		if not topic.is_empty():
+			normalized["topic"] = topic
+	if not normalized.has("grade") and not grade_level.strip_edges().is_empty():
+		normalized["grade"] = grade_level.strip_edges()
+	if not normalized.has("difficulty"):
+		normalized["difficulty"] = _difficulty_for_scene(source_scene_path)
+	return normalized
+
+
+func _normalize_difficulty(value: String) -> String:
+	match value.strip_edges().to_lower():
+		"easy":
+			return "Easy"
+		"medium", "normal":
+			return "Medium"
+		"hard", "difficult":
+			return "Hard"
+		_:
+			return ""
+
+
+func _difficulty_for_scene(scene_path: String) -> String:
+	var normalized_scene_path := _normalize_scene_path(scene_path).to_lower()
+	if normalized_scene_path.contains("city_of_knowledge"):
+		return "Medium"
+	if normalized_scene_path.contains("pinehill") or normalized_scene_path.contains("2nd village"):
+		return "Hard"
+	return "Easy"
+
+
+func _restore_encounter_return_position() -> void:
+	if encounter_context.is_empty():
+		return
+	var source_scene_path := _normalize_scene_path(String(encounter_context.get("source_scene_path", current_scene_path)))
+	var source_position := _dictionary_to_vector2(encounter_context.get("source_position", {}))
+	current_scene_path = source_scene_path
+	player_position = source_position
+	if not is_inside_tree():
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var current_scene := tree.current_scene
+	if current_scene != null and _normalize_scene_path(current_scene.scene_file_path) == source_scene_path:
+		var player := tree.get_first_node_in_group("player_character") as Node2D
+		if player != null:
+			player.global_position = source_position
+		return
+	queue_scene_spawn(source_scene_path, source_position)
+
+
+func _normalize_encounter_context(value: Variant) -> Dictionary:
+	if not (value is Dictionary) or value.is_empty():
+		return {}
+	var source_scene_path := _normalize_scene_path(String(value.get("source_scene_path", current_scene_path)))
+	return {
+		"encounter_id": String(value.get("encounter_id", "")).strip_edges(),
+		"source_scene_path": source_scene_path,
+		"source_position": _vector2_to_dictionary(_dictionary_to_vector2(value.get("source_position", {}))),
+		"quest_checkpoint": clampi(int(value.get("quest_checkpoint", current_task_index)), 0, tasks.size()),
+		"retry_count": maxi(0, int(value.get("retry_count", 0))),
+		"question_scope": _normalize_question_scope(value.get("question_scope", {}), source_scene_path),
+	}
+
+
+func _vector2_to_dictionary(value: Vector2) -> Dictionary:
+	return {"x": value.x, "y": value.y}
 
 
 func _read_save_file(save_path: String) -> Dictionary:

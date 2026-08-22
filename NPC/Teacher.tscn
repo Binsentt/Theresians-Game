@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cocxug131jbkm"]
 
 [ext_resource type="Texture2D" uid="uid://dxy6bktyhheoo" path="res://NPC/Teacher male.png" id="1_5k0dm"]
-[ext_resource type="Script" uid="uid://dy36lkamlo1ya" path="res://scripts/battle_enemy.gd" id="2_battle"]
+[ext_resource type="Script" path="res://scripts/teacher_task_interaction.gd" id="2_battle"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_elawb"]
 atlas = ExtResource("1_5k0dm")
@@ -159,7 +159,6 @@ scale = Vector2(0.065, 0.065)
 sprite_frames = SubResource("SpriteFrames_droyi")
 animation = &"walk_down"
 script = ExtResource("2_battle")
-battle_name = "Teacher"
 
 [node name="Area2D" type="Area2D" parent="." unique_id=1251849657]
 

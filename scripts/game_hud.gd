@@ -147,6 +147,7 @@ func show_time_limit_reached() -> void:
 	_on_time_limit_reached()
 
 func _on_return_button_pressed() -> void:
+	get_tree().paused = false
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 func _apply_player_heart_style() -> void:

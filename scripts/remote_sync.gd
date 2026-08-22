@@ -3,9 +3,14 @@
 var _pending_file := "user://pending_syncs.json"
 
 var _current_playtime_session_id: int = 0
+var _current_playtime_session_credential: String = ""
 var _session_start_in_progress: bool = false
+var _playtime_heartbeat_in_progress: bool = false
+var _playtime_heartbeat_elapsed: float = 0.0
+var _playtime_timeout_handled: bool = false
 
 const PLAYTIME_DAILY_LIMIT_MINUTES := 60
+const PLAYTIME_HEARTBEAT_INTERVAL_SECONDS := 15.0
 
 func _ready() -> void:
 	var game_state := get_node_or_null("/root/GameState")
@@ -14,14 +19,19 @@ func _ready() -> void:
 		game_state.connect("progression_session_reset", Callable(self, "_on_progression_session_reset"))
 		game_state.connect("game_over", Callable(self, "_on_game_over"))
 		game_state.connect("time_limit_reached", Callable(self, "_on_time_limit_reached"))
+		game_state.connect("playtime_warning", Callable(self, "_on_playtime_warning"))
 	_load_pending()
 
 func _process(delta: float) -> void:
 	if not GameState:
 		return
 	GameState.consume_playtime_clock(delta)
-	if GameState.playtime_countdown_active:
+	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty() or not GameState.playtime_authorized:
 		return
+	_playtime_heartbeat_elapsed += delta
+	if _playtime_heartbeat_elapsed >= PLAYTIME_HEARTBEAT_INTERVAL_SECONDS and not _playtime_heartbeat_in_progress:
+		_playtime_heartbeat_elapsed = 0.0
+		_refresh_playtime_lease.call_deferred()
 
 func _on_save_created(save_data: Dictionary) -> void:
 	# Always allow local save to complete; attempt remote sync but do not block
@@ -40,19 +50,18 @@ func _on_game_over() -> void:
 	await _end_playtime_session()
 
 func _on_time_limit_reached() -> void:
-	if GameState.playtime_authorized:
+	if GameState.playtime_authorized or _playtime_timeout_handled:
 		return
+	_playtime_timeout_handled = true
 	if _session_start_in_progress:
 		return
 	var current_scene: Node = get_tree().current_scene
 	if current_scene != null:
 		GameState.capture_runtime(current_scene.scene_file_path, get_tree().get_first_node_in_group("player_character").global_position if get_tree().get_first_node_in_group("player_character") != null else Vector2.ZERO)
 	var auto_save_path: String = GameState.save_game()
-	await _async_send_progress(GameState.build_save_data())
 	await _end_playtime_session()
 	await _create_activity_log("Auto Save", "Auto-save due to daily playtime limit reached", {})
 	await _create_activity_log("Timeout", "Gameplay session timed out after daily limit reached", {})
-	GameState.time_limit_reached.emit()
 	var hud := get_node_or_null("/root/GameHUD")
 	if hud != null and hud.has_method("show_time_limit_reached"):
 		hud.call("show_time_limit_reached")
@@ -60,6 +69,17 @@ func _on_time_limit_reached() -> void:
 		print("RemoteSync: local autosave completed for time-limit stop: %s" % auto_save_path)
 	if get_tree() != null:
 		get_tree().paused = true
+
+
+func _on_playtime_warning(remaining_minutes: int) -> void:
+	var notification_manager := get_node_or_null("/root/QuestNotificationManager")
+	if notification_manager != null and notification_manager.has_method("show_system_notification"):
+		notification_manager.call(
+			"show_system_notification",
+			"Playtime Reminder",
+			"%d minute%s remaining today." % [remaining_minutes, "" if remaining_minutes == 1 else "s"],
+			"playtime-warning:%d" % remaining_minutes
+		)
 
 func _async_send_progress(save_data: Dictionary) -> void:
 	# perform non-blocking via thread? We'll do simple call and rely on HttpApi's await behavior
@@ -133,13 +153,49 @@ func _send_playtime_end_request() -> Dictionary:
 	if http == null:
 		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
 
+	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
+		return {"ok": false, "error": "No active server playtime lease", "should_block": false}
 	var payload := {
-		"student_id": String(GameState.student_id)
+		"session_id": _current_playtime_session_id,
+		"session_credential": _current_playtime_session_credential,
+		"status": "Timed Out" if not GameState.playtime_authorized else "Completed",
 	}
-	if _current_playtime_session_id != 0:
-		payload["session_id"] = _current_playtime_session_id
 
 	return await http.request_post("/api/playtime/end", payload)
+
+
+func _send_playtime_heartbeat_request() -> Dictionary:
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
+	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
+		return {"ok": false, "error": "No active server playtime lease", "should_block": false}
+	return await http.request_post("/api/playtime/heartbeat", {
+		"session_id": _current_playtime_session_id,
+		"session_credential": _current_playtime_session_credential,
+	})
+
+
+func _refresh_playtime_lease() -> void:
+	if _playtime_heartbeat_in_progress or _current_playtime_session_id == 0:
+		return
+	_playtime_heartbeat_in_progress = true
+	var result := await _send_playtime_heartbeat_request()
+	if typeof(result.body) == TYPE_DICTIONARY:
+		GameState.configure_playtime_allowance(result.body, false)
+	if result.ok and result.status >= 200 and result.status < 300:
+		_playtime_timeout_handled = false
+	else:
+		# A 403 is a server-authoritative expiry. Other transport failures keep
+		# the previously issued lease until the next heartbeat rather than making
+		# a client-side decision about remaining time.
+		if result.status == 403:
+			GameState.configure_playtime_allowance({
+				"daily_limit_minutes": PLAYTIME_DAILY_LIMIT_MINUTES,
+				"remaining_seconds": 0,
+				"can_play": false,
+			}, false)
+	_playtime_heartbeat_in_progress = false
 
 func _create_activity_log(status: String, description: String, override_payload: Dictionary = {}) -> void:
 	var http := get_node_or_null("/root/HttpApi")
@@ -169,7 +225,7 @@ func _create_activity_log(status: String, description: String, override_payload:
 		print("RemoteSync: activity log failed: %s" % str(result.error))
 
 func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
-	if _current_playtime_session_id != 0:
+	if _current_playtime_session_id != 0 and not _current_playtime_session_credential.is_empty():
 		return {"ok": true, "session_id": _current_playtime_session_id, "can_play": true}
 	if _session_start_in_progress:
 		return {"ok": false, "error": "Playtime session start already pending", "should_block": false, "can_play": false}
@@ -184,7 +240,7 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 		var is_new_registration := bool(result.body.get("is_new_registration", false))
 		
 		if api_can_play == false:
-			GameState.configure_playtime_allowance(result.body)
+			GameState.configure_playtime_allowance(result.body, true)
 			final_result = {
 				"ok": false,
 				"status": result.status,
@@ -197,8 +253,9 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 			}
 		elif is_new_registration:
 			# New student registration: allow without creating session yet
-			GameState.configure_playtime_allowance(result.body)
+			GameState.configure_playtime_allowance(result.body, true)
 			_current_playtime_session_id = 0
+			_current_playtime_session_credential = ""
 			final_result = {
 				"ok": true,
 				"session_id": 0,
@@ -210,21 +267,27 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 				"message": String(result.body.get("message", "New student registration ready.")),
 			}
 		else:
-			GameState.configure_playtime_allowance(result.body)
+			GameState.configure_playtime_allowance(result.body, true)
 			_current_playtime_session_id = int(result.body.get("session_id", 0))
-			if _current_playtime_session_id != 0:
+			_current_playtime_session_credential = String(result.body.get("session_credential", "")).strip_edges()
+			_playtime_heartbeat_elapsed = 0.0
+			_playtime_timeout_handled = false
+			if _current_playtime_session_id != 0 and not _current_playtime_session_credential.is_empty():
 				await _create_activity_log("Playing", "Gameplay session started", override_payload)
 				final_result = {
 					"ok": true,
 					"session_id": _current_playtime_session_id,
 					"remaining_minutes": int(result.body.get("remaining_minutes", 60)),
+					"remaining_seconds": int(result.body.get("remaining_seconds", 60 * 60)),
 					"daily_limit_minutes": int(result.body.get("daily_limit_minutes", 60)),
 					"total_playtime_today": int(result.body.get("total_playtime_today", 0)),
 					"can_play": true,
 					"message": String(result.body.get("message", "Playtime session started.")),
 				}
 			else:
-				final_result = {"ok": false, "error": "Playtime session did not return a session ID", "should_block": false, "can_play": false}
+				_current_playtime_session_id = 0
+				_current_playtime_session_credential = ""
+				final_result = {"ok": false, "error": "Playtime session did not return a valid server lease", "should_block": false, "can_play": false}
 	else:
 		var error_message := "Unable to start playtime session"
 		if typeof(result.body) == TYPE_DICTIONARY and result.body.has("error"):
@@ -242,8 +305,8 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 	return final_result
 
 func _end_playtime_session() -> Dictionary:
-	if _current_playtime_session_id == 0 and not GameState.is_valid_six_digit_id(GameState.student_id):
-		return {"ok": false, "error": "Missing session or student ID", "should_block": false}
+	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
+		return {"ok": false, "error": "Missing active server playtime lease", "should_block": false}
 
 	var result := await _send_playtime_end_request()
 	if not result.ok:
@@ -252,6 +315,8 @@ func _end_playtime_session() -> Dictionary:
 	if result.status == 200:
 		await _create_activity_log("Offline", "Gameplay session ended")
 		_current_playtime_session_id = 0
+		_current_playtime_session_credential = ""
+		_playtime_heartbeat_elapsed = 0.0
 		return {"ok": true}
 
 	var error_message := "Unable to end playtime session"
@@ -285,8 +350,12 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		"math_topic": String(question.get("topic", question.get("math_topic", ""))).strip_edges(),
 		"score": 1 if is_correct else 0,
 		"total_items": 1,
-		"timestamp": Time.get_datetime_string_from_system(true, true)
+		"playtime_session_id": _current_playtime_session_id,
+		"playtime_session_credential": _current_playtime_session_credential,
 	}
+	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
+		print("RemoteSync: skipping question result because no active server playtime lease is available.")
+		return
 	var question_set_id: Variant = question.get("question_set_id", null)
 	if question_set_id is int and question_set_id > 0:
 		payload["question_set_id"] = question_set_id

@@ -66,23 +66,53 @@ func show_completed_with_dialogue():
 	if current_task_data.has("next_scene"):
 
 		await get_tree().create_timer(1.0).timeout
+		if not GameState.playtime_authorized:
+			if feedback_text:
+				feedback_text.text = "Daily playtime limit reached."
+				feedback_text.visible = true
+			return
+		var player := get_tree().get_first_node_in_group("player_character") as Node2D
+		var source_position := player.global_position if player != null else GameState.player_position
+		var source_scene := get_tree().current_scene
+		var source_scene_path := source_scene.scene_file_path if source_scene != null else GameState.current_scene_path
+		GameState.begin_encounter({
+			"encounter_id": "quest_task_%d" % GameState.current_task_index,
+			"source_scene_path": source_scene_path,
+			"source_position": source_position,
+			"quest_checkpoint": GameState.current_task_index,
+			"question_scope": current_task_data.get("question_scope", {}),
+		})
 
 		var battle_scene = load(current_task_data["next_scene"]).instantiate()
 
 		# Add battle as overlay
 		get_tree().current_scene.add_child(battle_scene)
+		GameState.begin_battle(battle_scene)
 
 
 		visible = false
 
 
-		await battle_scene.battle_finished
+		var battle_won: bool = await battle_scene.battle_finished
 
 
 		battle_scene.queue_free()
 
 
 		visible = true
+		if not battle_won:
+			var loss_result: Dictionary = GameState.record_encounter_loss()
+			if bool(loss_result.get("game_over", false)):
+				return
+			if dialogue_text:
+				dialogue_text.text = "Try again. You have %d battle retries remaining." % (GameState.MAX_ENCOUNTER_LOSSES - int(loss_result.get("retry_count", 0)))
+				dialogue_text.visible = true
+			await get_tree().create_timer(2.0).timeout
+			if dialogue_text:
+				dialogue_text.visible = false
+			update_task_ui()
+			return
+		GameState.record_encounter_victory()
 
 	# Hide dialogue
 	if npc_image:
@@ -96,7 +126,17 @@ func show_completed_with_dialogue():
 		feedback_text.text = "Task %d Completed!" % (GameState.current_task_index + 1)
 		feedback_text.visible = true
 
-	GameState.complete_task()
+	if current_task_data.has("next_scene"):
+		GameState.advance_task_and_save({
+			"type": "task_completed",
+			"key": "quest:main:task:%d:complete" % GameState.current_task_index,
+			"title": "Task %d Complete" % (GameState.current_task_index + 1),
+			"description": "Battle completed",
+			"source": "quest_ui",
+			"reason": "battle_victory",
+		})
+	else:
+		GameState.complete_task()
 
 	await get_tree().create_timer(3.0).timeout
 

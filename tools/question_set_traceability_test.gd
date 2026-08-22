@@ -104,6 +104,8 @@ func _assert_recorded_payloads(remote_sync: Node) -> bool:
 	var original_parent_id: Variant = game_state.get("parent_id")
 	var original_player_name: Variant = game_state.get("player_name")
 	var original_grade_level: Variant = game_state.get("grade_level")
+	remote_sync.set("_current_playtime_session_id", 501)
+	remote_sync.set("_current_playtime_session_credential", "test-server-issued-lease")
 	game_state.set("student_id", "123456")
 	game_state.set("parent_id", "654321")
 	game_state.set("player_name", "Traceability Student")
@@ -127,6 +129,8 @@ func _assert_recorded_payloads(remote_sync: Node) -> bool:
 		failed = not _assert_equal(http_stub.requests[0].get("path"), "/api/game/result", "Question attempts must use the game-result endpoint") or failed
 		failed = not _assert_equal(remote_payload.get("question_set_id"), 77, "Positive question_set_id must be included in the result payload") or failed
 		failed = not _assert(not fallback_payload.has("question_set_id"), "Result payloads must omit missing question_set_id values") or failed
+		failed = not _assert_equal(remote_payload.get("playtime_session_id"), 501, "Question results must include the active server playtime session") or failed
+		failed = not _assert_equal(remote_payload.get("playtime_session_credential"), "test-server-issued-lease", "Question results must include the issued server lease credential") or failed
 		failed = not _assert_equal(remote_payload.get("score"), 0, "Incorrect answers must be forwarded as score 0") or failed
 		failed = not _assert_equal(fallback_payload.get("score"), 1, "Correct answers must be forwarded as score 1") or failed
 

@@ -2,6 +2,8 @@ extends Node2D
 
 const QuestionProviderScript = preload("res://scripts/question_provider.gd")
 
+signal battle_finished(success: bool)
+
 # Character Nodes
 @onready var player_character = $player
 @onready var enemy_character = $Bandit
@@ -29,6 +31,7 @@ var questions: Array[Dictionary] = []
 var _provider: Node = null
 var _current_question_data: Dictionary = {}
 var _provider_load_completed := false
+var _battle_finished_emitted := false
 
 func _ready():
 	_provider = get_node_or_null("/root/QuestionProvider")
@@ -94,6 +97,8 @@ func load_question():
 
 
 func answer_selected(index:int):
+	if _battle_finished_emitted:
+		return
 	var q: Dictionary = _current_question_data
 	if q.is_empty() and current_question < questions.size():
 		q = questions[current_question]
@@ -111,12 +116,12 @@ func answer_selected(index:int):
 
 	if enemy.health <= 0:
 		question_label.text = "YOU WIN!"
-		disable_buttons()
+		_finish_battle(true)
 		return
 
 	if player.health <= 0:
 		question_label.text = "GAME OVER!"
-		disable_buttons()
+		_finish_battle(false)
 		return
 
 	load_question()
@@ -132,6 +137,14 @@ func disable_buttons():
 
 	for button in buttons:
 		button.disabled = true
+
+
+func _finish_battle(success: bool) -> void:
+	if _battle_finished_emitted:
+		return
+	_battle_finished_emitted = true
+	disable_buttons()
+	battle_finished.emit(success)
 
 
 func _on_choice_a_pressed():

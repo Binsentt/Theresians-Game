@@ -63,13 +63,25 @@ func show_quest_completed(title: String, description: String) -> void:
 	})
 
 
+func show_system_notification(title: String, description: String, key: String = "") -> void:
+	_enqueue_notification({
+		"kind": "system",
+		"key": key.strip_edges() if not key.strip_edges().is_empty() else "system:%s|%s" % [title.strip_edges(), description.strip_edges()],
+		"title": title.strip_edges(),
+		"description": description.strip_edges(),
+		"accent": "gold",
+		"duration": DEFAULT_DURATION,
+		"allow_when_blocked": true,
+	})
+
+
 func refresh() -> void:
 	if _is_showing:
 		return
-	if _is_mode_blocked():
-		return
 	if _queue.is_empty():
 		_hide_panel()
+		return
+	if _is_mode_blocked() and not bool(_queue.front().get("allow_when_blocked", false)):
 		return
 	var event: Dictionary = _queue.pop_front()
 	var key: String = String(event.get("key", ""))
@@ -80,7 +92,7 @@ func refresh() -> void:
 
 
 func _enqueue_notification(event: Dictionary) -> void:
-	if _is_mode_blocked():
+	if _is_mode_blocked() and not bool(event.get("allow_when_blocked", false)):
 		return
 	var key: String = String(event.get("key", ""))
 	if key.is_empty():
@@ -245,11 +257,11 @@ func _update_layout() -> void:
 		viewport_size = Vector2(420, 240)
 	var width := minf(MAX_PANEL_WIDTH, viewport_size.x * 0.9)
 	var height := 90.0
-	var bottom_margin := SAFE_MARGIN_BOTTOM
+	var top_margin := 24.0
 	if OS.has_feature("mobile") or DisplayServer.is_touchscreen_available():
-		bottom_margin = SAFE_MARGIN_BOTTOM + 24.0
+		top_margin = 40.0
 	_panel.size = Vector2(width, height)
-	_panel.position = Vector2((viewport_size.x - width) / 2.0, viewport_size.y - height - bottom_margin)
+	_panel.position = Vector2((viewport_size.x - width) / 2.0, top_margin)
 
 
 func _is_mode_blocked() -> bool:

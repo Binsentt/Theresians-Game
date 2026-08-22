@@ -42,7 +42,7 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 	var http := get_node_or_null("/root/HttpApi")
 	if http != null:
 		# attempt to fetch published questions from backend
-		var params := {}
+		var params := _get_encounter_question_params()
 		# allow callers to pass grade/difficulty/topic via source path encoded query-like string
 		# e.g. res://Data/questions.json?grade=Grade%201
 		var qindex := resolved_path.find("?")
@@ -93,6 +93,21 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 		push_error("Question source %s did not resolve to an array" % resolved_path)
 	questions_loaded.emit(_questions.size())
 	return _questions
+
+
+func _get_encounter_question_params() -> Dictionary:
+	var params: Dictionary = {}
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state == null or not game_state.has_method("get_encounter_question_scope"):
+		return params
+	var scope: Variant = game_state.call("get_encounter_question_scope")
+	if not (scope is Dictionary):
+		return params
+	for key in ["grade", "difficulty", "topic"]:
+		var value := String(scope.get(key, "")).strip_edges()
+		if not value.is_empty():
+			params[key] = value
+	return params
 
 
 func get_question(filters: Dictionary = {}) -> Dictionary:

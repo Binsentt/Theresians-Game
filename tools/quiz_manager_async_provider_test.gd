@@ -55,6 +55,17 @@ func _init() -> void:
 		provider.queue_free()
 		quit(1)
 		return
+	var outcomes: Array[bool] = []
+	quiz.battle_finished.connect(func(success: bool) -> void: outcomes.append(success))
+	var enemy_health: Node = quiz.get_node("EnemyHealth")
+	enemy_health.health = 1
+	quiz.answer_selected(1)
+	if outcomes != [true]:
+		printerr("[QuizManager Test] Expected exactly one successful battle outcome.")
+		quiz.queue_free()
+		provider.queue_free()
+		quit(1)
+		return
 
 	quiz.queue_free()
 	provider.queue_free()
