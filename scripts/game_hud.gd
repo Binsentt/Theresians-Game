@@ -57,8 +57,11 @@ func _ensure_playtime_label() -> void:
 	_playtime_label.name = "PlaytimeLabel"
 	_playtime_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_playtime_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_playtime_label.theme_override_fonts/font = quest_label.get_theme_font_override("font") if quest_label != null else null
-	_playtime_label.theme_override_font_sizes/font_size = 9
+	if quest_label != null:
+		var quest_font: Font = quest_label.get_theme_font_override("font")
+		if quest_font != null:
+			_playtime_label.add_theme_font_override("font", quest_font)
+	_playtime_label.add_theme_font_size_override("font_size", 9)
 	_playtime_label.visible = true
 	_playtime_label.text = ""
 	$MarginContainer/PlayerPanel/VBoxContainer.add_child(_playtime_label)
@@ -71,7 +74,7 @@ func _update_playtime_label() -> void:
 		return
 	var remaining_seconds := maxf(0.0, GameState.get_playtime_remaining_seconds())
 	var minutes := int(ceil(remaining_seconds / 60.0))
-	_playtime_label.text = "Time Left: %s min" % String(minutes)
+	_playtime_label.text = "Time Left: %s min" % str(minutes)
 
 func refresh_lives(current_lives: int, total_lives: int) -> void:
 	if _life_icons.size() != total_lives:
