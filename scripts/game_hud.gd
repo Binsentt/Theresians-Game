@@ -58,7 +58,7 @@ func _ensure_playtime_label() -> void:
 	_playtime_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_playtime_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if quest_label != null:
-		var quest_font: Font = quest_label.get_theme_font_override("font")
+		var quest_font: Font = quest_label.get_theme_font("font")
 		if quest_font != null:
 			_playtime_label.add_theme_font_override("font", quest_font)
 	_playtime_label.add_theme_font_size_override("font_size", 9)
