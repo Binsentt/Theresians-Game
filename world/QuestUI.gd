@@ -14,11 +14,11 @@ func update_task_ui():
 		visible = false
 		return
 
-	var current_task_data = GameState.tasks[GameState.current_task_index]
-
 	if quest_text:
-		quest_text.text = current_task_data["quest_text"]
-		quest_text.visible = true
+		# GameHUD now owns the single persistent Current Quest presentation.
+		# Keep this legacy label hidden while retaining the Panel for its existing
+		# dialogue and completion feedback content.
+		quest_text.visible = false
 
 	if npc_image:
 		npc_image.visible = false

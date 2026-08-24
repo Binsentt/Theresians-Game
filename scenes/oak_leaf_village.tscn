@@ -631,6 +631,22 @@ size = Vector2(92.30762, 138.46143)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_task_trigger"]
 size = Vector2(14, 8)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_teacher_trigger_portrait"]
+bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.92)
+content_margin_left = 5.0
+content_margin_top = 5.0
+content_margin_right = 5.0
+content_margin_bottom = 5.0
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94902, 0.823529, 0.443137, 1)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_teacher_house_task_trigger"]
 size = Vector2(40, 28)
 
@@ -959,6 +975,7 @@ interaction_priority = 25
 [node name="TeacherHouseTaskTrigger" type="Area2D" parent="." unique_id=314668776]
 position = Vector2(1143, 182)
 script = ExtResource("28_teacher_trigger")
+teacher_portrait_popup_path = NodePath("../CanvasLayer/TeacherTriggerPortrait")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TeacherHouseTaskTrigger" unique_id=1002871873]
 position = Vector2(-1, -6)
@@ -969,6 +986,26 @@ position = Vector2(9, 509)
 destination_scene_path = "uid://bfj3wh4uokop8"
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=685642583]
+
+[node name="TeacherTriggerPortrait" type="PanelContainer" parent="CanvasLayer"]
+visible = false
+anchors_preset = -1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -96.0
+offset_top = 88.0
+offset_right = -12.0
+offset_bottom = 172.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_teacher_trigger_portrait")
+
+[node name="NPCImage" type="TextureRect" parent="CanvasLayer/TeacherTriggerPortrait"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture = ExtResource("26_npc_image")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Panel" type="Panel" parent="CanvasLayer" unique_id=875106935 groups=["quest_ui"]]
 self_modulate = Color(1, 1, 1, 0)

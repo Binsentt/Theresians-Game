@@ -12,13 +12,17 @@ signal task_triggered(event: Dictionary)
 @export var event_key: String = "quest:main:task:0:arrival"
 @export var notification_title: String = "Task 1"
 @export var notification_objective: String = "Talk to the Teacher"
+@export var teacher_portrait_popup_path: NodePath = NodePath()
+@export_range(0.1, 10.0, 0.1) var teacher_portrait_duration_seconds: float = 2.5
 
 const PLAYER_GROUPS: Array[StringName] = [&"player_character", &"player"]
 
 var _consumed: bool = false
+var _teacher_portrait_display_generation: int = 0
 
 
 func _ready() -> void:
+	_set_teacher_portrait_visible(false)
 	if GameState.current_task_index > required_task_index:
 		monitoring = false
 		set_deferred("monitorable", false)
@@ -42,6 +46,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if not (result is Dictionary) or not bool(result.get("advanced", false)):
 		return
 
+	_show_teacher_portrait_popup()
 	_consumed = true
 	monitoring = false
 	set_deferred("monitorable", false)
@@ -62,3 +67,29 @@ func _is_valid_player(body: Node) -> bool:
 		if body.is_in_group(player_group):
 			return true
 	return false
+
+
+func _show_teacher_portrait_popup() -> void:
+	var portrait_popup := _get_teacher_portrait_popup()
+	if portrait_popup == null:
+		return
+
+	_teacher_portrait_display_generation += 1
+	var display_generation := _teacher_portrait_display_generation
+	portrait_popup.visible = true
+	get_tree().create_timer(teacher_portrait_duration_seconds).timeout.connect(func() -> void:
+		if display_generation == _teacher_portrait_display_generation:
+			_set_teacher_portrait_visible(false)
+	, CONNECT_ONE_SHOT)
+
+
+func _set_teacher_portrait_visible(is_visible: bool) -> void:
+	var portrait_popup := _get_teacher_portrait_popup()
+	if portrait_popup != null:
+		portrait_popup.visible = is_visible
+
+
+func _get_teacher_portrait_popup() -> Control:
+	if teacher_portrait_popup_path.is_empty():
+		return null
+	return get_node_or_null(teacher_portrait_popup_path) as Control
