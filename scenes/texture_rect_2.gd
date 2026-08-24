@@ -299,16 +299,12 @@ func _on_ids_next_pressed() -> void:
 		parent_id_input.grab_focus()
 		return
 
+	_show_validation("Validating Parent and Student ID…")
 	_step_transitioning = true
 	var validation_result := await _validate_ids_with_backend()
 	_step_transitioning = false
 	if not validation_result.get("ok", false):
 		_show_validation(String(validation_result.get("error", "Unable to validate registration.")))
-		return
-
-	if validation_result.get("offline", false):
-		_show_validation(String(validation_result.get("warning", "Offline test mode: Parent ID could not be verified.")))
-		await _show_step(RegistrationStep.NAME_GRADE)
 		return
 
 	_hide_validation()
@@ -317,8 +313,6 @@ func _on_ids_next_pressed() -> void:
 func _validate_ids_with_backend() -> Dictionary:
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
-		if GameState.ALLOW_OFFLINE_NEW_GAME_TESTING and GameState.is_valid_six_digit_id(student_id_input.text) and GameState.is_valid_six_digit_id(parent_id_input.text):
-			return {"ok": true, "offline": true, "warning": "Offline test mode: Parent ID could not be verified."}
 		return {"ok": false, "error": "Unable to connect to the server. Please try again."}
 
 	var parent_result: Dictionary = await http.request_post("/api/game/parent/validate", {
@@ -328,8 +322,6 @@ func _validate_ids_with_backend() -> Dictionary:
 	var parent_ok := bool(parent_result.get("ok", false)) or bool(parent_result.get("success", false)) or bool(parent_body.get("ok", false)) or bool(parent_body.get("success", false))
 	var parent_status: int = int(parent_result.get("status", 0))
 	if not parent_ok or parent_status < 200 or parent_status >= 300:
-		if GameState.ALLOW_OFFLINE_NEW_GAME_TESTING and GameState.is_valid_six_digit_id(student_id_input.text) and GameState.is_valid_six_digit_id(parent_id_input.text):
-			return {"ok": true, "offline": true, "warning": "Offline test mode: Parent ID could not be verified."}
 		return {"ok": false, "error": _registration_api_error(parent_result, "Parent ID does not exist.")}
 
 	var profile_result: Dictionary = await http.request_get("/api/game/profile/check/" + student_id_input.text, {
@@ -339,8 +331,6 @@ func _validate_ids_with_backend() -> Dictionary:
 	var profile_ok := bool(profile_result.get("ok", false)) or bool(profile_body.get("ok", false))
 	var profile_status: int = int(profile_result.get("status", 0))
 	if not profile_ok or profile_status < 200 or profile_status >= 300:
-		if GameState.ALLOW_OFFLINE_NEW_GAME_TESTING and GameState.is_valid_six_digit_id(student_id_input.text) and GameState.is_valid_six_digit_id(parent_id_input.text):
-			return {"ok": true, "offline": true, "warning": "Offline test mode: Parent ID could not be verified."}
 		return {"ok": false, "error": _registration_api_error(profile_result, "Unable to connect to the server. Please try again.")}
 	if profile_body.get("should_block", false):
 		return {"ok": false, "error": String(profile_body.get("error", "Student ID already has an existing game profile. Please use Load Game."))}

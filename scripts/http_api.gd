@@ -52,10 +52,17 @@ func _build_url(path: String, params: Dictionary = {}) -> String:
 		full += "?" + query
 	return full
 
+
+func _create_request(timeout_ms: int = -1) -> HTTPRequest:
+	var http := HTTPRequest.new()
+	var resolved_timeout_ms := timeout_ms if timeout_ms > 0 else default_timeout_ms
+	http.timeout = maxf(1.0, float(resolved_timeout_ms) / 1000.0)
+	add_child(http)
+	return http
+
 func request_get(path: String, params: Dictionary = {}, timeout_ms: int = -1) -> Dictionary:
 	var url := _build_url(path, params)
-	var http := HTTPRequest.new()
-	add_child(http)
+	var http := _create_request(timeout_ms)
 	var err := http.request(url, [], HTTPClient.METHOD_GET, "")
 	if err != OK:
 		http.queue_free()
@@ -82,8 +89,7 @@ func request_post(path: String, payload: Dictionary, timeout_ms: int = -1) -> Di
 	var url := _build_url(path, {})
 	var body := JSON.stringify(payload)
 	var headers := ["Content-Type: application/json"]
-	var http := HTTPRequest.new()
-	add_child(http)
+	var http := _create_request(timeout_ms)
 	var err := http.request(url, headers, HTTPClient.METHOD_POST, body)
 	if err != OK:
 		http.queue_free()
