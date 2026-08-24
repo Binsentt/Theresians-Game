@@ -14,12 +14,33 @@ border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.882353, 0.756863, 0.423529, 1)
 
-[node name="SaveEntry" type="Button"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_load_button"]
+bg_color = Color(0.137255, 0.239216, 0.431373, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.882353, 0.756863, 0.423529, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_button"]
+bg_color = Color(0.337255, 0.12549, 0.156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.882353, 0.756863, 0.423529, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="SaveEntry" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 130)
-theme_override_styles/normal = SubResource("1_entry_panel")
-theme_override_styles/hover = SubResource("1_entry_panel")
-theme_override_styles/pressed = SubResource("1_entry_panel")
-alignment = 0
+theme_override_styles/panel = SubResource("1_entry_panel")
 script = ExtResource("1_script")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
@@ -35,27 +56,57 @@ theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 mouse_filter = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="Content" type="HBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+theme_override_constants/separation = 12
+mouse_filter = 2
+
+[node name="Details" type="VBoxContainer" parent="MarginContainer/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 4
 mouse_filter = 2
 
-[node name="TimeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="TimeLabel" type="Label" parent="MarginContainer/Content/Details"]
 layout_mode = 2
 text = "Time:"
 
-[node name="DateLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="DateLabel" type="Label" parent="MarginContainer/Content/Details"]
 layout_mode = 2
 text = "Date:"
 
-[node name="PlayerLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="PlayerLabel" type="Label" parent="MarginContainer/Content/Details"]
 layout_mode = 2
 text = "Player:"
 
-[node name="GradeLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="GradeLabel" type="Label" parent="MarginContainer/Content/Details"]
 layout_mode = 2
 text = "Grade:"
 
-[node name="QuestLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="QuestLabel" type="Label" parent="MarginContainer/Content/Details"]
 layout_mode = 2
 text = "Quest:"
+
+[node name="Actions" type="VBoxContainer" parent="MarginContainer/Content"]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="LoadButton" type="Button" parent="MarginContainer/Content/Actions"]
+custom_minimum_size = Vector2(96, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_load_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_load_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_load_button")
+text = "Load"
+
+[node name="DeleteButton" type="Button" parent="MarginContainer/Content/Actions"]
+custom_minimum_size = Vector2(96, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_delete_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_delete_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_delete_button")
+text = "Delete"

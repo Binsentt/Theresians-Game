@@ -666,6 +666,14 @@ func peek_save_data(path: String) -> Dictionary:
 	return _read_save_file(path)
 
 
+func delete_save(path: String) -> bool:
+	var save_path := _validated_save_path(path)
+	if save_path.is_empty() or not FileAccess.file_exists(save_path):
+		return false
+
+	return DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path)) == OK
+
+
 func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = true) -> void:
 	_clear_battle_state()
 	player_name = String(data.get("player_name", ""))
@@ -951,6 +959,20 @@ func _read_save_file(save_path: String) -> Dictionary:
 		return parsed
 
 	return {}
+
+
+func _validated_save_path(path: String) -> String:
+	var requested_path := path.strip_edges()
+	var save_prefix := SAVE_DIRECTORY + "/"
+	if not requested_path.begins_with(save_prefix):
+		return ""
+
+	var file_name := requested_path.get_file()
+	var relative_path := requested_path.substr(save_prefix.length())
+	if file_name.is_empty() or file_name != relative_path or not file_name.ends_with(".json"):
+		return ""
+
+	return save_prefix + file_name
 
 
 func _dictionary_to_vector2(value: Variant) -> Vector2:
