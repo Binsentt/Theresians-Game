@@ -219,7 +219,8 @@ func begin_new_game_registration() -> void:
 		"student_id": "",
 		"parent_id": "",
 		"student_name": "",
-		"grade": ""
+		"grade": "",
+		"section": ""
 	}
 
 
@@ -228,7 +229,7 @@ func get_new_game_registration() -> Dictionary:
 
 
 func update_new_game_registration(values: Dictionary) -> void:
-	for key in ["gender", "student_id", "parent_id", "student_name", "grade"]:
+	for key in ["gender", "student_id", "parent_id", "student_name", "grade", "section"]:
 		if values.has(key):
 			_new_game_registration[key] = values[key]
 

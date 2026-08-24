@@ -48,6 +48,10 @@ var selected_grade_btn: TextureButton = null
 var _step_transitioning := false
 var _sanitizing_id := false
 var _play_transitioning := false
+var _canonical_identity_locked := false
+var _canonical_student_name := ""
+var _canonical_grade := ""
+var _canonical_section := ""
 
 var male_tween: Tween
 var female_tween: Tween
@@ -306,6 +310,10 @@ func _on_ids_next_pressed() -> void:
 	if not validation_result.get("ok", false):
 		_show_validation(String(validation_result.get("error", "Unable to validate registration.")))
 		return
+	var canonical_result := _apply_canonical_profile(validation_result.get("canonical_profile", {}))
+	if not canonical_result.get("ok", false):
+		_show_validation(String(canonical_result.get("error", "Unable to verify the linked Student profile. Please try again.")))
+		return
 
 	_hide_validation()
 	await _show_step(RegistrationStep.NAME_GRADE)
@@ -334,8 +342,43 @@ func _validate_ids_with_backend() -> Dictionary:
 		return {"ok": false, "error": _registration_api_error(profile_result, "Unable to connect to the server. Please try again.")}
 	if profile_body.get("should_block", false):
 		return {"ok": false, "error": String(profile_body.get("error", "Student ID already has an existing game profile. Please use Load Game."))}
+	var canonical_profile: Variant = profile_body.get("canonical_profile", null)
+	if not (canonical_profile is Dictionary):
+		return {"ok": false, "error": "Unable to verify the linked Student profile. Please try again."}
+	var canonical_name := String(canonical_profile.get("name", "")).strip_edges()
+	var canonical_grade := String(canonical_profile.get("grade_level", "")).strip_edges()
+	if canonical_name.is_empty() or canonical_grade not in GameState.VALID_REGISTRATION_GRADES:
+		return {"ok": false, "error": "Unable to verify the linked Student profile. Please try again."}
 
+	return {"ok": true, "canonical_profile": canonical_profile}
+
+func _apply_canonical_profile(profile: Variant) -> Dictionary:
+	if not (profile is Dictionary):
+		return {"ok": false, "error": "Unable to verify the linked Student profile. Please try again."}
+	var canonical_name := String(profile.get("name", "")).strip_edges()
+	var canonical_grade := String(profile.get("grade_level", "")).strip_edges()
+	if canonical_name.is_empty() or canonical_grade not in GameState.VALID_REGISTRATION_GRADES:
+		return {"ok": false, "error": "Unable to verify the linked Student profile. Please try again."}
+	var canonical_section_value: Variant = profile.get("section", null)
+	_canonical_student_name = canonical_name
+	_canonical_grade = canonical_grade
+	_canonical_section = "" if canonical_section_value == null else String(canonical_section_value).strip_edges()
+	name_input.text = _canonical_student_name
+	selected_grade = _canonical_grade
+	selected_grade_btn = _grade_button_for_value(_canonical_grade)
+	_set_canonical_identity_lock(true)
+	GameState.update_new_game_registration({
+		"student_name": _canonical_student_name,
+		"grade": _canonical_grade,
+		"section": _canonical_section
+	})
 	return {"ok": true}
+
+func _set_canonical_identity_lock(locked: bool) -> void:
+	_canonical_identity_locked = locked
+	name_input.editable = not locked
+	for btn in grade_buttons:
+		btn.disabled = locked
 
 func _registration_api_error(result: Dictionary, fallback: String) -> String:
 	var body: Variant = result.get("body", {})
@@ -386,6 +429,8 @@ func _on_grade_exit(btn: TextureButton) -> void:
 		_animate_grade(btn, normal_scale, release_duration)
 
 func _on_grade_pressed(btn: TextureButton) -> void:
+	if _canonical_identity_locked:
+		return
 	selected_grade_btn = btn
 	selected_grade = String(GRADE_LABELS.get(btn.name, ""))
 	GameState.update_new_game_registration({"grade": selected_grade})
@@ -426,7 +471,7 @@ func _on_start_pressed() -> void:
 		"parent_id": String(registration.get("parent_id", "")),
 		"student_name": String(registration.get("student_name", "")),
 		"grade_level": String(registration.get("grade", "")),
-		"section": ""
+		"section": String(registration.get("section", ""))
 	})
 	if not playtimeResult.ok or playtimeResult.get("can_play", true) == false or playtimeResult.get("should_block", false) == true:
 		var errorText := String(playtimeResult.get("error", "Unable to connect to playtime service."))
@@ -459,12 +504,23 @@ func _on_start_pressed() -> void:
 		_show_validation("Unable to start the new game.")
 
 func _sync_form_to_registration() -> void:
+	if _canonical_identity_locked:
+		GameState.update_new_game_registration({
+			"gender": selected_gender,
+			"student_id": student_id_input.text,
+			"parent_id": parent_id_input.text,
+			"student_name": _canonical_student_name,
+			"grade": _canonical_grade,
+			"section": _canonical_section
+		})
+		return
 	GameState.update_new_game_registration({
 		"gender": selected_gender,
 		"student_id": student_id_input.text,
 		"parent_id": parent_id_input.text,
 		"student_name": name_input.text,
-		"grade": selected_grade
+		"grade": selected_grade,
+		"section": String(GameState.get_new_game_registration().get("section", ""))
 	})
 
 func _first_registration_error() -> String:
@@ -502,6 +558,7 @@ func handle_back() -> void:
 		RegistrationStep.IDS:
 			await _show_step(RegistrationStep.GENDER)
 		RegistrationStep.NAME_GRADE:
+			_set_canonical_identity_lock(false)
 			await _show_step(RegistrationStep.IDS)
 
 func _show_step(next_step: int) -> void:
@@ -536,7 +593,10 @@ func _show_step(next_step: int) -> void:
 	if current_step == RegistrationStep.IDS:
 		student_id_input.grab_focus()
 	elif current_step == RegistrationStep.NAME_GRADE:
-		name_input.grab_focus()
+		if _canonical_identity_locked:
+			start_btn.grab_focus()
+		else:
+			name_input.grab_focus()
 	_step_transitioning = false
 
 func _panel_for_step(step: int) -> TextureRect:
@@ -570,6 +630,11 @@ func _hide_validation() -> void:
 	validation_panel.visible = false
 
 func _on_name_input_changed(new_text: String) -> void:
+	if _canonical_identity_locked:
+		if name_input.text != _canonical_student_name:
+			name_input.text = _canonical_student_name
+		GameState.update_new_game_registration({"student_name": _canonical_student_name})
+		return
 	GameState.update_new_game_registration({"student_name": new_text})
 	if not new_text.strip_edges().is_empty():
 		_hide_validation()

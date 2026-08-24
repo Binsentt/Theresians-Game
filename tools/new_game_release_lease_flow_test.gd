@@ -41,8 +41,16 @@ func _verify_successful_registration_with_a_real_lease_parser() -> void:
 	remote_sync.set("_current_playtime_session_id", 777)
 	remote_sync.set("_current_playtime_session_credential", "")
 
-	_set_line_edit_text(wizard.get_node("NameGradeSelect/NameInput") as LineEdit, "Test Student")
+	var name_input := wizard.get_node("NameGradeSelect/NameInput") as LineEdit
+	_assert(name_input.text == "Ava Santos", "a validated linked profile pre-fills the canonical student name")
+	_assert(not name_input.editable, "a validated canonical student name cannot be edited by the game client")
+	_assert((wizard.get_node("NameGradeSelect/Grade3") as BaseButton).disabled, "a validated canonical Grade cannot be changed by the game client")
+	_assert(String(game_state.call("get_new_game_registration").get("grade", "")) == "Grade 3", "GameState stores the canonical Grade before a lease can start")
+	_assert(String(game_state.call("get_new_game_registration").get("section", "")) == "", "a null canonical Section stays empty instead of being fabricated")
+	_set_line_edit_text(name_input, "Client Override")
 	await _press(wizard.get_node("NameGradeSelect/Grade2") as BaseButton)
+	_assert(name_input.text == "Ava Santos", "the client cannot replace the canonical student name after validation")
+	_assert(String(game_state.call("get_new_game_registration").get("grade", "")) == "Grade 3", "the client cannot replace the canonical Grade after validation")
 	var start_button := wizard.get_node("NameGradeSelect/Start") as BaseButton
 	start_button.pressed.emit()
 	await process_frame
@@ -53,6 +61,8 @@ func _verify_successful_registration_with_a_real_lease_parser() -> void:
 	var start_payload := stub.get("last_start_payload") as Dictionary
 	_assert(String(start_payload.get("student_id", "")) == "001234", "Start sends the Student ID as a six-character string")
 	_assert(String(start_payload.get("parent_id", "")) == "654321", "Start sends the Parent ID as a six-character string")
+	_assert(String(start_payload.get("student_name", "")) == "Ava Santos", "Start sends the canonical student name rather than a player-entered replacement")
+	_assert(String(start_payload.get("grade_level", "")) == "Grade 3", "Start sends the canonical Grade rather than a player-entered replacement")
 	_assert(String(start_payload.get("section", "")) == "", "a nullable canonical Section is represented as an empty client field and is not invented")
 
 	_assert(await _wait_for_scene(LOADING_SCENE, 240), "a valid lease starts the loading transition")
@@ -71,8 +81,8 @@ func _verify_failed_lease_stays_on_the_form() -> void:
 		return
 	var stub := http_api as Node
 	stub.set("respond_with_lease", false)
-	_set_line_edit_text(wizard.get_node("NameGradeSelect/NameInput") as LineEdit, "Test Student")
-	await _press(wizard.get_node("NameGradeSelect/Grade2") as BaseButton)
+	_assert(not (wizard.get_node("NameGradeSelect/NameInput") as LineEdit).editable, "a failed lease does not unlock canonical identity fields")
+	_assert((wizard.get_node("NameGradeSelect/Grade3") as BaseButton).disabled, "a failed lease does not unlock canonical Grade selection")
 	await _press(wizard.get_node("NameGradeSelect/Start") as BaseButton)
 	await _wait_seconds(0.25)
 	var validation_label := wizard.get_node("ValidationPanel/MarginContainer/ValidationLabel") as Label
@@ -97,7 +107,7 @@ func _open_name_grade_step() -> Node:
 	_set_line_edit_text(wizard.get_node("StudentParentId/ParentIdInput") as LineEdit, "654321")
 	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
 	await _wait_for_transition(wizard)
-	_assert(wizard.get_node("NameGradeSelect").visible, "valid Parent and profile responses reach Name/Grade")
+	_assert(wizard.get_node("NameGradeSelect").visible, "valid Parent and canonical-profile responses reach the existing Start confirmation")
 	return wizard
 
 

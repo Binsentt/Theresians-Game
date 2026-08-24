@@ -3,6 +3,7 @@ extends SceneTree
 const NEW_GAME_SCENE := "res://scenes/new_game_scene.tscn"
 const FailureHttpApi := preload("res://tools/test_http_api_registration_failure_stub.gd")
 const SlowHttpApi := preload("res://tools/test_http_api_slow_registration_stub.gd")
+const MissingCanonicalProfileHttpApi := preload("res://tools/test_http_api_missing_canonical_profile_stub.gd")
 
 var failures: Array[String] = []
 var http_api: Node
@@ -23,6 +24,7 @@ func _run() -> void:
 		return
 
 	await _reject_unverified_ids()
+	await _reject_a_profile_without_canonical_identity()
 	await _show_loading_while_online_validation_is_pending()
 	_finish()
 
@@ -41,6 +43,20 @@ func _reject_unverified_ids() -> void:
 	_assert(validation_label != null and validation_label.text == "Registration service is unavailable.", "failed Parent validation displays the server error instead of an offline-test bypass")
 
 
+func _reject_a_profile_without_canonical_identity() -> void:
+	http_api.set_script(MissingCanonicalProfileHttpApi)
+	var wizard := await _open_ids_step()
+	if wizard == null:
+		return
+
+	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
+	await _wait_seconds(0.10)
+	_assert(wizard.get_node("StudentParentId").visible, "a profile response without a canonical linked Student keeps the registration flow on the IDs step")
+	_assert(not wizard.get_node("NameGradeSelect").visible, "a profile response without canonical identity never permits manual name or Grade entry")
+	var validation_label := wizard.get_node("ValidationPanel/MarginContainer/ValidationLabel") as Label
+	_assert(validation_label != null and validation_label.text == "Unable to verify the linked Student profile. Please try again.", "missing canonical identity displays a safe validation error")
+
+
 func _show_loading_while_online_validation_is_pending() -> void:
 	http_api.set_script(SlowHttpApi)
 	var wizard := await _open_ids_step()
@@ -55,6 +71,8 @@ func _show_loading_while_online_validation_is_pending() -> void:
 
 	await _wait_seconds(0.45)
 	_assert(wizard.get_node("NameGradeSelect").visible, "a slow successful Parent/profile validation advances after both requests finish")
+	_assert(not (wizard.get_node("NameGradeSelect/NameInput") as LineEdit).editable, "a slow successful canonical profile locks the name field")
+	_assert((wizard.get_node("NameGradeSelect/Grade3") as BaseButton).disabled, "a slow successful canonical profile locks Grade selection")
 
 
 func _open_ids_step() -> Node:

@@ -46,6 +46,15 @@ func request_get(path: String, _params: Dictionary = {}, _timeout_ms: int = -1) 
 		return {
 			"ok": true,
 			"status": 200,
-			"body": {"ok": true, "can_play": true, "should_block": false},
+			"body": {
+				"ok": true,
+				"can_play": true,
+				"should_block": false,
+				"canonical_profile": {
+					"name": "Ava Santos",
+					"grade_level": "Grade 3",
+					"section": null,
+				},
+			},
 		}
 	return {"ok": false, "status": 404, "body": {"error": "Unexpected test request."}}
