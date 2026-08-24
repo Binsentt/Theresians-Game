@@ -90,6 +90,9 @@ var tasks = [
 	{
 		"quest_text": "Challenge the player with math questions ",
 		"dialogue": ["You want to pass? Solve this first!"],
+		"question_scope": {
+			"topic": "Basic Addition",
+		},
 		"next_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
 		"complete_after_battle": true
 	}
