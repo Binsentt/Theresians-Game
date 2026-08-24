@@ -80,6 +80,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
+[node name="DeleteSaveConfirmation" type="ConfirmationDialog" parent="."]
+title = "Confirm Delete"
+dialog_text = "Delete this save?"
+ok_button_text = "Delete"
+cancel_button_text = "Cancel"
+exclusive = true
+
 [node name="Fade" type="ColorRect" parent="." unique_id=2010100567]
 modulate = Color(1, 1, 1, 0)
 z_index = 100

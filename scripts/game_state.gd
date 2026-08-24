@@ -643,9 +643,10 @@ func list_saves() -> Array[Dictionary]:
 		if not directory.current_is_dir() and file_name.ends_with(".json"):
 			var save_path := SAVE_DIRECTORY + "/" + file_name
 			var save_data := _read_save_file(save_path)
-			if not save_data.is_empty():
-				save_data["save_path"] = save_path
-				saves.append(save_data)
+			if save_data.is_empty():
+				saves.append(_build_unavailable_save_entry(save_path, "This save file is malformed or unavailable."))
+			else:
+				saves.append(_prepare_save_entry(save_data, save_path))
 		file_name = directory.get_next()
 
 	directory.list_dir_end()
@@ -654,8 +655,8 @@ func list_saves() -> Array[Dictionary]:
 
 
 func load_save(path: String, emit_progression_session_reset: bool = true) -> Dictionary:
-	var data := _read_save_file(path)
-	if data.is_empty():
+	var data := peek_save_data(path)
+	if data.is_empty() or not bool(data.get("loadable", false)):
 		return {}
 
 	apply_save_data(data, emit_progression_session_reset)
@@ -663,7 +664,13 @@ func load_save(path: String, emit_progression_session_reset: bool = true) -> Dic
 	return data
 
 func peek_save_data(path: String) -> Dictionary:
-	return _read_save_file(path)
+	var save_path := _validated_save_path(path)
+	if save_path.is_empty() or not FileAccess.file_exists(save_path):
+		return {}
+	var data := _read_save_file(save_path)
+	if data.is_empty():
+		return _build_unavailable_save_entry(save_path, "This save file is malformed or unavailable.")
+	return _prepare_save_entry(data, save_path)
 
 
 func delete_save(path: String) -> bool:
@@ -952,13 +959,66 @@ func _read_save_file(save_path: String) -> Dictionary:
 	if file == null:
 		return {}
 
-	var parsed = JSON.parse_string(file.get_as_text())
+	var json := JSON.new()
+	var parse_error := json.parse(file.get_as_text())
 	file.close()
 
-	if parsed is Dictionary:
-		return parsed
+	if parse_error == OK and json.data is Dictionary:
+		return json.data
 
 	return {}
+
+
+func _prepare_save_entry(data: Dictionary, save_path: String) -> Dictionary:
+	var prepared := data.duplicate(true)
+	prepared["save_path"] = save_path
+	prepared["player_name"] = String(prepared.get("player_name", "Unknown")).strip_edges()
+	if String(prepared.get("player_name", "")).is_empty():
+		prepared["player_name"] = "Unknown"
+	prepared["gender"] = String(prepared.get("gender", "male")).to_lower()
+	prepared["grade_level"] = String(prepared.get("grade_level", ""))
+	prepared["current_quest"] = String(prepared.get("current_quest", DEFAULT_QUEST))
+	prepared["save_date"] = String(prepared.get("save_date", "----/--/--"))
+	prepared["save_time"] = String(prepared.get("save_time", "--:--:--"))
+	prepared["save_timestamp"] = int(prepared.get("save_timestamp", 0))
+	var scene_path := _normalize_scene_path(String(prepared.get("scene_path", "")).strip_edges())
+	if scene_path.is_empty():
+		scene_path = START_SCENE_PATH
+	prepared["scene_path"] = scene_path
+
+	var load_error := _get_save_load_error(prepared)
+	prepared["loadable"] = load_error.is_empty()
+	prepared["save_valid"] = load_error.is_empty()
+	prepared["save_error"] = load_error
+	return prepared
+
+
+func _build_unavailable_save_entry(save_path: String, message: String) -> Dictionary:
+	return {
+		"save_path": save_path,
+		"player_name": "Unknown",
+		"gender": "male",
+		"grade_level": "",
+		"current_quest": DEFAULT_QUEST,
+		"save_date": "----/--/--",
+		"save_time": "--:--:--",
+		"save_timestamp": 0,
+		"scene_path": "",
+		"loadable": false,
+		"save_valid": false,
+		"save_error": message,
+	}
+
+
+func _get_save_load_error(data: Dictionary) -> String:
+	if not is_valid_six_digit_id(String(data.get("student_id", "")).strip_edges()):
+		return "This save is missing a valid Student ID and cannot be loaded."
+	if not is_valid_six_digit_id(String(data.get("parent_id", "")).strip_edges()):
+		return "This save is missing a valid Parent ID and cannot be loaded."
+	var scene_path := String(data.get("scene_path", "")).strip_edges()
+	if scene_path.is_empty() or not ResourceLoader.exists(scene_path):
+		return "This save references an unavailable game scene and cannot be loaded."
+	return ""
 
 
 func _validated_save_path(path: String) -> String:

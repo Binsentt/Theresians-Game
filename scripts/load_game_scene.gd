@@ -65,6 +65,13 @@ func _on_save_selected(save_path: String) -> void:
 	_save_transitioning = true
 	var save_data: Dictionary = GameState.peek_save_data(save_path)
 	if save_data.is_empty():
+		empty_label.text = "Unable to load selected save."
+		empty_label.visible = true
+		_save_transitioning = false
+		return
+	if not bool(save_data.get("loadable", false)):
+		empty_label.text = String(save_data.get("save_error", "This save is unavailable. Delete it or create a new save."))
+		empty_label.visible = true
 		_save_transitioning = false
 		return
 
