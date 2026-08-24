@@ -14,6 +14,7 @@ func _init() -> void:
 	if config is Dictionary:
 		_verify_config(config)
 		_verify_environment_resolution(config)
+		_verify_invalid_production_config_fails_closed(config)
 	if failures.is_empty():
 		print("PASS: production API configuration is safe and environment-specific.")
 		quit(0)
@@ -48,11 +49,27 @@ func _verify_config(config: Dictionary) -> void:
 func _verify_environment_resolution(config: Dictionary) -> void:
 	var api: Node = HttpApiScript.new()
 	_expect(api.has_method("resolve_configured_base_url"), "HttpApi must expose environment-specific URL resolution.")
-	if not api.has_method("resolve_configured_base_url"):
+	_expect(api.has_method("resolve_configured_base_url_for_environment"), "HttpApi must expose explicit production-smoke URL resolution.")
+	if not api.has_method("resolve_configured_base_url") or not api.has_method("resolve_configured_base_url_for_environment"):
 		api.free()
 		return
-	_expect(api.call("resolve_configured_base_url", config, false) == EXPECTED_PRODUCTION_URL, "Release builds must resolve the deployed HTTPS production URL.")
-	_expect(api.call("resolve_configured_base_url", config, true) == EXPECTED_DEVELOPMENT_URL, "Debug builds must resolve only the explicit local-development URL.")
+	_expect(api.call("resolve_configured_base_url_for_environment", config, true, false) == EXPECTED_DEVELOPMENT_URL, "Debug builds must resolve the explicit local-development URL unless production smoke mode is enabled.")
+	_expect(api.call("resolve_configured_base_url_for_environment", config, true, true) == EXPECTED_PRODUCTION_URL, "Explicit debug production-smoke mode must resolve the deployed HTTPS production URL.")
+	_expect(api.call("resolve_configured_base_url_for_environment", config, false, false) == EXPECTED_PRODUCTION_URL, "Release builds must resolve the deployed HTTPS production URL.")
+	_expect(api.call("resolve_configured_base_url_for_environment", config, false, true) == EXPECTED_PRODUCTION_URL, "Release builds must keep the deployed HTTPS production URL regardless of the debug-only smoke flag.")
+	api.free()
+
+
+func _verify_invalid_production_config_fails_closed(config: Dictionary) -> void:
+	var api: Node = HttpApiScript.new()
+	if not api.has_method("resolve_configured_base_url_for_environment"):
+		api.free()
+		return
+	var missing_production_config := config.duplicate(true)
+	missing_production_config.erase("production_url")
+	_expect(api.call("resolve_configured_base_url_for_environment", missing_production_config, false, false) == "", "A release build with no production URL must not fall back to localhost.")
+	_expect(api.call("resolve_configured_base_url_for_environment", missing_production_config, true, true) == "", "Debug production-smoke mode with no production URL must fail closed instead of falling back to localhost.")
+	_expect(api.call("resolve_configured_base_url_for_environment", missing_production_config, true, false) == EXPECTED_DEVELOPMENT_URL, "Debug default must retain the local-development URL when production smoke mode is not explicitly enabled.")
 	api.free()
 
 

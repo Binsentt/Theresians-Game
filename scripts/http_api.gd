@@ -4,6 +4,7 @@ signal request_completed(status_code: int, result: Dictionary)
 signal request_failed(error: String)
 
 const DEFAULT_CONFIG_PATH := "res://Data/api_config.json"
+const PRODUCTION_SMOKE_TEST_ENVIRONMENT := "THERESIANS_PRODUCTION_SMOKE_TEST"
 var base_url: String = ""
 var default_timeout_ms: int = 10000
 
@@ -15,25 +16,42 @@ func _ready() -> void:
 		var parsed_config = JSON.parse_string(text)
 		if typeof(parsed_config) == TYPE_DICTIONARY:
 			var cfg: Dictionary = parsed_config
-			var configured_url := resolve_configured_base_url(cfg, OS.is_debug_build())
-			if _is_usable_base_url(configured_url):
+			var debug_build := OS.is_debug_build()
+			var production_smoke_test_enabled := is_production_smoke_test_enabled()
+			var configured_url := resolve_configured_base_url_for_environment(cfg, debug_build, production_smoke_test_enabled)
+			var requires_production_url := not debug_build or production_smoke_test_enabled
+			if _is_usable_base_url(configured_url, requires_production_url):
 				base_url = configured_url.rstrip("/")
 			else:
 				base_url = ""
 				push_warning("HttpApi: no usable API URL is configured for this build; remote API requests are disabled.")
+			if debug_build and production_smoke_test_enabled:
+				print("PRODUCTION SMOKE TEST MODE — active backend: " + (base_url if base_url != "" else "disabled (invalid production URL)"))
 			if cfg.has("timeout_ms"):
 				default_timeout_ms = int(cfg.get("timeout_ms"))
 	# no persistent HTTPRequest node: create per-request nodes to avoid blocking and allow concurrency
 
 
 func resolve_configured_base_url(config: Dictionary, is_debug_build: bool) -> String:
-	var config_key := "development_url" if is_debug_build else "production_url"
+	return resolve_configured_base_url_for_environment(config, is_debug_build, is_production_smoke_test_enabled())
+
+
+func resolve_configured_base_url_for_environment(config: Dictionary, is_debug_build: bool, production_smoke_test_enabled: bool) -> String:
+	var config_key := "production_url" if not is_debug_build or production_smoke_test_enabled else "development_url"
 	return String(config.get(config_key, "")).strip_edges()
 
 
-func _is_usable_base_url(value: String) -> bool:
+func is_production_smoke_test_enabled() -> bool:
+	return OS.get_environment(PRODUCTION_SMOKE_TEST_ENVIRONMENT).strip_edges() == "1"
+
+
+func _is_usable_base_url(value: String, requires_production_url: bool = false) -> bool:
 	var url := value.strip_edges().to_lower()
-	return (url.begins_with("https://") or url.begins_with("http://")) and not url.contains("example.com")
+	if not (url.begins_with("https://") or url.begins_with("http://")) or url.contains("example.com"):
+		return false
+	if requires_production_url:
+		return url.begins_with("https://") and not url.contains("localhost") and not url.contains("127.0.0.1")
+	return true
 
 func _build_url(path: String, params: Dictionary = {}) -> String:
 	var url := path.strip_edges()
