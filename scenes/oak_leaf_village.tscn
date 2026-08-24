@@ -631,6 +631,9 @@ size = Vector2(92.30762, 138.46143)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_task_trigger"]
 size = Vector2(14, 8)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_teacher_house_task_trigger"]
+size = Vector2(40, 28)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0v1wo"]
 size = Vector2(5, 81)
 
@@ -958,8 +961,8 @@ position = Vector2(1143, 182)
 script = ExtResource("28_teacher_trigger")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TeacherHouseTaskTrigger" unique_id=1002871873]
-position = Vector2(-1, -13)
-shape = SubResource("RectangleShape2D_task_trigger")
+position = Vector2(-1, -6)
+shape = SubResource("RectangleShape2D_teacher_house_task_trigger")
 
 [node name="Go-to-City-of-Knowledge" parent="." unique_id=1204046067 instance=ExtResource("24_eu74i")]
 position = Vector2(9, 509)

@@ -15,6 +15,12 @@ const SAVE_TOAST_VISIBLE_DURATION := 2.2
 const SAVE_TOAST_FADE_OUT_DURATION := 0.32
 const ENABLED_BUTTON_MODULATE := Color(1.0, 1.0, 1.0, 1.0)
 const DISABLED_BUTTON_MODULATE := Color(1.0, 1.0, 1.0, 0.45)
+const POPUP_SAFE_MARGIN := Vector2(24.0, 24.0)
+const SETTINGS_BUTTON_SIZE := Vector2(52.0, 52.0)
+const SETTINGS_BUTTON_TOP_RIGHT_MARGIN := Vector2(16.0, 12.0)
+const COMPACT_SLIDER_SIZE := Vector2(280.0, 38.0)
+const COMPACT_GRABBER_SIZE := Vector2i(40, 38)
+const GRABBER_TEXTURE: Texture2D = preload("res://Images/grabber.png")
 
 @onready var settings_button: Button = $"Settings-Logo-Button"
 @onready var settings_popup: Control = $SettingsPopup
@@ -45,6 +51,7 @@ func _ready() -> void:
 	offset_bottom = 0.0
 
 	_configure_button_positions()
+	_configure_compact_volume_sliders()
 	_configure_popup()
 	_configure_save_toast()
 	_build_exit_dialog()
@@ -54,6 +61,10 @@ func _ready() -> void:
 	_refresh_load_button_state()
 	call_deferred("_center_popup")
 	call_deferred("_configure_button_animations")
+
+
+func _exit_tree() -> void:
+	InputManager.unlock_input("settings_pause")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -68,11 +79,30 @@ func _configure_button_positions() -> void:
 	settings_button.anchor_top = 0.0
 	settings_button.anchor_right = 1.0
 	settings_button.anchor_bottom = 0.0
-	settings_button.offset_left = -124.0
-	settings_button.offset_top = 12.0
-	settings_button.offset_right = -16.0
-	settings_button.offset_bottom = 120.0
+	settings_button.custom_minimum_size = SETTINGS_BUTTON_SIZE
+	settings_button.expand_icon = true
+	settings_button.offset_left = -SETTINGS_BUTTON_TOP_RIGHT_MARGIN.x - SETTINGS_BUTTON_SIZE.x
+	settings_button.offset_top = SETTINGS_BUTTON_TOP_RIGHT_MARGIN.y
+	settings_button.offset_right = -SETTINGS_BUTTON_TOP_RIGHT_MARGIN.x
+	settings_button.offset_bottom = SETTINGS_BUTTON_TOP_RIGHT_MARGIN.y + SETTINGS_BUTTON_SIZE.y
 	settings_button.visible = true
+
+
+func _configure_compact_volume_sliders() -> void:
+	var compact_grabber := _create_compact_grabber()
+	for slider: HSlider in [music_slider, sfx_slider]:
+		slider.custom_minimum_size = COMPACT_SLIDER_SIZE
+		slider.size = COMPACT_SLIDER_SIZE
+		slider.add_theme_icon_override(&"grabber", compact_grabber)
+		slider.add_theme_icon_override(&"grabber_highlight", compact_grabber)
+		slider.add_theme_icon_override(&"grabber_disabled", compact_grabber)
+		slider.reset_size()
+
+
+func _create_compact_grabber() -> ImageTexture:
+	var image := GRABBER_TEXTURE.get_image()
+	image.resize(COMPACT_GRABBER_SIZE.x, COMPACT_GRABBER_SIZE.y, Image.INTERPOLATE_NEAREST)
+	return ImageTexture.create_from_image(image)
 
 func _configure_popup() -> void:
 	settings_popup.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -206,6 +236,8 @@ func _on_settings_button_pressed() -> void:
 	_refresh_load_button_state()
 	_center_popup()
 	settings_popup.visible = true
+	settings_button.visible = false
+	InputManager.lock_input("settings_pause")
 	get_tree().paused = true
 
 func _resume_game() -> void:
@@ -214,6 +246,8 @@ func _resume_game() -> void:
 	if _save_dialog != null and _save_dialog.visible:
 		_save_dialog.hide()
 	settings_popup.visible = false
+	settings_button.visible = true
+	InputManager.unlock_input("settings_pause")
 	get_tree().paused = false
 
 func _on_save_pressed() -> void:
@@ -232,6 +266,7 @@ func _on_load_pressed() -> void:
 		return
 
 	settings_popup.visible = false
+	InputManager.unlock_input("settings_pause")
 	get_tree().paused = false
 	if _save_dialog != null:
 		_save_dialog.hide()
@@ -284,9 +319,19 @@ func _center_popup() -> void:
 	if settings_popup == null or popup_texture == null:
 		return
 
-	var content_center_offset := popup_texture.position + (popup_texture.size * 0.5)
-	settings_popup.position = (size * 0.5) - content_center_offset
+	var popup_size := popup_texture.size
+	if popup_size.x <= 0.0 or popup_size.y <= 0.0:
+		return
+
+	var available_size := Vector2(
+		maxf(size.x - (POPUP_SAFE_MARGIN.x * 2.0), 1.0),
+		maxf(size.y - (POPUP_SAFE_MARGIN.y * 2.0), 1.0)
+	)
+	var scale_factor := minf(1.0, minf(available_size.x / popup_size.x, available_size.y / popup_size.y))
+	var content_center_offset := popup_texture.position + (popup_size * 0.5)
+	settings_popup.scale = Vector2.ONE * scale_factor
 	settings_popup.pivot_offset = content_center_offset
+	settings_popup.position = (size * 0.5) - (content_center_offset * scale_factor)
 
 func _show_save_success_toast() -> void:
 	if save_toast == null:

@@ -80,7 +80,7 @@ var difficulty_level: String = "Unknown"
 var current_task_index: int = 0
 var tasks = [
 	{
-		"quest_text": "Go to the Teacherâ€™s house",
+		"quest_text": "Go to the Teacher's House",
 		"dialogue": ["Get inside the house", "The teacher is waiting."]
 	},
 	{

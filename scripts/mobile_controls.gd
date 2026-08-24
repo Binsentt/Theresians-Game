@@ -2,6 +2,7 @@ extends CanvasLayer
 
 const DIRECTION_BUTTON_SCALE := Vector2(1.0, 1.0)
 const DIRECTION_BUTTON_PRESSED_SCALE := Vector2(0.94, 0.94)
+const EDITOR_TEST_ENVIRONMENT := "THERESIANS_MOBILE_CONTROLS_TEST"
 
 @export var force_visible_for_testing: bool = false
 
@@ -25,6 +26,8 @@ func _ready() -> void:
 	_connect_game_state()
 	_connect_input_manager()
 	_connect_interaction_manager()
+	if _is_explicit_editor_test_mode():
+		print("MOBILE CONTROLS TEST MODE: controls enabled for this debug session.")
 
 	_update_visibility()
 
@@ -99,14 +102,6 @@ func _on_active_interactable_changed(_component: Node) -> void:
 	_update_visibility()
 
 
-func _hide_interact_control() -> void:
-	action_margin.visible = false
-	action_panel.visible = false
-	interact_button.visible = false
-	interact_button.disabled = true
-	interact_button.force_release()
-
-
 func _force_release_all() -> void:
 	if not is_instance_valid(up_button):
 		return
@@ -124,25 +119,31 @@ func _is_exploration_mode() -> bool:
 	return game_state != null and game_state.get_mode() == GameState.GameMode.EXPLORATION
 
 
-func _has_active_interactable() -> bool:
-	var interaction_manager := get_node_or_null("/root/InteractionManager")
-	return interaction_manager != null \
-			and interaction_manager.has_method("has_active_interactable") \
-			and bool(interaction_manager.call("has_active_interactable"))
+func _is_explicit_editor_test_mode() -> bool:
+	return OS.is_debug_build() \
+			and OS.get_environment(EDITOR_TEST_ENVIRONMENT).strip_edges() == "1"
 
 func _update_visibility() -> void:
 	if not is_inside_tree():
 		return
 
-	var should_show: bool = _is_exploration_mode() and (force_visible_for_testing or OS.has_feature("mobile") or DisplayServer.is_touchscreen_available())
-	var should_show_interact: bool = should_show and not InputManager.is_input_locked() and _has_active_interactable()
-	if should_show_interact:
+	var should_show: bool = _is_exploration_mode() \
+			and not InputManager.is_input_locked() \
+			and (force_visible_for_testing \
+					or _is_explicit_editor_test_mode() \
+					or OS.has_feature("mobile") \
+					or DisplayServer.is_touchscreen_available())
+	if should_show:
 		action_margin.visible = true
 		action_panel.visible = true
 		interact_button.visible = true
 		interact_button.disabled = false
 	else:
-		_hide_interact_control()
+		action_margin.visible = false
+		action_panel.visible = false
+		interact_button.visible = false
+		interact_button.disabled = true
+		interact_button.force_release()
 	if not should_show:
 		_force_release_all()
 	root.visible = should_show

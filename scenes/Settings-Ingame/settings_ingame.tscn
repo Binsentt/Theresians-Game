@@ -42,12 +42,13 @@ process_mode = 3
 layout_mode = 0
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -124.0
+offset_left = -68.0
 offset_top = 12.0
 offset_right = -16.0
-offset_bottom = 120.0
+offset_bottom = 64.0
 icon = ExtResource("1_5kl81")
 flat = true
+expand_icon = true
 
 [node name="SaveToast" type="PanelContainer" parent="." unique_id=1700010001]
 visible = false
@@ -135,11 +136,12 @@ theme_override_font_sizes/font_size = 13
 text = "SFX VOLUME"
 
 [node name="MusicVolume" type="HSlider" parent="SettingsPopup/TextureRect" unique_id=328446895]
+custom_minimum_size = Vector2(280, 38)
 layout_mode = 0
-offset_left = 231.0
-offset_top = 493.0
-offset_right = 455.0
-offset_bottom = 526.0
+offset_left = 210.0
+offset_top = 450.0
+offset_right = 490.0
+offset_bottom = 474.0
 theme_override_icons/grabber = ExtResource("6_j8nds")
 theme_override_icons/grabber_highlight = ExtResource("6_j8nds")
 theme_override_icons/grabber_disabled = ExtResource("6_j8nds")
@@ -149,11 +151,12 @@ step = 0.01
 value = 0.8
 
 [node name="SfxVolume" type="HSlider" parent="SettingsPopup/TextureRect" unique_id=385191676]
+custom_minimum_size = Vector2(280, 38)
 layout_mode = 0
-offset_left = 543.0
-offset_top = 493.0
-offset_right = 775.0
-offset_bottom = 526.0
+offset_left = 520.0
+offset_top = 450.0
+offset_right = 800.0
+offset_bottom = 474.0
 theme_override_icons/grabber = ExtResource("6_j8nds")
 theme_override_icons/grabber_highlight = ExtResource("6_j8nds")
 theme_override_icons/grabber_disabled = ExtResource("6_j8nds")

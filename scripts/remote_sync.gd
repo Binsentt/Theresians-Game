@@ -379,9 +379,9 @@ func _load_pending() -> Array:
 	if file:
 		var text := file.get_as_text()
 		file.close()
-		var j = JSON.parse_string(text)
-		if j.error == OK and typeof(j.result) == TYPE_ARRAY:
-			pending = j.result
+		var parsed: Variant = JSON.parse_string(text)
+		if parsed is Array:
+			pending = parsed
 	return pending
 
 func _flush_pending() -> void:

@@ -252,8 +252,10 @@ func _run() -> void:
 	await process_frame
 	var action_margin := mobile_controls.get_node_or_null("Root/ActionMargin") as Control
 	var action_panel := mobile_controls.get_node_or_null("Root/ActionMargin/ActionPanel") as Control
-	_assert_equal(action_margin != null and not action_margin.visible, true, "the hidden Interact action margin has no visible or interactive region")
-	_assert_equal(action_panel != null and not action_panel.visible, true, "the hidden Interact action panel has no visible or interactive region")
+	var interact_button := mobile_controls.get_node_or_null("Root/ActionMargin/ActionPanel/ActionButton") as TouchHoldButton
+	_assert_equal(action_margin != null and action_margin.visible, true, "the visible mobile layout retains the Interact action margin")
+	_assert_equal(action_panel != null and action_panel.visible, true, "the visible mobile layout retains the Interact action panel")
+	_assert_equal(interact_button != null and interact_button.visible and not interact_button.disabled, true, "the shared Interact action stays available while exploring")
 	var right_button := mobile_controls.get_node_or_null("Root/MovementMargin/MovementPanel/MovementBox/MiddleRow/RightButton") as TouchHoldButton
 	_assert_equal(right_button != null, true, "mobile controls expose the right touch-hold button")
 	if right_button != null:
