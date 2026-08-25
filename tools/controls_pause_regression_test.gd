@@ -75,8 +75,12 @@ func _assert_compact_settings_pause_and_audio() -> void:
 	var sfx := hud.get_node_or_null("Settings-Ingame/SettingsPopup/TextureRect/SfxVolume") as HSlider
 	_expect(settings != null and popup != null, "Game HUD owns exactly one in-game settings overlay.")
 	_expect(gear != null and gear.expand_icon and gear.size.x <= 64.0 and gear.size.y <= 64.0 and is_equal_approx(gear.size.x, gear.size.y), "Settings gear remains a compact square control.")
-	_expect(music != null and music.size == Vector2(280.0, 38.0), "Music volume remains compact at 280x38.")
-	_expect(sfx != null and sfx.size == Vector2(280.0, 38.0), "SFX volume remains compact at 280x38.")
+	_expect(music != null and music.size == Vector2(220.0, 30.0), "Music volume uses the compact 220x30 in-game control size.")
+	_expect(sfx != null and sfx.size == Vector2(220.0, 30.0), "SFX volume uses the compact 220x30 in-game control size.")
+	var music_grabber := music.get_theme_icon(&"grabber") if music != null else null
+	var sfx_grabber := sfx.get_theme_icon(&"grabber") if sfx != null else null
+	_expect(music_grabber != null and music_grabber.get_size() == Vector2(30, 29), "Music uses the compact 30x29 grabber instead of the raw oversized asset.")
+	_expect(sfx_grabber != null and sfx_grabber.get_size() == Vector2(30, 29), "SFX uses the compact 30x29 grabber instead of the raw oversized asset.")
 
 	if gear != null:
 		gear.emit_signal("pressed")

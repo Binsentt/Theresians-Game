@@ -18,8 +18,8 @@ const DISABLED_BUTTON_MODULATE := Color(1.0, 1.0, 1.0, 0.45)
 const POPUP_SAFE_MARGIN := Vector2(24.0, 24.0)
 const SETTINGS_BUTTON_SIZE := Vector2(52.0, 52.0)
 const SETTINGS_BUTTON_TOP_RIGHT_MARGIN := Vector2(16.0, 12.0)
-const COMPACT_SLIDER_SIZE := Vector2(280.0, 38.0)
-const COMPACT_GRABBER_SIZE := Vector2i(40, 38)
+const COMPACT_SLIDER_SIZE := Vector2(220.0, 30.0)
+const COMPACT_GRABBER_SIZE := Vector2i(30, 29)
 const GRABBER_TEXTURE: Texture2D = preload("res://Images/grabber.png")
 
 @onready var settings_button: Button = $"Settings-Logo-Button"
