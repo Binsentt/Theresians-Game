@@ -1,7 +1,11 @@
 extends Node
 
+var post_request_count := 0
+var get_request_count := 0
+
 
 func request_post(path: String, _payload: Dictionary, _timeout_ms: int = -1) -> Dictionary:
+	post_request_count += 1
 	if path == "/api/game/parent/validate":
 		await get_tree().create_timer(0.12).timeout
 		return {"ok": true, "status": 200, "body": {"ok": true, "success": true}}
@@ -9,6 +13,7 @@ func request_post(path: String, _payload: Dictionary, _timeout_ms: int = -1) -> 
 
 
 func request_get(path: String, _params: Dictionary = {}, _timeout_ms: int = -1) -> Dictionary:
+	get_request_count += 1
 	if path.begins_with("/api/game/profile/check/"):
 		await get_tree().create_timer(0.12).timeout
 		return {

@@ -60,12 +60,12 @@ func _run() -> void:
 		if background == null or background.texture == null or background.texture.resource_path != BACKGROUND_PATH:
 			_fail("Loading Background does not use the expected texture")
 		var progress := _find_named(loading, "ProgressBar") as ProgressBar
-		if progress == null or progress.show_percentage:
-			_fail("Loading ProgressBar is missing or shows its percentage")
+		if progress == null or not progress.show_percentage:
+			_fail("Loading ProgressBar is missing or does not visibly show its real percentage")
 		if _find_named(loading, "DotsTimer") == null:
 			_fail("Loading scene has no DotsTimer")
-		if _find_named(loading, "ProgressTimer") == null:
-			_fail("Loading scene has no ProgressTimer")
+		if _find_named(loading, "ProgressTimer") != null or _find_named(loading, "StartTimer") != null:
+			_fail("Loading scene must not retain timer-driven progress or transition timers")
 		var loading_label := _find_named(loading, "LoadingLabel") as Label
 		if loading_label == null or not loading.has_method("_on_dots_timer_timeout"):
 			_fail("Loading scene lacks a usable dots timeout handler")
@@ -74,13 +74,13 @@ func _run() -> void:
 			loading.call("_on_dots_timer_timeout")
 			if loading_label.text == dots_before:
 				_fail("Dots timeout handler did not change LoadingLabel text")
-		if progress == null or not loading.has_method("_on_progress_timer_timeout"):
-			_fail("Loading scene lacks a usable progress timeout handler")
-		else:
-			var progress_before := progress.value
-			loading.call("_on_progress_timer_timeout")
-			if progress.value == progress_before:
-				_fail("Progress timeout handler did not change ProgressBar value")
+		var loading_source := FileAccess.get_file_as_string("res://scripts/loading_screen.gd")
+		if not loading_source.contains("ResourceLoader.load_threaded_request") or not loading_source.contains("ResourceLoader.load_threaded_get_status"):
+			_fail("Loading must source progress from Godot threaded resource loading")
+		if loading_source.contains("START_SCENE_DELAY") or loading_source.contains("PROGRESS_STEP") or loading_source.contains("_on_progress_timer_timeout"):
+			_fail("Loading must not use arbitrary timer-driven progress or scene transition constants")
+		if not loading_source.contains("change_scene_to_packed"):
+			_fail("Loading must transition only after the threaded PackedScene is fully available")
 		if loading.has_method("show_connection_error") and loading.has_method("_on_retry_button_pressed"):
 			retry_request_count = 0
 			loading.call("show_connection_error", "Unable to connect.", Callable(self, "_on_retry_requested"))

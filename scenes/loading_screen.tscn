@@ -141,7 +141,7 @@ custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBox_progress_background")
 theme_override_styles/fill = SubResource("StyleBox_progress_fill")
-show_percentage = false
+show_percentage = true
 
 [node name="ErrorPanel" type="PanelContainer" parent="."]
 visible = false
@@ -205,8 +205,3 @@ theme_override_font_sizes/font_size = 9
 text = "Return Main Menu"
 
 [node name="DotsTimer" type="Timer" parent="."]
-
-[node name="ProgressTimer" type="Timer" parent="."]
-
-[node name="StartTimer" type="Timer" parent="."]
-one_shot = true

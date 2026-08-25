@@ -13,4 +13,9 @@ func request_post(path: String, _payload: Dictionary, _timeout_ms: int = -1) -> 
 
 
 func request_get(_path: String, _params: Dictionary = {}, _timeout_ms: int = -1) -> Dictionary:
-	return {"ok": false, "status": 0, "body": {}, "error": "Unexpected request."}
+	return {
+		"ok": false,
+		"status": 0,
+		"body": {"error": "Registration service is unavailable."},
+		"error": "Registration service is unavailable.",
+	}

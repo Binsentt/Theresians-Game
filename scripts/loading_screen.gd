@@ -4,10 +4,7 @@ enum LoadingMode { STARTUP, NEW_GAME, LOAD_GAME, CONNECTION_RETRY }
 
 const MAIN_MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
 const DEFAULT_NEW_GAME_SCENE_PATH := "res://interiors/player_house.tscn"
-const START_SCENE_DELAY := 0.75
 const DOT_UPDATE_DELAY := 0.25
-const PROGRESS_UPDATE_DELAY := 0.04
-const PROGRESS_STEP := 2.5
 const MAX_DOTS := 3
 const CONNECTION_ERROR_MESSAGE := "Unable to connect. Please try again."
 
@@ -28,8 +25,6 @@ var destination_scene: String
 @onready var retry_button: Button = $ErrorPanel/MarginContainer/Content/Actions/RetryButton
 @onready var return_button: Button = $ErrorPanel/MarginContainer/Content/Actions/ReturnButton
 @onready var dots_timer: Timer = $DotsTimer
-@onready var progress_timer: Timer = $ProgressTimer
-@onready var start_timer: Timer = $StartTimer
 
 var _dot_count: int = 0
 var _connection_error_message: String = CONNECTION_ERROR_MESSAGE
@@ -37,6 +32,7 @@ var _retry_callback: Callable = Callable()
 var _retry_in_progress: bool = false
 var _return_in_progress: bool = false
 var _transition_in_progress: bool = false
+var _resource_load_in_progress: bool = false
 
 static func prepare_new_game(destination: String = DEFAULT_NEW_GAME_SCENE_PATH) -> void:
 	_pending_mode = LoadingMode.NEW_GAME
@@ -70,7 +66,7 @@ func _ready() -> void:
 		show_connection_error(_connection_error_message)
 		return
 
-	_start_loading_timers()
+	_start_loading()
 
 func _consume_pending_request() -> void:
 	current_mode = _pending_mode
@@ -81,10 +77,6 @@ func _consume_pending_request() -> void:
 func _connect_signals_once() -> void:
 	if not dots_timer.timeout.is_connected(_on_dots_timer_timeout):
 		dots_timer.timeout.connect(_on_dots_timer_timeout)
-	if not progress_timer.timeout.is_connected(_on_progress_timer_timeout):
-		progress_timer.timeout.connect(_on_progress_timer_timeout)
-	if not start_timer.timeout.is_connected(_on_start_timer_timeout):
-		start_timer.timeout.connect(_on_start_timer_timeout)
 	if not retry_button.pressed.is_connected(_on_retry_button_pressed):
 		retry_button.pressed.connect(_on_retry_button_pressed)
 	if not return_button.pressed.is_connected(_on_return_button_pressed):
@@ -106,41 +98,66 @@ func _apply_mode_copy() -> void:
 		_:
 			subtitle.text = "Preparing Theresian's Quest"
 
-func _start_loading_timers() -> void:
+func _start_loading() -> void:
 	dots_timer.wait_time = DOT_UPDATE_DELAY
-	progress_timer.wait_time = PROGRESS_UPDATE_DELAY
-	start_timer.wait_time = START_SCENE_DELAY
 	dots_timer.start()
-	progress_timer.start()
-	start_timer.start()
+	_begin_threaded_scene_load()
 
 func _stop_loading_timers() -> void:
 	dots_timer.stop()
-	progress_timer.stop()
-	start_timer.stop()
+	_resource_load_in_progress = false
 
 func _on_dots_timer_timeout() -> void:
 	_dot_count = (_dot_count + 1) % (MAX_DOTS + 1)
 	loading_label.text = "Loading%s" % ".".repeat(_dot_count)
 
-func _on_progress_timer_timeout() -> void:
-	var next_value := progress_bar.value + PROGRESS_STEP
-	if next_value > progress_bar.max_value:
-		next_value = progress_bar.min_value
-	progress_bar.value = next_value
+func _begin_threaded_scene_load() -> void:
+	if destination_scene.is_empty() or not ResourceLoader.exists(destination_scene):
+		_show_loading_error("The requested scene could not be loaded. Return to the main menu and try again.")
+		return
 
-func _on_start_timer_timeout() -> void:
-	if _transition_in_progress:
+	var request_result := ResourceLoader.load_threaded_request(destination_scene)
+	if request_result != OK:
+		_show_loading_error("The requested scene could not begin loading. Return to the main menu and try again.")
+		return
+
+	_resource_load_in_progress = true
+
+func _process(_delta: float) -> void:
+	if not _resource_load_in_progress or _transition_in_progress:
+		return
+
+	var progress: Array = []
+	var status := ResourceLoader.load_threaded_get_status(destination_scene, progress)
+	if not progress.is_empty():
+		_set_resource_progress(float(progress[0]))
+
+	match status:
+		ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			return
+		ResourceLoader.THREAD_LOAD_LOADED:
+			var loaded_scene := ResourceLoader.load_threaded_get(destination_scene) as PackedScene
+			_resource_load_in_progress = false
+			if loaded_scene == null:
+				_show_loading_error("The requested scene could not be opened. Return to the main menu and try again.")
+				return
+			_set_resource_progress(1.0)
+			_complete_threaded_scene_load.call_deferred(loaded_scene)
+		_:
+			_resource_load_in_progress = false
+			_show_loading_error("The requested scene could not be loaded. Return to the main menu and try again.")
+
+func _set_resource_progress(completion_ratio: float) -> void:
+	progress_bar.value = lerpf(progress_bar.min_value, progress_bar.max_value, clampf(completion_ratio, 0.0, 1.0))
+
+func _complete_threaded_scene_load(loaded_scene: PackedScene) -> void:
+	await get_tree().process_frame
+	if _transition_in_progress or not is_instance_valid(loaded_scene):
 		return
 
 	_transition_in_progress = true
 	_stop_loading_timers()
-	if destination_scene.is_empty() or not ResourceLoader.exists(destination_scene):
-		_transition_in_progress = false
-		_show_loading_error("The requested scene could not be loaded. Return to the main menu and try again.")
-		return
-
-	var result := get_tree().change_scene_to_file(destination_scene)
+	var result := get_tree().change_scene_to_packed(loaded_scene)
 	if result != OK:
 		_transition_in_progress = false
 		_show_loading_error("The requested scene could not be opened. Return to the main menu and try again.")

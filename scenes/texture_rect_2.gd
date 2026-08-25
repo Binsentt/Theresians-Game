@@ -326,15 +326,6 @@ func _validate_ids_with_backend() -> Dictionary:
 	if http == null:
 		return {"ok": false, "error": "Unable to connect to the server. Please try again."}
 
-	var parent_result: Dictionary = await http.request_post("/api/game/parent/validate", {
-		"parent_id": parent_id_input.text
-	})
-	var parent_body: Dictionary = parent_result.get("body", {})
-	var parent_ok := bool(parent_result.get("ok", false)) or bool(parent_result.get("success", false)) or bool(parent_body.get("ok", false)) or bool(parent_body.get("success", false))
-	var parent_status: int = int(parent_result.get("status", 0))
-	if not parent_ok or parent_status < 200 or parent_status >= 300:
-		return {"ok": false, "error": _registration_api_error(parent_result, "Parent ID does not exist.")}
-
 	var profile_result: Dictionary = await http.request_get("/api/game/profile/check/" + student_id_input.text, {
 		"parent_id": parent_id_input.text
 	})

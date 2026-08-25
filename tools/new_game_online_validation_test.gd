@@ -4,6 +4,7 @@ const NEW_GAME_SCENE := "res://scenes/new_game_scene.tscn"
 const FailureHttpApi := preload("res://tools/test_http_api_registration_failure_stub.gd")
 const SlowHttpApi := preload("res://tools/test_http_api_slow_registration_stub.gd")
 const MissingCanonicalProfileHttpApi := preload("res://tools/test_http_api_missing_canonical_profile_stub.gd")
+const MultiChildHttpApi := preload("res://tools/test_http_api_multi_child_registration_stub.gd")
 
 var failures: Array[String] = []
 var http_api: Node
@@ -26,6 +27,7 @@ func _run() -> void:
 	await _reject_unverified_ids()
 	await _reject_a_profile_without_canonical_identity()
 	await _show_loading_while_online_validation_is_pending()
+	await _validate_multiple_linked_children_with_one_parent()
 	_finish()
 
 
@@ -70,9 +72,33 @@ func _show_loading_while_online_validation_is_pending() -> void:
 	_assert(wizard.get_node("StudentParentId").visible and not wizard.get_node("NameGradeSelect").visible, "the IDs step remains visible until both online checks finish")
 
 	await _wait_seconds(0.45)
-	_assert(wizard.get_node("NameGradeSelect").visible, "a slow successful Parent/profile validation advances after both requests finish")
+	_assert(wizard.get_node("NameGradeSelect").visible, "a slow successful canonical profile validation advances immediately after the one authoritative request")
 	_assert(not (wizard.get_node("NameGradeSelect/NameInput") as LineEdit).editable, "a slow successful canonical profile locks the name field")
 	_assert((wizard.get_node("NameGradeSelect/Grade3") as BaseButton).disabled, "a slow successful canonical profile locks Grade selection")
+	_assert(int(http_api.get("get_request_count")) == 1, "registration validation makes one profile request")
+	_assert(int(http_api.get("post_request_count")) == 0, "registration validation does not make a duplicate Parent-validation request")
+
+
+func _validate_multiple_linked_children_with_one_parent() -> void:
+	http_api.set_script(MultiChildHttpApi)
+	for student_id in ["000001", "000002"]:
+		var wizard := await _open_ids_step()
+		if wizard == null:
+			return
+		_set_line_edit_text(wizard.get_node("StudentParentId/StudentIdInput") as LineEdit, student_id)
+		await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
+		await _wait_for_transition(wizard)
+		_assert(wizard.get_node("NameGradeSelect").visible, "each linked child validates for the same Parent account")
+
+	var unlinked_wizard := await _open_ids_step()
+	if unlinked_wizard != null:
+		_set_line_edit_text(unlinked_wizard.get_node("StudentParentId/StudentIdInput") as LineEdit, "000003")
+		await _press(unlinked_wizard.get_node("StudentParentId/NextBtn") as BaseButton)
+		await _wait_for_transition(unlinked_wizard)
+		var label := unlinked_wizard.get_node("ValidationPanel/MarginContainer/ValidationLabel") as Label
+		_assert(label != null and label.text == "This Student is not linked to this Parent account.", "an existing but unlinked Student receives the truthful relationship error")
+
+	_assert(int(http_api.get("profile_request_count")) == 3, "each Parent/Student validation uses one canonical profile request")
 
 
 func _open_ids_step() -> Node:
