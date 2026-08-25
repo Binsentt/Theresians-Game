@@ -31,6 +31,10 @@ func request_post(path: String, payload: Dictionary, _timeout_ms: int = -1) -> D
 				"remaining_minutes": 60,
 				"daily_limit_minutes": 60,
 				"expires_at": "2030-01-01T01:00:00.000Z",
+				"learning_cycle": {
+					"version": 0.0,
+					"started_at": null,
+				},
 			},
 		}
 	if path == "/api/activity-logs":

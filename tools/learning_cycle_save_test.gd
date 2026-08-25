@@ -25,6 +25,20 @@ func _run() -> void:
 		_finish()
 		return
 
+	_assert(GameState.call("set_learning_cycle", {"version": 0.0, "started_at": null}), "JSON numeric cycle version 0.0 with a null boundary is accepted")
+	_assert(GameState.learning_cycle_version == 0, "JSON numeric cycle version 0.0 normalizes to version 0")
+	_assert(GameState.learning_cycle_started_at == "", "a null cycle boundary normalizes to an empty value")
+	_assert(GameState.call("set_learning_cycle", {"version": 1.0}), "a float JSON cycle version with a missing boundary is accepted")
+	_assert(GameState.learning_cycle_version == 1, "float JSON cycle version 1.0 normalizes to version 1")
+	_assert(GameState.learning_cycle_started_at == "", "a missing cycle boundary remains empty")
+	_assert(GameState.call("set_learning_cycle", {"version": "2", "started_at": "2026-08-25T04:00:00.000Z"}), "a numeric string cycle version is accepted")
+	_assert(GameState.learning_cycle_version == 2, "a numeric string cycle version normalizes to its integer value")
+	_assert(GameState.learning_cycle_started_at == "2026-08-25T04:00:00.000Z", "a valid cycle boundary string is preserved")
+	_assert(not GameState.call("set_learning_cycle", {"version": "not-a-version"}), "a nonnumeric cycle version is rejected instead of being fabricated as version 0")
+	_assert(GameState.learning_cycle_version == 2, "an invalid cycle version cannot replace the existing authoritative version")
+	_assert(not GameState.call("set_learning_cycle", {"version": 1.5}), "a fractional cycle version is rejected instead of being truncated")
+	_assert(not GameState.call("set_learning_cycle", null), "a missing lifecycle descriptor is rejected without a crash")
+
 	GameState.call("set_learning_cycle", {"version": 2, "started_at": "2026-08-25T04:00:00.000Z"})
 	var save_data: Dictionary = GameState.build_save_data()
 	_assert(int(save_data.get("learning_cycle_version", -1)) == 2, "new saves retain the authoritative cycle version")

@@ -287,14 +287,33 @@ func set_learning_cycle(descriptor: Variant) -> bool:
 	if not (descriptor is Dictionary):
 		return false
 	var raw_version: Variant = descriptor.get("version", 0)
-	if not (raw_version is int or raw_version is float or raw_version is String):
+	var normalized_version: Variant = _normalize_learning_cycle_version(raw_version)
+	if normalized_version == null:
 		return false
-	var normalized_version := int(raw_version)
-	if normalized_version < 0:
-		return false
-	learning_cycle_version = normalized_version
-	learning_cycle_started_at = String(descriptor.get("started_at", "")).strip_edges()
+	learning_cycle_version = int(normalized_version)
+	var raw_started_at: Variant = descriptor.get("started_at", "")
+	learning_cycle_started_at = raw_started_at.strip_edges() if raw_started_at is String else ""
 	return true
+
+
+func _normalize_learning_cycle_version(raw_version: Variant) -> Variant:
+	if raw_version is int:
+		if raw_version < 0:
+			return null
+		return raw_version
+	if raw_version is float:
+		if raw_version < 0.0 or not is_equal_approx(raw_version, round(raw_version)):
+			return null
+		return int(raw_version)
+	if raw_version is String:
+		var version_text: String = String(raw_version).strip_edges()
+		if version_text.is_empty() or not version_text.is_valid_int():
+			return null
+		var parsed_version: int = version_text.to_int()
+		if parsed_version < 0:
+			return null
+		return parsed_version
+	return null
 
 
 func get_learning_cycle_descriptor() -> Dictionary:
@@ -1056,9 +1075,7 @@ func set_learning_cycle_descriptor_is_valid(descriptor: Variant) -> bool:
 	if not (descriptor is Dictionary):
 		return false
 	var raw_version: Variant = descriptor.get("version", null)
-	if not (raw_version is int or raw_version is float or raw_version is String):
-		return false
-	return int(raw_version) >= 0
+	return _normalize_learning_cycle_version(raw_version) != null
 
 
 func _build_unavailable_save_entry(save_path: String, message: String) -> Dictionary:
