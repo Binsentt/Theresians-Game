@@ -10,6 +10,8 @@ const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
 
 var _save_transitioning: bool = false
 var _pending_delete_path: String = ""
+var _save_entries_by_path: Dictionary = {}
+var _save_list_revision: int = 0
 
 func _ready() -> void:
 	MusicManager.play_for_scene(scene_file_path)
@@ -20,6 +22,8 @@ func _ready() -> void:
 	_refresh_save_list()
 
 func _refresh_save_list() -> void:
+	_save_list_revision += 1
+	_save_entries_by_path.clear()
 	for child in saves_container.get_children():
 		child.queue_free()
 
@@ -31,8 +35,45 @@ func _refresh_save_list() -> void:
 		var save_entry: Control = SAVE_ENTRY_SCENE.instantiate() as Control
 		saves_container.add_child(save_entry)
 		save_entry.setup(save_data)
+		_save_entries_by_path[String(save_data.get("save_path", ""))] = save_entry
 		save_entry.save_selected.connect(_on_save_selected)
 		save_entry.save_delete_requested.connect(_on_delete_requested)
+
+	if not saves.is_empty():
+		_verify_save_learning_cycles.call_deferred(saves, _save_list_revision)
+
+
+func _verify_save_learning_cycles(saves: Array[Dictionary], revision: int) -> void:
+	var grouped_saves: Dictionary = {}
+	for save_data in saves:
+		if not bool(save_data.get("loadable", false)):
+			continue
+		var student_code := String(save_data.get("student_id", ""))
+		var parent_code := String(save_data.get("parent_id", ""))
+		var key := "%s:%s" % [student_code, parent_code]
+		if not grouped_saves.has(key):
+			grouped_saves[key] = []
+		grouped_saves[key].append(save_data)
+
+	for key in grouped_saves:
+		if revision != _save_list_revision:
+			return
+		var group: Array = grouped_saves[key]
+		if group.is_empty():
+			continue
+		var representative: Dictionary = group[0]
+		var cycle_result: Dictionary = await RemoteSync.request_learning_cycle(
+			String(representative.get("student_id", "")),
+			String(representative.get("parent_id", ""))
+		)
+		if revision != _save_list_revision:
+			return
+		var descriptor: Dictionary = cycle_result.get("learning_cycle", {}) if bool(cycle_result.get("ok", false)) else {}
+		for original_save in group:
+			var annotated_save := GameState.annotate_save_learning_cycle(original_save, descriptor)
+			var entry: Control = _save_entries_by_path.get(String(annotated_save.get("save_path", ""))) as Control
+			if entry != null:
+				entry.setup(annotated_save)
 
 
 func _on_delete_requested(save_path: String) -> void:
@@ -71,6 +112,18 @@ func _on_save_selected(save_path: String) -> void:
 		return
 	if not bool(save_data.get("loadable", false)):
 		empty_label.text = String(save_data.get("save_error", "This save is unavailable. Delete it or create a new save."))
+		empty_label.visible = true
+		_save_transitioning = false
+		return
+
+	var cycle_result: Dictionary = await RemoteSync.request_learning_cycle(
+		String(save_data.get("student_id", "")),
+		String(save_data.get("parent_id", ""))
+	)
+	var cycle_descriptor: Dictionary = cycle_result.get("learning_cycle", {}) if bool(cycle_result.get("ok", false)) else {}
+	save_data = GameState.annotate_save_learning_cycle(save_data, cycle_descriptor)
+	if not bool(save_data.get("loadable", false)):
+		empty_label.text = String(save_data.get("save_error", cycle_result.get("error", "Unable to verify Learning Cycle. Connect to continue.")))
 		empty_label.visible = true
 		_save_transitioning = false
 		return

@@ -81,6 +81,22 @@ func _on_playtime_warning(remaining_minutes: int) -> void:
 			"playtime-warning:%d" % remaining_minutes
 		)
 
+
+func _apply_learning_cycle(response_body: Variant) -> Dictionary:
+	if not (response_body is Dictionary):
+		return {}
+	var descriptor: Variant = response_body.get("learning_cycle", {})
+	if descriptor is Dictionary and GameState.set_learning_cycle(descriptor):
+		return GameState.get_learning_cycle_descriptor()
+	return {}
+
+
+func _is_learning_cycle_changed(result: Dictionary) -> bool:
+	if int(result.get("status", 0)) != 409:
+		return false
+	var body: Variant = result.get("body", {})
+	return body is Dictionary and String(body.get("code", "")) == "LEARNING_CYCLE_CHANGED"
+
 func _async_send_progress(save_data: Dictionary) -> void:
 	# perform non-blocking via thread? We'll do simple call and rely on HttpApi's await behavior
 	var http := get_node_or_null("/root/HttpApi")
@@ -112,9 +128,15 @@ func _async_send_progress(save_data: Dictionary) -> void:
 		"total_play_time": int(save_data.get("total_play_time", 0)),
 		"total_quests_completed": int(save_data.get("total_quests_completed", 0)),
 		"difficulty_level": String(save_data.get("difficulty_level", "Unknown")),
+		"learning_cycle_version": int(save_data.get("learning_cycle_version", GameState.learning_cycle_version)),
+		"playtime_session_id": _current_playtime_session_id,
+		"playtime_session_credential": _current_playtime_session_credential,
 		"save_status": "saved"
 	}
 	var result: Dictionary = await http.request_post("/api/game/progress", payload)
+	if _is_learning_cycle_changed(result):
+		print("RemoteSync: discarded a previous-learning-cycle progress write.")
+		return
 	if not result.ok:
 		print("RemoteSync: progress sync failed, queuing: %s" % str(result))
 		_enqueue_pending(save_data)
@@ -181,6 +203,14 @@ func _refresh_playtime_lease() -> void:
 		return
 	_playtime_heartbeat_in_progress = true
 	var result := await _send_playtime_heartbeat_request()
+	if _is_learning_cycle_changed(result):
+		GameState.configure_playtime_allowance({
+			"daily_limit_minutes": PLAYTIME_DAILY_LIMIT_MINUTES,
+			"remaining_seconds": 0,
+			"can_play": false,
+		}, false)
+		_playtime_heartbeat_in_progress = false
+		return
 	if typeof(result.body) == TYPE_DICTIONARY:
 		GameState.configure_playtime_allowance(result.body, false)
 	if result.ok and result.status >= 200 and result.status < 300:
@@ -236,6 +266,7 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 	
 	result = await _send_playtime_start_request(override_payload)
 	if result.ok and (result.status == 201 or result.status == 200):
+		var learning_cycle := _apply_learning_cycle(result.body)
 		var api_can_play := bool(result.body.get("can_play", true))
 		var is_new_registration := bool(result.body.get("is_new_registration", false))
 		
@@ -264,6 +295,7 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 				"daily_limit_minutes": int(result.body.get("daily_limit_minutes", PLAYTIME_DAILY_LIMIT_MINUTES)),
 				"total_playtime_today": int(result.body.get("total_playtime_today", 0)),
 				"can_play": true,
+				"learning_cycle": learning_cycle,
 				"message": String(result.body.get("message", "New student registration ready.")),
 			}
 		else:
@@ -282,6 +314,7 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 					"daily_limit_minutes": int(result.body.get("daily_limit_minutes", 60)),
 					"total_playtime_today": int(result.body.get("total_playtime_today", 0)),
 					"can_play": true,
+					"learning_cycle": learning_cycle,
 					"message": String(result.body.get("message", "Playtime session started.")),
 				}
 			else:
@@ -329,6 +362,21 @@ func request_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 	# Public wrapper for UI code to start or resume a backend-authoritative playtime session.
 	return await _start_playtime_session(override_payload)
 
+func request_learning_cycle(student_code: String, parent_code: String) -> Dictionary:
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		return {"ok": false, "error": "Unable to verify Learning Cycle. Connect to continue."}
+	if not GameState.is_valid_six_digit_id(student_code) or not GameState.is_valid_six_digit_id(parent_code):
+		return {"ok": false, "error": "This save is missing a valid Parent or Student ID."}
+	var result: Dictionary = await http.request_get("/api/game/learning-cycle/" + student_code, {"parent_id": parent_code})
+	var body: Variant = result.get("body", {})
+	if not result.get("ok", false) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
+		return {"ok": false, "status": int(result.get("status", 0)), "error": "Unable to verify Learning Cycle. Connect to continue."}
+	var descriptor := _apply_learning_cycle(body)
+	if descriptor.is_empty():
+		return {"ok": false, "status": int(result.get("status", 0)), "error": "Unable to verify Learning Cycle. Connect to continue."}
+	return {"ok": true, "status": int(result.get("status", 0)), "learning_cycle": descriptor}
+
 func request_end_playtime_session() -> Dictionary:
 	# Public wrapper for UI or scene lifecycle code to cleanly end the current playtime session.
 	return await _end_playtime_session()
@@ -352,6 +400,7 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		"total_items": 1,
 		"playtime_session_id": _current_playtime_session_id,
 		"playtime_session_credential": _current_playtime_session_credential,
+		"learning_cycle_version": GameState.learning_cycle_version,
 	}
 	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
 		print("RemoteSync: skipping question result because no active server playtime lease is available.")
@@ -361,6 +410,9 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		payload["question_set_id"] = question_set_id
 
 	var result: Dictionary = await http.request_post("/api/game/result", payload)
+	if _is_learning_cycle_changed(result):
+		print("RemoteSync: discarded a previous-learning-cycle question result.")
+		return
 	if not result.get("ok", false) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
 		print("RemoteSync: question result sync failed; local gameplay continues: %s" % str(result))
 
@@ -394,6 +446,9 @@ func _flush_pending() -> void:
 	var remaining := []
 	for item in pending:
 		var result: Dictionary = await http.request_post("/api/game/progress", item)
+		if _is_learning_cycle_changed(result):
+			print("RemoteSync: removed a stale progress item from the pending queue.")
+			continue
 		if not result.ok or result.status < 200 or result.status >= 300:
 			remaining.append(item)
 	# overwrite pending file

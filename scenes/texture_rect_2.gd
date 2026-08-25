@@ -310,7 +310,10 @@ func _on_ids_next_pressed() -> void:
 	if not validation_result.get("ok", false):
 		_show_validation(String(validation_result.get("error", "Unable to validate registration.")))
 		return
-	var canonical_result := _apply_canonical_profile(validation_result.get("canonical_profile", {}))
+	var canonical_result := _apply_canonical_profile(
+		validation_result.get("canonical_profile", {}),
+		validation_result.get("learning_cycle", {})
+	)
 	if not canonical_result.get("ok", false):
 		_show_validation(String(canonical_result.get("error", "Unable to verify the linked Student profile. Please try again.")))
 		return
@@ -350,9 +353,13 @@ func _validate_ids_with_backend() -> Dictionary:
 	if canonical_name.is_empty() or canonical_grade not in GameState.VALID_REGISTRATION_GRADES:
 		return {"ok": false, "error": "Unable to verify the linked Student profile. Please try again."}
 
-	return {"ok": true, "canonical_profile": canonical_profile}
+	return {
+		"ok": true,
+		"canonical_profile": canonical_profile,
+		"learning_cycle": profile_body.get("learning_cycle", {}),
+	}
 
-func _apply_canonical_profile(profile: Variant) -> Dictionary:
+func _apply_canonical_profile(profile: Variant, learning_cycle: Variant = {}) -> Dictionary:
 	if not (profile is Dictionary):
 		return {"ok": false, "error": "Unable to verify the linked Student profile. Please try again."}
 	var canonical_name := String(profile.get("name", "")).strip_edges()
@@ -370,7 +377,8 @@ func _apply_canonical_profile(profile: Variant) -> Dictionary:
 	GameState.update_new_game_registration({
 		"student_name": _canonical_student_name,
 		"grade": _canonical_grade,
-		"section": _canonical_section
+		"section": _canonical_section,
+		"learning_cycle": learning_cycle if learning_cycle is Dictionary else {}
 	})
 	return {"ok": true}
 

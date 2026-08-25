@@ -17,7 +17,7 @@ signal playtime_warning(remaining_minutes: int)
 
 enum GameMode { EXPLORATION, DIALOGUE, CUTSCENE, BATTLE, MENU }
 
-const SAVE_VERSION := 7
+const SAVE_VERSION := 8
 const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
 const SAVE_DIRECTORY := "user://saves"
@@ -53,6 +53,8 @@ var gender := "male"
 var grade_level := ""
 var student_id := ""
 var parent_id := ""
+var learning_cycle_version: int = 0
+var learning_cycle_started_at: String = ""
 var _new_game_registration: Dictionary = {}
 
 var current_quest := DEFAULT_QUEST
@@ -223,7 +225,8 @@ func begin_new_game_registration() -> void:
 		"parent_id": "",
 		"student_name": "",
 		"grade": "",
-		"section": ""
+		"section": "",
+		"learning_cycle": {}
 	}
 
 
@@ -232,7 +235,7 @@ func get_new_game_registration() -> Dictionary:
 
 
 func update_new_game_registration(values: Dictionary) -> void:
-	for key in ["gender", "student_id", "parent_id", "student_name", "grade", "section"]:
+	for key in ["gender", "student_id", "parent_id", "student_name", "grade", "section", "learning_cycle"]:
 		if values.has(key):
 			_new_game_registration[key] = values[key]
 
@@ -259,6 +262,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	grade_level = String(profile.get("grade_level", "")).strip_edges()
 	student_id = String(profile.get("student_id", ""))
 	parent_id = String(profile.get("parent_id", ""))
+	set_learning_cycle(profile.get("learning_cycle", {}))
 
 	current_quest = DEFAULT_QUEST
 	current_lives = max_lives
@@ -277,6 +281,27 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	quest_changed.emit(current_quest)
 	if emit_progression_session_reset:
 		progression_session_reset.emit("new_game")
+
+
+func set_learning_cycle(descriptor: Variant) -> bool:
+	if not (descriptor is Dictionary):
+		return false
+	var raw_version: Variant = descriptor.get("version", 0)
+	if not (raw_version is int or raw_version is float or raw_version is String):
+		return false
+	var normalized_version := int(raw_version)
+	if normalized_version < 0:
+		return false
+	learning_cycle_version = normalized_version
+	learning_cycle_started_at = String(descriptor.get("started_at", "")).strip_edges()
+	return true
+
+
+func get_learning_cycle_descriptor() -> Dictionary:
+	return {
+		"version": learning_cycle_version,
+		"started_at": learning_cycle_started_at,
+	}
 
 
 func configure_playtime_allowance(response_body: Dictionary, reset_warning_state: bool = false) -> void:
@@ -402,7 +427,8 @@ func finalize_new_game_registration() -> bool:
 		"gender": String(values.get("gender", "")).to_lower(),
 		"student_id": String(values.get("student_id", "")),
 		"parent_id": String(values.get("parent_id", "")),
-		"grade_level": String(values.get("grade", ""))
+		"grade_level": String(values.get("grade", "")),
+		"learning_cycle": values.get("learning_cycle", {})
 	}, false)
 	clear_new_game_registration()
 	return true
@@ -608,6 +634,8 @@ func build_save_data() -> Dictionary:
 		"grade_level": grade_level,
 		"student_id": student_id,
 		"parent_id": parent_id,
+		"learning_cycle_version": learning_cycle_version,
+		"learning_cycle_started_at": learning_cycle_started_at,
 		"current_quest": current_quest,
 		"scene_path": current_scene_path,
 		"current_map": current_map,
@@ -691,6 +719,10 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	grade_level = String(data.get("grade_level", ""))
 	student_id = String(data.get("student_id", ""))
 	parent_id = String(data.get("parent_id", ""))
+	set_learning_cycle({
+		"version": int(data.get("learning_cycle_version", 0)),
+		"started_at": String(data.get("learning_cycle_started_at", "")),
+	})
 
 	current_quest = String(data.get("current_quest", DEFAULT_QUEST))
 	current_scene_path = _normalize_scene_path(String(data.get("scene_path", START_SCENE_PATH)))
@@ -984,6 +1016,8 @@ func _prepare_save_entry(data: Dictionary, save_path: String) -> Dictionary:
 	prepared["save_date"] = String(prepared.get("save_date", "----/--/--"))
 	prepared["save_time"] = String(prepared.get("save_time", "--:--:--"))
 	prepared["save_timestamp"] = int(prepared.get("save_timestamp", 0))
+	prepared["learning_cycle_version"] = maxi(0, int(prepared.get("learning_cycle_version", 0)))
+	prepared["learning_cycle_started_at"] = String(prepared.get("learning_cycle_started_at", "")).strip_edges()
 	var scene_path := _normalize_scene_path(String(prepared.get("scene_path", "")).strip_edges())
 	if scene_path.is_empty():
 		scene_path = START_SCENE_PATH
@@ -994,6 +1028,37 @@ func _prepare_save_entry(data: Dictionary, save_path: String) -> Dictionary:
 	prepared["save_valid"] = load_error.is_empty()
 	prepared["save_error"] = load_error
 	return prepared
+
+
+func annotate_save_learning_cycle(data: Dictionary, descriptor: Dictionary) -> Dictionary:
+	var prepared := _prepare_save_entry(data, String(data.get("save_path", "")))
+	if not bool(prepared.get("loadable", false)):
+		return prepared
+	if not set_learning_cycle_descriptor_is_valid(descriptor):
+		prepared["loadable"] = false
+		prepared["save_valid"] = false
+		prepared["save_error"] = "Unable to verify Learning Cycle. Connect to continue."
+		return prepared
+	var saved_version := maxi(0, int(prepared.get("learning_cycle_version", 0)))
+	var current_version := maxi(0, int(descriptor.get("version", 0)))
+	if saved_version != current_version:
+		prepared["loadable"] = false
+		prepared["save_valid"] = false
+		prepared["save_error"] = "Previous Learning Cycle"
+		return prepared
+	prepared["loadable"] = true
+	prepared["save_valid"] = true
+	prepared["save_error"] = ""
+	return prepared
+
+
+func set_learning_cycle_descriptor_is_valid(descriptor: Variant) -> bool:
+	if not (descriptor is Dictionary):
+		return false
+	var raw_version: Variant = descriptor.get("version", null)
+	if not (raw_version is int or raw_version is float or raw_version is String):
+		return false
+	return int(raw_version) >= 0
 
 
 func _build_unavailable_save_entry(save_path: String, message: String) -> Dictionary:
