@@ -166,84 +166,17 @@ step = 0.01
 value = 0.8
 
 [node name="LoadGameBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=169047210]
-layout_mode = 1
-anchors_preset = -1
-anchor_right = 0.1
-anchor_bottom = 0.10300001
-offset_left = 338.0
-offset_top = 253.0
-offset_right = 545.2
-offset_bottom = 397.037
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 0
+offset_left = 382.0
+offset_top = 225.0
+offset_right = 602.0
+offset_bottom = 277.0
 icon = ExtResource("8_hrtxq")
 flat = true
+expand_icon = true
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/LoadGameBtn" unique_id=686641483]
-layout_mode = 0
-offset_left = 41.0
-offset_top = 89.0
-offset_right = 266.0
-offset_bottom = 114.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_fonts/font = ExtResource("4_y7tm3")
-theme_override_font_sizes/font_size = 25
-text = "LOAD GAME"
-
-[node name="ExitBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1004605551]
-layout_mode = 0
-offset_left = 338.0
-offset_top = 331.0
-offset_right = 646.0
-offset_bottom = 539.0
-icon = ExtResource("8_hrtxq")
-flat = true
-
-[node name="Label" type="Label" parent="SettingsPopup/TextureRect/ExitBtn" unique_id=771607587]
-layout_mode = 0
-offset_left = 101.0
-offset_top = 87.0
-offset_right = 201.0
-offset_bottom = 112.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_fonts/font = ExtResource("4_y7tm3")
-theme_override_font_sizes/font_size = 25
-text = "EXIT"
-
-[node name="ResumeBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1600404717]
-layout_mode = 0
-offset_left = 338.0
-offset_top = 97.0
-offset_right = 646.0
-offset_bottom = 305.0
-icon = ExtResource("8_hrtxq")
-flat = true
-
-[node name="Label" type="Label" parent="SettingsPopup/TextureRect/ResumeBtn" unique_id=1048843531]
-layout_mode = 0
-offset_left = 80.00003
-offset_top = 88.0
-offset_right = 230.00003
-offset_bottom = 113.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_fonts/font = ExtResource("4_y7tm3")
-theme_override_font_sizes/font_size = 25
-text = "RESUME"
-
-[node name="SaveBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1858043335]
-layout_mode = 0
-offset_left = 338.0
-offset_top = 175.0
-offset_right = 646.0
-offset_bottom = 383.0
-icon = ExtResource("8_hrtxq")
-flat = true
-
-[node name="Label" type="Label" parent="SettingsPopup/TextureRect/SaveBtn" unique_id=1868119323]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -254,7 +187,92 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 3
 theme_override_fonts/font = ExtResource("4_y7tm3")
-theme_override_font_sizes/font_size = 25
+theme_override_font_sizes/font_size = 20
+text = "LOAD GAME"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ExitBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1004605551]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 0
+offset_left = 382.0
+offset_top = 290.0
+offset_right = 602.0
+offset_bottom = 342.0
+icon = ExtResource("8_hrtxq")
+flat = true
+expand_icon = true
+
+[node name="Label" type="Label" parent="SettingsPopup/TextureRect/ExitBtn" unique_id=771607587]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 20
+text = "EXIT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ResumeBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1600404717]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 0
+offset_left = 382.0
+offset_top = 95.0
+offset_right = 602.0
+offset_bottom = 147.0
+icon = ExtResource("8_hrtxq")
+flat = true
+expand_icon = true
+
+[node name="Label" type="Label" parent="SettingsPopup/TextureRect/ResumeBtn" unique_id=1048843531]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 20
+text = "RESUME"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SaveBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1858043335]
+custom_minimum_size = Vector2(220, 52)
+layout_mode = 0
+offset_left = 382.0
+offset_top = 160.0
+offset_right = 602.0
+offset_bottom = 212.0
+icon = ExtResource("8_hrtxq")
+flat = true
+expand_icon = true
+
+[node name="Label" type="Label" parent="SettingsPopup/TextureRect/SaveBtn" unique_id=1868119323]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 3.0
+offset_top = -2.0
+offset_right = 3.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("4_y7tm3")
+theme_override_font_sizes/font_size = 20
 text = "SAVE"
 horizontal_alignment = 1
 vertical_alignment = 1

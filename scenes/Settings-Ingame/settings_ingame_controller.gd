@@ -4,9 +4,9 @@ const EXIT_PROMPT_TEXT := "Are you sure you want to exit the game?"
 const SAVE_PROMPT_TEXT := "Do you want to save this game?"
 const EXIT_DIALOG_SIZE := Vector2i(460, 170)
 const SAVE_DIALOG_SIZE := Vector2i(460, 170)
-const BUTTON_HOVER_SCALE := Vector2(1.04, 1.04)
-const BUTTON_PRESSED_SCALE := Vector2(0.97, 0.97)
-const BUTTON_NORMAL_SCALE := Vector2.ONE
+const BUTTON_HOVER_MODULATE := Color(1.0, 0.95, 0.78, 1.0)
+const BUTTON_PRESSED_MODULATE := Color(0.82, 0.82, 0.82, 1.0)
+const BUTTON_NORMAL_MODULATE := Color.WHITE
 const BUTTON_HOVER_DURATION := 0.12
 const BUTTON_PRESS_DURATION := 0.06
 const BUTTON_RELEASE_DURATION := 0.10
@@ -181,7 +181,7 @@ func _prepare_button_animation(button: Button) -> void:
 	if button == null:
 		return
 
-	button.pivot_offset = button.size * 0.5
+	button.self_modulate = BUTTON_NORMAL_MODULATE
 	_button_hover_states[button.get_instance_id()] = false
 	var entered_callable := Callable(self, "_on_button_hover_entered").bind(button)
 	var exited_callable := Callable(self, "_on_button_hover_exited").bind(button)
@@ -200,23 +200,23 @@ func _on_button_hover_entered(button: Button) -> void:
 	_button_hover_states[button.get_instance_id()] = true
 	if button.disabled:
 		return
-	_tween_button(button, BUTTON_HOVER_SCALE, BUTTON_HOVER_DURATION)
+	_tween_button_feedback(button, BUTTON_HOVER_MODULATE, BUTTON_HOVER_DURATION)
 
 func _on_button_hover_exited(button: Button) -> void:
 	_button_hover_states[button.get_instance_id()] = false
-	_tween_button(button, BUTTON_NORMAL_SCALE, BUTTON_HOVER_DURATION)
+	_tween_button_feedback(button, BUTTON_NORMAL_MODULATE, BUTTON_HOVER_DURATION)
 
 func _on_button_down(button: Button) -> void:
 	if button.disabled:
 		return
-	_tween_button(button, BUTTON_PRESSED_SCALE, BUTTON_PRESS_DURATION)
+	_tween_button_feedback(button, BUTTON_PRESSED_MODULATE, BUTTON_PRESS_DURATION)
 
 func _on_button_up(button: Button) -> void:
 	var is_hovered := bool(_button_hover_states.get(button.get_instance_id(), false))
-	var target_scale := BUTTON_HOVER_SCALE if is_hovered and not button.disabled else BUTTON_NORMAL_SCALE
-	_tween_button(button, target_scale, BUTTON_RELEASE_DURATION)
+	var target_modulate := BUTTON_HOVER_MODULATE if is_hovered and not button.disabled else BUTTON_NORMAL_MODULATE
+	_tween_button_feedback(button, target_modulate, BUTTON_RELEASE_DURATION)
 
-func _tween_button(button: Button, target_scale: Vector2, duration: float) -> void:
+func _tween_button_feedback(button: Button, target_modulate: Color, duration: float) -> void:
 	if button == null:
 		return
 
@@ -228,7 +228,7 @@ func _tween_button(button: Button, target_scale: Vector2, duration: float) -> vo
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_SINE)
 	tween.set_ease(Tween.EASE_OUT)
-	tween.tween_property(button, "scale", target_scale, duration)
+	tween.tween_property(button, "self_modulate", target_modulate, duration)
 	_button_tweens[key] = tween
 
 func _on_settings_button_pressed() -> void:
