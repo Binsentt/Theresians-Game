@@ -1,32 +1,22 @@
 extends AnimatedSprite2D
 
-# I-drag dito ang 'Panel' (HINDI ang buong CanvasLayer)
-@export var dialogue_panel: Control
+## Reuses the one Oakleaf DialoguePanel through QuestUI. NPC greetings are real
+## dialogue, so they retain the existing DIALOGUE mode lock until the player
+## deliberately closes their one visible line.
 
-# I-drag dito ang 'DialogueText'
-@export var dialogue_label: Label
-
-# Default greeting in English
+@export var quest_ui_path: NodePath = NodePath("../CanvasLayer/Panel")
 @export_multiline var greeting_message: String = "Hello traveler! Welcome to our town."
 
-var _dialogue_active: bool = false
-
-
-func _ready():
-	# Isiguradong tago ang Panel sa simula para kita lang ang Quest text
-	if dialogue_panel:
-		dialogue_panel.hide()
+var _dialogue_active := false
 
 
 func can_interact() -> bool:
-	if _dialogue_active:
-		return false
-	if GameState.get_mode() != GameState.GameMode.EXPLORATION:
+	if _dialogue_active or GameState.get_mode() != GameState.GameMode.EXPLORATION:
 		return false
 	var input_manager := get_node_or_null("/root/InputManager")
 	if input_manager != null and input_manager.has_method("is_input_locked") and bool(input_manager.call("is_input_locked")):
 		return false
-	return true
+	return _get_quest_ui() != null
 
 
 func interact() -> bool:
@@ -36,31 +26,36 @@ func interact() -> bool:
 	return true
 
 
-func show_dialogue_timed():
+func show_dialogue_timed() -> void:
+	# Retain the established entry point for existing scene wiring while routing
+	# its content through the one shared, deliberate-input DialoguePanel.
 	if _dialogue_active:
 		return
 	_dialogue_active = true
 	GameState.push_mode(GameState.GameMode.DIALOGUE)
-	if dialogue_label:
-		dialogue_label.text = greeting_message
-
-	if dialogue_panel:
-		dialogue_panel.show() # Ito lang ang lalabas, mananatili ang Quest text
-
-		# Wait for 5 seconds
-		await get_tree().create_timer(3.0).timeout
-
-		# Pagkatapos ng 5 seconds, itatago lang ang dialogue panel
-		hide_dialogue()
-	else:
-		await get_tree().create_timer(0.2).timeout
-		hide_dialogue()
+	_run_dialogue()
 
 
-func hide_dialogue():
-	# Gagamit tayo ng 'if' check para iwas error kung sakaling naka-hide na
-	if dialogue_panel and dialogue_panel.visible:
-		dialogue_panel.hide()
+func _run_dialogue() -> void:
+	var quest_ui := _get_quest_ui()
+	if quest_ui == null or not quest_ui.has_method("begin_dialogue"):
+		_finish_dialogue()
+		return
+	await quest_ui.begin_dialogue([greeting_message])
+	_finish_dialogue()
+
+
+func _finish_dialogue() -> void:
 	if GameState.get_mode() == GameState.GameMode.DIALOGUE:
 		GameState.pop_mode()
 	_dialogue_active = false
+
+
+func hide_dialogue() -> void:
+	_finish_dialogue()
+
+
+func _get_quest_ui() -> Node:
+	if quest_ui_path.is_empty():
+		return null
+	return get_node_or_null(quest_ui_path)

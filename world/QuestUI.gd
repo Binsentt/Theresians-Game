@@ -1,75 +1,75 @@
 extends Panel
 
-@onready var quest_text = get_node_or_null("QuestText")
-@onready var feedback_text = get_node_or_null("FeedbackText")
-@onready var dialogue_text = get_node_or_null("DialogueText")
-@onready var npc_image = get_node_or_null("NPCImage")
+## QuestUI keeps the existing quest/battle continuation, while the one Oakleaf
+## DialoguePanel owns deliberate, one-line-at-a-time dialogue presentation.
 
-func _ready():
+signal dialogue_closed
+
+@onready var quest_text: Label = get_node_or_null("QuestText") as Label
+@onready var dialogue_panel: Control = get_node_or_null("../DialoguePanel") as Control
+@onready var dialogue_label: Label = get_node_or_null("../DialoguePanel/DialogueLabel") as Label
+
+var _dialogue_lines: Array[String] = []
+var _dialogue_line_index := 0
+var _dialogue_active := false
+var _await_release_after_open := false
+var _final_close_consumed := false
+
+
+func _ready() -> void:
 	update_task_ui()
 
 
-func update_task_ui():
+func _process(_delta: float) -> void:
+	if not _dialogue_active:
+		return
+	if _await_release_after_open:
+		if not _is_interact_held():
+			_await_release_after_open = false
+		return
+	if _consume_interact_press():
+		_advance_dialogue_once()
+
+
+func update_task_ui() -> void:
 	if GameState.current_task_index >= GameState.tasks.size():
 		visible = false
 		return
 
-	if quest_text:
-		# GameHUD now owns the single persistent Current Quest presentation.
-		# Keep this legacy label hidden while retaining the Panel for its existing
-		# dialogue and completion feedback content.
+	# GameHUD owns the single persistent Current Quest presentation. Keep this
+	# legacy Panel only as the QuestUI bridge used by existing interaction scripts.
+	if quest_text != null:
 		quest_text.visible = false
-
-	if npc_image:
-		npc_image.visible = false
-
-	if feedback_text:
-		feedback_text.visible = false
-
-	if dialogue_text:
-		dialogue_text.visible = false
-
 	visible = true
 
 
-func show_completed_with_dialogue():
+func begin_dialogue(lines: Array) -> void:
+	if _dialogue_active:
+		return
+	_dialogue_lines = _normalize_dialogue_lines(lines)
+	if _dialogue_lines.is_empty():
+		call_deferred("_close_dialogue")
+		await dialogue_closed
+		return
+
+	_dialogue_active = true
+	_dialogue_line_index = 0
+	_final_close_consumed = false
+	# The press that opened the real interaction must not consume line one.
+	_await_release_after_open = true
+	_render_dialogue_line()
+	await dialogue_closed
+
+
+func show_completed_with_dialogue() -> void:
 	if GameState.current_task_index >= GameState.tasks.size():
 		return
 
-	var current_task_data = GameState.tasks[GameState.current_task_index]
-
-
-	if quest_text:
-		quest_text.visible = false
-
-
-	if dialogue_text:
-		dialogue_text.visible = true
-
-
-	var sprite_path = current_task_data.get("NPC", "res://Images/NPC.jpg")
-
-	if npc_image:
-		npc_image.texture = load(sprite_path)
-		npc_image.visible = true
-
-
-	var lines = current_task_data.get("dialogue", [])
-
-	for line in lines:
-		if dialogue_text:
-			dialogue_text.text = line
-
-		await get_tree().create_timer(4.0).timeout
-
+	var current_task_data: Dictionary = GameState.tasks[GameState.current_task_index]
+	await begin_dialogue(current_task_data.get("dialogue", []))
 
 	if current_task_data.has("next_scene"):
-
-		await get_tree().create_timer(1.0).timeout
 		if not GameState.playtime_authorized:
-			if feedback_text:
-				feedback_text.text = "Daily playtime limit reached."
-				feedback_text.visible = true
 			return
 		var player := get_tree().get_first_node_in_group("player_character") as Node2D
 		var source_position := player.global_position if player != null else GameState.player_position
@@ -84,61 +84,32 @@ func show_completed_with_dialogue():
 		})
 
 		var battle_scene = load(current_task_data["next_scene"]).instantiate()
-
-		# Add battle as overlay
 		get_tree().current_scene.add_child(battle_scene)
 		GameState.begin_battle(battle_scene)
-
-
 		visible = false
 
-
 		var battle_won: bool = await battle_scene.battle_finished
-
-
 		battle_scene.queue_free()
-
-
 		visible = true
 		if not battle_won:
 			var loss_result: Dictionary = GameState.record_encounter_loss()
 			if bool(loss_result.get("game_over", false)):
 				return
-			if dialogue_text:
-				dialogue_text.text = "Try again. You have %d battle retries remaining." % (GameState.MAX_ENCOUNTER_LOSSES - int(loss_result.get("retry_count", 0)))
-				dialogue_text.visible = true
-			await get_tree().create_timer(2.0).timeout
-			if dialogue_text:
-				dialogue_text.visible = false
 			update_task_ui()
 			return
 		GameState.record_encounter_victory()
 
-	# Hide dialogue
-	if npc_image:
-		npc_image.visible = false
-
-	if dialogue_text:
-		dialogue_text.visible = false
-
-	# Show completed message
-	if feedback_text:
-		feedback_text.text = "Task %d Completed!" % (GameState.current_task_index + 1)
-		feedback_text.visible = true
-
-	if current_task_data.has("next_scene"):
-		GameState.advance_task_and_save({
-			"type": "task_completed",
-			"key": "quest:main:task:%d:complete" % GameState.current_task_index,
-			"title": "Task %d Complete" % (GameState.current_task_index + 1),
-			"description": "Battle completed",
-			"source": "quest_ui",
-			"reason": "battle_victory",
-		})
-	else:
-		GameState.complete_task()
-
-	await get_tree().create_timer(3.0).timeout
+	var completed_task_index := GameState.current_task_index
+	var completion_type := "task_completed" if current_task_data.has("next_scene") else "quest_completed"
+	var completion_description := "Battle completed" if current_task_data.has("next_scene") else "Teacher conversation completed"
+	GameState.advance_task_and_save({
+		"type": completion_type,
+		"key": "quest:main:task:%d:complete" % completed_task_index,
+		"title": "Task %d Complete" % (completed_task_index + 1),
+		"description": completion_description,
+		"source": "quest_ui",
+		"reason": "battle_victory" if current_task_data.has("next_scene") else "teacher_task_completed",
+	})
 
 	if GameState.current_task_index < GameState.tasks.size():
 		update_task_ui()
@@ -146,25 +117,67 @@ func show_completed_with_dialogue():
 		queue_free()
 
 
-func play_teacher_dialogue():
-	# Keep the existing dialogue, battle, cutscene/animation, and completion
-	# behavior in one implementation; TeacherTaskInteraction only awaits it.
-	var previous_task_index: int = GameState.current_task_index
+func play_teacher_dialogue() -> void:
+	# TeacherTaskInteraction continues to own the DIALOGUE mode frame and its
+	# one-shot guard. This method only runs the existing quest continuation.
 	await show_completed_with_dialogue()
-	if GameState.current_task_index > previous_task_index:
-		# The legacy completion routine advances the in-memory index but does not
-		# persist or broadcast it. The Teacher adapter owns that narrow bridge so
-		# existing dialogue and battle content remains unchanged.
-		GameState.save_game()
-		GameState.task_state_changed.emit(
-			previous_task_index,
-			GameState.current_task_index,
-			{
-				"type": "quest_completed",
-				"key": "quest:main:task:%d:complete" % previous_task_index,
-				"title": "Task %d Complete" % (previous_task_index + 1),
-				"description": "Teacher conversation completed",
-				"source": "teacher_interaction",
-				"reason": "teacher_task_completed",
-			}
-		)
+
+
+func is_dialogue_active() -> bool:
+	return _dialogue_active
+
+
+func get_dialogue_line_index() -> int:
+	return _dialogue_line_index
+
+
+func _advance_dialogue_once() -> void:
+	if not _dialogue_active:
+		return
+	if _dialogue_line_index + 1 < _dialogue_lines.size():
+		_dialogue_line_index += 1
+		_await_release_after_open = true
+		_render_dialogue_line()
+		return
+	if _final_close_consumed:
+		return
+	_final_close_consumed = true
+	_close_dialogue()
+
+
+func _render_dialogue_line() -> void:
+	if dialogue_label != null:
+		dialogue_label.text = _dialogue_lines[_dialogue_line_index]
+	if dialogue_panel != null:
+		dialogue_panel.visible = true
+
+
+func _close_dialogue() -> void:
+	if not _dialogue_active:
+		return
+	_dialogue_active = false
+	_await_release_after_open = false
+	if dialogue_panel != null:
+		dialogue_panel.visible = false
+	dialogue_closed.emit()
+
+
+func _normalize_dialogue_lines(lines: Array) -> Array[String]:
+	var normalized: Array[String] = []
+	for line_value in lines:
+		var line := String(line_value).strip_edges()
+		if not line.is_empty():
+			normalized.append(line)
+	return normalized
+
+
+func _is_interact_held() -> bool:
+	if InputManager != null and InputManager.has_method("is_interact_pressed") and InputManager.is_interact_pressed():
+		return true
+	return InputMap.has_action(&"interact") and Input.is_action_pressed(&"interact")
+
+
+func _consume_interact_press() -> bool:
+	if InputManager != null and InputManager.has_method("consume_interact_just_pressed") and InputManager.consume_interact_just_pressed():
+		return true
+	return InputMap.has_action(&"interact") and Input.is_action_just_pressed(&"interact")

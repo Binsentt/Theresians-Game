@@ -111,10 +111,12 @@ func _run() -> void:
 	_assert_equal(teacher_house_source.contains("[connection signal=\"body_entered\" from=\"Teacher/Area2D2\""), false, "Teacher House has no duplicate automatic body-entered path")
 	var quest_ui_source := _read_fixture("res://world/QuestUI.gd")
 	_assert_equal(quest_ui_source.contains("func play_teacher_dialogue()"), true, "QuestUI exposes the Teacher dialogue wrapper")
-	_assert_source_order(quest_ui_source, "await show_completed_with_dialogue()", "GameState.save_game()", "Teacher completion saves after the existing dialogue routine advances the task")
-	_assert_source_order(quest_ui_source, "GameState.save_game()", "GameState.task_state_changed.emit", "Teacher completion emits its task signal after saving")
-	_assert_equal(quest_ui_source.contains("\"type\": \"quest_completed\""), true, "Teacher completion emits a notification-compatible event type")
+	_assert_source_order(quest_ui_source, "await show_completed_with_dialogue()", "GameState.advance_task_and_save", "Teacher completion persists through the canonical task-advance path")
+	_assert_equal(quest_ui_source.contains("completion_type := \"task_completed\" if current_task_data.has(\"next_scene\") else \"quest_completed\""), true, "Teacher completion keeps its notification-compatible quest completion event type")
 	_assert_equal(quest_ui_source.contains("\"key\": \"quest:main:task:%d:complete\""), true, "Teacher completion emits a stable notification key")
+	_assert_equal(oak_source.contains("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"]"), true, "Oak Leaf contains one shared DialoguePanel")
+	_assert_equal(oak_source.contains("TeacherTriggerPortrait"), false, "Oak Leaf removes the retired top-right Teacher portrait path")
+	_assert_equal(teacher_house_source.contains("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"]"), true, "Teacher House provides the same single-scene DialoguePanel contract")
 
 	# The candidate-ranking fixtures below are test-only; production Teacher
 	# wiring is verified above and remains outside these fake targets.

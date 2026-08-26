@@ -26,7 +26,6 @@
 [ext_resource type="PackedScene" uid="uid://b0bf0rsjkiju2" path="res://Door-Navigations-Scene2Scene/go_to_city_of_knowledge.tscn" id="24_eu74i"]
 [ext_resource type="Script" uid="uid://c0jg3gqbauv5" path="res://world/Task1.gd" id="24_task"]
 [ext_resource type="Script" uid="uid://mh36i4md0xaa" path="res://world/QuestUI.gd" id="25_quest"]
-[ext_resource type="Texture2D" uid="uid://c6ge0t84n6sc2" path="res://Images/NPC.jpg" id="26_npc_image"]
 [ext_resource type="PackedScene" uid="uid://busg8pr7d82nu" path="res://NPC/Enemy/boss_bandit.tscn" id="27_0v1wo"]
 [ext_resource type="Script" path="res://world/task_progress_trigger.gd" id="28_teacher_trigger"]
 [ext_resource type="Script" path="res://scripts/interactable_area.gd" id="29_interactable"]
@@ -631,16 +630,16 @@ size = Vector2(92.30762, 138.46143)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_task_trigger"]
 size = Vector2(14, 8)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_teacher_trigger_portrait"]
-bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.92)
-content_margin_left = 5.0
-content_margin_top = 5.0
-content_margin_right = 5.0
-content_margin_bottom = 5.0
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialogue_panel"]
+bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.96)
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
@@ -882,13 +881,12 @@ z_index = 1
 y_sort_enabled = true
 position = Vector2(1080, 336)
 
-[node name="girl_npc" parent="." unique_id=244227400 node_paths=PackedStringArray("dialogue_panel", "dialogue_label") instance=ExtResource("14_p2u0e")]
+[node name="girl_npc" parent="." unique_id=244227400 node_paths=PackedStringArray("quest_ui_path") instance=ExtResource("14_p2u0e")]
 z_index = 1
 position = Vector2(1174, 176)
 animation = &"walk_down"
 script = ExtResource("22_0r4je")
-dialogue_panel = NodePath("../CanvasLayer/Panel/DialogueText")
-dialogue_label = NodePath("../CanvasLayer/Panel/DialogueText")
+quest_ui_path = NodePath("../CanvasLayer/Panel")
 
 [node name="Area2D" type="Area2D" parent="girl_npc" unique_id=1965730284]
 
@@ -903,13 +901,12 @@ interaction_method = &"interact"
 availability_method = &"can_interact"
 interaction_priority = 40
 
-[node name="NPC" parent="." unique_id=736401141 node_paths=PackedStringArray("dialogue_panel", "dialogue_label") instance=ExtResource("17_tibnn")]
+[node name="NPC" parent="." unique_id=736401141 node_paths=PackedStringArray("quest_ui_path") instance=ExtResource("17_tibnn")]
 z_index = 1
 position = Vector2(906, 276)
 scale = Vector2(0.1, 0.1)
 script = ExtResource("22_0r4je")
-dialogue_panel = NodePath("../CanvasLayer/Panel/DialogueText")
-dialogue_label = NodePath("../CanvasLayer/Panel/DialogueText")
+quest_ui_path = NodePath("../CanvasLayer/Panel")
 
 [node name="Area2D" type="Area2D" parent="NPC" unique_id=210634579]
 
@@ -925,13 +922,12 @@ interaction_method = &"interact"
 availability_method = &"can_interact"
 interaction_priority = 35
 
-[node name="villager-female" parent="." unique_id=1540680081 node_paths=PackedStringArray("dialogue_panel", "dialogue_label") instance=ExtResource("19_1ef61")]
+[node name="villager-female" parent="." unique_id=1540680081 node_paths=PackedStringArray("quest_ui_path") instance=ExtResource("19_1ef61")]
 z_index = 1
 position = Vector2(976.99994, 468.99997)
 scale = Vector2(0.09, 0.09)
 script = ExtResource("22_0r4je")
-dialogue_panel = NodePath("../CanvasLayer/Panel/DialogueText")
-dialogue_label = NodePath("../CanvasLayer/Panel/DialogueText")
+quest_ui_path = NodePath("../CanvasLayer/Panel")
 
 [node name="Area2D" type="Area2D" parent="villager-female" unique_id=458782454]
 
@@ -953,11 +949,10 @@ limit_right = 1280
 limit_top = -16
 limit_bottom = 640
 
-[node name="NPC1" parent="." unique_id=292343504 node_paths=PackedStringArray("dialogue_panel", "dialogue_label") groups=["Player"] instance=ExtResource("18_l6lg6")]
+[node name="NPC1" parent="." unique_id=292343504 node_paths=PackedStringArray("quest_ui_path") groups=["Player"] instance=ExtResource("18_l6lg6")]
 position = Vector2(964, 173)
 script = ExtResource("22_0r4je")
-dialogue_panel = NodePath("../CanvasLayer/Panel/DialogueText")
-dialogue_label = NodePath("../CanvasLayer/Panel/DialogueText")
+quest_ui_path = NodePath("../CanvasLayer/Panel")
 
 [node name="Area2D" type="Area2D" parent="NPC1" unique_id=718996092]
 
@@ -975,7 +970,7 @@ interaction_priority = 25
 [node name="TeacherHouseTaskTrigger" type="Area2D" parent="." unique_id=314668776]
 position = Vector2(1143, 182)
 script = ExtResource("28_teacher_trigger")
-teacher_portrait_popup_path = NodePath("../CanvasLayer/TeacherTriggerPortrait")
+notification_portrait_path = "res://Images/NPC.jpg"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TeacherHouseTaskTrigger" unique_id=1002871873]
 position = Vector2(-1, -6)
@@ -986,26 +981,6 @@ position = Vector2(9, 509)
 destination_scene_path = "uid://bfj3wh4uokop8"
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=685642583]
-
-[node name="TeacherTriggerPortrait" type="PanelContainer" parent="CanvasLayer"]
-visible = false
-anchors_preset = -1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -96.0
-offset_top = 88.0
-offset_right = -12.0
-offset_bottom = 172.0
-grow_horizontal = 0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_teacher_trigger_portrait")
-
-[node name="NPCImage" type="TextureRect" parent="CanvasLayer/TeacherTriggerPortrait"]
-custom_minimum_size = Vector2(72, 72)
-layout_mode = 2
-texture = ExtResource("26_npc_image")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="Panel" type="Panel" parent="CanvasLayer" unique_id=875106935 groups=["quest_ui"]]
 self_modulate = Color(1, 1, 1, 0)
@@ -1054,35 +1029,29 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="DialogueText" type="Label" parent="CanvasLayer/Panel" unique_id=1536504233]
+[node name="DialoguePanel" type="PanelContainer" parent="CanvasLayer"]
 visible = false
-layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.282
-anchor_top = 3.4810002
-anchor_right = 3.7020001
-anchor_bottom = 4.9350004
-offset_left = 0.01599884
-offset_top = -0.037017822
-offset_right = -0.024047852
-offset_bottom = 0.0049743652
-theme_override_font_sizes/font_size = 24
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -44.0
+offset_right = 240.0
+offset_bottom = 44.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialogue_panel")
+
+[node name="DialogueLabel" type="Label" parent="CanvasLayer/DialoguePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
-
-[node name="NPCImage" type="TextureRect" parent="CanvasLayer/Panel" unique_id=846274404]
-visible = false
-layout_mode = 1
-anchors_preset = -1
-anchor_right = 0.116000004
-anchor_bottom = 0.88900006
-offset_top = 15.0
-offset_right = 67.796
-offset_bottom = -0.013000488
-texture = ExtResource("26_npc_image")
-expand_mode = 1
-stretch_mode = 5
 
 [node name="Bandits" parent="." unique_id=8116170 instance=ExtResource("23_p077x")]
 position = Vector2(295, 300.99997)

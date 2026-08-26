@@ -172,12 +172,21 @@ func _notify_progress(event: Dictionary) -> void:
 	var event_type := String(event.get("type", ""))
 	var title := String(event.get("title", "Quest Update"))
 	var description := String(event.get("description", ""))
-	if event_type == "quest_completed":
-		notification_manager.call("show_quest_completed", title, description)
+	var event_key := String(event.get("key", ""))
+	if event_type == "task_trigger":
+		notification_manager.call(
+			"show_task_trigger",
+			title,
+			description,
+			event_key,
+			String(event.get("portrait_path", ""))
+		)
+	elif event_type == "quest_completed":
+		notification_manager.call("show_quest_completed", title, description, event_key)
 	elif event_type == "task_completed":
-		notification_manager.call("show_task_completed", title, description)
+		notification_manager.call("show_task_completed", title, description, event_key)
 	else:
-		notification_manager.call("show_quest_updated", title, description)
+		notification_manager.call("show_quest_updated", title, description, event_key)
 
 
 func advance_task_and_save(event: Dictionary) -> Dictionary:

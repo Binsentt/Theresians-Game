@@ -664,6 +664,22 @@ sources/0 = SubResource("TileSetAtlasSource_5bkik")
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vlnfo"]
 size = Vector2(76.92285, 107.692505)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialogue_panel"]
+bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.96)
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94902, 0.823529, 0.443137, 1)
+
 [node name="Node2D" type="Node2D" unique_id=1017616658]
 script = ExtResource("18_gameplay")
 
@@ -826,18 +842,26 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="DialogueText" type="Label" parent="CanvasLayer/Panel" unique_id=929315001]
-layout_mode = 1
+[node name="DialoguePanel" type="PanelContainer" parent="CanvasLayer"]
+visible = false
 anchors_preset = -1
-anchor_left = 0.081
-anchor_top = 0.128
-anchor_right = 0.95300007
-anchor_bottom = 0.88000005
-offset_left = 62.728
-offset_top = 258.144
-offset_right = 857.66394
-offset_bottom = 312.24
-theme_override_font_sizes/font_size = 24
+anchor_left = 0.5
+anchor_top = 0.62
+anchor_right = 0.5
+anchor_bottom = 0.62
+offset_left = -210.0
+offset_top = -70.0
+offset_right = 210.0
+offset_bottom = 70.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialogue_panel")
+
+[node name="DialogueLabel" type="Label" parent="CanvasLayer/DialoguePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
