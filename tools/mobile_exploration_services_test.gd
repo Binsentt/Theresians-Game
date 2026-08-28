@@ -1,4 +1,4 @@
-extends SceneTree
+extends Node
 
 const GameStateScript = preload("res://scripts/game_state.gd")
 const InteractableAreaScript = preload("res://scripts/interactable_area.gd")
@@ -8,6 +8,12 @@ const CANONICAL_PLAYER_HOUSE_PATH := "res://interiors/player_house.tscn"
 const LEGACY_PLAYER_HOUSE_PATH := "res://interiors/players_house.tscn"
 
 var _failures := 0
+
+# SceneTree scripts expose this signal directly. Keep the existing assertions
+# unchanged while running the test from a Node scene with project autoloads.
+var process_frame: Signal:
+	get:
+		return get_tree().process_frame
 
 
 class FakeInteractable extends Node2D:
@@ -47,7 +53,7 @@ class FakeInteractionTarget extends Node2D:
 		return true
 
 
-func _initialize() -> void:
+func _ready() -> void:
 	_run.call_deferred()
 
 
@@ -84,7 +90,10 @@ func _run() -> void:
 	_assert_equal(teacher_source.contains("return false"), true, "Teacher adapter reports duplicate interaction as rejected")
 	_assert_equal(teacher_source.contains("func _exit_tree()"), true, "Teacher adapter cleans up when its scene is freed")
 	_assert_source_order(teacher_source, "_active = true", "play_teacher_dialogue", "Teacher adapter guards before delegating dialogue")
-	_assert_source_order(teacher_source, "GameState.push_mode(GameState.GameMode.DIALOGUE)", "_finish_interaction", "Teacher adapter releases dialogue mode after completion")
+	var teacher_interact_block := _function_block(teacher_source, "func interact")
+	var teacher_run_block := _function_block(teacher_source, "func _run_teacher_dialogue")
+	_assert_source_order(teacher_interact_block, "GameState.push_mode(GameState.GameMode.DIALOGUE)", "_run_teacher_dialogue()", "Teacher adapter enters dialogue before starting its continuation")
+	_assert_equal(teacher_run_block.contains("await quest_ui.play_teacher_dialogue()\n\t_finish_interaction()"), true, "Teacher adapter releases dialogue mode after completion")
 
 	var oak_source := _read_fixture("res://scenes/oak_leaf_village.tscn")
 	_assert_equal(oak_source.contains("res://world/task_progress_trigger.gd"), true, "Oak Leaf uses TaskProgressTrigger")
@@ -111,7 +120,8 @@ func _run() -> void:
 	_assert_equal(teacher_house_source.contains("[connection signal=\"body_entered\" from=\"Teacher/Area2D2\""), false, "Teacher House has no duplicate automatic body-entered path")
 	var quest_ui_source := _read_fixture("res://world/QuestUI.gd")
 	_assert_equal(quest_ui_source.contains("func play_teacher_dialogue()"), true, "QuestUI exposes the Teacher dialogue wrapper")
-	_assert_source_order(quest_ui_source, "await show_completed_with_dialogue()", "GameState.advance_task_and_save", "Teacher completion persists through the canonical task-advance path")
+	var quest_completion_block := _function_block(quest_ui_source, "func show_completed_with_dialogue")
+	_assert_source_order(quest_completion_block, "await begin_dialogue", "GameState.advance_task_and_save", "Teacher completion persists through the canonical task-advance path")
 	_assert_equal(quest_ui_source.contains("completion_type := \"task_completed\" if current_task_data.has(\"next_scene\") else \"quest_completed\""), true, "Teacher completion keeps its notification-compatible quest completion event type")
 	_assert_equal(quest_ui_source.contains("\"key\": \"quest:main:task:%d:complete\""), true, "Teacher completion emits a stable notification key")
 	_assert_equal(oak_source.contains("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"]"), true, "Oak Leaf contains one shared DialoguePanel")
@@ -123,17 +133,17 @@ func _run() -> void:
 	var test_player := Node2D.new()
 	test_player.add_to_group("player_character")
 	test_player.global_position = Vector2.ZERO
-	get_root().add_child(test_player)
+	get_tree().root.add_child(test_player)
 	var interaction_manager = InteractionManagerScript.new()
-	get_root().add_child(interaction_manager)
+	get_tree().root.add_child(interaction_manager)
 	interaction_manager.set_process(false)
 	var priority_near := FakeInteractable.new()
 	priority_near.global_position = Vector2(10, 0)
 	var priority_far := FakeInteractable.new()
 	priority_far.global_position = Vector2(100, 0)
 	priority_far.interaction_priority = 10
-	get_root().add_child(priority_near)
-	get_root().add_child(priority_far)
+	get_tree().root.add_child(priority_near)
+	get_tree().root.add_child(priority_far)
 	interaction_manager.register(priority_near)
 	interaction_manager.register(priority_far)
 	await process_frame
@@ -196,7 +206,7 @@ func _run() -> void:
 	interaction_area.interaction_target_path = NodePath("../Target")
 	interaction_host.add_child(interaction_target)
 	interaction_host.add_child(interaction_area)
-	get_root().add_child(interaction_host)
+	get_tree().root.add_child(interaction_host)
 	interaction_area._on_body_entered(test_player)
 	_assert_equal(interaction_area.can_interact(), true, "a fake target with its configured availability method is interactable")
 	interaction_area.availability_method = &"missing_availability"
@@ -248,7 +258,7 @@ func _run() -> void:
 	var original_mode = GameState.get_mode()
 	GameState.set_mode(GameState.GameMode.EXPLORATION)
 	var mobile_controls := MOBILE_CONTROLS_SCENE.instantiate() as CanvasLayer
-	get_root().add_child(mobile_controls)
+	get_tree().root.add_child(mobile_controls)
 	await process_frame
 	mobile_controls.configure(true)
 	await process_frame
@@ -293,7 +303,7 @@ func _run() -> void:
 	_assert_equal(game_state.get_mode(), GameStateScript.GameMode.EXPLORATION, "mode is EXPLORATION after second pop")
 
 	var battle_enemy := Node.new()
-	get_root().add_child(battle_enemy)
+	get_tree().root.add_child(battle_enemy)
 	game_state.begin_battle(battle_enemy)
 	_assert_equal(game_state.get_mode(), GameStateScript.GameMode.BATTLE, "begin_battle enters BATTLE mode")
 
@@ -319,7 +329,7 @@ func _run() -> void:
 	_assert_equal(loaded_game_state.get_mode(), GameStateScript.GameMode.EXPLORATION, "restoring a normal save enters EXPLORATION mode")
 
 	var loaded_battle_enemy := Node.new()
-	get_root().add_child(loaded_battle_enemy)
+	get_tree().root.add_child(loaded_battle_enemy)
 	loaded_game_state.begin_battle(loaded_battle_enemy)
 	_assert_equal(loaded_game_state.get_mode(), GameStateScript.GameMode.BATTLE, "restored games enter BATTLE mode")
 	loaded_game_state.end_battle()
@@ -357,7 +367,8 @@ func _run() -> void:
 	_assert_equal(game_state.current_scene_path, "res://scenes/2nd Village/Pinehill Village.tscn", "Pinehill remains canonical")
 	_assert_equal(game_state.get_scene_fallback_spawn(game_state.current_scene_path), Vector2(176, 368), "Pinehill fallback remains unchanged")
 
-	var legacy_save_path := "user://mobile_exploration_legacy_scene_test.json"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://saves"))
+	var legacy_save_path := "user://saves/mobile_exploration_legacy_scene_test.json"
 	var legacy_save_file := FileAccess.open(legacy_save_path, FileAccess.WRITE)
 	if legacy_save_file == null:
 		_failures += 1
@@ -365,6 +376,8 @@ func _run() -> void:
 	else:
 		legacy_save_file.store_string(JSON.stringify({
 			"save_version": 5,
+			"student_id": "123456",
+			"parent_id": "654321",
 			"current_quest": "",
 			"scene_path": LEGACY_PLAYER_HOUSE_PATH
 		}))
@@ -372,8 +385,11 @@ func _run() -> void:
 		var loaded_save := game_state.load_save(legacy_save_path)
 		_assert_equal(loaded_save.get("scene_path", ""), CANONICAL_PLAYER_HOUSE_PATH, "load_save migrates the legacy Player House scene path")
 		_assert_equal(game_state.current_scene_path, CANONICAL_PLAYER_HOUSE_PATH, "load_save applies the canonical Player House scene path")
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(legacy_save_path))
 
-	quit(1 if _failures > 0 else 0)
+	loaded_game_state.free()
+	game_state.free()
+	get_tree().quit(1 if _failures > 0 else 0)
 
 
 func _assert_equal(actual: Variant, expected: Variant, message: String) -> void:
@@ -386,6 +402,14 @@ func _assert_source_order(source: String, first_token: String, second_token: Str
 	var first_index := source.find(first_token)
 	var second_index := source.find(second_token)
 	_assert_equal(first_index >= 0 and second_index > first_index, true, message)
+
+
+func _function_block(source: String, signature: String) -> String:
+	var start := source.find(signature)
+	if start < 0:
+		return ""
+	var next_function := source.find("\nfunc ", start + signature.length())
+	return source.substr(start) if next_function < 0 else source.substr(start, next_function - start)
 
 
 func _read_fixture(path: String) -> String:

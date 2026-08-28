@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/mobile_exploration_services_test.gd" id="1_test"]
+
+[node name="MobileExplorationServicesTest" type="Node"]
+script = ExtResource("1_test")

@@ -184,7 +184,9 @@ func _refresh_active_interactable() -> void:
 
 
 func _is_candidate_registration_valid(component: Variant) -> bool:
-	if not (component is Node) or not is_instance_valid(component) or not component.is_inside_tree():
+	# A queued_free interactable can remain as a Dictionary key until this
+	# refresh removes it. Validate the instance before using the `is` operator.
+	if not is_instance_valid(component) or not (component is Node) or not component.is_inside_tree():
 		return false
 	if not component.has_method("can_interact") \
 				or not component.has_method("get_interaction_position") \
@@ -200,7 +202,7 @@ func _can_candidate_interact(component: Node) -> bool:
 
 
 func _is_component_in_current_scene(component: Variant, current_scene: Node) -> bool:
-	if not (component is Node) or not is_instance_valid(component) or not component.is_inside_tree():
+	if not is_instance_valid(component) or not (component is Node) or not component.is_inside_tree():
 		return false
 	if current_scene == null:
 		return true
