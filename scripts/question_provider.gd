@@ -2,12 +2,14 @@
 
 signal questions_loaded(count: int)
 signal question_requested(question: Dictionary)
+signal question_pool_exhausted(scope_descriptor: Dictionary)
 
 const DEFAULT_SOURCE_PATH := "res://Data/questions.json"
 
 var _source_path: String = DEFAULT_SOURCE_PATH
 var _questions: Array[Dictionary] = []
-var _history: Array[String] = []
+var _history_by_scope: Dictionary = {}
+var _fallback_history_by_filter: Dictionary = {}
 var _last_requested_id: String = ""
 
 
@@ -36,7 +38,8 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 	_source_path = resolved_path
 
 	_questions.clear()
-	_history.clear()
+	_history_by_scope.clear()
+	_fallback_history_by_filter.clear()
 	_last_requested_id = ""
 	# Prefer API-backed questions when HttpApi is available; fall back to local JSON file
 	var http := get_node_or_null("/root/HttpApi")
@@ -115,29 +118,21 @@ func get_question(filters: Dictionary = {}) -> Dictionary:
 	if candidates.is_empty():
 		return {}
 
-	candidates.shuffle()
-	for candidate in candidates:
-			var id := str(candidate.get("id", ""))
-			if id.is_empty():
-				continue
-			if _history.has(id) and _history.size() >= candidates.size():
-				continue
-			_history.append(id)
-			if _history.size() > 32:
-				_history.remove_at(0)
-			_last_requested_id = id
-			var question_copy := _clone_question(candidate)
-			question_requested.emit(question_copy)
-			return question_copy
+	var resolved_scope := _resolve_question_scope(candidates[0])
+	if not resolved_scope.is_empty():
+		var scoped_candidates: Array[Dictionary] = []
+		var scope_key := _scope_key(resolved_scope)
+		for candidate in candidates:
+			if _scope_key(_resolve_question_scope(candidate)) == scope_key:
+				scoped_candidates.append(candidate)
+		return _select_from_scope(scoped_candidates, resolved_scope)
 
-	var fallback := _clone_question(candidates[0])
-	_history.append(str(fallback.get("id", "")))
-	_last_requested_id = str(fallback.get("id", ""))
-	return fallback
+	return _select_from_fallback(candidates, filters)
 
 
 func reset_history() -> void:
-	_history.clear()
+	_history_by_scope.clear()
+	_fallback_history_by_filter.clear()
 	_last_requested_id = ""
 
 
@@ -146,25 +141,169 @@ func _filter_questions(filters: Dictionary) -> Array[Dictionary]:
 	for question in _questions:
 		if not question is Dictionary:
 			continue
+		if not _is_selectable_question(question):
+			continue
 		var matches := true
 		if filters.has("grade"):
-			var grade_value := str(filters.get("grade", ""))
-			var question_grade := str(question.get("grade", ""))
+			var grade_value := str(filters.get("grade", "")).strip_edges()
+			var question_grade := _question_grade(question)
 			if not grade_value.is_empty() and question_grade != grade_value:
 				matches = false
 		if matches and filters.has("topic"):
-			var topic_value := str(filters.get("topic", ""))
-			var question_topic := str(question.get("topic", ""))
+			var topic_value := str(filters.get("topic", "")).strip_edges()
+			var question_topic := _question_topic(question)
 			if not topic_value.is_empty() and question_topic != topic_value:
 				matches = false
 		if matches and filters.has("difficulty"):
-			var difficulty_value := str(filters.get("difficulty", ""))
-			var question_difficulty := str(question.get("difficulty", ""))
-			if not difficulty_value.is_empty() and question_difficulty != difficulty_value:
+			var requested_difficulty := str(filters.get("difficulty", "")).strip_edges()
+			var difficulty_value := _canonical_difficulty(requested_difficulty)
+			var question_difficulty := _canonical_difficulty(question.get("difficulty", ""))
+			if not requested_difficulty.is_empty() and (difficulty_value.is_empty() or question_difficulty != difficulty_value):
+				matches = false
+		if matches and (filters.has("question_set_id") or filters.has("learning_file_id")):
+			var requested_question_set_id := _positive_question_set_id(filters.get("question_set_id", filters.get("learning_file_id", null)))
+			var candidate_question_set_id := _positive_question_set_id(question.get("question_set_id", question.get("learning_file_id", null)))
+			if requested_question_set_id <= 0 or candidate_question_set_id != requested_question_set_id:
 				matches = false
 		if matches:
 			candidates.append(question)
 	return candidates
+
+
+func _select_from_scope(candidates: Array[Dictionary], scope_descriptor: Dictionary) -> Dictionary:
+	var unique_candidates := _unique_candidates(candidates)
+	if unique_candidates.is_empty():
+		return {}
+	var scope_key := _scope_key(scope_descriptor)
+	var history: Array = Array(_history_by_scope.get(scope_key, []))
+	var available := _unused_candidates(unique_candidates, history)
+	if available.is_empty():
+		question_pool_exhausted.emit(scope_descriptor.duplicate(true))
+		history.clear()
+		available = unique_candidates.duplicate()
+	available.shuffle()
+	var selected: Dictionary = available[0]
+	var selected_id := str(selected.get("id", ""))
+	history.append(selected_id)
+	_history_by_scope[scope_key] = history
+	return _emit_selected_question(selected)
+
+
+func _select_from_fallback(candidates: Array[Dictionary], filters: Dictionary) -> Dictionary:
+	var unique_candidates := _unique_candidates(candidates)
+	if unique_candidates.is_empty():
+		return {}
+	var filter_key := JSON.stringify(filters)
+	var history: Array = Array(_fallback_history_by_filter.get(filter_key, []))
+	var available := _unused_candidates(unique_candidates, history)
+	if available.is_empty():
+		history.clear()
+		available = unique_candidates.duplicate()
+	available.shuffle()
+	var selected: Dictionary = available[0]
+	history.append(str(selected.get("id", "")))
+	_fallback_history_by_filter[filter_key] = history
+	return _emit_selected_question(selected)
+
+
+func _emit_selected_question(question: Dictionary) -> Dictionary:
+	var question_copy := _clone_question(question)
+	_last_requested_id = str(question_copy.get("id", ""))
+	question_requested.emit(question_copy)
+	return question_copy
+
+
+func _unused_candidates(candidates: Array[Dictionary], history: Array) -> Array[Dictionary]:
+	var available: Array[Dictionary] = []
+	for candidate in candidates:
+		if not history.has(str(candidate.get("id", ""))):
+			available.append(candidate)
+	return available
+
+
+func _unique_candidates(candidates: Array[Dictionary]) -> Array[Dictionary]:
+	var unique_candidates: Array[Dictionary] = []
+	var seen_ids: Dictionary = {}
+	for candidate in candidates:
+		var id := str(candidate.get("id", ""))
+		if id.is_empty() or seen_ids.has(id):
+			continue
+		seen_ids[id] = true
+		unique_candidates.append(candidate)
+	return unique_candidates
+
+
+func _is_selectable_question(question: Dictionary) -> bool:
+	var id := str(question.get("id", "")).strip_edges()
+	if id.is_empty():
+		return false
+	var choices: Variant = question.get("choices", null)
+	if not (choices is Array) or choices.size() != 4:
+		return false
+	for choice in choices:
+		if str(choice).strip_edges().is_empty():
+			return false
+	return true
+
+
+func _resolve_question_scope(question: Dictionary) -> Dictionary:
+	var question_set_id := _positive_question_set_id(question.get("question_set_id", question.get("learning_file_id", null)))
+	var grade := _question_grade(question)
+	var difficulty := _canonical_difficulty(question.get("difficulty", ""))
+	var topic := _question_topic(question)
+	if question_set_id <= 0 or grade.is_empty() or difficulty.is_empty() or topic.is_empty():
+		return {}
+	return {
+		"question_set_id": question_set_id,
+		"grade": grade,
+		"difficulty": difficulty,
+		"topic": topic,
+	}
+
+
+func _scope_key(scope_descriptor: Dictionary) -> String:
+	if scope_descriptor.is_empty():
+		return ""
+	return "%s|%s|%s|%s" % [
+		str(scope_descriptor.get("question_set_id", "")),
+		str(scope_descriptor.get("grade", "")),
+		str(scope_descriptor.get("difficulty", "")),
+		str(scope_descriptor.get("topic", "")),
+	]
+
+
+func _question_grade(question: Dictionary) -> String:
+	return str(question.get("grade", question.get("grade_level", ""))).strip_edges()
+
+
+func _question_topic(question: Dictionary) -> String:
+	return str(question.get("topic", question.get("math_topic", ""))).strip_edges()
+
+
+func _canonical_difficulty(value: Variant) -> String:
+	match str(value).strip_edges().to_lower():
+		"easy":
+			return "Easy"
+		"normal", "medium":
+			return "Medium"
+		"difficult", "hard":
+			return "Hard"
+		_:
+			return ""
+
+
+func _positive_question_set_id(value: Variant) -> int:
+	if value is int:
+		return value if value > 0 else 0
+	if value is float:
+		var normalized := int(value)
+		return normalized if value > 0.0 and value == float(normalized) else 0
+	if value is String:
+		var text: String = value.strip_edges()
+		if text.is_valid_int():
+			var parsed: int = text.to_int()
+			return parsed if parsed > 0 else 0
+	return 0
 
 
 func _clone_question(question: Dictionary) -> Dictionary:
