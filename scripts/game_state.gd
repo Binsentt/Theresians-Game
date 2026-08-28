@@ -11,6 +11,7 @@ signal encounter_lifecycle_changed(context: Dictionary)
 signal encounter_game_over(context: Dictionary)
 signal mode_changed(previous_mode: GameMode, current_mode: GameMode)
 signal task_state_changed(previous_index: int, current_index: int, event: Dictionary)
+signal canonical_activity_boundary(event: Dictionary)
 signal progression_session_reset(source: String)
 signal time_limit_reached
 signal playtime_warning(remaining_minutes: int)
@@ -80,16 +81,31 @@ var total_play_time: int = 0
 var difficulty_level: String = "Unknown"
 
 var current_task_index: int = 0
+var _tutorial_activity_started: bool = false
+var _tutorial_activity_completed: bool = false
+var _started_task_activity_ids: Dictionary = {}
 var tasks = [
 	{
+		"activity_id": "go-to-teachers-house",
+		# The activity endpoint accepts a conservative task-id character set, so
+		# retain the player-facing quest text below and use this safe audit label.
+		"activity_label": "Go to Teacher House",
+		"tutorial_activity": {
+			"activity_id": "tutorial",
+			"activity_label": "Tutorial",
+		},
 		"quest_text": "Go to the Teacher's House",
 		"dialogue": ["Get inside the house", "The teacher is waiting."]
 	},
 	{
+		"activity_id": "talk-to-the-teacher",
+		"activity_label": "Talk to the Teacher",
 		"quest_text": "Talk to the Teacher",
 		"dialogue": ["You are ready. Travel through the forest and reach the City of Knowledge.", "Reward: Forest Path unlocked"]
 	},
 	{
+		"activity_id": "first-bandit-math-challenge",
+		"activity_label": "Challenge the Player with Math Questions",
 		"quest_text": "Challenge the player with math questions ",
 		"dialogue": ["You want to pass? Solve this first!"],
 		"question_scope": {
@@ -206,6 +222,89 @@ func advance_task_and_save(event: Dictionary) -> Dictionary:
 	}
 
 
+func get_task_activity_metadata(task_index: int) -> Dictionary:
+	if task_index < 0 or task_index >= tasks.size():
+		return {}
+	var task: Variant = tasks[task_index]
+	if not (task is Dictionary):
+		return {}
+	var activity_id := String(task.get("activity_id", "")).strip_edges()
+	var activity_label := String(task.get("activity_label", task.get("quest_text", ""))).strip_edges()
+	if activity_id.is_empty() or activity_label.is_empty():
+		return {}
+	return {
+		"activity_id": activity_id,
+		"activity_label": activity_label,
+	}
+
+
+func emit_tutorial_activity_started() -> bool:
+	if _tutorial_activity_started or current_task_index != 0:
+		return false
+	var tutorial_metadata := _get_tutorial_activity_metadata()
+	if tutorial_metadata.is_empty():
+		return false
+	_tutorial_activity_started = true
+	canonical_activity_boundary.emit({
+		"type": "task_trigger",
+		"key": "tutorial:start",
+		"previous_index": -1,
+		"current_index": 0,
+		"activity": tutorial_metadata,
+	})
+	return true
+
+
+func complete_tutorial_activity() -> bool:
+	if _tutorial_activity_completed:
+		return false
+	var tutorial_metadata := _get_tutorial_activity_metadata()
+	if tutorial_metadata.is_empty():
+		return false
+	_tutorial_activity_completed = true
+	canonical_activity_boundary.emit({
+		"type": "task_completed",
+		"key": "tutorial:complete",
+		"previous_index": 0,
+		"current_index": 0,
+		"activity": tutorial_metadata,
+	})
+	emit_current_task_activity_started()
+	return true
+
+
+func emit_current_task_activity_started() -> bool:
+	var metadata := get_task_activity_metadata(current_task_index)
+	var activity_id := String(metadata.get("activity_id", ""))
+	if activity_id.is_empty() or _started_task_activity_ids.has(activity_id):
+		return false
+	_started_task_activity_ids[activity_id] = true
+	canonical_activity_boundary.emit({
+		"type": "task_trigger",
+		"key": "task:%s:start" % activity_id,
+		"previous_index": current_task_index,
+		"current_index": current_task_index,
+		"activity": metadata,
+	})
+	return true
+
+
+func _get_tutorial_activity_metadata() -> Dictionary:
+	if tasks.is_empty() or not (tasks[0] is Dictionary):
+		return {}
+	var metadata: Variant = tasks[0].get("tutorial_activity", {})
+	if not (metadata is Dictionary):
+		return {}
+	var activity_id := String(metadata.get("activity_id", "")).strip_edges()
+	var activity_label := String(metadata.get("activity_label", "")).strip_edges()
+	if activity_id.is_empty() or activity_label.is_empty():
+		return {}
+	return {
+		"activity_id": activity_id,
+		"activity_label": activity_label,
+	}
+
+
 func is_valid_six_digit_id(value: String) -> bool:
 	if value.length() != 6:
 		return false
@@ -279,6 +378,9 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	player_position = get_scene_fallback_spawn(START_SCENE_PATH)
 	city_of_knowledge_unlocked = false
 	current_task_index = 0
+	_tutorial_activity_started = false
+	_tutorial_activity_completed = false
+	_started_task_activity_ids.clear()
 	_pending_scene_spawn.clear()
 	_return_context.clear()
 	encounter_context.clear()

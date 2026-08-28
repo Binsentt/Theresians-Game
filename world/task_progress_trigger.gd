@@ -34,6 +34,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 	var result: Variant = GameState.advance_task_and_save({
 		"type": "task_trigger",
+		"activity_type": "task_completed",
 		"key": event_key,
 		"title": notification_title,
 		"description": notification_objective,

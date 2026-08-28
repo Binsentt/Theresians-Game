@@ -11,6 +11,15 @@ var _playtime_timeout_handled: bool = false
 
 const PLAYTIME_DAILY_LIMIT_MINUTES := 60
 const PLAYTIME_HEARTBEAT_INTERVAL_SECONDS := 15.0
+const CANONICAL_ACTIVITY_ENDPOINT := "/api/game/activity"
+const CANONICAL_ACTIVITY_TYPES := {
+	"task_trigger": "task_triggered",
+	"task_completed": "task_completed",
+	"quest_completed": "quest_completed",
+}
+
+var _acknowledged_activity_keys: Dictionary = {}
+var _activity_requests_in_flight: Dictionary = {}
 
 func _ready() -> void:
 	var game_state := get_node_or_null("/root/GameState")
@@ -20,6 +29,10 @@ func _ready() -> void:
 		game_state.connect("game_over", Callable(self, "_on_game_over"))
 		game_state.connect("time_limit_reached", Callable(self, "_on_time_limit_reached"))
 		game_state.connect("playtime_warning", Callable(self, "_on_playtime_warning"))
+		if not game_state.task_state_changed.is_connected(_on_task_state_changed):
+			game_state.task_state_changed.connect(_on_task_state_changed)
+		if not game_state.canonical_activity_boundary.is_connected(_on_canonical_activity_boundary):
+			game_state.canonical_activity_boundary.connect(_on_canonical_activity_boundary)
 	_load_pending()
 
 func _process(delta: float) -> void:
@@ -44,7 +57,9 @@ func _on_progression_session_reset(source: String) -> void:
 		await _create_activity_log("Load Game", "Existing game profile loaded", {})
 
 	if source == "new_game" or source == "load":
-		await _start_playtime_session()
+		var session_result := await _start_playtime_session()
+		if source == "new_game" and bool(session_result.get("ok", false)) and _has_active_playtime_lease():
+			GameState.emit_tutorial_activity_started()
 
 func _on_game_over() -> void:
 	await _end_playtime_session()
@@ -80,6 +95,88 @@ func _on_playtime_warning(remaining_minutes: int) -> void:
 			"%d minute%s remaining today." % [remaining_minutes, "" if remaining_minutes == 1 else "s"],
 			"playtime-warning:%d" % remaining_minutes
 		)
+
+
+func _on_task_state_changed(previous_index: int, current_index: int, event: Dictionary) -> void:
+	# GameState owns progression. This observer adds no quest state or UI effects.
+	await _submit_canonical_task_activity(previous_index, current_index, event)
+
+
+func _on_canonical_activity_boundary(event: Dictionary) -> void:
+	await _submit_canonical_task_activity(
+		int(event.get("previous_index", GameState.current_task_index)),
+		int(event.get("current_index", GameState.current_task_index)),
+		event
+	)
+
+
+func _submit_canonical_task_activity(previous_index: int, current_index: int, event: Dictionary) -> void:
+	if not _has_active_playtime_lease():
+		return
+	var event_type := _canonical_activity_type(String(event.get("activity_type", event.get("type", ""))))
+	if event_type.is_empty():
+		return
+	var metadata := _activity_metadata_for_event(previous_index, current_index, event, event_type)
+	var activity_label := String(metadata.get("activity_label", "")).strip_edges()
+	if activity_label.is_empty():
+		return
+	var stable_event_key := String(event.get("key", "")).strip_edges()
+	if stable_event_key.is_empty():
+		return
+	var event_key := "cycle:%d:task:%d:%d:%s:%s" % [
+		int(GameState.learning_cycle_version), previous_index, current_index, event_type, stable_event_key
+	]
+	if _is_activity_acknowledged(event_key) or _activity_requests_in_flight.has(event_key):
+		return
+
+	var payload := {
+		"session_id": _current_playtime_session_id,
+		"session_credential": _current_playtime_session_credential,
+		"learning_cycle_version": int(GameState.learning_cycle_version),
+		"event_type": event_type,
+		"event_key": event_key,
+		"task_id": activity_label,
+	}
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		_enqueue_pending_activity(payload)
+		return
+
+	_activity_requests_in_flight[event_key] = true
+	var result: Dictionary = await http.request_post(CANONICAL_ACTIVITY_ENDPOINT, payload)
+	_activity_requests_in_flight.erase(event_key)
+	if _is_learning_cycle_changed(result) or _is_activity_lease_rejected(result):
+		return
+	if bool(result.get("ok", false)) and int(result.get("status", 0)) >= 200 and int(result.get("status", 0)) < 300:
+		_acknowledged_activity_keys[event_key] = true
+		await _flush_pending()
+		return
+	_enqueue_pending_activity(payload)
+
+
+func _canonical_activity_type(candidate: String) -> String:
+	return String(CANONICAL_ACTIVITY_TYPES.get(candidate, ""))
+
+
+func _activity_metadata_for_event(previous_index: int, current_index: int, event: Dictionary, event_type: String) -> Dictionary:
+	var explicit_metadata: Variant = event.get("activity", {})
+	if explicit_metadata is Dictionary and not explicit_metadata.is_empty():
+		return explicit_metadata
+	var task_index := previous_index if event_type == "task_completed" else current_index
+	return GameState.get_task_activity_metadata(task_index)
+
+
+func _has_active_playtime_lease() -> bool:
+	return GameState.playtime_authorized and _current_playtime_session_id != 0 and not _current_playtime_session_credential.is_empty()
+
+
+func _is_activity_acknowledged(event_key: String) -> bool:
+	return _acknowledged_activity_keys.has(event_key)
+
+
+func _is_activity_lease_rejected(result: Dictionary) -> bool:
+	var status := int(result.get("status", 0))
+	return status == 401 or status == 403
 
 
 func _apply_learning_cycle(response_body: Variant) -> Dictionary:
@@ -382,6 +479,54 @@ func request_end_playtime_session() -> Dictionary:
 	return await _end_playtime_session()
 
 
+func request_game_leaderboard() -> Dictionary:
+	if not _has_active_playtime_lease():
+		return {"ok": false, "status": 0, "error": "An active playtime lease is required.", "entries": []}
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		return {"ok": false, "status": 0, "error": "Leaderboard service unavailable.", "entries": []}
+	var result: Dictionary = await http.request_post("/api/game/leaderboard", {
+		"session_id": _current_playtime_session_id,
+		"session_credential": _current_playtime_session_credential,
+		"learning_cycle_version": int(GameState.learning_cycle_version),
+	})
+	if _is_learning_cycle_changed(result):
+		return {"ok": false, "status": int(result.get("status", 0)), "error": "Leaderboard belongs to a previous learning cycle.", "entries": []}
+	if not bool(result.get("ok", false)) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
+		return {"ok": false, "status": int(result.get("status", 0)), "error": "Leaderboard unavailable.", "entries": []}
+	var body: Variant = result.get("body", {})
+	var entries: Array = []
+	if body is Dictionary:
+		var raw_entries: Variant = body.get("entries", [])
+		if raw_entries is Array:
+			entries = _sanitize_game_leaderboard_entries(raw_entries)
+	return {"ok": true, "status": int(result.get("status", 0)), "entries": entries}
+
+
+func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
+	var sanitized: Array = []
+	for raw_entry in raw_entries:
+		if not (raw_entry is Dictionary):
+			continue
+		var rank := int(raw_entry.get("rank", 0))
+		var display_name := String(raw_entry.get("display_name", "")).strip_edges()
+		if rank <= 0 or display_name.is_empty():
+			continue
+		var entry := {
+			"rank": rank,
+			"display_name": display_name,
+			"progress_percentage": raw_entry.get("progress_percentage", null),
+			"accuracy_rate": raw_entry.get("accuracy_rate", null),
+			"correct_answers": raw_entry.get("correct_answers", null),
+			"total_questions": raw_entry.get("total_questions", null),
+			"quests_completed": raw_entry.get("quests_completed", null),
+		}
+		if raw_entry.has("grade"):
+			entry["grade"] = String(raw_entry.get("grade", "")).strip_edges()
+		sanitized.append(entry)
+	return sanitized
+
+
 func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
@@ -425,6 +570,28 @@ func _enqueue_pending(save_data: Dictionary) -> void:
 		file.store_string(JSON.stringify(pending))
 		file.close()
 
+
+func _enqueue_pending_activity(payload: Dictionary) -> void:
+	var event_key := String(payload.get("event_key", "")).strip_edges()
+	if event_key.is_empty() or _is_activity_acknowledged(event_key):
+		return
+	var pending := _load_pending()
+	for item in pending:
+		if item is Dictionary and String(item.get("kind", "")) == "activity":
+			var queued_payload: Variant = item.get("payload", {})
+			if queued_payload is Dictionary and String(queued_payload.get("event_key", "")) == event_key:
+				return
+	pending.append({
+		"kind": "activity",
+		"path": CANONICAL_ACTIVITY_ENDPOINT,
+		"payload": payload.duplicate(true),
+	})
+	var file := FileAccess.open(_pending_file, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(pending))
+		file.close()
+
+
 func _load_pending() -> Array:
 	var pending := []
 	var file := FileAccess.open(_pending_file, FileAccess.READ)
@@ -445,9 +612,27 @@ func _flush_pending() -> void:
 		return
 	var remaining := []
 	for item in pending:
-		var result: Dictionary = await http.request_post("/api/game/progress", item)
+		if not (item is Dictionary):
+			continue
+		var path := "/api/game/progress"
+		var payload: Dictionary = item
+		var is_activity := false
+		if String(item.get("kind", "")) == "activity":
+			path = String(item.get("path", CANONICAL_ACTIVITY_ENDPOINT))
+			var queued_payload: Variant = item.get("payload", {})
+			if not (queued_payload is Dictionary):
+				continue
+			payload = queued_payload
+			is_activity = true
+		var result: Dictionary = await http.request_post(path, payload)
 		if _is_learning_cycle_changed(result):
-			print("RemoteSync: removed a stale progress item from the pending queue.")
+			print("RemoteSync: removed a stale pending item from the queue.")
+			continue
+		if is_activity and _is_activity_lease_rejected(result):
+			continue
+		if bool(result.get("ok", false)) and int(result.get("status", 0)) >= 200 and int(result.get("status", 0)) < 300:
+			if is_activity:
+				_acknowledged_activity_keys[String(payload.get("event_key", ""))] = true
 			continue
 		if not result.ok or result.status < 200 or result.status >= 300:
 			remaining.append(item)

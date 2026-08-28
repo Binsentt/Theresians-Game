@@ -6,6 +6,7 @@ extends CharacterBody2D
 var timer = 0.0
 var triggered = false
 var step = 0
+var _tutorial_activity_completed = false
 
 @onready var panel = get_tree().get_first_node_in_group("dialogue_ui")
 @onready var label = panel.get_node("TextLabel")
@@ -84,6 +85,8 @@ func next_step():
 	step += 1
 
 	if step > 7:
+		if not _tutorial_activity_completed:
+			_tutorial_activity_completed = GameState.complete_tutorial_activity()
 		panel.visible = false
 		hide_npc()
 	else:
