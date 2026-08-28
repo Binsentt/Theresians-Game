@@ -4,6 +4,7 @@ const MAIN_MENU := "res://scenes/main_menu.tscn"
 const NEW_GAME := "res://scenes/new_game_scene.tscn"
 const LOADING := "res://scenes/loading_screen.tscn"
 const PLAYER_HOUSE := "res://interiors/player_house.tscn"
+const LeaseHttpApi := preload("res://tools/test_http_api_new_game_lease_stub.gd")
 
 var failures: Array[String] = []
 
@@ -11,13 +12,8 @@ func _initialize() -> void:
 	var root := get_root()
 	if root != null:
 		var http_api := root.get_node_or_null("HttpApi")
-		var http_stub := load("res://tools/test_http_api_stub.gd")
-		if http_api != null and (http_api.get_script() == null or http_api.get_script().resource_path != http_stub.resource_path):
-			http_api.set_script(http_stub)
-		var remote_sync := root.get_node_or_null("RemoteSync")
-		var remote_stub := load("res://tools/test_remote_sync_stub.gd")
-		if remote_sync != null and (remote_sync.get_script() == null or remote_sync.get_script().resource_path != remote_stub.resource_path):
-			remote_sync.set_script(remote_stub)
+		if http_api != null:
+			http_api.set_script(LeaseHttpApi)
 	call_deferred("_run")
 
 func _run() -> void:
@@ -67,16 +63,13 @@ func _run() -> void:
 
 	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
 	await _wait_seconds(0.5)
-	_assert(wizard.get_node("NameGradeSelect").visible, "IDs next reveals Name/Grade step")
-	print("IDS_TO_NAME_GRADE: PASS")
-
+	_assert(wizard.get_node("NameGradeSelect").visible, "a validated canonical profile reveals the existing Start confirmation")
 	var name_input: LineEdit = wizard.get_node("NameGradeSelect/NameInput")
-	_set_line_edit_text(name_input, "Test Student")
-	await _wait_seconds(0.25)
-	await _press(wizard.get_node("NameGradeSelect/Grade2") as BaseButton)
-	_assert(get_game_state().get_new_game_registration().get("grade") == "Grade 2", "Grade selection is stored")
-	print("NAME_ENTRY: PASS")
-	print("GRADE_SELECTION: PASS")
+	_assert(name_input.text == "Ava Santos", "canonical Student name fills the confirmation step")
+	_assert(not name_input.editable, "canonical Student name remains locked")
+	_assert((wizard.get_node("NameGradeSelect/Grade3") as BaseButton).disabled, "canonical Grade remains locked")
+	print("IDS_TO_NAME_GRADE: PASS")
+	print("CANONICAL_PROFILE_LOCK: PASS")
 
 	await _press(wizard.get_node("NameGradeSelect/Start") as BaseButton)
 	if not await wait_for_scene(LOADING, 180):
@@ -110,9 +103,7 @@ func _run() -> void:
 	_set_line_edit_text(parent_input, "654321")
 	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
 	await _wait_seconds(0.5)
-	name_input = wizard.get_node("NameGradeSelect/NameInput")
-	_set_line_edit_text(name_input, "Test Student")
-	await _press(wizard.get_node("NameGradeSelect/Grade6") as BaseButton)
+	_assert(wizard.get_node("NameGradeSelect").visible, "female route reaches the canonical confirmation step")
 	await _press(wizard.get_node("NameGradeSelect/Start") as BaseButton)
 	if not await wait_for_scene(LOADING, 180):
 		failures.append("Female route did not reach loading scene")
@@ -134,9 +125,16 @@ func _run() -> void:
 	await _press(wizard.get_node("GenderSelect/MaleBtn") as BaseButton)
 	await _press(wizard.get_node("GenderSelect/GenderContinue") as BaseButton)
 	await _wait_seconds(0.5)
+	student_input = wizard.get_node("StudentParentId/StudentIdInput")
+	parent_input = wizard.get_node("StudentParentId/ParentIdInput")
+	_set_line_edit_text(student_input, "001234")
+	_set_line_edit_text(parent_input, "654321")
 	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
 	await _wait_seconds(0.5)
 	var back_btn := current_scene.get_node("Button") as Button
+	await _press(back_btn)
+	await _wait_seconds(0.5)
+	_assert(wizard.get_node("StudentParentId").visible, "Back from canonical confirmation returns to IDs")
 	await _press(back_btn)
 	await _wait_seconds(0.5)
 	_assert(wizard.get_node("GenderSelect").visible, "Back from IDs returns to Gender")
