@@ -47,7 +47,7 @@ func _init() -> void:
 	var numeric_api_answer: Dictionary = provider._normalize_question({
 		"id": 93,
 		"question": "Which value is one?",
-		"options": ["1", "2"],
+		"options": ["1", "2", "3", "4"],
 		"correct_answer": "1",
 	})
 	if not _assert_equal(numeric_api_answer.get("correct"), "0", "API text answers must not be mistaken for fallback indices"):
@@ -55,10 +55,21 @@ func _init() -> void:
 		quit(1)
 		return
 
+	var three_choice_remote_question: Dictionary = provider._normalize_question({
+		"id": 931,
+		"question": "Which option is correct?",
+		"options": ["1", "2", "3"],
+		"correct_answer": "2",
+	})
+	if not _assert(three_choice_remote_question.is_empty(), "Remote questions without exactly four choices must be rejected before reaching the battle UI"):
+		provider.free()
+		quit(1)
+		return
+
 	var duplicate_choice_answer: Dictionary = provider._normalize_question({
 		"id": 94,
 		"question": "Which duplicate value is correct?",
-		"options": ["7", "7", "9"],
+		"options": ["7", "7", "9", "11"],
 		"correct_answer": "7",
 	})
 	if not _assert(duplicate_choice_answer.is_empty(), "Ambiguous duplicate answer text must be rejected"):
@@ -69,7 +80,7 @@ func _init() -> void:
 	var unmatched_answer: Dictionary = provider._normalize_question({
 		"id": 95,
 		"question": "Which value is missing?",
-		"options": ["5", "7", "9"],
+		"options": ["5", "7", "9", "13"],
 		"correct_answer": "11",
 	})
 	if not _assert(unmatched_answer.is_empty(), "Unmatched answer text must be rejected"):

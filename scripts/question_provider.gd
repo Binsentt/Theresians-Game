@@ -206,7 +206,9 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 		choices = question.get("options")
 	if choices == null or not (choices is Array):
 		return {}
-	if choices.size() < 2:
+	# QuizManager presents exactly four answer controls. Reject malformed
+	# remote or fallback content instead of rendering blank battle choices.
+	if choices.size() != 4:
 		return {}
 	normalized["choices"] = Array(choices)
 
