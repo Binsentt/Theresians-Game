@@ -175,6 +175,7 @@ offset_bottom = 277.0
 icon = ExtResource("8_hrtxq")
 flat = true
 expand_icon = true
+mouse_filter = 2
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/LoadGameBtn" unique_id=686641483]
 layout_mode = 1

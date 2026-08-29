@@ -370,5 +370,5 @@ func _position_save_toast() -> void:
 func _refresh_load_button_state() -> void:
 	var has_save := GameState.has_latest_save()
 	load_button.disabled = not has_save
-	load_button.mouse_filter = Control.MOUSE_FILTER_STOP if has_save else Control.MOUSE_FILTER_IGNORE
+	load_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	load_button.modulate = ENABLED_BUTTON_MODULATE if has_save else DISABLED_BUTTON_MODULATE
