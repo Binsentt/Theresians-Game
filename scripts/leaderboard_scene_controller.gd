@@ -71,5 +71,18 @@ func _refresh_leaderboard_from_api() -> void:
 		return
 	var grade := String(first.get("grade", "")).strip_edges()
 	var progress_value: Variant = first.get("progress_percentage", null)
-	var progress := "--" if progress_value == null else "%s%%" % String(progress_value)
+	var progress := _format_progress_percentage(progress_value)
 	_set_labels("#%d" % rank, display_name, grade if not grade.is_empty() else "--", progress)
+
+
+func _format_progress_percentage(progress_value: Variant) -> String:
+	if progress_value is int:
+		return "%d%%" % progress_value
+	if progress_value is float:
+		var progress_float: float = progress_value
+		if not is_finite(progress_float):
+			return "--"
+		if is_equal_approx(progress_float, roundf(progress_float)):
+			return "%d%%" % int(roundf(progress_float))
+		return "%s%%" % str(progress_float)
+	return "--"
