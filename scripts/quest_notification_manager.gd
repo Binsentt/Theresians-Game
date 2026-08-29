@@ -13,10 +13,14 @@ const DEFAULT_DURATION := 2.4
 const MAX_PANEL_WIDTH := 460.0
 const TASK_TRIGGER_HEIGHT := 96.0
 const TASK_COMPLETE_HEIGHT := 88.0
+const TASK_TRIGGER_PORTRAIT_SIZE := 72.0
+const TASK_TRIGGER_CONTENT_SEPARATION := 10.0
+const PANEL_HORIZONTAL_INSET := 32.0
 
 var _root_layer: CanvasLayer
 var _task_trigger_panel: PanelContainer
 var _task_trigger_portrait: TextureRect
+var _task_trigger_labels: VBoxContainer
 var _task_trigger_headline: Label
 var _task_trigger_body: Label
 var _task_complete_panel: PanelContainer
@@ -133,7 +137,9 @@ func _show_event(event: Dictionary, generation: int) -> void:
 		return
 	_active_key = String(event.get("key", ""))
 	_is_showing = true
-	_show_event_panel(event)
+	await _show_event_panel(event)
+	if generation != _presentation_generation:
+		return
 	notification_started.emit(event)
 
 	await get_tree().create_timer(maxf(0.8, float(event.get("duration", DEFAULT_DURATION)))).timeout
@@ -160,20 +166,35 @@ func _build_ui() -> void:
 	var trigger_content := HBoxContainer.new()
 	trigger_content.name = "TaskTriggerContent"
 	trigger_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	trigger_content.add_theme_constant_override("separation", 10)
+	trigger_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	trigger_content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	trigger_content.add_theme_constant_override("separation", int(TASK_TRIGGER_CONTENT_SEPARATION))
 	_task_trigger_panel.add_child(trigger_content)
+
+	# Keep the native image size from participating in HBox minimum-size
+	# propagation. The portrait is rendered inside this fixed compact slot.
+	var portrait_slot := Control.new()
+	portrait_slot.name = "PortraitSlot"
+	portrait_slot.custom_minimum_size = Vector2(TASK_TRIGGER_PORTRAIT_SIZE, TASK_TRIGGER_PORTRAIT_SIZE)
+	portrait_slot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	portrait_slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	portrait_slot.clip_contents = true
+	portrait_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	trigger_content.add_child(portrait_slot)
 
 	_task_trigger_portrait = TextureRect.new()
 	_task_trigger_portrait.name = "Portrait"
 	_task_trigger_portrait.visible = false
 	_task_trigger_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_task_trigger_portrait.custom_minimum_size = Vector2(72.0, 72.0)
+	_task_trigger_portrait.custom_minimum_size = Vector2(TASK_TRIGGER_PORTRAIT_SIZE, TASK_TRIGGER_PORTRAIT_SIZE)
+	_task_trigger_portrait.size = Vector2(TASK_TRIGGER_PORTRAIT_SIZE, TASK_TRIGGER_PORTRAIT_SIZE)
 	_task_trigger_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_task_trigger_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	trigger_content.add_child(_task_trigger_portrait)
+	portrait_slot.add_child(_task_trigger_portrait)
 
 	var trigger_labels := _build_label_column("TaskTriggerLabels")
 	trigger_content.add_child(trigger_labels)
+	_task_trigger_labels = trigger_labels
 	_task_trigger_headline = trigger_labels.get_node("Headline") as Label
 	_task_trigger_body = trigger_labels.get_node("Body") as Label
 
@@ -199,6 +220,7 @@ func _build_label_column(node_name: String) -> VBoxContainer:
 	var headline := Label.new()
 	headline.name = "Headline"
 	headline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	headline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	headline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	headline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	headline.add_theme_font_size_override("font_size", 20)
@@ -208,6 +230,7 @@ func _build_label_column(node_name: String) -> VBoxContainer:
 	var body := Label.new()
 	body.name = "Body"
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_font_size_override("font_size", 16)
@@ -247,20 +270,53 @@ func _on_progression_session_reset(_source: String) -> void:
 func _show_event_panel(event: Dictionary) -> void:
 	_hide_all_panels_immediately()
 	var is_trigger := String(event.get("kind", "")) in ["task_trigger", "quest_updated"]
+	var target_panel: PanelContainer
+	var target_height: float
 	if is_trigger:
 		_apply_panel_theme(_task_trigger_panel, String(event.get("accent", "blue")))
 		_task_trigger_headline.text = String(event.get("title", "New Objective"))
 		_task_trigger_body.text = String(event.get("description", ""))
 		_update_trigger_portrait(String(event.get("portrait_path", "")))
-		_center_panel(_task_trigger_panel, TASK_TRIGGER_HEIGHT)
-		_task_trigger_panel.visible = true
-		return
+		_reserve_trigger_label_width()
+		target_panel = _task_trigger_panel
+		target_height = TASK_TRIGGER_HEIGHT
+	else:
+		_apply_panel_theme(_task_complete_panel, String(event.get("accent", "wood")))
+		_task_complete_headline.text = String(event.get("title", "Task Complete"))
+		_task_complete_body.text = String(event.get("description", ""))
+		target_panel = _task_complete_panel
+		target_height = TASK_COMPLETE_HEIGHT
 
-	_apply_panel_theme(_task_complete_panel, String(event.get("accent", "wood")))
-	_task_complete_headline.text = String(event.get("title", "Task Complete"))
-	_task_complete_body.text = String(event.get("description", ""))
-	_center_panel(_task_complete_panel, TASK_COMPLETE_HEIGHT)
-	_task_complete_panel.visible = true
+	# Texture and text changes notify containers on the next layout frame. Center
+	# only after that update so a source image's native dimensions cannot clamp
+	# the notification to an oversized height.
+	await get_tree().process_frame
+	var layout_frames := 0
+	while target_panel.get_combined_minimum_size().y > target_height and layout_frames < 4:
+		await get_tree().process_frame
+		layout_frames += 1
+	_center_panel(target_panel, target_height)
+	target_panel.visible = true
+	# The first visible layout applies Container child rects. Recenter once those
+	# rects have settled so the resolved compact minimum size controls the panel.
+	await get_tree().process_frame
+	_center_panel(target_panel, target_height)
+
+
+func _reserve_trigger_label_width() -> void:
+	if _task_trigger_labels == null:
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	if viewport_size.x <= 0.0:
+		viewport_size.x = MAX_PANEL_WIDTH
+	var panel_width := minf(MAX_PANEL_WIDTH, viewport_size.x * 0.84)
+	var portrait_width := 0.0
+	if _task_trigger_portrait != null and _task_trigger_portrait.visible:
+		portrait_width = TASK_TRIGGER_PORTRAIT_SIZE + TASK_TRIGGER_CONTENT_SEPARATION
+	var label_width := maxf(1.0, panel_width - PANEL_HORIZONTAL_INSET - portrait_width)
+	_task_trigger_labels.custom_minimum_size = Vector2(label_width, 0.0)
+	_task_trigger_headline.custom_minimum_size = Vector2(label_width, 0.0)
+	_task_trigger_body.custom_minimum_size = Vector2(label_width, 0.0)
 
 
 func _update_trigger_portrait(portrait_path: String) -> void:
@@ -276,6 +332,8 @@ func _update_trigger_portrait(portrait_path: String) -> void:
 		portrait_texture = load(normalized_path) as Texture2D
 	_task_trigger_portrait.texture = portrait_texture
 	_task_trigger_portrait.visible = portrait_texture != null
+	_task_trigger_portrait.position = Vector2.ZERO
+	_task_trigger_portrait.size = Vector2(TASK_TRIGGER_PORTRAIT_SIZE, TASK_TRIGGER_PORTRAIT_SIZE)
 
 
 func _apply_panel_theme(panel: PanelContainer, accent: String) -> void:

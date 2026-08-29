@@ -111,6 +111,13 @@ func _exercise_notification_contract(manager: Node) -> void:
         String(manager.call("get_active_notification_key")) == "quest:main:task:0:arrival",
         "Task Trigger must become the active stable-key notification."
     )
+    var layout_frames := 0
+    while trigger_panel != null and not trigger_panel.visible and layout_frames < 8:
+        await get_tree().process_frame
+        layout_frames += 1
+    await get_tree().process_frame
+    await get_tree().process_frame
+    _exercise_compact_trigger_layout(trigger_panel)
 
     manager.call(
         "show_task_trigger",
@@ -178,6 +185,40 @@ func _exercise_notification_contract(manager: Node) -> void:
     _expect(
         int(manager.call("get_pending_notification_count")) == 0,
         "A progression reset must discard stale queued notifications."
+    )
+
+
+func _exercise_compact_trigger_layout(trigger_panel: Control) -> void:
+    var portrait := trigger_panel.get_node_or_null("TaskTriggerContent/PortraitSlot/Portrait") as TextureRect if trigger_panel != null else null
+    var headline := trigger_panel.get_node_or_null("TaskTriggerContent/TaskTriggerLabels/Headline") as Label if trigger_panel != null else null
+    var body := trigger_panel.get_node_or_null("TaskTriggerContent/TaskTriggerLabels/Body") as Label if trigger_panel != null else null
+    _expect(
+        trigger_panel != null and is_equal_approx(trigger_panel.size.y, 96.0),
+        "Task Trigger must retain its compact 96px panel height when NPC.jpg is present."
+    )
+    _expect(
+        portrait != null and portrait.visible and portrait.size.x <= 72.0 and portrait.size.y <= 72.0,
+        "The NPC portrait must be visible but constrained to the compact notification slot."
+    )
+    if trigger_panel != null and portrait != null:
+        var panel_rect := trigger_panel.get_global_rect()
+        var portrait_rect := portrait.get_global_rect()
+        _expect(
+            panel_rect.encloses(portrait_rect),
+            "The Task Trigger portrait must remain entirely inside the notification panel."
+        )
+        var viewport_size := get_viewport().get_visible_rect().size
+        _expect(
+            is_equal_approx(panel_rect.get_center().x, viewport_size.x * 0.5)
+                and is_equal_approx(panel_rect.get_center().y, viewport_size.y * 0.5),
+            "Task Trigger must remain centered in the middle of the viewport."
+        )
+    _expect(
+        headline != null and body != null
+            and headline.visible and body.visible
+            and not headline.text.is_empty() and not body.text.is_empty()
+            and headline.size.y > 0.0 and body.size.y > 0.0,
+        "Task Trigger headline and objective text must remain visibly laid out with the portrait."
     )
 
 
