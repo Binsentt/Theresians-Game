@@ -32,7 +32,7 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	_expect(_label(leaderboard, "NameLbl") == "No rankings yet", "Empty responses keep the truthful no-ranking state.")
+	_expect(_status_label(leaderboard) == "No rankings yet", "Empty responses keep the truthful no-ranking state.")
 	await _assert_numeric_progress_cases(leaderboard, stub)
 	await _assert_refresh_replaces_visible_entry(leaderboard, stub)
 	await _assert_missing_and_unsupported_values(leaderboard, stub)
@@ -59,7 +59,7 @@ func _assert_numeric_progress_cases(leaderboard: Control, stub: LocalLeaderboard
 		await leaderboard.refresh_leaderboard()
 		await get_tree().process_frame
 		_expect(
-			_label(leaderboard, "PercentageLbl") == String(case_data["expected"]),
+			_row_label(_rows(leaderboard), 0, "Progress") == String(case_data["expected"]),
 			"Numeric progress %s renders as %s without a conversion error." % [str(case_data["value"]), String(case_data["expected"])]
 		)
 
@@ -71,8 +71,8 @@ func _assert_refresh_replaces_visible_entry(leaderboard: Control, stub: LocalLea
 	stub.entries = [_entry("Player B", 87.5)]
 	await leaderboard.refresh_leaderboard()
 	await get_tree().process_frame
-	_expect(_label(leaderboard, "NameLbl") == "Player B", "Refresh replaces the prior visible entry with the new response.")
-	_expect(_label(leaderboard, "PercentageLbl") == "87.5%", "Refresh renders the new numeric progress value.")
+	_expect(_row_label(_rows(leaderboard), 0, "DisplayName") == "Player B", "Refresh replaces the prior visible entry with the new response.")
+	_expect(_row_label(_rows(leaderboard), 0, "Progress") == "87.5%", "Refresh renders the new numeric progress value.")
 	_expect(stub.request_count >= 8, "Every numeric case and explicit refresh uses one local leaderboard request.")
 
 
@@ -80,7 +80,7 @@ func _assert_missing_and_unsupported_values(leaderboard: Control, stub: LocalLea
 	stub.entries = [_entry("Player Missing", null)]
 	await leaderboard.refresh_leaderboard()
 	await get_tree().process_frame
-	_expect(_label(leaderboard, "PercentageLbl") == "--", "A null progress value uses the existing truthful fallback.")
+	_expect(_row_label(_rows(leaderboard), 0, "Progress") == "--", "A null progress value uses the existing truthful fallback.")
 	stub.entries = [{
 		"rank": 1,
 		"display_name": "Player Missing",
@@ -88,20 +88,20 @@ func _assert_missing_and_unsupported_values(leaderboard: Control, stub: LocalLea
 	}]
 	await leaderboard.refresh_leaderboard()
 	await get_tree().process_frame
-	_expect(_label(leaderboard, "PercentageLbl") == "--", "A missing progress value uses the existing truthful fallback.")
+	_expect(_row_label(_rows(leaderboard), 0, "Progress") == "--", "A missing progress value uses the existing truthful fallback.")
 	stub.entries = [_entry("Player Unsupported", [50])]
 	await leaderboard.refresh_leaderboard()
 	await get_tree().process_frame
-	_expect(_label(leaderboard, "PercentageLbl") == "--", "Unsupported progress values are not blindly stringified.")
+	_expect(_row_label(_rows(leaderboard), 0, "Progress") == "--", "Unsupported progress values are not blindly stringified.")
 
 
 func _assert_visible_fields_are_privacy_safe(leaderboard: Control) -> void:
-	var visible_text := "%s %s %s %s" % [
-		_label(leaderboard, "NumberLbl"),
-		_label(leaderboard, "NameLbl"),
-		_label(leaderboard, "GradeLbl"),
-		_label(leaderboard, "PercentageLbl"),
-	]
+	var visible_text := ""
+	var rows := _rows(leaderboard)
+	if rows != null:
+		for row in rows.get_children():
+			for column_name in ["Rank", "DisplayName", "Grade", "Progress"]:
+				visible_text += (row.get_node_or_null(column_name) as Label).text
 	_expect(not visible_text.contains("001234") and not visible_text.contains("009876"), "The game leaderboard never renders private IDs.")
 
 
@@ -116,8 +116,19 @@ func _entry(display_name: String, progress_value: Variant) -> Dictionary:
 	}
 
 
-func _label(leaderboard: Control, label_name: String) -> String:
-	var label := leaderboard.get_node_or_null("LeaderboardBG/" + label_name) as Label
+func _rows(leaderboard: Control) -> VBoxContainer:
+	return leaderboard.get_node_or_null("LeaderboardBG/LeaderboardRowsScroll/LeaderboardRows") as VBoxContainer
+
+
+func _status_label(leaderboard: Control) -> String:
+	var label := leaderboard.get_node_or_null("LeaderboardBG/LeaderboardStatusLabel") as Label
+	return label.text if label != null else ""
+
+
+func _row_label(rows: VBoxContainer, row_index: int, label_name: String) -> String:
+	if rows == null or row_index < 0 or row_index >= rows.get_child_count():
+		return ""
+	var label := rows.get_child(row_index).get_node_or_null(label_name) as Label
 	return label.text if label != null else ""
 
 

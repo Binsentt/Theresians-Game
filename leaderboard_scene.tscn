@@ -137,3 +137,32 @@ theme_override_constants/outline_size = 10
 theme_override_fonts/font = ExtResource("4_tyo51")
 theme_override_font_sizes/font_size = 23
 text = "NAME"
+
+[node name="LeaderboardRowsScroll" type="ScrollContainer" parent="LeaderboardBG"]
+layout_mode = 0
+offset_left = 55.0
+offset_top = 82.0
+offset_right = 972.0
+offset_bottom = 356.0
+mouse_filter = 2
+
+[node name="LeaderboardRows" type="VBoxContainer" parent="LeaderboardBG/LeaderboardRowsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="LeaderboardStatusLabel" type="Label" parent="LeaderboardBG"]
+layout_mode = 0
+offset_left = 120.0
+offset_top = 178.0
+offset_right = 906.0
+offset_bottom = 222.0
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
+theme_override_constants/outline_size = 6
+theme_override_fonts/font = ExtResource("4_tyo51")
+theme_override_font_sizes/font_size = 18
+text = "Loading leaderboard..."
+horizontal_alignment = 1
+vertical_alignment = 1

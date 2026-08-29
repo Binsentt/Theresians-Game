@@ -1,5 +1,9 @@
 extends Control
 
+const LEADERBOARD_FONT: FontFile = preload("res://Font/PressStart2P.ttf")
+const ROW_HEIGHT := 44.0
+const ROW_FONT_SIZE := 16
+
 var _refresh_generation: int = 0
 
 
@@ -13,30 +17,120 @@ func refresh_leaderboard() -> void:
 
 
 func _set_loading_state() -> void:
-	_set_labels("LOADING", "...", "...", "...")
+	_show_status("Loading leaderboard...")
 
 
 func _set_empty_state() -> void:
-	_set_labels("--", "No rankings yet", "--", "--")
+	_show_status("No rankings yet")
 
 
 func _set_connection_error_state() -> void:
-	_set_labels("--", "Leaderboard unavailable", "--", "--")
+	_show_status("Leaderboard unavailable")
 
 
-func _set_labels(rank: String, display_name: String, grade: String, progress: String) -> void:
-	var number_label := get_node_or_null("LeaderboardBG/NumberLbl") as Label
-	var name_label := get_node_or_null("LeaderboardBG/NameLbl") as Label
-	var grade_label := get_node_or_null("LeaderboardBG/GradeLbl") as Label
-	var percentage_label := get_node_or_null("LeaderboardBG/PercentageLbl") as Label
-	if number_label != null:
-		number_label.text = rank
-	if name_label != null:
-		name_label.text = display_name
-	if grade_label != null:
-		grade_label.text = grade
-	if percentage_label != null:
-		percentage_label.text = progress
+func _show_status(message: String) -> void:
+	_clear_rows()
+	var rows_scroll := _rows_scroll()
+	if rows_scroll != null:
+		rows_scroll.visible = false
+	var status_label := _status_label()
+	if status_label != null:
+		status_label.text = message
+		status_label.visible = true
+
+
+func _render_entries(entries: Array) -> void:
+	var rows := _rows_container()
+	var rows_scroll := _rows_scroll()
+	if rows == null or rows_scroll == null:
+		_set_connection_error_state()
+		return
+
+	_clear_rows()
+	for entry: Variant in entries:
+		var row_data := _normalized_row_data(entry)
+		if row_data.is_empty():
+			continue
+		rows.add_child(_create_row(row_data))
+
+	if rows.get_child_count() == 0:
+		_set_empty_state()
+		return
+
+	var status_label := _status_label()
+	if status_label != null:
+		status_label.visible = false
+	rows_scroll.visible = true
+	rows_scroll.scroll_vertical = 0
+
+
+func _normalized_row_data(entry: Variant) -> Dictionary:
+	if not (entry is Dictionary):
+		return {}
+	var rank := int(entry.get("rank", 0))
+	var display_name := str(entry.get("display_name", "")).strip_edges()
+	if rank <= 0 or display_name.is_empty():
+		return {}
+	var grade := str(entry.get("grade", "")).strip_edges()
+	return {
+		"rank": "#%d" % rank,
+		"display_name": display_name,
+		"grade": grade if not grade.is_empty() else "--",
+		"progress": _format_progress_percentage(entry.get("progress_percentage", null)),
+	}
+
+
+func _create_row(row_data: Dictionary) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "LeaderboardRow"
+	row.custom_minimum_size = Vector2(0.0, ROW_HEIGHT)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override(&"separation", 18)
+	row.add_child(_create_row_label("Rank", str(row_data["rank"]), 110.0))
+	row.add_child(_create_row_label("DisplayName", str(row_data["display_name"]), 325.0))
+	row.add_child(_create_row_label("Grade", str(row_data["grade"]), 195.0))
+	row.add_child(_create_row_label("Progress", str(row_data["progress"]), 190.0))
+	return row
+
+
+func _create_row_label(label_name: String, value: String, minimum_width: float) -> Label:
+	var label := Label.new()
+	label.name = label_name
+	label.custom_minimum_size = Vector2(minimum_width, ROW_HEIGHT)
+	label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = value
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.clip_text = true
+	label.add_theme_color_override(&"font_color", Color(0.8980392, 0.7529412, 0.41568628, 1.0))
+	label.add_theme_color_override(&"font_shadow_color", Color(0.78039217, 0.627451, 0.30980393, 1.0))
+	label.add_theme_color_override(&"font_outline_color", Color(0.0, 0.0, 0.0, 0.99607843))
+	label.add_theme_constant_override(&"outline_size", 5)
+	label.add_theme_font_override(&"font", LEADERBOARD_FONT)
+	label.add_theme_font_size_override(&"font_size", ROW_FONT_SIZE)
+	return label
+
+
+func _clear_rows() -> void:
+	var rows := _rows_container()
+	if rows == null:
+		return
+	for row in rows.get_children():
+		row.free()
+
+
+func _rows_scroll() -> ScrollContainer:
+	return get_node_or_null("LeaderboardBG/LeaderboardRowsScroll") as ScrollContainer
+
+
+func _rows_container() -> VBoxContainer:
+	return get_node_or_null("LeaderboardBG/LeaderboardRowsScroll/LeaderboardRows") as VBoxContainer
+
+
+func _status_label() -> Label:
+	return get_node_or_null("LeaderboardBG/LeaderboardStatusLabel") as Label
 
 
 func _refresh_leaderboard_from_api() -> void:
@@ -59,20 +153,7 @@ func _refresh_leaderboard_from_api() -> void:
 	if not (entries is Array) or entries.is_empty():
 		_set_empty_state()
 		return
-
-	var first: Variant = entries[0]
-	if not (first is Dictionary):
-		_set_empty_state()
-		return
-	var rank := int(first.get("rank", 0))
-	var display_name := String(first.get("display_name", "")).strip_edges()
-	if rank <= 0 or display_name.is_empty():
-		_set_empty_state()
-		return
-	var grade := String(first.get("grade", "")).strip_edges()
-	var progress_value: Variant = first.get("progress_percentage", null)
-	var progress := _format_progress_percentage(progress_value)
-	_set_labels("#%d" % rank, display_name, grade if not grade.is_empty() else "--", progress)
+	_render_entries(entries)
 
 
 func _format_progress_percentage(progress_value: Variant) -> String:
