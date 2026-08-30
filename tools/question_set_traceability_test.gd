@@ -32,6 +32,23 @@ func _run() -> void:
 	})
 	failed = not _assert_equal(remote_question.get("question_set_id"), 77, "Remote learning_file_id must be preserved as question_set_id") or failed
 	failed = not _assert_equal(typeof(remote_question.get("question_set_id")), TYPE_INT, "Remote question_set_id must be an integer") or failed
+	var exact_scope := {"grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition"}
+	var scoped_remote_question: Dictionary = provider._normalize_question({
+		"id": 92,
+		"question": "5 + 2 = ?",
+		"options": ["8", "7", "6", "9"],
+		"correct_answer": "7",
+		"learning_file_id": 77,
+		"grade_level": "Grade 1",
+		"difficulty": "Easy",
+		"math_topic": "Basic Addition",
+	})
+	failed = not _assert(provider._question_matches_scope(scoped_remote_question, exact_scope), "Remote question metadata must match the active exact scope.") or failed
+	var mismatched_question := scoped_remote_question.duplicate(true)
+	mismatched_question["topic"] = "Subtraction"
+	failed = not _assert(not provider._question_matches_scope(mismatched_question, exact_scope), "QuestionProvider must reject a response outside the active topic scope.") or failed
+	failed = not _assert_no_filename_scope_routing() or failed
+	failed = not _assert_scope_history(provider) or failed
 
 	var float_set_question := _normalize_question_with_learning_file_id(provider, 77.0)
 	failed = not _assert_equal(float_set_question.get("question_set_id"), 77, "Integral float learning_file_id must normalize to question_set_id") or failed
@@ -70,6 +87,34 @@ func _normalize_question_with_learning_file_id(provider: Node, learning_file_id:
 		"learning_file_id": learning_file_id,
 	})
 	return normalized if normalized is Dictionary else {}
+
+
+func _assert_no_filename_scope_routing() -> bool:
+	var provider_file := FileAccess.open("res://scripts/question_provider.gd", FileAccess.READ)
+	if provider_file == null:
+		return _assert(false, "QuestionProvider source must be readable")
+	var source := provider_file.get_as_text()
+	provider_file.close()
+	return _assert(not source.contains("resolved_path.find(\"?\")"), "QuestionProvider must not derive scope from source-file query text") \
+		and _assert(not source.contains("Set A") and not source.contains("Set B"), "QuestionProvider must not route by set labels")
+
+
+func _assert_scope_history(provider: Node) -> bool:
+	provider.set("_questions", [
+		{"id": "addition-1", "question": "1 + 1", "choices": ["1", "2"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition", "question_set_id": 77},
+		{"id": "addition-2", "question": "2 + 1", "choices": ["2", "3"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition", "question_set_id": 77},
+	])
+	provider.call("reset_history")
+	var first: Dictionary = provider.call("get_question")
+	var second: Dictionary = provider.call("get_question")
+	var unused_before_recycle: bool = String(first.get("id", "")) != String(second.get("id", ""))
+	provider.set("_questions", [
+		{"id": "subtraction-1", "question": "3 - 1", "choices": ["1", "2"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Subtraction", "question_set_id": 88},
+	])
+	provider.call("get_question")
+	var histories: Dictionary = provider.get("_history_by_scope")
+	return _assert(unused_before_recycle, "QuestionProvider must use an unused question before recycling within one exact scope") \
+		and _assert(histories.size() == 2, "Question history must be isolated by Grade, Difficulty, Topic, and active question set")
 
 
 func _assert_quiz_manager_wiring() -> bool:

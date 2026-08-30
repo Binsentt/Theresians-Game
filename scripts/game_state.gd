@@ -92,7 +92,12 @@ var tasks = [
 		"quest_text": "Challenge the player with math questions ",
 		"dialogue": ["You want to pass? Solve this first!"],
 		"next_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
-		"complete_after_battle": true
+		"complete_after_battle": true,
+		"question_scope": {
+			"grade": "Grade 1",
+			"difficulty": "Easy",
+			"topic": "Basic Addition",
+		}
 	}
 ]
 
@@ -437,6 +442,7 @@ func begin_encounter(options: Dictionary = {}) -> Dictionary:
 	if String(encounter_context.get("encounter_id", "")) == encounter_id \
 			and int(encounter_context.get("quest_checkpoint", -1)) == current_task_index:
 		preserved_retry_count = maxi(0, int(encounter_context.get("retry_count", 0)))
+	var requested_question_scope: Variant = options.get("question_scope", encounter_context.get("question_scope", {}))
 	var source_scene_path := _normalize_scene_path(String(options.get("source_scene_path", current_scene_path)))
 	var source_position := player_position
 	var requested_position: Variant = options.get("source_position", source_position)
@@ -451,7 +457,7 @@ func begin_encounter(options: Dictionary = {}) -> Dictionary:
 		"source_position": _vector2_to_dictionary(source_position),
 		"quest_checkpoint": clampi(int(options.get("quest_checkpoint", current_task_index)), 0, tasks.size()),
 		"retry_count": maxi(0, int(options.get("retry_count", preserved_retry_count))),
-		"question_scope": _normalize_question_scope(options.get("question_scope", {}), source_scene_path),
+		"question_scope": _normalize_question_scope(requested_question_scope, source_scene_path),
 	}
 	battle_active = true
 	if get_mode() != GameMode.BATTLE:

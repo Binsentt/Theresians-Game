@@ -8,6 +8,7 @@ const DEFAULT_SOURCE_PATH := "res://Data/questions.json"
 var _source_path: String = DEFAULT_SOURCE_PATH
 var _questions: Array[Dictionary] = []
 var _history: Array[String] = []
+var _history_by_scope: Dictionary = {}
 var _last_requested_id: String = ""
 
 
@@ -37,21 +38,16 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 
 	_questions.clear()
 	_history.clear()
+	_history_by_scope.clear()
 	_last_requested_id = ""
 	# Prefer API-backed questions when HttpApi is available; fall back to local JSON file
 	var http := get_node_or_null("/root/HttpApi")
 	if http != null:
-		# attempt to fetch published questions from backend
 		var params := _get_encounter_question_params()
-		# allow callers to pass grade/difficulty/topic via source path encoded query-like string
-		# e.g. res://Data/questions.json?grade=Grade%201
-		var qindex := resolved_path.find("?")
-		if qindex >= 0:
-			var qs := resolved_path.substr(qindex + 1, resolved_path.length())
-			for part in qs.split("&"):
-				if part.find("=") >= 0:
-					var kv: PackedStringArray = part.split("=")
-					params[kv[0]] = kv[1].uri_decode()
+		if not _has_exact_scope(params):
+			push_error("Remote question loading requires an explicit Grade, Difficulty, and Topic encounter scope.")
+			questions_loaded.emit(0)
+			return []
 		var result: Dictionary = await http.request_get("/api/game/questions", params)
 		if result.get("ok", false) and int(result.get("status", 0)) >= 200 and int(result.get("status", 0)) < 300:
 			var body: Variant = result.get("body", {})
@@ -60,12 +56,15 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 				for entry in question_entries:
 					if entry is Dictionary:
 						var normalized := _normalize_question(entry)
-						if not normalized.is_empty():
+						if not normalized.is_empty() and _question_matches_scope(normalized, params):
 							_questions.append(normalized)
+						elif not normalized.is_empty():
+							push_error("Rejected a remote question outside the active Grade, Difficulty, and Topic scope.")
 			questions_loaded.emit(_questions.size())
-			if _questions.size() > 0:
-				return _questions
-		# if API failed or returned empty, continue to local file fallback
+			return _questions
+		# A failed exact-scope request must never widen into a local or unrelated pool.
+		questions_loaded.emit(0)
+		return []
 
 	var file := FileAccess.open(resolved_path, FileAccess.READ)
 	if file == null:
@@ -105,9 +104,23 @@ func _get_encounter_question_params() -> Dictionary:
 		return params
 	for key in ["grade", "difficulty", "topic"]:
 		var value := String(scope.get(key, "")).strip_edges()
-		if not value.is_empty():
-			params[key] = value
+		if value.is_empty():
+			return {}
+		params[key] = value
 	return params
+
+
+func _has_exact_scope(scope: Dictionary) -> bool:
+	for key in ["grade", "difficulty", "topic"]:
+		if String(scope.get(key, "")).strip_edges().is_empty():
+			return false
+	return true
+
+
+func _question_matches_scope(question: Dictionary, scope: Dictionary) -> bool:
+	return String(question.get("grade", "")).strip_edges() == String(scope.get("grade", "")).strip_edges() \
+		and String(question.get("difficulty", "")).strip_edges() == String(scope.get("difficulty", "")).strip_edges() \
+		and String(question.get("topic", "")).strip_edges() == String(scope.get("topic", "")).strip_edges()
 
 
 func get_question(filters: Dictionary = {}) -> Dictionary:
@@ -117,28 +130,54 @@ func get_question(filters: Dictionary = {}) -> Dictionary:
 
 	candidates.shuffle()
 	for candidate in candidates:
-			var id := str(candidate.get("id", ""))
-			if id.is_empty():
-				continue
-			if _history.has(id) and _history.size() >= candidates.size():
-				continue
-			_history.append(id)
-			if _history.size() > 32:
-				_history.remove_at(0)
-			_last_requested_id = id
-			var question_copy := _clone_question(candidate)
-			question_requested.emit(question_copy)
-			return question_copy
+		var id := str(candidate.get("id", ""))
+		if id.is_empty():
+			continue
+		var history_key := _question_history_key(candidate)
+		var history := _scope_history(history_key)
+		if history.has(id):
+			continue
+		history.append(id)
+		if history.size() > 32:
+			history.remove_at(0)
+		_history_by_scope[history_key] = history
+		_history = history.duplicate()
+		_last_requested_id = id
+		var question_copy := _clone_question(candidate)
+		question_requested.emit(question_copy)
+		return question_copy
 
 	var fallback := _clone_question(candidates[0])
-	_history.append(str(fallback.get("id", "")))
+	var fallback_history_key := _question_history_key(fallback)
+	var fallback_history := _scope_history(fallback_history_key)
+	fallback_history.append(str(fallback.get("id", "")))
+	_history_by_scope[fallback_history_key] = fallback_history
+	_history = fallback_history.duplicate()
 	_last_requested_id = str(fallback.get("id", ""))
 	return fallback
 
 
 func reset_history() -> void:
 	_history.clear()
+	_history_by_scope.clear()
 	_last_requested_id = ""
+
+
+func _scope_history(history_key: String) -> Array[String]:
+	var history: Array[String] = []
+	for value in _history_by_scope.get(history_key, []):
+		history.append(String(value))
+	return history
+
+
+func _question_history_key(question: Dictionary) -> String:
+	var question_set_id := String(question.get("question_set_id", "local")).strip_edges()
+	return "%s|%s|%s|%s" % [
+		String(question.get("grade", "")).strip_edges(),
+		String(question.get("difficulty", "")).strip_edges(),
+		String(question.get("topic", "")).strip_edges(),
+		question_set_id,
+	]
 
 
 func _filter_questions(filters: Dictionary) -> Array[Dictionary]:
@@ -227,6 +266,12 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 	for key in ["grade", "grade_level", "difficulty", "topic", "math_topic", "source"]:
 		if question.has(key):
 			normalized[key] = question.get(key)
+	var normalized_grade := String(normalized.get("grade", normalized.get("grade_level", ""))).strip_edges()
+	var normalized_topic := String(normalized.get("topic", normalized.get("math_topic", ""))).strip_edges()
+	if not normalized_grade.is_empty():
+		normalized["grade"] = normalized_grade
+	if not normalized_topic.is_empty():
+		normalized["topic"] = normalized_topic
 
 	return normalized
 
