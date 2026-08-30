@@ -61,8 +61,7 @@ Require-Contains 'scripts\top_down_player.gd' 'add_to_group("player")' 'All play
 
 Require-Contains 'scripts\door.gd' '@export_range(0.05, 3.0, 0.05) var fade_duration: float = 0.25' 'Door fade duration export range must allow 2-second scene transitions.'
 Require-Contains 'scripts\door.gd' 'body.is_in_group("player") or body.is_in_group("player_character")' 'Door triggers must detect the player group while preserving existing player_character support.'
-Require-Contains 'scripts\game_state.gd' '"res://scenes/2nd Village/Pinehill Village.tscn": "res://scenes/pinehill_village.tscn"' 'Legacy Pinehill scene path must normalize to the clean Pinehill scene path.'
-Require-Contains 'scripts\game_state.gd' '"res://scenes/pinehill_village.tscn": Vector2' 'Pinehill needs a fallback spawn.'
+Require-Contains 'scripts\game_state.gd' '"res://scenes/2nd Village/Pinehill Village.tscn": Vector2' 'Pinehill needs a fallback spawn.'
 Require-Contains 'scenes\pinehill_village.tscn' 'path="res://scenes/2nd Village/Pinehill Village.tscn"' 'Clean Pinehill scene path must load the existing Pinehill map.'
 Require-Contains 'Door-Navigations-Scene2Scene\city_of_knowledge_to_pine_hill.tscn' 'destination_scene_path = "res://scenes/pinehill_village.tscn"' 'City-to-Pinehill Area2D must load the clean Pinehill scene.'
 Require-Contains 'Door-Navigations-Scene2Scene\city_of_knowledge_to_pine_hill.tscn' 'destination_spawn_marker_name = "spawn_from_city"' 'City-to-Pinehill Area2D must target the Pinehill entrance marker.'

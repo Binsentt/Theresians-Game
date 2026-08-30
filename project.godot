@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Capstone Theresians Quest_v6"
+config/name="Theresian's Quest"
 run/main_scene="res://scenes/loading_screen.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 boot_splash/image="res://Images/Loading Backgroud.png"

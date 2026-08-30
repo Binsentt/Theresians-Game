@@ -29,9 +29,16 @@ func _ensure_npc_collisions(root: Node) -> void:
 		var sprite := node as AnimatedSprite2D
 		if sprite == null:
 			continue
+		if _is_opt_in_decorative_wanderer(sprite):
+			continue
 		if not _is_npc_sprite(sprite):
 			continue
 		_ensure_foot_collision(sprite)
+
+
+func _is_opt_in_decorative_wanderer(sprite: AnimatedSprite2D) -> bool:
+	var parent := sprite.get_parent()
+	return parent is CharacterBody2D and parent.is_in_group("decorative_wanderer")
 
 func _ensure_foot_collision(sprite: AnimatedSprite2D) -> void:
 	var body := sprite.get_node_or_null("NpcBodyCollision") as StaticBody2D

@@ -17,7 +17,7 @@
 [ext_resource type="PackedScene" uid="uid://cbpfus553gqdn" path="res://objects/Outside-Object/stone-3.tscn" id="15_ckjcu"]
 [ext_resource type="Texture2D" uid="uid://dou875gq64uhr" path="res://Village/MetroCIty/Tiles.png" id="16_6v12j"]
 [ext_resource type="PackedScene" uid="uid://si8h8m3yi4ox" path="res://NPC/Npc/adult_male_npc.tscn" id="17_3y60n"]
-[ext_resource type="PackedScene" uid="uid://b35w41ukkg13t" path="res://NPC/Npc/city_npc.tscn" id="18_fnfvr"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/decorative_wandering_city_npc.tscn" id="18_fnfvr"]
 [ext_resource type="PackedScene" uid="uid://b1vtcdbt0g7qw" path="res://NPC/Npc/old_adult_women.tscn" id="19_emfti"]
 [ext_resource type="PackedScene" uid="uid://h8q5ql1v8fl1" path="res://NPC/Npc/old_npc.tscn" id="20_dtp6b"]
 [ext_resource type="PackedScene" uid="uid://qejvf1ks28ln" path="res://NPC/Npc/girl_npc.tscn" id="21_gdmg8"]

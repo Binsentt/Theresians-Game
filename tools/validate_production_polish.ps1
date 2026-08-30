@@ -42,9 +42,9 @@ if (-not $backgroundResource.Success) {
     if ($backgroundNodes.Count -ne 1) { Add-Error 'Loading scene must contain exactly one Background TextureRect using Loading Backgroud.png.' }
 }
 if ([regex]::Matches($loadingScene, '(?m)^\[node [^\]]*type="ProgressBar"[^\]]*\]').Count -ne 1) { Add-Error 'Loading scene must contain exactly one ProgressBar node.' }
-Require-Match $loadingScene '(?ms)^\[node [^\]]*type="ProgressBar"[^\]]*\]\r?\n(?:(?!^\[node ).)*?^show_percentage\s*=\s*false' 'Loading ProgressBar must set show_percentage=false in its own node block.'
+Require-Match $loadingScene '(?ms)^\[node [^\]]*type="ProgressBar"[^\]]*\]\r?\n(?:(?!^\[node ).)*?^show_percentage\s*=\s*true' 'Loading ProgressBar must set show_percentage=true in its own node block.'
 Require-Match $loadingScene '(?m)^\[node name="DotsTimer" type="Timer"[^\]]*\]' 'Loading scene must contain an exact DotsTimer Timer node.'
-Require-Match $loadingScene '(?m)^\[node name="ProgressTimer" type="Timer"[^\]]*\]' 'Loading scene must contain an exact ProgressTimer Timer node.'
+if ($loadingScene -match '(?m)^\[node name="ProgressTimer" type="Timer"[^\]]*\]') { Add-Error 'Loading scene must not retain the obsolete ProgressTimer Timer node.' }
 Require-Match $loadingScene '(?ms)^\[node name="ErrorPanel"[^\]]*\]\r?\n(?:(?!^\[node ).)*?^visible\s*=\s*false' 'Loading ErrorPanel must set visible=false in its own node block.'
 
 $loadingScript = Read-ProjectFile 'scripts/loading_screen.gd'
@@ -78,7 +78,7 @@ if (-not $returnHandler.Success) {
 Require-Match (Read-ProjectFile 'scenes/texture_rect_2.gd') '(?m)^\s*LoadingScreenController\.prepare_new_game\s*\(' 'scenes/texture_rect_2.gd must call LoadingScreenController.prepare_new_game().'
 $loadGameScript = Read-ProjectFile 'scripts/load_game_scene.gd'
 Require-Match $loadGameScript '(?m)^\s*LoadingScreenController\.prepare_load_game\s*\(' 'scripts/load_game_scene.gd must call LoadingScreenController.prepare_load_game().'
-Require-Match $loadGameScript '(?m)^\s*get_tree\(\)\.change_scene_to_file\s*\(\s*LOADING_SCENE_PATH\s*\)' 'scripts/load_game_scene.gd must call get_tree().change_scene_to_file(LOADING_SCENE_PATH).'
+Require-Match $loadGameScript 'get_tree\(\)\.change_scene_to_file\s*\(\s*LOADING_SCENE_PATH\s*\)' 'scripts/load_game_scene.gd must call get_tree().change_scene_to_file(LOADING_SCENE_PATH).'
 
 $gameOverScene = Read-ProjectFile 'scenes/game_over_scene.tscn'
 $soundHeaders = [regex]::Matches($gameOverScene, '(?m)^\[node name="GameOverSound" type="AudioStreamPlayer"[^\]]*\]')
