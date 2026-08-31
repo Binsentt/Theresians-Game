@@ -311,6 +311,9 @@ func _on_ids_next_pressed() -> void:
 		await _show_step(RegistrationStep.NAME_GRADE)
 		return
 
+	GameState.update_new_game_registration({
+		"learning_cycle": validation_result.get("learning_cycle", {})
+	})
 	_hide_validation()
 	await _show_step(RegistrationStep.NAME_GRADE)
 
@@ -345,7 +348,10 @@ func _validate_ids_with_backend() -> Dictionary:
 	if profile_body.get("should_block", false):
 		return {"ok": false, "error": String(profile_body.get("error", "Student ID already has an existing game profile. Please use Load Game."))}
 
-	return {"ok": true}
+	return {
+		"ok": true,
+		"learning_cycle": profile_body.get("learning_cycle", {}),
+	}
 
 func _registration_api_error(result: Dictionary, fallback: String) -> String:
 	var body: Variant = result.get("body", {})

@@ -44,6 +44,8 @@ func _run() -> void:
 	if previous_file != null:
 		previous_file.store_string(JSON.stringify({
 			"save_version": 5,
+			"student_id": "000123",
+			"parent_id": "654321",
 			"scene_path": TEST_SCENE,
 			"current_quest": "Previous Schema",
 			"current_task_index": 99,

@@ -17,7 +17,7 @@ signal playtime_warning(remaining_minutes: int)
 
 enum GameMode { EXPLORATION, DIALOGUE, CUTSCENE, BATTLE, MENU }
 
-const SAVE_VERSION := 7
+const SAVE_VERSION := 8
 const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
 const SAVE_DIRECTORY := "user://saves"
@@ -54,6 +54,8 @@ var gender := "male"
 var grade_level := ""
 var student_id := ""
 var parent_id := ""
+var learning_cycle_version: int = 0
+var learning_cycle_started_at: String = ""
 var _new_game_registration: Dictionary = {}
 
 var current_quest := DEFAULT_QUEST
@@ -226,7 +228,8 @@ func begin_new_game_registration() -> void:
 		"student_id": "",
 		"parent_id": "",
 		"student_name": "",
-		"grade": ""
+		"grade": "",
+		"learning_cycle": {}
 	}
 
 
@@ -235,7 +238,7 @@ func get_new_game_registration() -> Dictionary:
 
 
 func update_new_game_registration(values: Dictionary) -> void:
-	for key in ["gender", "student_id", "parent_id", "student_name", "grade"]:
+	for key in ["gender", "student_id", "parent_id", "student_name", "grade", "learning_cycle"]:
 		if values.has(key):
 			_new_game_registration[key] = values[key]
 
@@ -262,6 +265,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	grade_level = String(profile.get("grade_level", "")).strip_edges()
 	student_id = String(profile.get("student_id", ""))
 	parent_id = String(profile.get("parent_id", ""))
+	set_learning_cycle(profile.get("learning_cycle", {}))
 
 	current_quest = DEFAULT_QUEST
 	current_lives = max_lives
@@ -280,6 +284,46 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	quest_changed.emit(current_quest)
 	if emit_progression_session_reset:
 		progression_session_reset.emit("new_game")
+
+
+func set_learning_cycle(descriptor: Variant) -> bool:
+	if not (descriptor is Dictionary):
+		return false
+	var raw_version: Variant = descriptor.get("version", 0)
+	var normalized_version: Variant = _normalize_learning_cycle_version(raw_version)
+	if normalized_version == null:
+		return false
+	learning_cycle_version = int(normalized_version)
+	var raw_started_at: Variant = descriptor.get("started_at", "")
+	learning_cycle_started_at = raw_started_at.strip_edges() if raw_started_at is String else ""
+	return true
+
+
+func _normalize_learning_cycle_version(raw_version: Variant) -> Variant:
+	if raw_version is int:
+		if raw_version < 0:
+			return null
+		return raw_version
+	if raw_version is float:
+		if raw_version < 0.0 or not is_equal_approx(raw_version, round(raw_version)):
+			return null
+		return int(raw_version)
+	if raw_version is String:
+		var version_text: String = String(raw_version).strip_edges()
+		if version_text.is_empty() or not version_text.is_valid_int():
+			return null
+		var parsed_version: int = version_text.to_int()
+		if parsed_version < 0:
+			return null
+		return parsed_version
+	return null
+
+
+func get_learning_cycle_descriptor() -> Dictionary:
+	return {
+		"version": learning_cycle_version,
+		"started_at": learning_cycle_started_at,
+	}
 
 
 func configure_playtime_allowance(response_body: Dictionary, reset_warning_state: bool = false) -> void:
@@ -405,7 +449,8 @@ func finalize_new_game_registration() -> bool:
 		"gender": String(values.get("gender", "")).to_lower(),
 		"student_id": String(values.get("student_id", "")),
 		"parent_id": String(values.get("parent_id", "")),
-		"grade_level": String(values.get("grade", ""))
+		"grade_level": String(values.get("grade", "")),
+		"learning_cycle": values.get("learning_cycle", {})
 	}, false)
 	clear_new_game_registration()
 	return true
@@ -612,6 +657,8 @@ func build_save_data() -> Dictionary:
 		"grade_level": grade_level,
 		"student_id": student_id,
 		"parent_id": parent_id,
+		"learning_cycle_version": learning_cycle_version,
+		"learning_cycle_started_at": learning_cycle_started_at,
 		"current_quest": current_quest,
 		"scene_path": current_scene_path,
 		"current_map": current_map,
@@ -650,9 +697,10 @@ func list_saves() -> Array[Dictionary]:
 		if not directory.current_is_dir() and file_name.ends_with(".json"):
 			var save_path := SAVE_DIRECTORY + "/" + file_name
 			var save_data := _read_save_file(save_path)
-			if not save_data.is_empty():
-				save_data["save_path"] = save_path
-				saves.append(save_data)
+			if save_data.is_empty():
+				saves.append(_build_unavailable_save_entry(save_path, "This save file is malformed or unavailable."))
+			else:
+				saves.append(_prepare_save_entry(save_data, save_path))
 		file_name = directory.get_next()
 
 	directory.list_dir_end()
@@ -661,8 +709,8 @@ func list_saves() -> Array[Dictionary]:
 
 
 func load_save(path: String, emit_progression_session_reset: bool = true) -> Dictionary:
-	var data := _read_save_file(path)
-	if data.is_empty():
+	var data := peek_save_data(path)
+	if data.is_empty() or not bool(data.get("loadable", false)):
 		return {}
 
 	apply_save_data(data, emit_progression_session_reset)
@@ -670,7 +718,21 @@ func load_save(path: String, emit_progression_session_reset: bool = true) -> Dic
 	return data
 
 func peek_save_data(path: String) -> Dictionary:
-	return _read_save_file(path)
+	var save_path := _validated_save_path(path)
+	if save_path.is_empty() or not FileAccess.file_exists(save_path):
+		return {}
+	var data := _read_save_file(save_path)
+	if data.is_empty():
+		return _build_unavailable_save_entry(save_path, "This save file is malformed or unavailable.")
+	return _prepare_save_entry(data, save_path)
+
+
+func delete_save(path: String) -> bool:
+	var save_path := _validated_save_path(path)
+	if save_path.is_empty() or not FileAccess.file_exists(save_path):
+		return false
+
+	return DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path)) == OK
 
 
 func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = true) -> void:
@@ -680,6 +742,10 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	grade_level = String(data.get("grade_level", ""))
 	student_id = String(data.get("student_id", ""))
 	parent_id = String(data.get("parent_id", ""))
+	set_learning_cycle({
+		"version": int(data.get("learning_cycle_version", 0)),
+		"started_at": String(data.get("learning_cycle_started_at", "")),
+	})
 
 	current_quest = String(data.get("current_quest", DEFAULT_QUEST))
 	current_scene_path = _normalize_scene_path(String(data.get("scene_path", START_SCENE_PATH)))
@@ -964,13 +1030,111 @@ func _read_save_file(save_path: String) -> Dictionary:
 	if file == null:
 		return {}
 
-	var parsed = JSON.parse_string(file.get_as_text())
+	var json := JSON.new()
+	var parse_error := json.parse(file.get_as_text())
 	file.close()
 
-	if parsed is Dictionary:
-		return parsed
+	if parse_error == OK and json.data is Dictionary:
+		return json.data
 
 	return {}
+
+
+func _prepare_save_entry(data: Dictionary, save_path: String) -> Dictionary:
+	var prepared := data.duplicate(true)
+	prepared["save_path"] = save_path
+	prepared["player_name"] = String(prepared.get("player_name", "Unknown")).strip_edges()
+	if String(prepared.get("player_name", "")).is_empty():
+		prepared["player_name"] = "Unknown"
+	prepared["gender"] = String(prepared.get("gender", "male")).to_lower()
+	prepared["grade_level"] = String(prepared.get("grade_level", ""))
+	prepared["current_quest"] = String(prepared.get("current_quest", DEFAULT_QUEST))
+	prepared["save_date"] = String(prepared.get("save_date", "----/--/--"))
+	prepared["save_time"] = String(prepared.get("save_time", "--:--:--"))
+	prepared["save_timestamp"] = int(prepared.get("save_timestamp", 0))
+	prepared["learning_cycle_version"] = maxi(0, int(prepared.get("learning_cycle_version", 0)))
+	prepared["learning_cycle_started_at"] = String(prepared.get("learning_cycle_started_at", "")).strip_edges()
+	var scene_path := _normalize_scene_path(String(prepared.get("scene_path", "")).strip_edges())
+	if scene_path.is_empty():
+		scene_path = START_SCENE_PATH
+	prepared["scene_path"] = scene_path
+
+	var load_error := _get_save_load_error(prepared)
+	prepared["loadable"] = load_error.is_empty()
+	prepared["save_valid"] = load_error.is_empty()
+	prepared["save_error"] = load_error
+	return prepared
+
+
+func annotate_save_learning_cycle(data: Dictionary, descriptor: Dictionary) -> Dictionary:
+	var prepared := _prepare_save_entry(data, String(data.get("save_path", "")))
+	if not bool(prepared.get("loadable", false)):
+		return prepared
+	if not set_learning_cycle_descriptor_is_valid(descriptor):
+		prepared["loadable"] = false
+		prepared["save_valid"] = false
+		prepared["save_error"] = "Unable to verify Learning Cycle. Connect to continue."
+		return prepared
+	var saved_version := maxi(0, int(prepared.get("learning_cycle_version", 0)))
+	var current_version := maxi(0, int(descriptor.get("version", 0)))
+	if saved_version != current_version:
+		prepared["loadable"] = false
+		prepared["save_valid"] = false
+		prepared["save_error"] = "Previous Learning Cycle"
+		return prepared
+	prepared["loadable"] = true
+	prepared["save_valid"] = true
+	prepared["save_error"] = ""
+	return prepared
+
+
+func set_learning_cycle_descriptor_is_valid(descriptor: Variant) -> bool:
+	if not (descriptor is Dictionary):
+		return false
+	var raw_version: Variant = descriptor.get("version", null)
+	return _normalize_learning_cycle_version(raw_version) != null
+
+
+func _build_unavailable_save_entry(save_path: String, message: String) -> Dictionary:
+	return {
+		"save_path": save_path,
+		"player_name": "Unknown",
+		"gender": "male",
+		"grade_level": "",
+		"current_quest": DEFAULT_QUEST,
+		"save_date": "----/--/--",
+		"save_time": "--:--:--",
+		"save_timestamp": 0,
+		"scene_path": "",
+		"loadable": false,
+		"save_valid": false,
+		"save_error": message,
+	}
+
+
+func _get_save_load_error(data: Dictionary) -> String:
+	if not is_valid_six_digit_id(String(data.get("student_id", "")).strip_edges()):
+		return "This save is missing a valid Student ID and cannot be loaded."
+	if not is_valid_six_digit_id(String(data.get("parent_id", "")).strip_edges()):
+		return "This save is missing a valid Parent ID and cannot be loaded."
+	var scene_path := String(data.get("scene_path", "")).strip_edges()
+	if scene_path.is_empty() or not ResourceLoader.exists(scene_path):
+		return "This save references an unavailable game scene and cannot be loaded."
+	return ""
+
+
+func _validated_save_path(path: String) -> String:
+	var requested_path := path.strip_edges()
+	var save_prefix := SAVE_DIRECTORY + "/"
+	if not requested_path.begins_with(save_prefix):
+		return ""
+
+	var file_name := requested_path.get_file()
+	var relative_path := requested_path.substr(save_prefix.length())
+	if file_name.is_empty() or file_name != relative_path or not file_name.ends_with(".json"):
+		return ""
+
+	return save_prefix + file_name
 
 
 func _dictionary_to_vector2(value: Variant) -> Vector2:
