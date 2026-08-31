@@ -44,7 +44,6 @@ func _apply_save_data(save_data: Dictionary) -> void:
 	availability_label.visible = not _loadable
 	availability_label.text = String(save_data.get("save_error", "This save is unavailable. Delete it or create a new save."))
 	load_button.disabled = not _loadable
-
 func _on_load_pressed() -> void:
 	if not _loadable:
 		return

@@ -1079,7 +1079,7 @@ shape = SubResource("RectangleShape2D_0v1wo")
 
 [node name="TaskDialogAdapter" type="Node" parent="Bandits/BanditTaskTrigger" unique_id=1823517240]
 script = ExtResource("30_taskdialog")
-quest_ui_path = NodePath("../../CanvasLayer/Panel")
+quest_ui_path = NodePath("../../../CanvasLayer/Panel")
 require_task_index = 2
 
 [node name="Bandits2" parent="." unique_id=1778313031 instance=ExtResource("23_p077x")]

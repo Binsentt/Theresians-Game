@@ -29,7 +29,6 @@ func _ready() -> void:
 	if not return_button.pressed.is_connected(_on_return_button_pressed):
 		return_button.pressed.connect(_on_return_button_pressed)
 
-
 func _process(_delta: float) -> void:
 	_update_playtime_label()
 

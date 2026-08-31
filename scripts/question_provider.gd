@@ -14,8 +14,22 @@ var _last_requested_id: String = ""
 
 
 func _ready() -> void:
-	# Call async load_questions without awaiting; it will emit signal when done
+	# An API-backed pool is requested by QuizManager after a real encounter starts.
+	# Do not manufacture a fail-closed error during app startup before that context exists.
+	if _should_wait_for_encounter_context():
+		return
+	# Call async load_questions without awaiting; it will emit signal when done.
 	load_questions.call_deferred(_source_path)
+
+
+func _should_wait_for_encounter_context() -> bool:
+	if get_node_or_null("/root/HttpApi") == null:
+		return false
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state == null or not game_state.has_method("get_active_encounter_context"):
+		return false
+	var encounter_context: Variant = game_state.call("get_active_encounter_context")
+	return encounter_context is Dictionary and encounter_context.is_empty()
 
 
 func set_source_path(path: String) -> void:
@@ -44,17 +58,11 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 	# Prefer API-backed questions when HttpApi is available; fall back to local JSON file
 	var http := get_node_or_null("/root/HttpApi")
 	if http != null:
-		# attempt to fetch published questions from backend
 		var params := _get_encounter_question_params()
-		# allow callers to pass grade/difficulty/topic via source path encoded query-like string
-		# e.g. res://Data/questions.json?grade=Grade%201
-		var qindex := resolved_path.find("?")
-		if qindex >= 0:
-			var qs := resolved_path.substr(qindex + 1, resolved_path.length())
-			for part in qs.split("&"):
-				if part.find("=") >= 0:
-					var kv: PackedStringArray = part.split("=")
-					params[kv[0]] = kv[1].uri_decode()
+		if not _has_exact_scope(params):
+			push_error("Remote question loading requires an explicit Grade, Difficulty, and Topic encounter scope.")
+			questions_loaded.emit(0)
+			return []
 		var result: Dictionary = await http.request_get("/api/game/questions", params)
 		if result.get("ok", false) and int(result.get("status", 0)) >= 200 and int(result.get("status", 0)) < 300:
 			var body: Variant = result.get("body", {})
@@ -63,12 +71,15 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 				for entry in question_entries:
 					if entry is Dictionary:
 						var normalized := _normalize_question(entry)
-						if not normalized.is_empty():
+						if not normalized.is_empty() and _question_matches_scope(normalized, params):
 							_questions.append(normalized)
+						elif not normalized.is_empty():
+							push_error("Rejected a remote question outside the active Grade, Difficulty, and Topic scope.")
 			questions_loaded.emit(_questions.size())
-			if _questions.size() > 0:
-				return _questions
-		# if API failed or returned empty, continue to local file fallback
+			return _questions
+		# A failed exact-scope request must never widen into a local or unrelated pool.
+		questions_loaded.emit(0)
+		return []
 
 	var file := FileAccess.open(resolved_path, FileAccess.READ)
 	if file == null:
@@ -106,11 +117,37 @@ func _get_encounter_question_params() -> Dictionary:
 	var scope: Variant = game_state.call("get_encounter_question_scope")
 	if not (scope is Dictionary):
 		return params
-	for key in ["grade", "difficulty", "topic"]:
-		var value := String(scope.get(key, "")).strip_edges()
-		if not value.is_empty():
-			params[key] = value
+	for key in ["grade", "difficulty"]:
+		var value := str(scope.get(key, "")).strip_edges()
+		if value.is_empty():
+			return {}
+		params[key] = value
+	var topic_id := str(scope.get("topic_id", "")).strip_edges()
+	if not topic_id.is_empty():
+		params["topic_id"] = topic_id
+		return params
+	var topic := str(scope.get("topic", "")).strip_edges()
+	if topic.is_empty():
+		return {}
+	params["topic"] = topic
 	return params
+
+
+func _has_exact_scope(scope: Dictionary) -> bool:
+	for key in ["grade", "difficulty"]:
+		if str(scope.get(key, "")).strip_edges().is_empty():
+			return false
+	return not str(scope.get("topic_id", scope.get("topic", ""))).strip_edges().is_empty()
+
+
+func _question_matches_scope(question: Dictionary, scope: Dictionary) -> bool:
+	if str(question.get("grade", "")).strip_edges() != str(scope.get("grade", "")).strip_edges() \
+		or str(question.get("difficulty", "")).strip_edges() != str(scope.get("difficulty", "")).strip_edges():
+		return false
+	var scoped_topic_id := str(scope.get("topic_id", "")).strip_edges()
+	if not scoped_topic_id.is_empty():
+		return str(question.get("topic_id", "")).strip_edges() == scoped_topic_id
+	return str(question.get("topic", "")).strip_edges() == str(scope.get("topic", "")).strip_edges()
 
 
 func get_question(filters: Dictionary = {}) -> Dictionary:
@@ -136,6 +173,23 @@ func reset_history() -> void:
 	_last_requested_id = ""
 
 
+func _scope_history(history_key: String) -> Array[String]:
+	var history: Array[String] = []
+	for value in _history_by_scope.get(history_key, []):
+		history.append(str(value))
+	return history
+
+
+func _question_history_key(question: Dictionary) -> String:
+	var question_set_id := str(question.get("question_set_id", "local")).strip_edges()
+	return "%s|%s|%s|%s" % [
+		str(question.get("grade", "")).strip_edges(),
+		str(question.get("difficulty", "")).strip_edges(),
+		str(question.get("topic_id", question.get("topic", ""))).strip_edges(),
+		question_set_id,
+	]
+
+
 func _filter_questions(filters: Dictionary) -> Array[Dictionary]:
 	var candidates: Array[Dictionary] = []
 	for question in _questions:
@@ -153,6 +207,11 @@ func _filter_questions(filters: Dictionary) -> Array[Dictionary]:
 			var topic_value := str(filters.get("topic", "")).strip_edges()
 			var question_topic := _question_topic(question)
 			if not topic_value.is_empty() and question_topic != topic_value:
+				matches = false
+		if matches and filters.has("topic_id"):
+			var topic_id_value := str(filters.get("topic_id", ""))
+			var question_topic_id := str(question.get("topic_id", ""))
+			if not topic_id_value.is_empty() and question_topic_id != topic_id_value:
 				matches = false
 		if matches and filters.has("difficulty"):
 			var requested_difficulty := str(filters.get("difficulty", "")).strip_edges()
@@ -365,9 +424,18 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 			normalized["question_set_id"] = question_set_id
 
 	# optional metadata passthrough
-	for key in ["grade", "grade_level", "difficulty", "topic", "math_topic", "source"]:
+	for key in ["grade", "grade_level", "difficulty", "topic_id", "topic", "math_topic", "source"]:
 		if question.has(key):
 			normalized[key] = question.get(key)
+	var normalized_grade := str(normalized.get("grade", normalized.get("grade_level", ""))).strip_edges()
+	var normalized_topic := str(normalized.get("topic", normalized.get("math_topic", ""))).strip_edges()
+	var normalized_topic_id := str(normalized.get("topic_id", "")).strip_edges().to_lower()
+	if not normalized_grade.is_empty():
+		normalized["grade"] = normalized_grade
+	if not normalized_topic.is_empty():
+		normalized["topic"] = normalized_topic
+	if not normalized_topic_id.is_empty():
+		normalized["topic_id"] = normalized_topic_id
 
 	return normalized
 

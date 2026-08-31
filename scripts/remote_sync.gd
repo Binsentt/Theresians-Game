@@ -177,8 +177,6 @@ func _is_activity_acknowledged(event_key: String) -> bool:
 func _is_activity_lease_rejected(result: Dictionary) -> bool:
 	var status := int(result.get("status", 0))
 	return status == 401 or status == 403
-
-
 func _apply_learning_cycle(response_body: Variant) -> Dictionary:
 	if not (response_body is Dictionary):
 		return {}
@@ -540,6 +538,7 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		"student_name": GameState.player_name,
 		"grade_level": GameState.grade_level,
 		"difficulty": String(question.get("difficulty", "Unknown")).strip_edges(),
+		"topic_id": String(question.get("topic_id", "")).strip_edges(),
 		"math_topic": String(question.get("topic", question.get("math_topic", ""))).strip_edges(),
 		"score": 1 if is_correct else 0,
 		"total_items": 1,
@@ -598,10 +597,28 @@ func _load_pending() -> Array:
 	if file:
 		var text := file.get_as_text()
 		file.close()
-		var parsed: Variant = JSON.parse_string(text)
-		if parsed is Array:
-			pending = parsed
+		pending = _normalize_pending_queue_payload(JSON.parse_string(text))
 	return pending
+
+func _normalize_pending_queue_payload(payload: Variant) -> Array:
+	var queue: Array = []
+	if payload is Array:
+		queue = payload
+	elif payload is Dictionary:
+		var wrapper_error: Variant = payload.get("error", null)
+		var wrapper_result: Variant = payload.get("result", null)
+		if wrapper_error == OK and wrapper_result is Array:
+			queue = wrapper_result
+	if not _is_valid_pending_queue(queue):
+		print("RemoteSync: ignoring malformed pending queue payload.")
+		return []
+	return queue
+
+func _is_valid_pending_queue(queue: Array) -> bool:
+	for item in queue:
+		if not item is Dictionary:
+			return false
+	return true
 
 func _flush_pending() -> void:
 	var http := get_node_or_null("/root/HttpApi")

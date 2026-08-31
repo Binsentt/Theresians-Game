@@ -32,6 +32,24 @@ func _run() -> void:
 	})
 	failed = not _assert_equal(remote_question.get("question_set_id"), 77, "Remote learning_file_id must be preserved as question_set_id") or failed
 	failed = not _assert_equal(typeof(remote_question.get("question_set_id")), TYPE_INT, "Remote question_set_id must be an integer") or failed
+	var exact_scope := {"grade": "Grade 1", "difficulty": "Easy", "topic_id": "basic_addition", "topic": "Basic Addition"}
+	var scoped_remote_question: Dictionary = provider._normalize_question({
+		"id": 92,
+		"question": "5 + 2 = ?",
+		"options": ["8", "7", "6", "9"],
+		"correct_answer": "7",
+		"learning_file_id": 77,
+		"grade_level": "Grade 1",
+		"difficulty": "Easy",
+		"topic_id": "basic_addition",
+		"math_topic": "Basic Addition",
+	})
+	failed = not _assert(provider._question_matches_scope(scoped_remote_question, exact_scope), "Remote question metadata must match the active exact scope.") or failed
+	var mismatched_question := scoped_remote_question.duplicate(true)
+	mismatched_question["topic_id"] = "subtraction"
+	failed = not _assert(not provider._question_matches_scope(mismatched_question, exact_scope), "QuestionProvider must reject a response outside the active topic scope.") or failed
+	failed = not _assert_no_filename_scope_routing() or failed
+	failed = not _assert_scope_history(provider) or failed
 
 	var float_set_question := _normalize_question_with_learning_file_id(provider, 77.0)
 	failed = not _assert_equal(float_set_question.get("question_set_id"), 77, "Integral float learning_file_id must normalize to question_set_id") or failed
@@ -70,6 +88,37 @@ func _normalize_question_with_learning_file_id(provider: Node, learning_file_id:
 		"learning_file_id": learning_file_id,
 	})
 	return normalized if normalized is Dictionary else {}
+
+
+func _assert_no_filename_scope_routing() -> bool:
+	var provider_file := FileAccess.open("res://scripts/question_provider.gd", FileAccess.READ)
+	if provider_file == null:
+		return _assert(false, "QuestionProvider source must be readable")
+	var source := provider_file.get_as_text()
+	provider_file.close()
+	return _assert(not source.contains("resolved_path.find(\"?\")"), "QuestionProvider must not derive scope from source-file query text") \
+		and _assert(not source.contains("Set A") and not source.contains("Set B"), "QuestionProvider must not route by set labels")
+
+
+func _assert_scope_history(provider: Node) -> bool:
+	var exact_scope := {"grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition"}
+	var addition_questions: Array[Dictionary] = [
+		{"id": "addition-1", "question": "1 + 1", "choices": ["1", "2"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition", "question_set_id": 77},
+		{"id": "addition-2", "question": "2 + 1", "choices": ["2", "3"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition", "question_set_id": 77},
+	]
+	provider.set("_questions", addition_questions)
+	provider.call("reset_history")
+	var first: Dictionary = provider.call("get_question", exact_scope)
+	var second: Dictionary = provider.call("get_question", exact_scope)
+	var unused_before_recycle: bool = str(first.get("id", "")) != str(second.get("id", ""))
+	var subtraction_questions: Array[Dictionary] = [
+		{"id": "subtraction-1", "question": "3 - 1", "choices": ["1", "2"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Subtraction", "question_set_id": 88},
+	]
+	provider.set("_questions", subtraction_questions)
+	provider.call("get_question", {"grade": "Grade 1", "difficulty": "Easy", "topic": "Subtraction"})
+	var histories: Dictionary = provider.get("_history_by_scope")
+	return _assert(unused_before_recycle, "QuestionProvider must use an unused question before recycling within one exact scope") \
+		and _assert(histories.size() == 2, "Question history must be isolated by Grade, Difficulty, Topic, and active question set")
 
 
 func _assert_quiz_manager_wiring() -> bool:
@@ -113,6 +162,7 @@ func _assert_recorded_payloads(remote_sync: Node) -> bool:
 
 	remote_sync.call("record_question_attempt", {
 		"question_set_id": 77,
+		"topic_id": "addition",
 		"topic": "Addition",
 		"difficulty": "Easy",
 	}, false)
@@ -128,6 +178,7 @@ func _assert_recorded_payloads(remote_sync: Node) -> bool:
 		var fallback_payload: Dictionary = http_stub.requests[1].get("payload", {})
 		failed = not _assert_equal(http_stub.requests[0].get("path"), "/api/game/result", "Question attempts must use the game-result endpoint") or failed
 		failed = not _assert_equal(remote_payload.get("question_set_id"), 77, "Positive question_set_id must be included in the result payload") or failed
+		failed = not _assert_equal(remote_payload.get("topic_id"), "addition", "Canonical question topic_id must be included in the result payload") or failed
 		failed = not _assert(not fallback_payload.has("question_set_id"), "Result payloads must omit missing question_set_id values") or failed
 		failed = not _assert_equal(remote_payload.get("playtime_session_id"), 501, "Question results must include the active server playtime session") or failed
 		failed = not _assert_equal(remote_payload.get("playtime_session_credential"), "test-server-issued-lease", "Question results must include the issued server lease credential") or failed

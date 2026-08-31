@@ -318,6 +318,9 @@ func _on_ids_next_pressed() -> void:
 		_show_validation(String(canonical_result.get("error", "Unable to verify the linked Student profile. Please try again.")))
 		return
 
+	GameState.update_new_game_registration({
+		"learning_cycle": validation_result.get("learning_cycle", {})
+	})
 	_hide_validation()
 	await _show_step(RegistrationStep.NAME_GRADE)
 
