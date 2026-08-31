@@ -379,10 +379,28 @@ func _load_pending() -> Array:
 	if file:
 		var text := file.get_as_text()
 		file.close()
-		var j = JSON.parse_string(text)
-		if j.error == OK and typeof(j.result) == TYPE_ARRAY:
-			pending = j.result
+		pending = _normalize_pending_queue_payload(JSON.parse_string(text))
 	return pending
+
+func _normalize_pending_queue_payload(payload: Variant) -> Array:
+	var queue: Array = []
+	if payload is Array:
+		queue = payload
+	elif payload is Dictionary:
+		var wrapper_error: Variant = payload.get("error", null)
+		var wrapper_result: Variant = payload.get("result", null)
+		if wrapper_error == OK and wrapper_result is Array:
+			queue = wrapper_result
+	if not _is_valid_pending_queue(queue):
+		print("RemoteSync: ignoring malformed pending queue payload.")
+		return []
+	return queue
+
+func _is_valid_pending_queue(queue: Array) -> bool:
+	for item in queue:
+		if not item is Dictionary:
+			return false
+	return true
 
 func _flush_pending() -> void:
 	var http := get_node_or_null("/root/HttpApi")
