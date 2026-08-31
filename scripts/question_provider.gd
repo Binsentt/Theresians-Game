@@ -13,8 +13,22 @@ var _last_requested_id: String = ""
 
 
 func _ready() -> void:
-	# Call async load_questions without awaiting; it will emit signal when done
+	# An API-backed pool is requested by QuizManager after a real encounter starts.
+	# Do not manufacture a fail-closed error during app startup before that context exists.
+	if _should_wait_for_encounter_context():
+		return
+	# Call async load_questions without awaiting; it will emit signal when done.
 	load_questions.call_deferred(_source_path)
+
+
+func _should_wait_for_encounter_context() -> bool:
+	if get_node_or_null("/root/HttpApi") == null:
+		return false
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state == null or not game_state.has_method("get_active_encounter_context"):
+		return false
+	var encounter_context: Variant = game_state.call("get_active_encounter_context")
+	return encounter_context is Dictionary and encounter_context.is_empty()
 
 
 func set_source_path(path: String) -> void:
