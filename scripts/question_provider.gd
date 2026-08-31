@@ -103,7 +103,7 @@ func _get_encounter_question_params() -> Dictionary:
 	if not (scope is Dictionary):
 		return params
 	for key in ["grade", "difficulty", "topic"]:
-		var value := String(scope.get(key, "")).strip_edges()
+		var value := str(scope.get(key, "")).strip_edges()
 		if value.is_empty():
 			return {}
 		params[key] = value
@@ -112,15 +112,15 @@ func _get_encounter_question_params() -> Dictionary:
 
 func _has_exact_scope(scope: Dictionary) -> bool:
 	for key in ["grade", "difficulty", "topic"]:
-		if String(scope.get(key, "")).strip_edges().is_empty():
+		if str(scope.get(key, "")).strip_edges().is_empty():
 			return false
 	return true
 
 
 func _question_matches_scope(question: Dictionary, scope: Dictionary) -> bool:
-	return String(question.get("grade", "")).strip_edges() == String(scope.get("grade", "")).strip_edges() \
-		and String(question.get("difficulty", "")).strip_edges() == String(scope.get("difficulty", "")).strip_edges() \
-		and String(question.get("topic", "")).strip_edges() == String(scope.get("topic", "")).strip_edges()
+	return str(question.get("grade", "")).strip_edges() == str(scope.get("grade", "")).strip_edges() \
+		and str(question.get("difficulty", "")).strip_edges() == str(scope.get("difficulty", "")).strip_edges() \
+		and str(question.get("topic", "")).strip_edges() == str(scope.get("topic", "")).strip_edges()
 
 
 func get_question(filters: Dictionary = {}) -> Dictionary:
@@ -166,16 +166,16 @@ func reset_history() -> void:
 func _scope_history(history_key: String) -> Array[String]:
 	var history: Array[String] = []
 	for value in _history_by_scope.get(history_key, []):
-		history.append(String(value))
+		history.append(str(value))
 	return history
 
 
 func _question_history_key(question: Dictionary) -> String:
-	var question_set_id := String(question.get("question_set_id", "local")).strip_edges()
+	var question_set_id := str(question.get("question_set_id", "local")).strip_edges()
 	return "%s|%s|%s|%s" % [
-		String(question.get("grade", "")).strip_edges(),
-		String(question.get("difficulty", "")).strip_edges(),
-		String(question.get("topic", "")).strip_edges(),
+		str(question.get("grade", "")).strip_edges(),
+		str(question.get("difficulty", "")).strip_edges(),
+		str(question.get("topic", "")).strip_edges(),
 		question_set_id,
 	]
 
@@ -266,8 +266,8 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 	for key in ["grade", "grade_level", "difficulty", "topic", "math_topic", "source"]:
 		if question.has(key):
 			normalized[key] = question.get(key)
-	var normalized_grade := String(normalized.get("grade", normalized.get("grade_level", ""))).strip_edges()
-	var normalized_topic := String(normalized.get("topic", normalized.get("math_topic", ""))).strip_edges()
+	var normalized_grade := str(normalized.get("grade", normalized.get("grade_level", ""))).strip_edges()
+	var normalized_topic := str(normalized.get("topic", normalized.get("math_topic", ""))).strip_edges()
 	if not normalized_grade.is_empty():
 		normalized["grade"] = normalized_grade
 	if not normalized_topic.is_empty():
