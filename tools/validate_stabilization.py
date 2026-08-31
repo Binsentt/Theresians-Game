@@ -36,22 +36,24 @@ ACTIVE_SCRIPTS = [
 ]
 
 FORBIDDEN_RUNTIME_TOKENS = [
-    "res://NPC/Enemy/",
     "res://scripts/battle_enemy.gd",
     "battle_name = ",
     "begin_overworld_battle",
 ]
 
 FORBIDDEN_ACTIVE_SCRIPT_TOKENS = [
-    "res://NPC/Enemy/",
     "res://scripts/battle_enemy.gd",
 ]
 
-LEGACY_FILES_THAT_MUST_BE_REMOVED = [
+# These Save/Load resources are active compatibility UI, not retired runtime files.
+REQUIRED_COMPATIBILITY_FILES = [
     "scenes/load_game_scene.tscn",
     "scripts/load_game_scene.gd",
     "ui/save_entry.tscn",
     "scripts/save_entry.gd",
+]
+
+LEGACY_FILES_THAT_MUST_BE_REMOVED = [
     "interiors/players_house.tscn",
     "interiors/npc_house_1.tscn",
     "interiors/hotel_interior.tscn",
@@ -83,6 +85,10 @@ def main() -> int:
         for token in FORBIDDEN_ACTIVE_SCRIPT_TOKENS:
             if token in script_text:
                 failures.append(f"Forbidden token {token!r} found in active script {relative_path}")
+
+    for relative_path in REQUIRED_COMPATIBILITY_FILES:
+        if not (ROOT / relative_path).exists():
+            failures.append(f"Missing required compatibility file: {relative_path}")
 
     for relative_path in LEGACY_FILES_THAT_MUST_BE_REMOVED:
         if (ROOT / relative_path).exists():

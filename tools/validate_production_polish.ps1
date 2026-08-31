@@ -78,7 +78,7 @@ if (-not $returnHandler.Success) {
 Require-Match (Read-ProjectFile 'scenes/texture_rect_2.gd') '(?m)^\s*LoadingScreenController\.prepare_new_game\s*\(' 'scenes/texture_rect_2.gd must call LoadingScreenController.prepare_new_game().'
 $loadGameScript = Read-ProjectFile 'scripts/load_game_scene.gd'
 Require-Match $loadGameScript '(?m)^\s*LoadingScreenController\.prepare_load_game\s*\(' 'scripts/load_game_scene.gd must call LoadingScreenController.prepare_load_game().'
-Require-Match $loadGameScript '(?m)^\s*get_tree\(\)\.change_scene_to_file\s*\(\s*LOADING_SCENE_PATH\s*\)' 'scripts/load_game_scene.gd must call get_tree().change_scene_to_file(LOADING_SCENE_PATH).'
+Require-Match $loadGameScript '(?m)^\s*(?:var\s+\w+(?:\s*:\s*\w+)?\s*=\s*)?get_tree\(\)\.change_scene_to_file\s*\(\s*LOADING_SCENE_PATH\s*\)' 'scripts/load_game_scene.gd must call get_tree().change_scene_to_file(LOADING_SCENE_PATH), directly or through its typed result variable.'
 
 $gameOverScene = Read-ProjectFile 'scenes/game_over_scene.tscn'
 $soundHeaders = [regex]::Matches($gameOverScene, '(?m)^\[node name="GameOverSound" type="AudioStreamPlayer"[^\]]*\]')
