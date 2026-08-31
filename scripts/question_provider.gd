@@ -102,25 +102,37 @@ func _get_encounter_question_params() -> Dictionary:
 	var scope: Variant = game_state.call("get_encounter_question_scope")
 	if not (scope is Dictionary):
 		return params
-	for key in ["grade", "difficulty", "topic"]:
+	for key in ["grade", "difficulty"]:
 		var value := str(scope.get(key, "")).strip_edges()
 		if value.is_empty():
 			return {}
 		params[key] = value
+	var topic_id := str(scope.get("topic_id", "")).strip_edges()
+	if not topic_id.is_empty():
+		params["topic_id"] = topic_id
+		return params
+	var topic := str(scope.get("topic", "")).strip_edges()
+	if topic.is_empty():
+		return {}
+	params["topic"] = topic
 	return params
 
 
 func _has_exact_scope(scope: Dictionary) -> bool:
-	for key in ["grade", "difficulty", "topic"]:
+	for key in ["grade", "difficulty"]:
 		if str(scope.get(key, "")).strip_edges().is_empty():
 			return false
-	return true
+	return not str(scope.get("topic_id", scope.get("topic", ""))).strip_edges().is_empty()
 
 
 func _question_matches_scope(question: Dictionary, scope: Dictionary) -> bool:
-	return str(question.get("grade", "")).strip_edges() == str(scope.get("grade", "")).strip_edges() \
-		and str(question.get("difficulty", "")).strip_edges() == str(scope.get("difficulty", "")).strip_edges() \
-		and str(question.get("topic", "")).strip_edges() == str(scope.get("topic", "")).strip_edges()
+	if str(question.get("grade", "")).strip_edges() != str(scope.get("grade", "")).strip_edges() \
+		or str(question.get("difficulty", "")).strip_edges() != str(scope.get("difficulty", "")).strip_edges():
+		return false
+	var scoped_topic_id := str(scope.get("topic_id", "")).strip_edges()
+	if not scoped_topic_id.is_empty():
+		return str(question.get("topic_id", "")).strip_edges() == scoped_topic_id
+	return str(question.get("topic", "")).strip_edges() == str(scope.get("topic", "")).strip_edges()
 
 
 func get_question(filters: Dictionary = {}) -> Dictionary:
@@ -175,7 +187,7 @@ func _question_history_key(question: Dictionary) -> String:
 	return "%s|%s|%s|%s" % [
 		str(question.get("grade", "")).strip_edges(),
 		str(question.get("difficulty", "")).strip_edges(),
-		str(question.get("topic", "")).strip_edges(),
+		str(question.get("topic_id", question.get("topic", ""))).strip_edges(),
 		question_set_id,
 	]
 
@@ -195,6 +207,11 @@ func _filter_questions(filters: Dictionary) -> Array[Dictionary]:
 			var topic_value := str(filters.get("topic", ""))
 			var question_topic := str(question.get("topic", ""))
 			if not topic_value.is_empty() and question_topic != topic_value:
+				matches = false
+		if matches and filters.has("topic_id"):
+			var topic_id_value := str(filters.get("topic_id", ""))
+			var question_topic_id := str(question.get("topic_id", ""))
+			if not topic_id_value.is_empty() and question_topic_id != topic_id_value:
 				matches = false
 		if matches and filters.has("difficulty"):
 			var difficulty_value := str(filters.get("difficulty", ""))
@@ -263,15 +280,18 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 			normalized["question_set_id"] = question_set_id
 
 	# optional metadata passthrough
-	for key in ["grade", "grade_level", "difficulty", "topic", "math_topic", "source"]:
+	for key in ["grade", "grade_level", "difficulty", "topic_id", "topic", "math_topic", "source"]:
 		if question.has(key):
 			normalized[key] = question.get(key)
 	var normalized_grade := str(normalized.get("grade", normalized.get("grade_level", ""))).strip_edges()
 	var normalized_topic := str(normalized.get("topic", normalized.get("math_topic", ""))).strip_edges()
+	var normalized_topic_id := str(normalized.get("topic_id", "")).strip_edges().to_lower()
 	if not normalized_grade.is_empty():
 		normalized["grade"] = normalized_grade
 	if not normalized_topic.is_empty():
 		normalized["topic"] = normalized_topic
+	if not normalized_topic_id.is_empty():
+		normalized["topic_id"] = normalized_topic_id
 
 	return normalized
 

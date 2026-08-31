@@ -11,6 +11,7 @@ func _init() -> void:
 		"correct_answer": "7",
 		"grade_level": "Grade 1",
 		"difficulty": "Easy",
+		"topic_id": "basic_addition",
 		"learning_file_id": 77,
 	})
 	if not _assert_equal(api_question.get("correct"), "1", "API answer text must normalize to the QuizManager choice index"):
@@ -18,6 +19,10 @@ func _init() -> void:
 		quit(1)
 		return
 	if not _assert_equal(api_question.get("question_set_id"), 77, "Remote question-set metadata must survive answer normalization"):
+		provider.free()
+		quit(1)
+		return
+	if not _assert_equal(api_question.get("topic_id"), "basic_addition", "Canonical topic IDs must survive question normalization"):
 		provider.free()
 		quit(1)
 		return

@@ -347,6 +347,7 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		"student_name": GameState.player_name,
 		"grade_level": GameState.grade_level,
 		"difficulty": String(question.get("difficulty", "Unknown")).strip_edges(),
+		"topic_id": String(question.get("topic_id", "")).strip_edges(),
 		"math_topic": String(question.get("topic", question.get("math_topic", ""))).strip_edges(),
 		"score": 1 if is_correct else 0,
 		"total_items": 1,

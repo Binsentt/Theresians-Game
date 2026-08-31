@@ -32,7 +32,7 @@ func _run() -> void:
 	})
 	failed = not _assert_equal(remote_question.get("question_set_id"), 77, "Remote learning_file_id must be preserved as question_set_id") or failed
 	failed = not _assert_equal(typeof(remote_question.get("question_set_id")), TYPE_INT, "Remote question_set_id must be an integer") or failed
-	var exact_scope := {"grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition"}
+	var exact_scope := {"grade": "Grade 1", "difficulty": "Easy", "topic_id": "basic_addition", "topic": "Basic Addition"}
 	var scoped_remote_question: Dictionary = provider._normalize_question({
 		"id": 92,
 		"question": "5 + 2 = ?",
@@ -41,11 +41,12 @@ func _run() -> void:
 		"learning_file_id": 77,
 		"grade_level": "Grade 1",
 		"difficulty": "Easy",
+		"topic_id": "basic_addition",
 		"math_topic": "Basic Addition",
 	})
 	failed = not _assert(provider._question_matches_scope(scoped_remote_question, exact_scope), "Remote question metadata must match the active exact scope.") or failed
 	var mismatched_question := scoped_remote_question.duplicate(true)
-	mismatched_question["topic"] = "Subtraction"
+	mismatched_question["topic_id"] = "subtraction"
 	failed = not _assert(not provider._question_matches_scope(mismatched_question, exact_scope), "QuestionProvider must reject a response outside the active topic scope.") or failed
 	failed = not _assert_no_filename_scope_routing() or failed
 	failed = not _assert_scope_history(provider) or failed
@@ -161,6 +162,7 @@ func _assert_recorded_payloads(remote_sync: Node) -> bool:
 
 	remote_sync.call("record_question_attempt", {
 		"question_set_id": 77,
+		"topic_id": "addition",
 		"topic": "Addition",
 		"difficulty": "Easy",
 	}, false)
@@ -176,6 +178,7 @@ func _assert_recorded_payloads(remote_sync: Node) -> bool:
 		var fallback_payload: Dictionary = http_stub.requests[1].get("payload", {})
 		failed = not _assert_equal(http_stub.requests[0].get("path"), "/api/game/result", "Question attempts must use the game-result endpoint") or failed
 		failed = not _assert_equal(remote_payload.get("question_set_id"), 77, "Positive question_set_id must be included in the result payload") or failed
+		failed = not _assert_equal(remote_payload.get("topic_id"), "addition", "Canonical question topic_id must be included in the result payload") or failed
 		failed = not _assert(not fallback_payload.has("question_set_id"), "Result payloads must omit missing question_set_id values") or failed
 		failed = not _assert_equal(remote_payload.get("playtime_session_id"), 501, "Question results must include the active server playtime session") or failed
 		failed = not _assert_equal(remote_payload.get("playtime_session_credential"), "test-server-issued-lease", "Question results must include the issued server lease credential") or failed

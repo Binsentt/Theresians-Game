@@ -21,6 +21,7 @@ func _run() -> void:
 		var first_bandit_scope: Dictionary = state.tasks[2].get("question_scope", {})
 		_expect(String(first_bandit_scope.get("grade", "")) == "Grade 1", "First Bandit must explicitly configure Grade 1.")
 		_expect(String(first_bandit_scope.get("difficulty", "")) == "Easy", "First Bandit must explicitly configure Easy difficulty.")
+		_expect(String(first_bandit_scope.get("topic_id", "")) == "basic_addition", "First Bandit must explicitly configure the approved basic_addition topic ID.")
 		_expect(String(first_bandit_scope.get("topic", "")) == "Basic Addition", "First Bandit must explicitly configure Basic Addition.")
 		state.capture_runtime("res://scenes/oak_leaf_village.tscn", Vector2(321.0, 654.0))
 		var context: Dictionary = state.begin_encounter({
@@ -42,9 +43,9 @@ func _run() -> void:
 		_expect(bool(final_loss.get("game_over", false)), "Third loss should produce game over.")
 		_expect(state.current_task_index == 2, "Game over must reset only to the encounter checkpoint, not the whole story.")
 		state.current_scene_path = "res://scenes/city_of_knowledge.tscn"
-		_expect(String(state.get_encounter_question_scope().get("difficulty", "")) == "Medium", "City of Knowledge should map to Medium questions.")
+		_expect(String(state.get_encounter_question_scope().get("difficulty", "")) == "Normal", "City of Knowledge should normalize legacy Medium to Normal.")
 		state.current_scene_path = "res://scenes/2nd Village/Pinehill Village.tscn"
-		_expect(String(state.get_encounter_question_scope().get("difficulty", "")) == "Hard", "Pinehill Village should map to Hard questions.")
+		_expect(String(state.get_encounter_question_scope().get("difficulty", "")) == "Difficult", "Pinehill Village should normalize legacy Hard to Difficult.")
 		state.current_scene_path = "res://scenes/oak_leaf_village.tscn"
 		state.begin_encounter({"encounter_id": "oakleaf_bandit", "retry_count": 2})
 		var victory: Dictionary = state.record_encounter_victory()

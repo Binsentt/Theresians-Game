@@ -96,6 +96,7 @@ var tasks = [
 		"question_scope": {
 			"grade": "Grade 1",
 			"difficulty": "Easy",
+			"topic_id": "basic_addition",
 			"topic": "Basic Addition",
 		}
 	}
@@ -868,11 +869,14 @@ func _normalize_question_scope(scope: Variant, source_scene_path: String) -> Dic
 	if scope is Dictionary:
 		var grade := String(scope.get("grade", scope.get("grade_level", ""))).strip_edges()
 		var difficulty := _normalize_difficulty(String(scope.get("difficulty", "")))
+		var topic_id := _normalize_topic_id(String(scope.get("topic_id", "")))
 		var topic := String(scope.get("topic", scope.get("math_topic", ""))).strip_edges()
 		if not grade.is_empty():
 			normalized["grade"] = grade
 		if not difficulty.is_empty():
 			normalized["difficulty"] = difficulty
+		if not topic_id.is_empty():
+			normalized["topic_id"] = topic_id
 		if not topic.is_empty():
 			normalized["topic"] = topic
 	if not normalized.has("grade") and not grade_level.strip_edges().is_empty():
@@ -886,20 +890,30 @@ func _normalize_difficulty(value: String) -> String:
 	match value.strip_edges().to_lower():
 		"easy":
 			return "Easy"
-		"medium", "normal":
-			return "Medium"
+		"medium", "average", "normal":
+			return "Normal"
 		"hard", "difficult":
-			return "Hard"
+			return "Difficult"
 		_:
 			return ""
+
+
+func _normalize_topic_id(value: String) -> String:
+	var normalized := value.strip_edges().to_lower()
+	if normalized.is_empty():
+		return ""
+	for character in normalized:
+		if not (character == "_" or (character >= "a" and character <= "z") or (character >= "0" and character <= "9")):
+			return ""
+	return normalized
 
 
 func _difficulty_for_scene(scene_path: String) -> String:
 	var normalized_scene_path := _normalize_scene_path(scene_path).to_lower()
 	if normalized_scene_path.contains("city_of_knowledge"):
-		return "Medium"
+		return "Normal"
 	if normalized_scene_path.contains("pinehill") or normalized_scene_path.contains("2nd village"):
-		return "Hard"
+		return "Difficult"
 	return "Easy"
 
 
