@@ -100,18 +100,21 @@ func _assert_no_filename_scope_routing() -> bool:
 
 
 func _assert_scope_history(provider: Node) -> bool:
-	provider.set("_questions", [
+	var exact_scope := {"grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition"}
+	var addition_questions: Array[Dictionary] = [
 		{"id": "addition-1", "question": "1 + 1", "choices": ["1", "2"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition", "question_set_id": 77},
 		{"id": "addition-2", "question": "2 + 1", "choices": ["2", "3"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition", "question_set_id": 77},
-	])
+	]
+	provider.set("_questions", addition_questions)
 	provider.call("reset_history")
-	var first: Dictionary = provider.call("get_question")
-	var second: Dictionary = provider.call("get_question")
-	var unused_before_recycle: bool = String(first.get("id", "")) != String(second.get("id", ""))
-	provider.set("_questions", [
+	var first: Dictionary = provider.call("get_question", exact_scope)
+	var second: Dictionary = provider.call("get_question", exact_scope)
+	var unused_before_recycle: bool = str(first.get("id", "")) != str(second.get("id", ""))
+	var subtraction_questions: Array[Dictionary] = [
 		{"id": "subtraction-1", "question": "3 - 1", "choices": ["1", "2"], "correct": "1", "grade": "Grade 1", "difficulty": "Easy", "topic": "Subtraction", "question_set_id": 88},
-	])
-	provider.call("get_question")
+	]
+	provider.set("_questions", subtraction_questions)
+	provider.call("get_question", {"grade": "Grade 1", "difficulty": "Easy", "topic": "Subtraction"})
 	var histories: Dictionary = provider.get("_history_by_scope")
 	return _assert(unused_before_recycle, "QuestionProvider must use an unused question before recycling within one exact scope") \
 		and _assert(histories.size() == 2, "Question history must be isolated by Grade, Difficulty, Topic, and active question set")
