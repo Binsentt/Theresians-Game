@@ -83,7 +83,7 @@ func _run() -> void:
 		_send_hold(action_button, false)
 
 	var baseline_player := PlayerScript.new()
-	_assert(is_equal_approx(baseline_player.move_speed, 100.0), "Player movement speed remains the frozen baseline value of 100 px/s")
+	_assert(is_equal_approx(baseline_player.move_speed, 60.0), "Player movement speed remains the approved value of 60 px/s")
 	baseline_player.free()
 
 	GameState.set_mode(GameState.GameMode.DIALOGUE)
