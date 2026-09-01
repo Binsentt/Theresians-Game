@@ -2,7 +2,7 @@
 
 [ext_resource type="TileSet" uid="uid://d1iky0dwc18qc" path="res://scenes/2nd Village/background-2.tres" id="1_702xr"]
 [ext_resource type="TileSet" uid="uid://csqojduwx3d4e" path="res://scenes/2nd Village/cliff.tres" id="2_b7buq"]
-[ext_resource type="Texture2D" uid="uid://byw7bdoc6sfpg" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2.png" id="2_rkdt3"]
+[ext_resource type="Texture2D" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2_32px.png" id="2_rkdt3"]
 [ext_resource type="TileSet" uid="uid://dgtmuwn4dd3e7" path="res://scenes/2nd Village/tree.tres" id="3_kjxpj"]
 [ext_resource type="Texture2D" uid="uid://cvksg5b23b2ey" path="res://Village/MetroCIty/Nature_Tileset.png" id="3_lwqw0"]
 [ext_resource type="PackedScene" uid="uid://dy3f1j5e6jfra" path="res://objects/Outside-Object/camp1.tscn" id="4_b7buq"]

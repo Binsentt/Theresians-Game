@@ -1,6 +1,6 @@
 [gd_resource type="TileSet" format=3 uid="uid://blfr2o7myt12f"]
 
-[ext_resource type="Texture2D" uid="uid://byw7bdoc6sfpg" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2.png" id="1_cimm0"]
+[ext_resource type="Texture2D" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2_32px.png" id="1_cimm0"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_l0qlv"]
 texture = ExtResource("1_cimm0")

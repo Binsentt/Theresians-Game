@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://dr13hnfgvwx31"]
 
 [ext_resource type="TileSet" uid="uid://blfr2o7myt12f" path="res://scenes/ground.tres" id="1_l0qlv"]
-[ext_resource type="Texture2D" uid="uid://byw7bdoc6sfpg" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2.png" id="2_5pri7"]
+[ext_resource type="Texture2D" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2_32px.png" id="2_5pri7"]
 [ext_resource type="Texture2D" uid="uid://c0kmyteqca1tc" path="res://Village/MetroCIty/Tree-Sheet.png" id="3_g52ud"]
 [ext_resource type="PackedScene" uid="uid://dy3f1j5e6jfra" path="res://objects/Outside-Object/camp1.tscn" id="5_ek7v0"]
 [ext_resource type="TileSet" uid="uid://cirnhpjafjbwf" path="res://scenes/object.tres" id="5_mm5k6"]
