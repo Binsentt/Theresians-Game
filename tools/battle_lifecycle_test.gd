@@ -21,8 +21,7 @@ func _run() -> void:
 		var first_bandit_scope: Dictionary = state.tasks[2].get("question_scope", {})
 		_expect(String(first_bandit_scope.get("grade", "")) == "Grade 1", "First Bandit must explicitly configure Grade 1.")
 		_expect(String(first_bandit_scope.get("difficulty", "")) == "Easy", "First Bandit must explicitly configure Easy difficulty.")
-		_expect(String(first_bandit_scope.get("topic_id", "")) == "basic_addition", "First Bandit must explicitly configure the approved basic_addition topic ID.")
-		_expect(String(first_bandit_scope.get("topic", "")) == "Basic Addition", "First Bandit must explicitly configure Basic Addition.")
+		_expect(not first_bandit_scope.has("topic_id") and not first_bandit_scope.has("topic"), "First Bandit must use Grade and Difficulty without a Topic requirement.")
 		state.capture_runtime("res://scenes/oak_leaf_village.tscn", Vector2(321.0, 654.0))
 		var context: Dictionary = state.begin_encounter({
 			"encounter_id": "oakleaf_bandit",
@@ -31,7 +30,7 @@ func _run() -> void:
 		_expect(String(context.get("encounter_id", "")) == "oakleaf_bandit", "Encounter ID should persist in GameState.")
 		_expect(int(context.get("quest_checkpoint", -1)) == 2, "Encounter should preserve the active task checkpoint.")
 		_expect(context.get("source_position", {}) is Dictionary, "Encounter should serialize the exact return position.")
-		_expect(state.get_encounter_question_scope() == first_bandit_scope, "Explicit Grade, Difficulty, and Topic scope should be preserved.")
+		_expect(state.get_encounter_question_scope() == first_bandit_scope, "Explicit Grade and Difficulty scope should be preserved.")
 		var first_loss: Dictionary = state.record_encounter_loss()
 		var resumed_context: Dictionary = state.begin_encounter({"encounter_id": "oakleaf_bandit"})
 		var second_loss: Dictionary = state.record_encounter_loss()
@@ -75,6 +74,7 @@ func _run() -> void:
 		}, false)
 		_expect(time_limit_events[0] == 1, "A server-expired lease should emit the time-limit event exactly once.")
 
+	state.free()
 	if _failures.is_empty():
 		print("battle_lifecycle_test: PASS")
 		quit(0)

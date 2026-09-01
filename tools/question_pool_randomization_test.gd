@@ -1,10 +1,10 @@
-extends Node
+extends SceneTree
 
 const QuestionProviderScript = preload("res://scripts/question_provider.gd")
-const BASE_SCOPE := {"grade": "Grade 1", "difficulty": "Easy", "topic": "Basic Addition"}
+const BASE_SCOPE := {"grade": "Grade 1", "difficulty": "Easy"}
 
 
-func _ready() -> void:
+func _init() -> void:
 	call_deferred("_run")
 
 
@@ -21,7 +21,7 @@ func _run() -> void:
 	provider.free()
 	if not failed:
 		print("[Question Pool Randomization Test] PASS")
-	get_tree().quit(1 if failed else 0)
+	quit(1 if failed else 0)
 
 
 func _assert_single_question_cycle(provider: Node) -> bool:
@@ -66,17 +66,17 @@ func _assert_new_bandit_same_scope_shares_history(provider: Node) -> bool:
 
 
 func _assert_scope_isolation(provider: Node) -> bool:
-	var topic_scope := {"grade": "Grade 1", "difficulty": "Easy", "topic": "Subtraction"}
-	var difficulty_scope := {"grade": "Grade 1", "difficulty": "Normal", "topic": "Basic Addition"}
-	var grade_scope := {"grade": "Grade 2", "difficulty": "Easy", "topic": "Basic Addition"}
+	var mixed_topic_scope := {"grade": "Grade 1", "difficulty": "Easy"}
+	var difficulty_scope := {"grade": "Grade 1", "difficulty": "Normal"}
+	var grade_scope := {"grade": "Grade 2", "difficulty": "Easy"}
 	var pool: Array[Dictionary] = []
-	pool.append_array(_make_pool(BASE_SCOPE, 106, 1, "shared-id"))
-	pool.append_array(_make_pool(topic_scope, 106, 1, "shared-id"))
-	pool.append_array(_make_pool(difficulty_scope, 106, 1, "shared-id"))
-	pool.append_array(_make_pool(grade_scope, 106, 1, "shared-id"))
+	pool.append_array(_make_pool(BASE_SCOPE, 106, 1, "addition-id", "Basic Addition"))
+	pool.append_array(_make_pool(mixed_topic_scope, 106, 1, "subtraction-id", "Subtraction"))
+	pool.append_array(_make_pool(difficulty_scope, 106, 1, "normal-id"))
+	pool.append_array(_make_pool(grade_scope, 106, 1, "grade-two-id"))
 	_set_pool(provider, pool)
 	return _assert_scope(_request(provider, BASE_SCOPE), BASE_SCOPE, "base scope is selectable") \
-		and _assert_scope(_request(provider, topic_scope), topic_scope, "different topic uses separate history") \
+		and _assert_scope(_request(provider, mixed_topic_scope), mixed_topic_scope, "mixed Topic metadata remains in one Grade and Difficulty pool") \
 		and _assert_scope(_request(provider, difficulty_scope), difficulty_scope, "different difficulty uses separate history") \
 		and _assert_scope(_request(provider, grade_scope), grade_scope, "different grade uses separate history")
 
@@ -90,20 +90,22 @@ func _assert_active_set_replacement(provider: Node) -> bool:
 		and _assert_scope(set_b_question, BASE_SCOPE, "active-set replacement preserves exact scope")
 
 
-func _make_pool(scope: Dictionary, question_set_id: int, count: int, fixed_id: String = "") -> Array[Dictionary]:
+func _make_pool(scope: Dictionary, question_set_id: int, count: int, fixed_id: String = "", topic: String = "") -> Array[Dictionary]:
 	var pool: Array[Dictionary] = []
 	for index in range(count):
 		var question_id := fixed_id if not fixed_id.is_empty() else "question-%s" % index
-		pool.append({
+		var question: Dictionary = {
 			"id": question_id,
 			"question": "Fixture %s" % index,
-			"choices": ["1", "2"],
+			"choices": ["1", "2", "3", "4"],
 			"correct": "0",
 			"grade": scope["grade"],
 			"difficulty": scope["difficulty"],
-			"topic": scope["topic"],
 			"question_set_id": question_set_id,
-		})
+		}
+		if not topic.is_empty():
+			question["topic"] = topic
+		pool.append(question)
 	return pool
 
 
@@ -127,8 +129,7 @@ func _identity(question: Dictionary) -> String:
 
 func _assert_scope(question: Dictionary, scope: Dictionary, message: String) -> bool:
 	return _assert(str(question.get("grade", "")) == str(scope.get("grade", "")) \
-		and str(question.get("difficulty", "")) == str(scope.get("difficulty", "")) \
-		and str(question.get("topic", "")) == str(scope.get("topic", "")), message)
+		and str(question.get("difficulty", "")) == str(scope.get("difficulty", "")), message)
 
 
 func _assert(condition: bool, message: String) -> bool:

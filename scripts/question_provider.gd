@@ -60,7 +60,7 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 	if http != null:
 		var params := _get_encounter_question_params()
 		if not _has_exact_scope(params):
-			push_error("Remote question loading requires an explicit Grade, Difficulty, and Topic encounter scope.")
+			push_error("Remote question loading requires an explicit Grade and Difficulty encounter scope.")
 			questions_loaded.emit(0)
 			return []
 		var result: Dictionary = await http.request_get("/api/game/questions", params)
@@ -74,7 +74,7 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 						if not normalized.is_empty() and _question_matches_scope(normalized, params):
 							_questions.append(normalized)
 						elif not normalized.is_empty():
-							push_error("Rejected a remote question outside the active Grade, Difficulty, and Topic scope.")
+							push_error("Rejected a remote question outside the active Grade and Difficulty scope.")
 			questions_loaded.emit(_questions.size())
 			return _questions
 		# A failed exact-scope request must never widen into a local or unrelated pool.
@@ -119,17 +119,11 @@ func _get_encounter_question_params() -> Dictionary:
 		return params
 	for key in ["grade", "difficulty"]:
 		var value := str(scope.get(key, "")).strip_edges()
+		if key == "difficulty":
+			value = _canonical_difficulty(value)
 		if value.is_empty():
 			return {}
 		params[key] = value
-	var topic_id := str(scope.get("topic_id", "")).strip_edges()
-	if not topic_id.is_empty():
-		params["topic_id"] = topic_id
-		return params
-	var topic := str(scope.get("topic", "")).strip_edges()
-	if topic.is_empty():
-		return {}
-	params["topic"] = topic
 	return params
 
 
@@ -137,17 +131,14 @@ func _has_exact_scope(scope: Dictionary) -> bool:
 	for key in ["grade", "difficulty"]:
 		if str(scope.get(key, "")).strip_edges().is_empty():
 			return false
-	return not str(scope.get("topic_id", scope.get("topic", ""))).strip_edges().is_empty()
+	return true
 
 
 func _question_matches_scope(question: Dictionary, scope: Dictionary) -> bool:
-	if str(question.get("grade", "")).strip_edges() != str(scope.get("grade", "")).strip_edges() \
-		or str(question.get("difficulty", "")).strip_edges() != str(scope.get("difficulty", "")).strip_edges():
+	if _question_grade(question) != str(scope.get("grade", "")).strip_edges() \
+		or _canonical_difficulty(question.get("difficulty", "")) != _canonical_difficulty(scope.get("difficulty", "")):
 		return false
-	var scoped_topic_id := str(scope.get("topic_id", "")).strip_edges()
-	if not scoped_topic_id.is_empty():
-		return str(question.get("topic_id", "")).strip_edges() == scoped_topic_id
-	return str(question.get("topic", "")).strip_edges() == str(scope.get("topic", "")).strip_edges()
+	return true
 
 
 func get_question(filters: Dictionary = {}) -> Dictionary:
@@ -182,10 +173,9 @@ func _scope_history(history_key: String) -> Array[String]:
 
 func _question_history_key(question: Dictionary) -> String:
 	var question_set_id := str(question.get("question_set_id", "local")).strip_edges()
-	return "%s|%s|%s|%s" % [
-		str(question.get("grade", "")).strip_edges(),
-		str(question.get("difficulty", "")).strip_edges(),
-		str(question.get("topic_id", question.get("topic", ""))).strip_edges(),
+	return "%s|%s|%s" % [
+		_question_grade(question),
+		_canonical_difficulty(question.get("difficulty", "")),
 		question_set_id,
 	]
 
@@ -202,16 +192,6 @@ func _filter_questions(filters: Dictionary) -> Array[Dictionary]:
 			var grade_value := str(filters.get("grade", "")).strip_edges()
 			var question_grade := _question_grade(question)
 			if not grade_value.is_empty() and question_grade != grade_value:
-				matches = false
-		if matches and filters.has("topic"):
-			var topic_value := str(filters.get("topic", "")).strip_edges()
-			var question_topic := _question_topic(question)
-			if not topic_value.is_empty() and question_topic != topic_value:
-				matches = false
-		if matches and filters.has("topic_id"):
-			var topic_id_value := str(filters.get("topic_id", ""))
-			var question_topic_id := str(question.get("topic_id", ""))
-			if not topic_id_value.is_empty() and question_topic_id != topic_id_value:
 				matches = false
 		if matches and filters.has("difficulty"):
 			var requested_difficulty := str(filters.get("difficulty", "")).strip_edges()
@@ -309,25 +289,22 @@ func _resolve_question_scope(question: Dictionary) -> Dictionary:
 	var question_set_id := _positive_question_set_id(question.get("question_set_id", question.get("learning_file_id", null)))
 	var grade := _question_grade(question)
 	var difficulty := _canonical_difficulty(question.get("difficulty", ""))
-	var topic := _question_topic(question)
-	if question_set_id <= 0 or grade.is_empty() or difficulty.is_empty() or topic.is_empty():
+	if question_set_id <= 0 or grade.is_empty() or difficulty.is_empty():
 		return {}
 	return {
 		"question_set_id": question_set_id,
 		"grade": grade,
 		"difficulty": difficulty,
-		"topic": topic,
 	}
 
 
 func _scope_key(scope_descriptor: Dictionary) -> String:
 	if scope_descriptor.is_empty():
 		return ""
-	return "%s|%s|%s|%s" % [
-		str(scope_descriptor.get("question_set_id", "")),
+	return "%s|%s|%s" % [
 		str(scope_descriptor.get("grade", "")),
 		str(scope_descriptor.get("difficulty", "")),
-		str(scope_descriptor.get("topic", "")),
+		str(scope_descriptor.get("question_set_id", "")),
 	]
 
 
@@ -335,18 +312,14 @@ func _question_grade(question: Dictionary) -> String:
 	return str(question.get("grade", question.get("grade_level", ""))).strip_edges()
 
 
-func _question_topic(question: Dictionary) -> String:
-	return str(question.get("topic", question.get("math_topic", ""))).strip_edges()
-
-
 func _canonical_difficulty(value: Variant) -> String:
 	match str(value).strip_edges().to_lower():
 		"easy":
 			return "Easy"
 		"normal", "medium":
-			return "Medium"
+			return "Normal"
 		"difficult", "hard":
-			return "Hard"
+			return "Difficult"
 		_:
 			return ""
 
@@ -432,6 +405,9 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 	var normalized_topic_id := str(normalized.get("topic_id", "")).strip_edges().to_lower()
 	if not normalized_grade.is_empty():
 		normalized["grade"] = normalized_grade
+	var normalized_difficulty := _canonical_difficulty(normalized.get("difficulty", ""))
+	if not normalized_difficulty.is_empty():
+		normalized["difficulty"] = normalized_difficulty
 	if not normalized_topic.is_empty():
 		normalized["topic"] = normalized_topic
 	if not normalized_topic_id.is_empty():

@@ -2,7 +2,6 @@ extends SceneTree
 
 const CONFIG_PATH := "res://Data/api_config.json"
 const EXPECTED_PRODUCTION_URL := "https://theresiansquest.com"
-const EXPECTED_TOPIC := "Problem Solving (Addition and Subtraction)"
 const HttpApiScript := preload("res://scripts/http_api.gd")
 
 var failures: Array[String] = []
@@ -25,8 +24,7 @@ func _run() -> void:
 	api.set("base_url", production_url)
 	var result: Variant = await api.call("request_get", "/api/game/questions", {
 		"grade": "Grade 1",
-		"difficulty": "Hard",
-		"topic": EXPECTED_TOPIC,
+		"difficulty": "Difficult",
 	}, 15000)
 	api.queue_free()
 	await process_frame
@@ -55,7 +53,7 @@ func _verify_response(result: Variant) -> void:
 	if not body is Dictionary:
 		return
 	var questions: Array = body.get("questions", [])
-	_expect(questions.size() == 5, "Active Grade 1 / Hard scope must return exactly five questions.")
+	_expect(questions.size() == 5, "Active Grade 1 / Difficult scope must return exactly five questions.")
 	if questions.is_empty():
 		return
 	var first: Variant = questions[0]
@@ -65,8 +63,7 @@ func _verify_response(result: Variant) -> void:
 	var question: Dictionary = first
 	_expect(int(question.get("learning_file_id", 0)) == 8, "Remote question metadata must retain learning_file_id 8.")
 	_expect(String(question.get("grade_level", "")) == "Grade 1", "Remote question grade must remain Grade 1.")
-	_expect(String(question.get("difficulty", "")) == "Hard", "Remote question difficulty must remain Hard.")
-	_expect(String(question.get("math_topic", "")) == EXPECTED_TOPIC, "Remote question topic must match the active set scope.")
+	_expect(String(question.get("difficulty", "")) == "Difficult", "Remote question difficulty must remain canonical Difficult.")
 
 
 func _expect(condition: bool, message: String) -> void:

@@ -14,13 +14,15 @@ class HttpApiStub extends Node:
 		return {
 			"ok": true,
 			"status": 200,
-			"body": {
-				"questions": [{
-					"id": 13,
-					"question": "Remote question",
-					"options": ["1", "2", "3", "4"],
-					"correct_answer": "2",
-					"learning_file_id": 13,
+		"body": {
+			"questions": [{
+				"id": 13,
+				"question": "Remote question",
+				"options": ["1", "2", "3", "4"],
+				"correct_answer": "2",
+				"learning_file_id": 13,
+				"grade_level": "Grade 1",
+				"difficulty": "Easy",
 				}],
 			},
 		}
@@ -52,7 +54,7 @@ func _run() -> void:
 	var declared_scope: Variant = first_bandit_task.get("question_scope", {})
 	failed = not _assert(declared_scope is Dictionary, "The first Bandit task must declare a controlled question scope.") or failed
 	if declared_scope is Dictionary:
-		failed = not _assert_equal(String(declared_scope.get("topic", "")), "Basic Addition", "The first Bandit topic must be Basic Addition.") or failed
+		failed = not _assert(not declared_scope.has("topic") and not declared_scope.has("topic_id"), "The first Bandit must not require a Topic scope.") or failed
 
 	var encounter: Dictionary = game_state.call("begin_encounter", {
 		"encounter_id": "oakleaf_first_bandit",
@@ -61,17 +63,7 @@ func _run() -> void:
 	var resolved_scope: Dictionary = encounter.get("question_scope", {})
 	failed = not _assert_equal(String(resolved_scope.get("grade", "")), "Grade 1", "The first Bandit must use the canonical student grade.") or failed
 	failed = not _assert_equal(String(resolved_scope.get("difficulty", "")), "Easy", "Oakleaf must retain the Easy difficulty mapping.") or failed
-	failed = not _assert_equal(String(resolved_scope.get("topic", "")), "Basic Addition", "The encounter must retain the explicit Basic Addition topic.") or failed
-
-	var provider := QuestionProviderScript.new()
-	provider.name = "FirstBanditQuestionProvider"
-	root_window.add_child(provider)
-	var params: Dictionary = provider.call("_get_encounter_question_params")
-	failed = not _assert_equal(params, {
-		"grade": "Grade 1",
-		"difficulty": "Easy",
-		"topic": "Basic Addition",
-	}, "QuestionProvider must construct the fully scoped first Bandit request.") or failed
+	failed = not _assert(not resolved_scope.has("topic") and not resolved_scope.has("topic_id"), "The resolved First Bandit scope must remain Grade and Difficulty only.") or failed
 
 	var active_http: Node = root_window.get_node_or_null("HttpApi")
 	var original_http_name := ""
@@ -81,11 +73,20 @@ func _run() -> void:
 	var http_stub := HttpApiStub.new()
 	http_stub.name = "HttpApi"
 	root_window.add_child(http_stub)
-	var remote_questions: Array[Dictionary] = await provider.load_questions()
+	var provider := QuestionProviderScript.new()
+	provider.name = "FirstBanditQuestionProvider"
+	root_window.add_child(provider)
+	var params: Dictionary = provider.call("_get_encounter_question_params")
+	failed = not _assert_equal(params, {
+		"grade": "Grade 1",
+		"difficulty": "Easy",
+	}, "QuestionProvider must construct the Grade and Difficulty First Bandit request.") or failed
+	await provider.questions_loaded
+	var remote_questions: Array[Dictionary] = provider.get("_questions")
 	failed = not _assert_equal(http_stub.requests.size(), 1, "QuestionProvider must make one remote request before considering fallback questions.") or failed
 	if http_stub.requests.size() == 1:
 		failed = not _assert_equal(http_stub.requests[0].get("path"), "/api/game/questions", "The first Bandit must use the production question endpoint.") or failed
-		failed = not _assert_equal(http_stub.requests[0].get("params"), params, "The remote request must keep the complete first Bandit scope.") or failed
+		failed = not _assert_equal(http_stub.requests[0].get("params"), params, "The remote request must keep the Grade and Difficulty scope.") or failed
 	failed = not _assert_equal(remote_questions.size(), 1, "A usable remote question response must be used without local fallback.") or failed
 	if remote_questions.size() == 1:
 		failed = not _assert_equal(remote_questions[0].get("question_set_id"), 13, "Remote question-set traceability must survive the first Bandit fetch.") or failed

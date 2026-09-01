@@ -15,7 +15,6 @@ class QuestionProviderStub extends Node:
 		"question": "1 + 1 = ?",
 		"choices": ["2", "1", "3", "4"],
 		"correct": 0,
-		"topic_id": "basic_addition",
 	}
 
 	func load_questions() -> void:
@@ -81,7 +80,7 @@ func _run() -> void:
 	var scope := GameState.get_encounter_question_scope()
 	_assert(String(scope.get("grade", "")) == "Grade 1", "First Bandit keeps Grade 1 scope")
 	_assert(String(scope.get("difficulty", "")) == "Easy", "First Bandit keeps Easy scope")
-	_assert(String(scope.get("topic_id", "")) == "basic_addition", "First Bandit keeps basic_addition scope")
+	_assert(not scope.has("topic_id") and not scope.has("topic"), "First Bandit uses Grade and Difficulty without a required Topic")
 	_finish()
 
 

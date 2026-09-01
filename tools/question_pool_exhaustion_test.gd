@@ -30,7 +30,6 @@ func _run() -> void:
 		"question_set_id": 202,
 		"grade": "Grade 1",
 		"difficulty": "Normal",
-		"topic": "Basic Addition",
 	}
 	var medium_candidates: Array[Dictionary] = provider.call("_filter_questions", medium_scope)
 	failed = not _assert_equal(medium_candidates.size(), 2, "Normalized Normal difficulty and question_set_id must resolve only Set 202 candidates.") or failed
@@ -41,7 +40,6 @@ func _run() -> void:
 		"question_set_id": 303,
 		"grade": "Grade 2",
 		"difficulty": "Difficult",
-		"topic": "Fractions",
 	}
 	var valid_candidates: Array[Dictionary] = provider.call("_filter_questions", malformed_scope)
 	failed = not _assert_equal(valid_candidates.size(), 1, "Three-choice candidates must be excluded from the selectable question pool.") or failed
@@ -52,7 +50,6 @@ func _run() -> void:
 		"question_set_id": 101,
 		"grade": "Grade 1",
 		"difficulty": "Easy",
-		"topic": "Basic Addition",
 	}
 	var medium_first: Dictionary = provider.get_question(medium_scope)
 	failed = not _assert_equal(int(medium_first.get("question_set_id", 0)), 202, "Set 202 must be selectable without falling into Set 101.") or failed
@@ -68,8 +65,7 @@ func _run() -> void:
 			"question_set_id": 101,
 			"grade": "Grade 1",
 			"difficulty": "Easy",
-			"topic": "Basic Addition",
-		}, "The exhaustion event must describe only the exhausted remote scope.") or failed
+		}, "The exhaustion event must describe only the exhausted Grade and Difficulty set scope.") or failed
 	failed = not _assert_equal(int(easy_new_round.get("question_set_id", 0)), 101, "A new round must stay inside the exhausted scope instead of falling back to another set.") or failed
 
 	var medium_second: Dictionary = provider.get_question(medium_scope)
@@ -84,14 +80,12 @@ func _run() -> void:
 		"question_set_id": 404,
 		"grade": "Grade 6",
 		"difficulty": "Easy",
-		"topic": "Missing Topic",
 	})
 	failed = not _assert(unavailable.is_empty(), "An unavailable exact scope must report no question instead of selecting an unrelated fallback.") or failed
 	var unsupported_difficulty: Dictionary = provider.get_question({
 		"question_set_id": 101,
 		"grade": "Grade 1",
 		"difficulty": "Unsupported Difficulty",
-		"topic": "Basic Addition",
 	})
 	failed = not _assert(unsupported_difficulty.is_empty(), "An unsupported difficulty must not broaden selection into a valid remote scope.") or failed
 
