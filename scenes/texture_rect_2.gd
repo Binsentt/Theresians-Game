@@ -262,18 +262,31 @@ func _on_gender_continue_pressed() -> void:
 	await _show_step(RegistrationStep.IDS)
 
 func _on_student_id_changed(new_text: String) -> void:
-	_sanitize_id_field(student_id_input, new_text)
+	_sanitize_student_id_field(new_text)
 	GameState.update_new_game_registration({"student_id": student_id_input.text})
-	if GameState.is_valid_six_digit_id(student_id_input.text):
+	if GameState.is_valid_existing_student_id(student_id_input.text):
 		_hide_validation()
 
 func _on_parent_id_changed(new_text: String) -> void:
-	_sanitize_id_field(parent_id_input, new_text)
+	_sanitize_parent_id_field(new_text)
 	GameState.update_new_game_registration({"parent_id": parent_id_input.text})
 	if GameState.is_valid_six_digit_id(parent_id_input.text):
 		_hide_validation()
 
-func _sanitize_id_field(field: LineEdit, value: String) -> void:
+func _sanitize_student_id_field(value: String) -> void:
+	if _sanitizing_id:
+		return
+
+	var sanitized := GameState.sanitize_student_id(value)
+	if sanitized == value:
+		return
+
+	_sanitizing_id = true
+	student_id_input.text = sanitized
+	student_id_input.caret_column = sanitized.length()
+	_sanitizing_id = false
+
+func _sanitize_parent_id_field(value: String) -> void:
 	if _sanitizing_id:
 		return
 
@@ -282,8 +295,8 @@ func _sanitize_id_field(field: LineEdit, value: String) -> void:
 		return
 
 	_sanitizing_id = true
-	field.text = sanitized
-	field.caret_column = sanitized.length()
+	parent_id_input.text = sanitized
+	parent_id_input.caret_column = sanitized.length()
 	_sanitizing_id = false
 
 func _on_ids_next_pressed() -> void:
@@ -294,8 +307,8 @@ func _on_ids_next_pressed() -> void:
 		"student_id": student_id_input.text,
 		"parent_id": parent_id_input.text
 	})
-	if not GameState.is_valid_six_digit_id(student_id_input.text):
-		_show_validation("Student ID must contain exactly 6 digits.")
+	if not GameState.is_valid_existing_student_id(student_id_input.text):
+		_show_validation("Student ID must be either 6 or 8 digits.")
 		student_id_input.grab_focus()
 		return
 	if not GameState.is_valid_six_digit_id(parent_id_input.text):
@@ -529,8 +542,8 @@ func _first_registration_error() -> String:
 	var values := GameState.get_new_game_registration()
 	if String(values.get("gender", "")).to_lower() not in ["male", "female"]:
 		return "Please select your gender."
-	if not GameState.is_valid_six_digit_id(String(values.get("student_id", ""))):
-		return "Student ID must contain exactly 6 digits."
+	if not GameState.is_valid_existing_student_id(String(values.get("student_id", ""))):
+		return "Student ID must be either 6 or 8 digits."
 	if not GameState.is_valid_six_digit_id(String(values.get("parent_id", ""))):
 		return "Parent ID must contain exactly 6 digits."
 	if String(values.get("student_name", "")).strip_edges().is_empty():

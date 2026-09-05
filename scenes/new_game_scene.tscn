@@ -198,6 +198,7 @@ theme_override_fonts/font = ExtResource("3_nw40i")
 theme_override_font_sizes/font_size = 20
 theme_override_styles/normal = SubResource("StyleBoxTexture_3tkvl")
 virtual_keyboard_type = 2
+max_length = 8
 
 [node name="ParentIdLabel" type="Label" parent="TextureRect2/StudentParentId" unique_id=1166893853]
 layout_mode = 1

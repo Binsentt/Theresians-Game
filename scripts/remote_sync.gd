@@ -260,7 +260,7 @@ func _send_playtime_start_request(override_payload: Dictionary = {}) -> Dictiona
 		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
 
 	var payload := _build_playtime_start_payload(override_payload)
-	if not GameState.is_valid_six_digit_id(payload.get("student_id", "")) or not GameState.is_valid_six_digit_id(payload.get("parent_id", "")):
+	if not GameState.is_valid_existing_student_id(payload.get("student_id", "")) or not GameState.is_valid_six_digit_id(payload.get("parent_id", "")):
 		return {"ok": false, "error": "Invalid student or parent ID", "should_block": false}
 
 	return await http.request_post("/api/playtime/start", payload)
@@ -328,7 +328,7 @@ func _create_activity_log(status: String, description: String, override_payload:
 		return
 
 	var student_id := String(override_payload.get("student_id", GameState.student_id))
-	if not GameState.is_valid_six_digit_id(student_id):
+	if not GameState.is_valid_existing_student_id(student_id):
 		return
 
 	var payload := {
@@ -461,7 +461,7 @@ func request_learning_cycle(student_code: String, parent_code: String) -> Dictio
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return {"ok": false, "error": "Unable to verify Learning Cycle. Connect to continue."}
-	if not GameState.is_valid_six_digit_id(student_code) or not GameState.is_valid_six_digit_id(parent_code):
+	if not GameState.is_valid_existing_student_id(student_code) or not GameState.is_valid_six_digit_id(parent_code):
 		return {"ok": false, "error": "This save is missing a valid Parent or Student ID."}
 	var result: Dictionary = await http.request_get("/api/game/learning-cycle/" + student_code, {"parent_id": parent_code})
 	var body: Variant = result.get("body", {})
@@ -529,7 +529,7 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return
-	if not GameState.is_valid_six_digit_id(GameState.student_id) or not GameState.is_valid_six_digit_id(GameState.parent_id):
+	if not GameState.is_valid_existing_student_id(GameState.student_id) or not GameState.is_valid_six_digit_id(GameState.parent_id):
 		return
 
 	var payload := {

@@ -327,6 +327,31 @@ func sanitize_six_digit_id(value: String) -> String:
 	return digits
 
 
+func is_valid_existing_student_id(value: String) -> bool:
+	return is_valid_six_digit_id(value) or is_valid_new_student_id(value)
+
+
+func is_valid_new_student_id(value: String) -> bool:
+	if value.length() != 8:
+		return false
+	for character in value:
+		var codepoint := character.unicode_at(0)
+		if codepoint < 48 or codepoint > 57:
+			return false
+	return true
+
+
+func sanitize_student_id(value: String) -> String:
+	var digits := ""
+	for character in value:
+		var codepoint := character.unicode_at(0)
+		if codepoint >= 48 and codepoint <= 57:
+			digits += character
+			if digits.length() == 8:
+				break
+	return digits
+
+
 func begin_new_game_registration() -> void:
 	_new_game_registration = {
 		"gender": "",
@@ -358,7 +383,7 @@ func is_valid_new_game_registration(values: Dictionary) -> bool:
 	var grade_value := String(values.get("grade", ""))
 	return (
 		gender_value in ["male", "female"]
-		and is_valid_six_digit_id(String(values.get("student_id", "")))
+		and is_valid_existing_student_id(String(values.get("student_id", "")))
 		and is_valid_six_digit_id(String(values.get("parent_id", "")))
 		and not String(values.get("student_name", "")).strip_edges().is_empty()
 		and grade_value in VALID_REGISTRATION_GRADES
@@ -523,8 +548,8 @@ func _emit_time_limit_reached_once() -> void:
 	time_limit_reached.emit()
 
 func has_existing_game_profile_for_student_id(student_id: String) -> bool:
-	var normalized_id := String(student_id).strip_edges()
-	if not is_valid_six_digit_id(normalized_id):
+	var normalized_id := String(student_id)
+	if not is_valid_existing_student_id(normalized_id):
 		return false
 
 	var directory := DirAccess.open(ProjectSettings.globalize_path(SAVE_DIRECTORY))
@@ -1206,7 +1231,7 @@ func _build_unavailable_save_entry(save_path: String, message: String) -> Dictio
 
 
 func _get_save_load_error(data: Dictionary) -> String:
-	if not is_valid_six_digit_id(String(data.get("student_id", "")).strip_edges()):
+	if not is_valid_existing_student_id(String(data.get("student_id", ""))):
 		return "This save is missing a valid Student ID and cannot be loaded."
 	if not is_valid_six_digit_id(String(data.get("parent_id", "")).strip_edges()):
 		return "This save is missing a valid Parent ID and cannot be loaded."
