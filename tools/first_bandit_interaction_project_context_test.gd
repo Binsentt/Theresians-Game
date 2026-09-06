@@ -38,6 +38,7 @@ func _run() -> void:
 	GameState.playtime_authorized = true
 	GameState.set_mode(GameState.GameMode.EXPLORATION)
 	InputManager.unlock_input("door_transition")
+	InputManager.clear_mobile_state()
 
 	_assert(await _load_scene(OAKLEAF_SCENE), "Oakleaf loads in project context")
 	await _wait_frames(4)
@@ -46,12 +47,15 @@ func _run() -> void:
 	var trigger := oakleaf.get_node_or_null(BANDIT_TRIGGER_PATH) as Area2D if oakleaf != null else null
 	var adapter := oakleaf.get_node_or_null(BANDIT_ADAPTER_PATH) if oakleaf != null else null
 	var panel := oakleaf.get_node_or_null("CanvasLayer/Panel") if oakleaf != null else null
+	var dialogue_panel := oakleaf.get_node_or_null("CanvasLayer/DialoguePanel") as CanvasItem if oakleaf != null else null
+	var dialogue_label := oakleaf.get_node_or_null("CanvasLayer/DialoguePanel/DialogueLabel") as Label if oakleaf != null else null
 	var player := get_tree().get_first_node_in_group("player_character") as Node2D
 	_assert(trigger != null, "Oakleaf exposes the First Bandit interaction area")
 	_assert(adapter != null, "Oakleaf exposes the First Bandit TaskDialogAdapter")
 	_assert(panel != null, "Oakleaf exposes the canonical CanvasLayer/Panel dialogue host")
+	_assert(dialogue_panel != null and dialogue_label != null, "Oakleaf exposes the shared First Bandit DialoguePanel and label")
 	_assert(player != null, "Oakleaf project context creates the player")
-	if trigger == null or adapter == null or panel == null or player == null:
+	if trigger == null or adapter == null or panel == null or dialogue_panel == null or dialogue_label == null or player == null:
 		_finish()
 		return
 
@@ -67,11 +71,12 @@ func _run() -> void:
 		return
 
 	GameState.battle_started.connect(_on_battle_started)
-	var dialogue_label := panel.get_node_or_null("DialogueText") as CanvasItem
 	_assert(trigger.interact(), "First Bandit interaction is accepted once")
 	await _wait_frames(2)
-	_assert(dialogue_label != null and dialogue_label.visible, "First Bandit dialogue opens through the existing dialogue panel")
+	_assert(dialogue_panel.visible and dialogue_label.visible, "First Bandit dialogue opens through the shared dialogue panel")
+	_assert(dialogue_label.text == "You want to pass? Solve this first!", "First Bandit renders its existing opening dialogue line before battle")
 	_assert(not trigger.interact(), "A duplicate interaction is rejected while First Bandit dialogue is active")
+	await _advance_dialogue_once()
 	_assert(await _wait_for_battle_transition(6.0), "The final First Bandit dialogue close starts its existing battle")
 	_assert(_battle_transition_count == 1, "First Bandit dialogue creates exactly one battle transition")
 	await _wait_frames(4)
@@ -125,6 +130,15 @@ func _wait_for_battle_transition(timeout_seconds: float) -> bool:
 func _wait_frames(frame_count: int) -> void:
 	for _index in frame_count:
 		await get_tree().process_frame
+
+
+func _advance_dialogue_once() -> void:
+	InputManager.set_mobile_interact_pressed(false)
+	await _wait_frames(1)
+	InputManager.set_mobile_interact_pressed(true)
+	await _wait_frames(2)
+	InputManager.set_mobile_interact_pressed(false)
+	await _wait_frames(1)
 
 
 func _on_battle_started(_battle: Node) -> void:

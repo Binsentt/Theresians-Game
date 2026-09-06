@@ -19,9 +19,11 @@ func _run() -> void:
 	_promote_to_root()
 	var http_api := get_node_or_null("/root/HttpApi")
 	var remote_sync := get_node_or_null("/root/RemoteSync")
+	var game_state := get_node_or_null("/root/GameState")
 	_assert(http_api != null, "Project-context test requires the HttpApi autoload")
 	_assert(remote_sync != null, "Project-context test requires the RemoteSync autoload")
-	if http_api == null or remote_sync == null:
+	_assert(game_state != null, "Project-context test requires the GameState autoload")
+	if http_api == null or remote_sync == null or game_state == null:
 		_finish()
 		return
 
@@ -48,24 +50,24 @@ func _run() -> void:
 			"Immediate fixture responses do not introduce an artificial validation delay"
 		)
 		_assert(bool(wizard.get_node("NameGradeSelect").visible), "Valid Parent/Student pair reaches Name and Grade")
-		_assert(_count_request(http_api, "post", "/api/game/parent/validate") == 1, "Parent validation issues exactly one request")
 		_assert(_count_request(http_api, "get", "/api/game/profile/check/000123") == 1, "Profile check issues exactly one request")
 		_assert(
-			_count_request_with_payload(http_api, "post", "/api/game/parent/validate", {"parent_id": "654321"}) == 1,
-			"Parent validation uses the canonical Parent ID request shape"
+			_count_request_with_payload(http_api, "get", "/api/game/profile/check/000123", {"parent_id": "654321"}) == 1,
+			"Profile validation carries the canonical Parent/Student request shape"
 		)
 		_assert(
-			_count_request_with_payload(http_api, "get", "/api/game/profile/check/000123", {"parent_id": "654321"}) == 1,
-			"Profile validation carries the Student/Parent pair without a localhost URL"
+			not (wizard.get_node("NameGradeSelect/NameInput") as LineEdit).editable,
+			"Canonical profile name stays locked after validation"
 		)
+		_assert((wizard.get_node("NameGradeSelect/Grade2") as BaseButton).disabled, "Canonical profile Grade stays locked after validation")
 		_assert(_all_stub_paths_are_relative(http_api), "New Game uses API-relative paths, never a localhost production URL")
 
 		await _fill_name_grade_and_start(wizard)
 		_assert(await _wait_for_scene(LOADING, 180), "Valid registration transitions through Loading")
 		_assert(await _wait_for_scene(PLAYER_HOUSE, 360), "Valid registration transitions to Player House")
-		_assert(GameState.current_scene_path == PLAYER_HOUSE, "Player House transition preserves the canonical destination")
+		_assert(String(game_state.get("current_scene_path")) == PLAYER_HOUSE, "Player House transition preserves the canonical destination")
 		_assert(remote_sync.requests.size() == 1, "A valid registration requests exactly one playtime lease")
-		_assert(_request_sequence.size() >= 3 and _request_sequence[-1] == "lease", "Lease request follows Parent and Profile validation")
+		_assert(_request_sequence.size() >= 2 and _request_sequence[-1] == "lease", "Lease request follows the canonical profile validation")
 
 		await _exercise_blocked_profile(http_api)
 
@@ -93,8 +95,6 @@ func _drive_to_name_grade(wizard: Node) -> void:
 
 
 func _fill_name_grade_and_start(wizard: Node) -> void:
-	_set_text(wizard.get_node("NameGradeSelect/NameInput") as LineEdit, "Fixture Student")
-	await _press(wizard.get_node("NameGradeSelect/Grade2") as BaseButton)
 	await _press(wizard.get_node("NameGradeSelect/Start") as BaseButton)
 
 

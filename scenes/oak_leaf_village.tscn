@@ -14,10 +14,10 @@
 [ext_resource type="PackedScene" uid="uid://bwxigom58ucj" path="res://objects/Outside-Object/stone-1.tscn" id="11_g0j5d"]
 [ext_resource type="PackedScene" uid="uid://cbpfus553gqdn" path="res://objects/Outside-Object/stone-3.tscn" id="12_nvql0"]
 [ext_resource type="Texture2D" uid="uid://dou875gq64uhr" path="res://Village/MetroCIty/Tiles.png" id="13_i3rgc"]
-[ext_resource type="PackedScene" uid="uid://qejvf1ks28ln" path="res://NPC/Npc/girl_npc.tscn" id="14_p2u0e"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_girl_npc.tscn" id="14_p2u0e"]
 [ext_resource type="PackedScene" uid="uid://c04itoxv5usyo" path="res://NPC/Npc/male_npc.tscn" id="17_tibnn"]
 [ext_resource type="PackedScene" uid="uid://b1vtcdbt0g7qw" path="res://NPC/Npc/old_adult_women.tscn" id="18_l6lg6"]
-[ext_resource type="PackedScene" uid="uid://sofdexdtmqfs" path="res://NPC/Npc/villager_female.tscn" id="19_1ef61"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_villager_female.tscn" id="19_1ef61"]
 [ext_resource type="PackedScene" uid="uid://bdui36u2m8428" path="res://Door-Navigations-Scene2Scene/player_house_outside_door.tscn" id="20_exit"]
 [ext_resource type="Script" uid="uid://81xohjhy77e3" path="res://scripts/map_camera_bounds.gd" id="21_bounds"]
 [ext_resource type="Script" uid="uid://ccdei57yewls4" path="res://NPC/Npc/old_adult_women_Dialog.gd" id="22_0r4je"]
@@ -881,12 +881,15 @@ z_index = 1
 y_sort_enabled = true
 position = Vector2(1080, 336)
 
-[node name="girl_npc" parent="." unique_id=244227400 node_paths=PackedStringArray("quest_ui_path") instance=ExtResource("14_p2u0e")]
+[node name="girl_npc" parent="." unique_id=244227400 instance=ExtResource("14_p2u0e")]
+editable_children = true
 z_index = 1
 position = Vector2(1174, 176)
+
+[node name="Visual" parent="girl_npc" index=0 node_paths=PackedStringArray("quest_ui_path")]
 animation = &"walk_down"
 script = ExtResource("22_0r4je")
-quest_ui_path = NodePath("../CanvasLayer/Panel")
+quest_ui_path = NodePath("../../CanvasLayer/Panel")
 
 [node name="Area2D" type="Area2D" parent="girl_npc" unique_id=1965730284]
 
@@ -896,7 +899,7 @@ shape = SubResource("RectangleShape2D_0r4je")
 
 [node name="InteractableArea" type="Area2D" parent="girl_npc" unique_id=995001123]
 script = ExtResource("29_interactable")
-interaction_target_path = NodePath("..")
+interaction_target_path = NodePath("../Visual")
 interaction_method = &"interact"
 availability_method = &"can_interact"
 interaction_priority = 40
@@ -922,12 +925,15 @@ interaction_method = &"interact"
 availability_method = &"can_interact"
 interaction_priority = 35
 
-[node name="villager-female" parent="." unique_id=1540680081 node_paths=PackedStringArray("quest_ui_path") instance=ExtResource("19_1ef61")]
+[node name="villager-female" parent="." unique_id=1540680081 instance=ExtResource("19_1ef61")]
+editable_children = true
 z_index = 1
 position = Vector2(976.99994, 468.99997)
+
+[node name="Visual" parent="villager-female" index=0 node_paths=PackedStringArray("quest_ui_path")]
 scale = Vector2(0.09, 0.09)
 script = ExtResource("22_0r4je")
-quest_ui_path = NodePath("../CanvasLayer/Panel")
+quest_ui_path = NodePath("../../CanvasLayer/Panel")
 
 [node name="Area2D" type="Area2D" parent="villager-female" unique_id=458782454]
 
@@ -938,7 +944,7 @@ shape = SubResource("RectangleShape2D_sbohv")
 
 [node name="InteractableArea" type="Area2D" parent="villager-female" unique_id=995001125]
 script = ExtResource("29_interactable")
-interaction_target_path = NodePath("..")
+interaction_target_path = NodePath("../Visual")
 interaction_method = &"interact"
 availability_method = &"can_interact"
 interaction_priority = 30

@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/decorative_npc_wanderer.gd" id="1_wanderer"]
+[ext_resource type="PackedScene" path="res://NPC/Enemy/bandits.tscn" id="2_visual"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_foot"]
+size = Vector2(10, 8)
+
+[node name="WanderingBandit" type="CharacterBody2D" groups=["decorative_wanderer"]]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_wanderer")
+visual_node_path = NodePath("Visual")
+walk_down_animation = &"down"
+walk_left_animation = &"left"
+walk_right_animation = &"right"
+walk_up_animation = &"up"
+
+[node name="Visual" parent="." instance=ExtResource("2_visual")]
+
+[node name="FootCollision" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_foot")

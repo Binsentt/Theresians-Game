@@ -25,7 +25,7 @@
 [ext_resource type="Texture2D" uid="uid://dkoko1o0boc7d" path="res://City Pack/Sprites/CP_V1.0.4_nyknck/CP_V1.0.4-2.png" id="24_emfti"]
 [ext_resource type="PackedScene" uid="uid://x8h77mqvhpv" path="res://Door-Navigations-Scene2Scene/go_to_oak_leaf_village.tscn" id="25_dtp6b"]
 [ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="26_door"]
-[ext_resource type="PackedScene" uid="uid://cmg5xxs65s5qy" path="res://NPC/Enemy/bandits.tscn" id="26_gdmg8"]
+[ext_resource type="PackedScene" path="res://NPC/Enemy/wandering_bandit.tscn" id="26_gdmg8"]
 [ext_resource type="PackedScene" path="res://Door-Navigations-Scene2Scene/city_of_knowledge_to_pine_hill.tscn" id="27_053uc"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0mc4d"]

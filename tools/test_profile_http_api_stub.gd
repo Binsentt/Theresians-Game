@@ -11,7 +11,16 @@ var parent_result: Dictionary = {
 var profile_result: Dictionary = {
 	"ok": true,
 	"status": 200,
-	"body": {"ok": true, "should_block": false, "error": ""},
+	"body": {
+		"ok": true,
+		"should_block": false,
+		"error": "",
+		"canonical_profile": {
+			"name": "Fixture Student",
+			"grade_level": "Grade 2",
+			"section": "Emerald",
+		},
+	},
 }
 
 
