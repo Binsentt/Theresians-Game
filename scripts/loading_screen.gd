@@ -151,7 +151,12 @@ func _set_resource_progress(completion_ratio: float) -> void:
 	progress_bar.value = lerpf(progress_bar.min_value, progress_bar.max_value, clampf(completion_ratio, 0.0, 1.0))
 
 func _complete_threaded_scene_load(loaded_scene: PackedScene) -> void:
-	await get_tree().process_frame
+	# Keep the real 100% threaded-load value on screen through a render pass.
+	if DisplayServer.get_name() == "headless":
+		# Headless regression has no draw signal, but still yields a real engine frame.
+		await get_tree().process_frame
+	else:
+		await RenderingServer.frame_post_draw
 	if _transition_in_progress or not is_instance_valid(loaded_scene):
 		return
 

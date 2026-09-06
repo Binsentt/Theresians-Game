@@ -109,6 +109,12 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 	return _questions
 
 
+func get_questions() -> Array[Dictionary]:
+	# QuizManager may take a snapshot after the provider has finished loading.
+	# Return a copy so battle consumers cannot mutate the provider's active pool.
+	return _questions.duplicate(true)
+
+
 func _get_encounter_question_params() -> Dictionary:
 	var params: Dictionary = {}
 	var game_state := get_node_or_null("/root/GameState")
