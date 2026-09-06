@@ -52,10 +52,31 @@ func _run() -> void:
 
 	var student_input: LineEdit = wizard.get_node("StudentParentId/StudentIdInput")
 	var parent_input: LineEdit = wizard.get_node("StudentParentId/ParentIdInput")
-	_set_line_edit_text(student_input, "001234")
+	var student_label: Label = wizard.get_node("StudentParentId/StudentIdLabel")
+	_assert(student_label.text == "STUDENT ID (8 DIGITS)", "New Game visibly presents the current Student ID format as eight digits")
+	_assert(student_label.get_minimum_size().x <= student_label.size.x, "Eight-digit Student ID label fits without resizing the New Game layout")
+	_assert(student_input.max_length == 8, "Student ID field accepts up to eight digits")
+	_assert(parent_input.max_length != 8, "Parent ID remains separate from the Student eight-digit limit")
+	_assert(student_input.position == Vector2(336, 184) and student_input.size == Vector2(573, 78), "Student ID input retains its existing layout")
+
+	student_input.clear()
+	student_input.grab_focus()
+	student_input.insert_text_at_caret("12345678")
+	await process_frame
+	_assert(student_input.text == "12345678", "Student ID field accepts all eight typed digits")
+	student_input.insert_text_at_caret("9")
+	await process_frame
+	_assert(student_input.text == "12345678", "Student ID field rejects a ninth typed digit")
+	student_input.clear()
+	await _type_characters(student_input, "12A34B5678")
+	_assert(student_input.text == "12345678", "Student ID field sanitizes non-digit typing without reducing eight-digit capacity")
+	parent_input.clear()
+	await _type_characters(parent_input, "6543210")
+	_assert(parent_input.text == "654321", "Parent ID field rejects a seventh typed digit")
+	_set_line_edit_text(student_input, "00123456")
 	_set_line_edit_text(parent_input, "654321")
 	await _wait_seconds(0.25)
-	_assert(student_input.text == "001234", "Student ID preserves leading zeros")
+	_assert(student_input.text == "00123456", "Eight-digit Student ID preserves leading zeros")
 	_assert(parent_input.text == "654321", "Parent ID accepts valid placeholder")
 	print("STUDENT_ID_INPUT: PASS")
 	print("LEADING_ZERO: PASS")
@@ -68,6 +89,9 @@ func _run() -> void:
 	_assert(name_input.text == "Ava Santos", "canonical Student name fills the confirmation step")
 	_assert(not name_input.editable, "canonical Student name remains locked")
 	_assert((wizard.get_node("NameGradeSelect/Grade3") as BaseButton).disabled, "canonical Grade remains locked")
+	var http_api := get_root().get_node_or_null("HttpApi")
+	_assert(int(http_api.get("profile_request_count")) == 1, "Eight-digit Student ID passes local validation and performs one profile lookup")
+	_assert(String(http_api.get("last_profile_request_path")).ends_with("00123456"), "Eight-digit Student ID is preserved in the profile lookup path")
 	print("IDS_TO_NAME_GRADE: PASS")
 	print("CANONICAL_PROFILE_LOCK: PASS")
 
@@ -104,6 +128,8 @@ func _run() -> void:
 	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
 	await _wait_seconds(0.5)
 	_assert(wizard.get_node("NameGradeSelect").visible, "female route reaches the canonical confirmation step")
+	_assert(int(http_api.get("profile_request_count")) == 2, "Existing six-digit Student ID still performs a compatible profile lookup")
+	_assert(String(http_api.get("last_profile_request_path")).ends_with("001234"), "Existing six-digit Student ID is preserved in the profile lookup path")
 	await _press(wizard.get_node("NameGradeSelect/Start") as BaseButton)
 	if not await wait_for_scene(LOADING, 180):
 		failures.append("Female route did not reach loading scene")
@@ -127,10 +153,17 @@ func _run() -> void:
 	await _wait_seconds(0.5)
 	student_input = wizard.get_node("StudentParentId/StudentIdInput")
 	parent_input = wizard.get_node("StudentParentId/ParentIdInput")
-	_set_line_edit_text(student_input, "001234")
+	_set_line_edit_text(student_input, "0012345")
 	_set_line_edit_text(parent_input, "654321")
 	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
 	await _wait_seconds(0.5)
+	_assert(int(http_api.get("profile_request_count")) == 2, "Seven-digit Student ID is rejected before any profile HTTP request")
+	var validation_label: Label = wizard.get_node("ValidationPanel/MarginContainer/ValidationLabel")
+	_assert(validation_label.text == "Student ID: enter 8 digits. Existing 6-digit Student IDs are supported.", "Invalid Student ID guidance emphasizes the current eight-digit format and legacy compatibility")
+	_set_line_edit_text(student_input, "001234")
+	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
+	await _wait_seconds(0.5)
+	_assert(wizard.get_node("NameGradeSelect").visible, "Legacy six-digit lookup continues through the canonical profile flow")
 	var back_btn := current_scene.get_node("Button") as Button
 	await _press(back_btn)
 	await _wait_seconds(0.5)
@@ -188,6 +221,13 @@ func _set_line_edit_text(input: LineEdit, text_value: String) -> void:
 		return
 	input.text = text_value
 	input.text_changed.emit(text_value)
+
+func _type_characters(input: LineEdit, value: String) -> void:
+	for character in value:
+		var typed_value := input.text + character
+		input.text = typed_value
+		input.text_changed.emit(typed_value)
+		await process_frame
 
 func _wait_seconds(seconds: float) -> void:
 	await create_timer(seconds).timeout

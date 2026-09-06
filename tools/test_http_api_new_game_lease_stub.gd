@@ -3,6 +3,8 @@ extends Node
 var start_request_count := 0
 var last_start_payload: Dictionary = {}
 var respond_with_lease := true
+var profile_request_count := 0
+var last_profile_request_path := ""
 
 
 func request_post(path: String, payload: Dictionary, _timeout_ms: int = -1) -> Dictionary:
@@ -46,6 +48,8 @@ func request_post(path: String, payload: Dictionary, _timeout_ms: int = -1) -> D
 
 func request_get(path: String, _params: Dictionary = {}, _timeout_ms: int = -1) -> Dictionary:
 	if path.begins_with("/api/game/profile/check/"):
+		profile_request_count += 1
+		last_profile_request_path = path
 		await get_tree().create_timer(0.05).timeout
 		return {
 			"ok": true,

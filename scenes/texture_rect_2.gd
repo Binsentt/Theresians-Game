@@ -308,7 +308,7 @@ func _on_ids_next_pressed() -> void:
 		"parent_id": parent_id_input.text
 	})
 	if not GameState.is_valid_existing_student_id(student_id_input.text):
-		_show_validation("Student ID must be either 6 or 8 digits.")
+		_show_validation("Student ID: enter 8 digits. Existing 6-digit Student IDs are supported.")
 		student_id_input.grab_focus()
 		return
 	if not GameState.is_valid_six_digit_id(parent_id_input.text):
@@ -543,7 +543,7 @@ func _first_registration_error() -> String:
 	if String(values.get("gender", "")).to_lower() not in ["male", "female"]:
 		return "Please select your gender."
 	if not GameState.is_valid_existing_student_id(String(values.get("student_id", ""))):
-		return "Student ID must be either 6 or 8 digits."
+		return "Student ID: enter 8 digits. Existing 6-digit Student IDs are supported."
 	if not GameState.is_valid_six_digit_id(String(values.get("parent_id", ""))):
 		return "Parent ID must contain exactly 6 digits."
 	if String(values.get("student_name", "")).strip_edges().is_empty():
