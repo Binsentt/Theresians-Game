@@ -69,7 +69,7 @@ func _world_dialogue(role: String) -> void:
 			_expect(absf(rect.get_center().y - viewport.y * 0.5) < 1.0, label + " approved Tutorial placement exception preserved")
 		else:
 			_expect(absf(viewport.y - rect.end.y - 40.0) < 1.5, label + " bottom-center with 40px margin")
-		var original_height := viewport.y * 0.215 - 0.1749878 if role == "Tutorial" else (140.0 if role == "Teacher" else 89.0)
+		var original_height := viewport.y * 0.215 - 0.1749878 if role == "Tutorial" else (126.0 if role == "Teacher" else 80.0)
 		_expect(absf(rect.size.y - original_height) < 1.5, label + " original box height preserved")
 		var old_position := player.global_position
 		player.global_position += Vector2(24, 0)
