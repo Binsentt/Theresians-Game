@@ -56,11 +56,19 @@ func _on_time_limit_reached() -> void:
 	var description := get_node_or_null("GameOverOverlay/PanelContainer/VBoxContainer/Description") as Label
 	if label != null:
 		label.text = "TIME LIMIT REACHED"
+		label.add_theme_font_size_override("font_size", 22)
 	if description != null:
 		description.text = "Daily playtime allowance is complete."
+		description.add_theme_font_size_override("font_size", 11)
 	if game_over_overlay != null:
+		var panel := game_over_overlay.get_node("PanelContainer") as Control
+		panel.offset_left = -210.0
+		panel.offset_top = -114.0
+		panel.offset_right = 210.0
+		panel.offset_bottom = 114.0
 		game_over_overlay.visible = true
 	if return_button != null:
+		return_button.add_theme_font_size_override("font_size", 13)
 		return_button.disabled = false
 
 
