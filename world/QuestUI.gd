@@ -17,6 +17,12 @@ var _final_close_consumed := false
 
 
 func _ready() -> void:
+	if dialogue_panel != null:
+		var panel_height := dialogue_panel.size.y
+		dialogue_panel.anchor_top = 1.0
+		dialogue_panel.anchor_bottom = 1.0
+		dialogue_panel.offset_top = -40.0 - panel_height
+		dialogue_panel.offset_bottom = -40.0
 	update_task_ui()
 
 
@@ -84,12 +90,24 @@ func show_completed_with_dialogue() -> void:
 		})
 
 		var battle_scene = load(current_task_data["next_scene"]).instantiate()
-		get_tree().current_scene.add_child(battle_scene)
+		# Original VS art uses viewport coordinates. Keep it outside the world's
+		# Camera2D transform while retaining the encounter world for its return.
+		var battle_layer := CanvasLayer.new()
+		battle_layer.name = "OriginalBattlePresentation"
+		battle_layer.layer = -1
+		var world_canvas := source_scene as CanvasItem
+		var world_was_visible := world_canvas.visible
+		world_canvas.hide()
+		get_tree().current_scene.add_child(battle_layer)
+		var question_layer := battle_scene.get_node("CanvasLayer") as CanvasLayer
+		question_layer.layer = 0
+		battle_layer.add_child(battle_scene)
 		GameState.begin_battle(battle_scene)
 		visible = false
 
 		var battle_won: bool = await battle_scene.battle_finished
-		battle_scene.queue_free()
+		battle_layer.queue_free()
+		world_canvas.visible = world_was_visible
 		visible = true
 		if not battle_won:
 			var loss_result: Dictionary = GameState.record_encounter_loss()
