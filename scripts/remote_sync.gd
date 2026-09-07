@@ -162,7 +162,7 @@ func _activity_metadata_for_event(previous_index: int, current_index: int, event
 	var explicit_metadata: Variant = event.get("activity", {})
 	if explicit_metadata is Dictionary and not explicit_metadata.is_empty():
 		return explicit_metadata
-	var task_index := previous_index if event_type == "task_completed" else current_index
+	var task_index := previous_index if event_type in ["task_completed", "quest_completed"] else current_index
 	return GameState.get_task_activity_metadata(task_index)
 
 

@@ -144,6 +144,12 @@ func _finish_battle(success: bool) -> void:
 		return
 	_battle_finished_emitted = true
 	disable_buttons()
+	# Keep the original final hit and result visible until the existing effect
+	# finishes; the quest owner frees this scene when battle_finished is emitted.
+	var terminal_effect: Node2D = enemy_effect if success else player_effect
+	var animation := terminal_effect.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+	if animation != null and animation.is_playing():
+		await animation.animation_finished
 	battle_finished.emit(success)
 
 

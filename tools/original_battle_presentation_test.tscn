@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/original_battle_presentation_test.gd" id="1_aqpjq"]
+
+[node name="root" type="Node" unique_id=1458347630]
+script = ExtResource("1_aqpjq")

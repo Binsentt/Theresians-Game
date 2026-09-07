@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/original_flow_ingestion_test.gd" id="1_ji4io"]
+
+[node name="root" type="Node" unique_id=1735380583]
+script = ExtResource("1_ji4io")

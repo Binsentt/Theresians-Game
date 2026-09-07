@@ -510,11 +510,10 @@ y_sort_enabled = true
 position = Vector2(1080, 336)
 
 [node name="girl_npc" parent="." unique_id=244227400 instance=ExtResource("14_p2u0e")]
-editable_children = true
 z_index = 1
 position = Vector2(1174, 176)
 
-[node name="Visual" parent="girl_npc" index=0]
+[node name="Visual" parent="girl_npc" index="0"]
 animation = &"walk_down"
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
@@ -554,11 +553,10 @@ availability_method = &"can_interact"
 interaction_priority = 35
 
 [node name="villager-female" parent="." unique_id=1540680081 instance=ExtResource("19_1ef61")]
-editable_children = true
 z_index = 1
 position = Vector2(976.99994, 468.99997)
 
-[node name="Visual" parent="villager-female" index=0]
+[node name="Visual" parent="villager-female" index="0"]
 scale = Vector2(0.09, 0.09)
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
@@ -743,3 +741,7 @@ animation = &"right"
 [connection signal="body_entered" from="villager-female/Area2D" to="villager-female/InteractableArea" method="_on_body_entered"]
 [connection signal="body_exited" from="villager-female/Area2D" to="villager-female/InteractableArea" method="_on_body_exited"]
 [connection signal="body_entered" from="NPC1/Area2D" to="NPC1/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="NPC1/Area2D" to="NPC1/InteractableArea" method="_on_body_exited"]
+
+[editable path="girl_npc"]
+[editable path="villager-female"]
