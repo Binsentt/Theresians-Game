@@ -270,6 +270,8 @@ func _on_progression_session_reset(_source: String) -> void:
 func _show_event_panel(event: Dictionary) -> void:
 	_hide_all_panels_immediately()
 	var is_trigger := String(event.get("kind", "")) in ["task_trigger", "quest_updated"]
+	var is_completion := String(event.get("kind", "")) in ["task_completed", "quest_completed"]
+	_root_layer.layer = 2 if is_completion else 1
 	var target_panel: PanelContainer
 	var target_height: float
 	if is_trigger:
@@ -295,12 +297,12 @@ func _show_event_panel(event: Dictionary) -> void:
 	while target_panel.get_combined_minimum_size().y > target_height and layout_frames < 4:
 		await get_tree().process_frame
 		layout_frames += 1
-	_center_panel(target_panel, target_height)
+	_center_panel(target_panel, target_height, is_completion)
 	target_panel.visible = true
 	# The first visible layout applies Container child rects. Recenter once those
 	# rects have settled so the resolved compact minimum size controls the panel.
 	await get_tree().process_frame
-	_center_panel(target_panel, target_height)
+	_center_panel(target_panel, target_height, is_completion)
 
 
 func _reserve_trigger_label_width() -> void:
@@ -364,13 +366,14 @@ func _apply_panel_theme(panel: PanelContainer, accent: String) -> void:
 	panel.add_theme_stylebox_override("panel", style)
 
 
-func _center_panel(panel: Control, height: float) -> void:
+func _center_panel(panel: Control, height: float, top_center: bool = false) -> void:
 	var viewport_size := get_viewport().get_visible_rect().size
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		viewport_size = Vector2(460.0, 300.0)
 	var width := minf(MAX_PANEL_WIDTH, viewport_size.x * 0.84)
+	panel.set_anchors_preset(Control.PRESET_CENTER_TOP if top_center else Control.PRESET_TOP_LEFT)
 	panel.size = Vector2(width, height)
-	panel.position = Vector2((viewport_size.x - width) * 0.5, (viewport_size.y - height) * 0.5)
+	panel.position = Vector2((viewport_size.x - width) * 0.5, 12.0 if top_center else (viewport_size.y - height) * 0.5)
 
 
 func _hide_all_panels_immediately() -> void:
