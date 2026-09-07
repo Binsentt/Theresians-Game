@@ -93,7 +93,10 @@ func show_completed_with_dialogue() -> void:
 			"question_scope": current_task_data.get("question_scope", {}),
 		})
 
-		var battle_scene = load(current_task_data["next_scene"]).instantiate()
+		var battle_scene_path: String = current_task_data["next_scene"]
+		if GameState.gender == "female" and battle_scene_path == "res://Battle/Battle-Enemy/male_vs_bandit.tscn":
+			battle_scene_path = "res://Battle/Battle-Enemy/female_vs_bandit.tscn"
+		var battle_scene = load(battle_scene_path).instantiate()
 		# Original VS art uses viewport coordinates. Keep it outside the world's
 		# Camera2D transform while retaining the encounter world for its return.
 		var battle_layer := CanvasLayer.new()
@@ -133,10 +136,8 @@ func show_completed_with_dialogue() -> void:
 		"reason": "battle_victory" if current_task_data.has("next_scene") else "teacher_task_completed",
 	})
 
-	if GameState.current_task_index < GameState.tasks.size():
-		update_task_ui()
-	else:
-		queue_free()
+	# Ordinary NPC greetings still use this shared host after the last quest.
+	update_task_ui()
 
 
 func play_teacher_dialogue() -> void:
