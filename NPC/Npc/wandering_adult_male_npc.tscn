@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/decorative_npc_wanderer.gd" id="1_wanderer"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/adult_male_npc.tscn" id="2_visual"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_foot"]
+size = Vector2(10, 8)
+
+[node name="WanderingAdultMaleNpc" type="CharacterBody2D" groups=["decorative_wanderer"]]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_wanderer")
+visual_node_path = NodePath("Visual")
+
+[node name="Visual" parent="." instance=ExtResource("2_visual")]
+
+[node name="FootCollision" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_foot")

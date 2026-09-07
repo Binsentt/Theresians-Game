@@ -16,11 +16,11 @@
 [ext_resource type="PackedScene" uid="uid://bwxigom58ucj" path="res://objects/Outside-Object/stone-1.tscn" id="14_grvvj"]
 [ext_resource type="PackedScene" uid="uid://cbpfus553gqdn" path="res://objects/Outside-Object/stone-3.tscn" id="15_ckjcu"]
 [ext_resource type="Texture2D" uid="uid://dou875gq64uhr" path="res://Village/MetroCIty/Tiles.png" id="16_6v12j"]
-[ext_resource type="PackedScene" uid="uid://si8h8m3yi4ox" path="res://NPC/Npc/adult_male_npc.tscn" id="17_3y60n"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_adult_male_npc.tscn" id="17_3y60n"]
 [ext_resource type="PackedScene" path="res://NPC/Npc/decorative_wandering_city_npc.tscn" id="18_fnfvr"]
-[ext_resource type="PackedScene" uid="uid://b1vtcdbt0g7qw" path="res://NPC/Npc/old_adult_women.tscn" id="19_emfti"]
-[ext_resource type="PackedScene" uid="uid://h8q5ql1v8fl1" path="res://NPC/Npc/old_npc.tscn" id="20_dtp6b"]
-[ext_resource type="PackedScene" uid="uid://qejvf1ks28ln" path="res://NPC/Npc/girl_npc.tscn" id="21_gdmg8"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_old_adult_women.tscn" id="19_emfti"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_old_npc.tscn" id="20_dtp6b"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_girl_npc.tscn" id="21_gdmg8"]
 [ext_resource type="Script" uid="uid://cv4g5p3cow42t" path="res://scripts/gameplay_scene.gd" id="23_gameplay"]
 [ext_resource type="Texture2D" uid="uid://dkoko1o0boc7d" path="res://City Pack/Sprites/CP_V1.0.4_nyknck/CP_V1.0.4-2.png" id="24_emfti"]
 [ext_resource type="PackedScene" uid="uid://x8h77mqvhpv" path="res://Door-Navigations-Scene2Scene/go_to_oak_leaf_village.tscn" id="25_dtp6b"]
@@ -1053,19 +1053,39 @@ tile_set = SubResource("TileSet_y4dbu")
 z_index = 1
 position = Vector2(1094, 417)
 
+[node name="FootCollision" parent="adult-male_npc" index="1"]
+position = Vector2(0, 5.86124)
+scale = Vector2(0.433125, 0.26642)
+
 [node name="city_npc" parent="." unique_id=822584812 instance=ExtResource("18_fnfvr")]
 position = Vector2(936, 306)
 
 [node name="old_adult_women" parent="." unique_id=292343504 instance=ExtResource("19_emfti")]
 position = Vector2(983, 420)
 
+[node name="FootCollision" parent="old_adult_women" index="1"]
+position = Vector2(0, 5.0622)
+scale = Vector2(0.468, 0.2301)
+
 [node name="old_npc" parent="." unique_id=207617385 instance=ExtResource("20_dtp6b")]
 position = Vector2(809, 206)
+
+[node name="Visual" parent="old_npc" index="0"]
 animation = &"walk_down"
+
+[node name="FootCollision" parent="old_npc" index="1"]
+position = Vector2(0, 4.9588)
+scale = Vector2(0.40005, 0.2254)
 
 [node name="girl_npc" parent="." unique_id=244227400 instance=ExtResource("21_gdmg8")]
 position = Vector2(958, 456)
+
+[node name="Visual" parent="girl_npc" index="0"]
 animation = &"walk_right"
+
+[node name="FootCollision" parent="girl_npc" index="1"]
+position = Vector2(0, 5.3768)
+scale = Vector2(0.4563, 0.26)
 
 [node name="object" type="TileMapLayer" parent="." unique_id=1920289294]
 tile_map_data = PackedByteArray("AABBAAoAAAAbABYAAABEAAsAAAAcABcAAABEAAgAAAAeABUAAABLAAgAAAAeABUAAABDABQAAAAcABYAAABCABQAAAAdABYAAAA0ABQAAAAdABYAAAAxAAsAAAAdABYAAAA2AA4AAAASAB0AAAA8AA4AAAAPAB0AAABBAB4AAAASAB8AAAA2AB0AAAAPAB8AAAA=")
@@ -1110,3 +1130,7 @@ position = Vector2(327, 237)
 
 [node name="City-of-knowlwedge-to-PineHill" parent="." unique_id=1162980262 instance=ExtResource("27_053uc")]
 position = Vector2(128, 530)
+[editable path="adult-male_npc"]
+[editable path="old_adult_women"]
+[editable path="old_npc"]
+[editable path="girl_npc"]

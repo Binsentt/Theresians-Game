@@ -18,13 +18,13 @@
 [ext_resource type="PackedScene" uid="uid://c2aqclsivqh1m" path="res://MetroCity .2/MetroCity 2.1/wizard-house.tscn" id="16_rice0"]
 [ext_resource type="Texture2D" uid="uid://dou875gq64uhr" path="res://Village/MetroCIty/Tiles.png" id="17_2ie2v"]
 [ext_resource type="PackedScene" uid="uid://c34pe7vaeqrbs" path="res://objects/Outside-Object/village-light.tscn" id="18_knnes"]
-[ext_resource type="PackedScene" uid="uid://b1vtcdbt0g7qw" path="res://NPC/Npc/old_adult_women.tscn" id="19_elt60"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_old_adult_women.tscn" id="19_elt60"]
 [ext_resource type="PackedScene" path="res://NPC/Npc/wandering_old_npc.tscn" id="20_smsue"]
-[ext_resource type="PackedScene" uid="uid://c04itoxv5usyo" path="res://NPC/Npc/male_npc.tscn" id="21_fcbjw"]
-[ext_resource type="PackedScene" uid="uid://qejvf1ks28ln" path="res://NPC/Npc/girl_npc.tscn" id="22_splfx"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_male_npc.tscn" id="21_fcbjw"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_girl_npc.tscn" id="22_splfx"]
 [ext_resource type="PackedScene" path="res://NPC/Npc/wandering_villager_male.tscn" id="25_fcbjw"]
 [ext_resource type="PackedScene" uid="uid://cmg5xxs65s5qy" path="res://NPC/Enemy/bandits.tscn" id="26_ej7ce"]
-[ext_resource type="PackedScene" uid="uid://sofdexdtmqfs" path="res://NPC/Npc/villager_female.tscn" id="26_splfx"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_villager_female.tscn" id="26_splfx"]
 [ext_resource type="Script" uid="uid://cv4g5p3cow42t" path="res://scripts/gameplay_scene.gd" id="27_gameplay"]
 [ext_resource type="PackedScene" uid="uid://cy6pff6v087ra" path="res://NPC/Enemy/boss_wizard.tscn" id="27_p8vfn"]
 [ext_resource type="PackedScene" uid="uid://dv4x0airjeepq" path="res://Door-Navigations-Scene2Scene/pinehill_to_city_of_knowledge.tscn" id="28_ej7ce"]
@@ -641,7 +641,13 @@ position = Vector2(344, 432)
 
 [node name="old_adult_women" parent="." unique_id=292343504 instance=ExtResource("19_elt60")]
 position = Vector2(336, 253)
+
+[node name="Visual" parent="old_adult_women" index="0"]
 animation = &"walk_right"
+
+[node name="FootCollision" parent="old_adult_women" index="1"]
+position = Vector2(0, 5.0622)
+scale = Vector2(0.468, 0.2301)
 
 [node name="old_npc" parent="." unique_id=207617385 instance=ExtResource("20_smsue")]
 position = Vector2(178, 284)
@@ -650,8 +656,16 @@ animation = &"walk_down"
 [node name="male-npc" parent="." unique_id=736401141 instance=ExtResource("21_fcbjw")]
 position = Vector2(246, 106)
 
+[node name="FootCollision" parent="male-npc" index="1"]
+position = Vector2(0, 7.3986)
+scale = Vector2(0.45315, 0.3363)
+
 [node name="girl_npc" parent="." unique_id=244227400 instance=ExtResource("22_splfx")]
 position = Vector2(428, 333)
+
+[node name="FootCollision" parent="girl_npc" index="1"]
+position = Vector2(0, 5.3768)
+scale = Vector2(0.41535, 0.26)
 
 [node name="villager-male" parent="." unique_id=1399149183 instance=ExtResource("25_fcbjw")]
 position = Vector2(235, 328)
@@ -659,6 +673,10 @@ scale = Vector2(0.12, 0.12)
 
 [node name="villager-female" parent="." unique_id=1540680081 instance=ExtResource("26_splfx")]
 position = Vector2(386, 412)
+
+[node name="FootCollision" parent="villager-female" index="1"]
+position = Vector2(0, 5.3482)
+scale = Vector2(0.348075, 0.2431)
 
 [node name="Bandits" parent="." unique_id=8116170 instance=ExtResource("26_ej7ce")]
 position = Vector2(1180, 78)
@@ -684,3 +702,7 @@ position = Vector2(47, 19)
 
 [node name="Pinehill-to-City-of-Knowledge" parent="." unique_id=1911235964 instance=ExtResource("28_ej7ce")]
 position = Vector2(48, 2)
+[editable path="old_adult_women"]
+[editable path="male-npc"]
+[editable path="girl_npc"]
+[editable path="villager-female"]

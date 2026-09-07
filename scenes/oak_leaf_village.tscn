@@ -15,8 +15,8 @@
 [ext_resource type="PackedScene" uid="uid://cbpfus553gqdn" path="res://objects/Outside-Object/stone-3.tscn" id="12_nvql0"]
 [ext_resource type="Texture2D" uid="uid://dou875gq64uhr" path="res://Village/MetroCIty/Tiles.png" id="13_i3rgc"]
 [ext_resource type="PackedScene" path="res://NPC/Npc/wandering_girl_npc.tscn" id="14_p2u0e"]
-[ext_resource type="PackedScene" uid="uid://c04itoxv5usyo" path="res://NPC/Npc/male_npc.tscn" id="17_tibnn"]
-[ext_resource type="PackedScene" uid="uid://b1vtcdbt0g7qw" path="res://NPC/Npc/old_adult_women.tscn" id="18_l6lg6"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_male_npc.tscn" id="17_tibnn"]
+[ext_resource type="PackedScene" path="res://NPC/Npc/wandering_old_adult_women.tscn" id="18_l6lg6"]
 [ext_resource type="PackedScene" path="res://NPC/Npc/wandering_villager_female.tscn" id="19_1ef61"]
 [ext_resource type="PackedScene" uid="uid://bdui36u2m8428" path="res://Door-Navigations-Scene2Scene/player_house_outside_door.tscn" id="20_exit"]
 [ext_resource type="Script" uid="uid://81xohjhy77e3" path="res://scripts/map_camera_bounds.gd" id="21_bounds"]
@@ -531,21 +531,27 @@ interaction_method = &"interact"
 availability_method = &"can_interact"
 interaction_priority = 40
 
-[node name="NPC" parent="." unique_id=736401141 node_paths=PackedStringArray("quest_ui_path") instance=ExtResource("17_tibnn")]
+[node name="NPC" parent="." unique_id=736401141 instance=ExtResource("17_tibnn")]
 z_index = 1
 position = Vector2(906, 276)
+
+[node name="Visual" parent="NPC" index="0"]
 scale = Vector2(0.1, 0.1)
 script = ExtResource("22_0r4je")
-quest_ui_path = NodePath("../CanvasLayer/Panel")
+quest_ui_path = NodePath("../../CanvasLayer/Panel")
 
-[node name="Area2D" type="Area2D" parent="NPC" unique_id=210634579]
+[node name="FootCollision" parent="NPC" index="1"]
+position = Vector2(0, 7.788)
+scale = Vector2(0.477, 0.354)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC/Area2D" unique_id=566825481]
+[node name="Area2D" type="Area2D" parent="NPC/Visual" unique_id=210634579]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC/Visual/Area2D" unique_id=566825481]
 position = Vector2(5, 0)
 scale = Vector2(0.99999976, 0.99999976)
 shape = SubResource("RectangleShape2D_7cmds")
 
-[node name="InteractableArea" type="Area2D" parent="NPC" unique_id=995001124]
+[node name="InteractableArea" type="Area2D" parent="NPC/Visual" unique_id=995001124]
 script = ExtResource("29_interactable")
 interaction_target_path = NodePath("..")
 interaction_method = &"interact"
@@ -581,18 +587,24 @@ limit_right = 1280
 limit_top = -16
 limit_bottom = 640
 
-[node name="NPC1" parent="." unique_id=292343504 node_paths=PackedStringArray("quest_ui_path") groups=["Player"] instance=ExtResource("18_l6lg6")]
+[node name="NPC1" parent="." unique_id=292343504 instance=ExtResource("18_l6lg6")]
 position = Vector2(964, 173)
+
+[node name="Visual" parent="NPC1" index="0" groups=["Player"]]
 script = ExtResource("22_0r4je")
-quest_ui_path = NodePath("../CanvasLayer/Panel")
+quest_ui_path = NodePath("../../CanvasLayer/Panel")
 
-[node name="Area2D" type="Area2D" parent="NPC1" unique_id=718996092]
+[node name="FootCollision" parent="NPC1" index="1"]
+position = Vector2(0, 5.0622)
+scale = Vector2(0.468, 0.2301)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC1/Area2D" unique_id=259426367]
+[node name="Area2D" type="Area2D" parent="NPC1/Visual" unique_id=718996092]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="NPC1/Visual/Area2D" unique_id=259426367]
 position = Vector2(0, 23.076904)
 shape = SubResource("RectangleShape2D_bvw5x")
 
-[node name="InteractableArea" type="Area2D" parent="NPC1" unique_id=995001126]
+[node name="InteractableArea" type="Area2D" parent="NPC1/Visual" unique_id=995001126]
 script = ExtResource("29_interactable")
 interaction_target_path = NodePath("..")
 interaction_method = &"interact"
@@ -736,12 +748,14 @@ animation = &"right"
 
 [connection signal="body_entered" from="girl_npc/Area2D" to="girl_npc/InteractableArea" method="_on_body_entered"]
 [connection signal="body_exited" from="girl_npc/Area2D" to="girl_npc/InteractableArea" method="_on_body_exited"]
-[connection signal="body_entered" from="NPC/Area2D" to="NPC/InteractableArea" method="_on_body_entered"]
-[connection signal="body_exited" from="NPC/Area2D" to="NPC/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="NPC/Visual/Area2D" to="NPC/Visual/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="NPC/Visual/Area2D" to="NPC/Visual/InteractableArea" method="_on_body_exited"]
 [connection signal="body_entered" from="villager-female/Area2D" to="villager-female/InteractableArea" method="_on_body_entered"]
 [connection signal="body_exited" from="villager-female/Area2D" to="villager-female/InteractableArea" method="_on_body_exited"]
-[connection signal="body_entered" from="NPC1/Area2D" to="NPC1/InteractableArea" method="_on_body_entered"]
-[connection signal="body_exited" from="NPC1/Area2D" to="NPC1/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="NPC1/Visual/Area2D" to="NPC1/Visual/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="NPC1/Visual/Area2D" to="NPC1/Visual/InteractableArea" method="_on_body_exited"]
 
 [editable path="girl_npc"]
 [editable path="villager-female"]
+[editable path="NPC"]
+[editable path="NPC1"]
