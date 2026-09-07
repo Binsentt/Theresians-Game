@@ -910,6 +910,11 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	# Version 8 already persists current_quest. Unmarked legacy saves retain
 	# their existing task checkpoint rather than replaying an unrecorded tutorial.
 	_tutorial_activity_completed = current_task_index > 0 or current_quest != TUTORIAL_QUEST
+	# Older saves can carry a completed checkpoint with an obsolete quest title.
+	# The checkpoint is authoritative; reconcile presentation without replaying tasks.
+	current_quest = TUTORIAL_QUEST if is_tutorial_active() else (
+		String(tasks[current_task_index].get("quest_text", "")) if current_task_index < tasks.size() else DEFAULT_QUEST
+	)
 	_tutorial_activity_started = false
 	_started_task_activity_ids.clear()
 	score = int(data.get("score", 0))
