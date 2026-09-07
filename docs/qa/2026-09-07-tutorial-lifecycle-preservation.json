@@ -1,0 +1,67 @@
+{
+  "starting_head": "d6180f4028f5c9325ddd245c2cf620b564198791",
+  "changed_tracked_files": [
+    "interiors/player_house.tscn",
+    "scripts/mobile_controls.gd"
+  ],
+  "unrelated_product_delta_count": 0,
+  "index_preserved": true,
+  "entire_player_house_matches_ZIP_initial_HEAD": true,
+  "child_blocks": {
+    "NPCImage": {
+      "byte_equal": true,
+      "original_sha256": "429c188b6b39e607429c0d9f648e3e82bf7df2b6e13cc79839e0d20cb4f6c05f",
+      "current_sha256": "429c188b6b39e607429c0d9f648e3e82bf7df2b6e13cc79839e0d20cb4f6c05f"
+    },
+    "Image": {
+      "byte_equal": true,
+      "original_sha256": "010834c40195b7187354f776f708fb45749c9fdf1ed77bb10227240505e58e9c",
+      "current_sha256": "010834c40195b7187354f776f708fb45749c9fdf1ed77bb10227240505e58e9c"
+    },
+    "TextLabel": {
+      "byte_equal": true,
+      "original_sha256": "314922668503aa5a84a21c13ff6af47d3d56ba799004c1188a7daa4bab59c258",
+      "current_sha256": "314922668503aa5a84a21c13ff6af47d3d56ba799004c1188a7daa4bab59c258"
+    },
+    "Button": {
+      "byte_equal": true,
+      "original_sha256": "6b5f25bc4aa28925fdec27f78cfe9370af9fd397c46ab51b19c54cb7f673d4b5",
+      "current_sha256": "6b5f25bc4aa28925fdec27f78cfe9370af9fd397c46ab51b19c54cb7f673d4b5"
+    }
+  },
+  "teacher_image_bytes_equal": true,
+  "controller_scene_bytes_unchanged": true,
+  "panel_original": {
+    "anchor_left": 0.0,
+    "anchor_top": 0.785,
+    "anchor_right": 1.0,
+    "anchor_bottom": 1.0,
+    "offset_left": 4.0,
+    "offset_top": 0.1749878,
+    "offset_right": 0.0,
+    "offset_bottom": 0.0
+  },
+  "panel_before": {
+    "anchor_left": 0.0,
+    "anchor_top": 0.3925,
+    "anchor_right": 1.0,
+    "anchor_bottom": 0.6075,
+    "offset_left": 2.0,
+    "offset_top": 0.0874939,
+    "offset_right": -2.0,
+    "offset_bottom": -0.0874939
+  },
+  "runtime_passed": 351,
+  "runtime_failed": 0,
+  "script_errors": 0,
+  "resource_or_parse_errors": 0,
+  "final_source_sha256": {
+    "scripts/mobile_controls.gd": "6af0bb36dc768a8aefcf76fe3ec177208ea0f1d4cd0af03e15b1bf9ec0a0c36b",
+    "interiors/player_house.tscn": "16ea5c76fb116566474995dc23b394341a5a4c50e077e6137a235326a861528f",
+    "ui/mobile_controls.tscn": "4c672914b47502c842c120a08b0d5141f9ea30f4c11fd71d8162f6578853aa8d",
+    "tools/tutorial_layout_lifecycle_test.gd": "b49436a2af9d47378651b4e3c972f71b1a49ae6c2d8adfb9705f32d804ba7a5c",
+    "tools/tutorial_layout_lifecycle_test.tscn": "01d1a7fe0a25f828d31ae1c14d9a27c6f0676746e3da730d80edc43f5b21ddd6"
+  },
+  "unrelated_tracked_paths_preserved": 1857,
+  "godot_process_audit": "After runtime completed, sole Godot process is PID4852 canonical --path C:/Users/vince/Documents/Capstone-Project/capstone-theresians-quest --editor; no worktree runtime."
+}

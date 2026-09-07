@@ -6,6 +6,9 @@ const EDITOR_TEST_ENVIRONMENT := "THERESIANS_MOBILE_CONTROLS_TEST"
 
 @export var force_visible_for_testing: bool = false
 
+var _tutorial_panel: Control
+var _interact_press_frame: int = -2
+
 @onready var root: Control = $Root
 @onready var movement_margin: Control = $Root/MovementMargin
 @onready var up_button: TouchHoldButton = $Root/MovementMargin/MovementPanel/MovementBox/TopRow/UpButton
@@ -27,10 +30,34 @@ func _ready() -> void:
 	_connect_game_state()
 	_connect_input_manager()
 	_connect_interaction_manager()
+	_connect_tutorial_panel()
 	if _is_explicit_editor_test_mode():
 		print("MOBILE CONTROLS TEST MODE: controls enabled for this debug session.")
 
 	_update_visibility()
+
+func _connect_tutorial_panel() -> void:
+	var scene := get_parent()
+	if scene == null or scene.scene_file_path != "res://interiors/player_house.tscn":
+		return
+	_tutorial_panel = scene.get_node_or_null("CanvasLayer/Panel") as Control
+	if _tutorial_panel == null:
+		return
+	_tutorial_panel.visibility_changed.connect(_update_visibility)
+	# Container/anchor layout can settle after _ready, including on resize.
+	for control in [root, movement_margin, action_margin, _tutorial_panel]:
+		control.resized.connect(_update_visibility, CONNECT_DEFERRED)
+	_update_visibility.call_deferred()
+
+func _obstructs_tutorial(control: Control) -> bool:
+	if not is_instance_valid(_tutorial_panel) or not _tutorial_panel.is_visible_in_tree():
+		return false
+	# Include the margins: their transparent area also intercepts pointer input.
+	for child_name in ["NPCImage", "Button"]:
+		var target := _tutorial_panel.get_node(child_name) as Control
+		if control.get_global_rect().intersects(target.get_global_rect()):
+			return true
+	return false
 
 func configure(show_for_testing: bool) -> void:
 	force_visible_for_testing = show_for_testing
@@ -58,6 +85,8 @@ func _on_direction_hold_changed(held: bool, direction: StringName, button: Touch
 	button.scale = DIRECTION_BUTTON_PRESSED_SCALE if held else DIRECTION_BUTTON_SCALE
 
 func _on_interact_hold_changed(held: bool) -> void:
+	if held:
+		_interact_press_frame = Engine.get_process_frames()
 	InputManager.set_mobile_interact_pressed(held)
 	interact_button.scale = DIRECTION_BUTTON_PRESSED_SCALE if held else DIRECTION_BUTTON_SCALE
 
@@ -134,20 +163,28 @@ func _update_visibility() -> void:
 					or _is_explicit_editor_test_mode() \
 					or OS.has_feature("mobile") \
 					or DisplayServer.is_touchscreen_available())
-	var show_movement := available and _is_exploration_mode()
+	var show_movement := available and _is_exploration_mode() and not _obstructs_tutorial(movement_margin)
 	var should_show := available and (_is_exploration_mode() or GameState.get_mode() == GameState.GameMode.DIALOGUE)
+	var show_action := should_show and not _obstructs_tutorial(action_margin)
 	movement_margin.visible = show_movement
 	if not show_movement:
 		up_button.force_release()
 		left_button.force_release()
 		right_button.force_release()
 		down_button.force_release()
-	if should_show:
+	if show_action:
 		action_margin.visible = true
 		action_panel.visible = true
 		interact_button.visible = true
 		interact_button.disabled = false
 	else:
+		# A mobile press made before Tutorial opened must not skip its first line.
+		# Preserve a simultaneous keyboard interaction and any visible D-pad hold.
+		if Engine.get_process_frames() <= _interact_press_frame + 1 \
+				and _obstructs_tutorial(action_margin) \
+				and not Input.is_action_pressed(InputManager.ACTION_INTERACT) \
+				and not Input.is_action_just_pressed(InputManager.ACTION_INTERACT):
+			InputManager.consume_interact_just_pressed()
 		action_margin.visible = false
 		action_panel.visible = false
 		interact_button.visible = false
