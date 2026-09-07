@@ -1,0 +1,4808 @@
+{
+  "audit_kind": "Fresh read-only actor, movement, dialogue and input source audit; no Godot run and no product edits",
+  "canonical_root": "C:\\Users\\vince\\Documents\\Capstone-Project\\capstone-theresians-quest",
+  "starting_head": "dee8b5cdb27311e75451a6042063bed8aa67800f",
+  "head_at_report": "dee8b5cdb27311e75451a6042063bed8aa67800f",
+  "audit_time_utc": "2026-09-07T11:58:42.717180+00:00",
+  "zip_path": "C:\\Users\\vince\\Downloads\\capstone-theresians-quest6.zip",
+  "zip_root_prefix": "capstone-theresians-quest6/",
+  "zip_worktrees_excluded": true,
+  "read_only_runtime_owner": "Parent owns all canonical Godot MCP runtime checks and worktree runtime count",
+  "definition": "31 unique outdoor NPC/enemy/boss actors; wrapper Visual children counted once. Runtime player and separate interior teachers listed as supplemental. All YES movement/input flags describe source configuration, not runtime or human acceptance.",
+  "map_summary": {
+    "Oakleaf": {
+      "scene": "scenes/oak_leaf_village.tscn",
+      "expanded_node_count": {
+        "zip": 190,
+        "current": 203
+      },
+      "actor_names": [
+        "girl_npc",
+        "NPC",
+        "villager-female",
+        "NPC1",
+        "Bandits",
+        "Bandits2",
+        "Bandits3",
+        "Bandits4",
+        "Bandits5",
+        "Boss-Bandit"
+      ]
+    },
+    "City of Knowledge": {
+      "scene": "scenes/city_of_knowledge.tscn",
+      "expanded_node_count": {
+        "zip": 123,
+        "current": 143
+      },
+      "actor_names": [
+        "adult-male_npc",
+        "city_npc",
+        "old_adult_women",
+        "old_npc",
+        "girl_npc",
+        "Bandits",
+        "Bandits2",
+        "Bandits3",
+        "Bandits4",
+        "Bandits5"
+      ]
+    },
+    "Pinehill": {
+      "scene": "scenes/pinehill_village.tscn",
+      "expanded_node_count": {
+        "zip": 277,
+        "current": 289
+      },
+      "actor_names": [
+        "old_adult_women",
+        "old_npc",
+        "male-npc",
+        "girl_npc",
+        "villager-male",
+        "villager-female",
+        "Bandits",
+        "Bandits2",
+        "Bandits3",
+        "Bandits4",
+        "Boss-Wizard"
+      ]
+    }
+  },
+  "counts": {
+    "outdoor_actors": 31,
+    "safe_civilians": 15,
+    "safe_civilians_currently_configured_to_wander": 15,
+    "approved_moving_city_bandits": 5,
+    "safe_unmoving_civilians": 0,
+    "source_supported_civilian_dialogues": 4,
+    "silent_civilians": 11
+  },
+  "actors": [
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "girl_npc",
+      "classification": "civilian / dialogue",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": true,
+      "current_dialogue": true,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": true,
+      "keyboard_E": true,
+      "keyboard_Space": true,
+      "mobile_ACT": true,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/girl_npc.tscn",
+      "current_scene": "NPC/Npc/wandering_girl_npc.tscn",
+      "visual_source": "NPC/Npc/girl_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [
+        "girl_npc/InteractableArea"
+      ],
+      "dialogue_note": "Hello traveler! Welcome to our town.",
+      "current_source_subtree": {
+        "girl_npc": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "z_index": "1",
+            "position": "Vector2(1174, 176)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 9,
+              "header": "name=\"WanderingGirlNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 511,
+              "header": "name=\"girl_npc\" parent=\".\" unique_id=244227400 instance=ExtResource(\"14_p2u0e\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_girl_npc.tscn"
+        },
+        "girl_npc/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.13, 0.13)",
+            "sprite_frames": "SubResource(\"SpriteFrames_wqyr5\")",
+            "script": "res://NPC/Npc/old_adult_women_Dialog.gd",
+            "quest_ui_path": "NodePath(\"../../CanvasLayer/Panel\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/girl_npc.tscn",
+              "line": 159,
+              "header": "name=\"girl_npc\" type=\"AnimatedSprite2D\" unique_id=244227400"
+            },
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 515,
+              "header": "name=\"Visual\" parent=\"girl_npc\" index=\"0\""
+            }
+          ],
+          "instance_source": "NPC/Npc/girl_npc.tscn"
+        },
+        "girl_npc/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        },
+        "girl_npc/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 519,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\"girl_npc\" unique_id=1965730284"
+            }
+          ],
+          "instance_source": ""
+        },
+        "girl_npc/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(9, 3)",
+            "shape": "SubResource(\"RectangleShape2D_0r4je\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 521,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"girl_npc/Area2D\" unique_id=626135846"
+            }
+          ],
+          "instance_source": ""
+        },
+        "girl_npc/InteractableArea": {
+          "type": "Area2D",
+          "properties": {
+            "script": "res://scripts/interactable_area.gd",
+            "interaction_target_path": "NodePath(\"../Visual\")",
+            "interaction_priority": "40"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 525,
+              "header": "name=\"InteractableArea\" type=\"Area2D\" parent=\"girl_npc\" unique_id=995001123"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "girl_npc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.13, 0.13)",
+            "sprite_frames": "SubResource(\"SpriteFrames_wqyr5\")",
+            "z_index": "1",
+            "position": "Vector2(1174, 176)",
+            "animation": "&\"walk_down\"",
+            "script": "res://NPC/Npc/old_adult_women_Dialog.gd",
+            "dialogue_panel": "NodePath(\"../CanvasLayer/Panel/DialogueText\")",
+            "dialogue_label": "NodePath(\"../CanvasLayer/Panel/DialogueText\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/girl_npc.tscn",
+              "line": 159,
+              "header": "name=\"girl_npc\" type=\"AnimatedSprite2D\" unique_id=244227400"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 863,
+              "header": "name=\"girl_npc\" parent=\".\" unique_id=244227400 node_paths=PackedStringArray(\"dialogue_panel\", \"dialogue_label\") instance=ExtResource(\"14_p2u0e\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/girl_npc.tscn"
+        },
+        "girl_npc/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 871,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\"girl_npc\" unique_id=1965730284"
+            }
+          ],
+          "instance_source": ""
+        },
+        "girl_npc/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(14.230469, -3.8459473)",
+            "shape": "SubResource(\"RectangleShape2D_0r4je\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 873,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"girl_npc/Area2D\" unique_id=626135846"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(1174, 176)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "NPC",
+      "classification": "civilian / dialogue",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": true,
+      "current_dialogue": true,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": true,
+      "keyboard_E": true,
+      "keyboard_Space": true,
+      "mobile_ACT": true,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/male_npc.tscn",
+      "current_scene": "NPC/Npc/wandering_male_npc.tscn",
+      "visual_source": "NPC/Npc/male_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [
+        "NPC/Visual/InteractableArea"
+      ],
+      "dialogue_note": "Hello traveler! Welcome to our town.",
+      "current_source_subtree": {
+        "NPC": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "z_index": "1",
+            "position": "Vector2(906, 276)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_male_npc.tscn",
+              "line": 9,
+              "header": "name=\"WanderingMaleNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 530,
+              "header": "name=\"NPC\" parent=\".\" unique_id=736401141 instance=ExtResource(\"17_tibnn\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_male_npc.tscn"
+        },
+        "NPC/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.1, 0.1)",
+            "sprite_frames": "SubResource(\"SpriteFrames_dsdd5\")",
+            "animation": "&\"walk_down\"",
+            "script": "res://NPC/Npc/old_adult_women_Dialog.gd",
+            "quest_ui_path": "NodePath(\"../../CanvasLayer/Panel\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/male_npc.tscn",
+              "line": 145,
+              "header": "name=\"male-npc\" type=\"AnimatedSprite2D\" unique_id=736401141"
+            },
+            {
+              "file": "NPC/Npc/wandering_male_npc.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 534,
+              "header": "name=\"Visual\" parent=\"NPC\" index=\"0\""
+            }
+          ],
+          "instance_source": "NPC/Npc/male_npc.tscn"
+        },
+        "NPC/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 7.788)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.477, 0.354)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_male_npc.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 539,
+              "header": "name=\"FootCollision\" parent=\"NPC\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPC/Visual/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 543,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\"NPC/Visual\" unique_id=210634579"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPC/Visual/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(5, 0)",
+            "scale": "Vector2(0.99999976, 0.99999976)",
+            "shape": "SubResource(\"RectangleShape2D_7cmds\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 545,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"NPC/Visual/Area2D\" unique_id=566825481"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPC/Visual/InteractableArea": {
+          "type": "Area2D",
+          "properties": {
+            "script": "res://scripts/interactable_area.gd",
+            "interaction_target_path": "NodePath(\"..\")",
+            "interaction_priority": "35"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 550,
+              "header": "name=\"InteractableArea\" type=\"Area2D\" parent=\"NPC/Visual\" unique_id=995001124"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "NPC": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.1, 0.1)",
+            "sprite_frames": "SubResource(\"SpriteFrames_dsdd5\")",
+            "animation": "&\"walk_down\"",
+            "z_index": "1",
+            "position": "Vector2(906, 276)",
+            "script": "res://NPC/Npc/old_adult_women_Dialog.gd",
+            "dialogue_panel": "NodePath(\"../CanvasLayer/Panel/DialogueText\")",
+            "dialogue_label": "NodePath(\"../CanvasLayer/Panel/DialogueText\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/male_npc.tscn",
+              "line": 145,
+              "header": "name=\"male-npc\" type=\"AnimatedSprite2D\" unique_id=736401141"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 877,
+              "header": "name=\"NPC\" parent=\".\" unique_id=736401141 node_paths=PackedStringArray(\"dialogue_panel\", \"dialogue_label\") instance=ExtResource(\"17_tibnn\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/male_npc.tscn"
+        },
+        "NPC/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 885,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\"NPC\" unique_id=210634579"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPC/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(5, 0)",
+            "scale": "Vector2(0.99999976, 0.99999976)",
+            "shape": "SubResource(\"RectangleShape2D_7cmds\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 887,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"NPC/Area2D\" unique_id=566825481"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(906, 276)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "villager-female",
+      "classification": "civilian / dialogue",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": true,
+      "current_dialogue": true,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": true,
+      "keyboard_E": true,
+      "keyboard_Space": true,
+      "mobile_ACT": true,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/villager_female.tscn",
+      "current_scene": "NPC/Npc/wandering_villager_female.tscn",
+      "visual_source": "NPC/Npc/villager_female.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [
+        "villager-female/InteractableArea"
+      ],
+      "dialogue_note": "Hello traveler! Welcome to our town.",
+      "current_source_subtree": {
+        "villager-female": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "z_index": "1",
+            "position": "Vector2(976.99994, 468.99997)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_villager_female.tscn",
+              "line": 9,
+              "header": "name=\"WanderingVillagerFemale\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 555,
+              "header": "name=\"villager-female\" parent=\".\" unique_id=1540680081 instance=ExtResource(\"19_1ef61\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_villager_female.tscn"
+        },
+        "villager-female/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.085, 0.085)",
+            "sprite_frames": "SubResource(\"SpriteFrames_3uf64\")",
+            "animation": "&\"walk_up\"",
+            "script": "res://NPC/Npc/old_adult_women_Dialog.gd",
+            "quest_ui_path": "NodePath(\"../../CanvasLayer/Panel\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/villager_female.tscn",
+              "line": 145,
+              "header": "name=\"villager-female\" type=\"AnimatedSprite2D\" unique_id=1540680081"
+            },
+            {
+              "file": "NPC/Npc/wandering_villager_female.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 559,
+              "header": "name=\"Visual\" parent=\"villager-female\" index=\"0\""
+            }
+          ],
+          "instance_source": "NPC/Npc/villager_female.tscn"
+        },
+        "villager-female/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_villager_female.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        },
+        "villager-female/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 563,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\"villager-female\" unique_id=458782454"
+            }
+          ],
+          "instance_source": ""
+        },
+        "villager-female/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0.33294678, 1.8889465)",
+            "scale": "Vector2(1.0000001, 1.0000001)",
+            "shape": "SubResource(\"RectangleShape2D_sbohv\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 565,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"villager-female/Area2D\" unique_id=852987118"
+            }
+          ],
+          "instance_source": ""
+        },
+        "villager-female/InteractableArea": {
+          "type": "Area2D",
+          "properties": {
+            "script": "res://scripts/interactable_area.gd",
+            "interaction_target_path": "NodePath(\"../Visual\")",
+            "interaction_priority": "30"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 570,
+              "header": "name=\"InteractableArea\" type=\"Area2D\" parent=\"villager-female\" unique_id=995001125"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "villager-female": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.09, 0.09)",
+            "sprite_frames": "SubResource(\"SpriteFrames_3uf64\")",
+            "animation": "&\"walk_up\"",
+            "z_index": "1",
+            "position": "Vector2(976.99994, 468.99997)",
+            "script": "res://NPC/Npc/old_adult_women_Dialog.gd",
+            "dialogue_panel": "NodePath(\"../CanvasLayer/Panel/DialogueText\")",
+            "dialogue_label": "NodePath(\"../CanvasLayer/Panel/DialogueText\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/villager_female.tscn",
+              "line": 145,
+              "header": "name=\"villager-female\" type=\"AnimatedSprite2D\" unique_id=1540680081"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 892,
+              "header": "name=\"villager-female\" parent=\".\" unique_id=1540680081 node_paths=PackedStringArray(\"dialogue_panel\", \"dialogue_label\") instance=ExtResource(\"19_1ef61\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/villager_female.tscn"
+        },
+        "villager-female/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 900,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\"villager-female\" unique_id=458782454"
+            }
+          ],
+          "instance_source": ""
+        },
+        "villager-female/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(-0.0009765625, 0)",
+            "scale": "Vector2(1.0000001, 1.0000001)",
+            "shape": "SubResource(\"RectangleShape2D_sbohv\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 902,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"villager-female/Area2D\" unique_id=852987118"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(976.99994, 468.99997)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "NPC1",
+      "classification": "civilian / dialogue",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": true,
+      "current_dialogue": true,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": true,
+      "keyboard_E": true,
+      "keyboard_Space": true,
+      "mobile_ACT": true,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/old_adult_women.tscn",
+      "current_scene": "NPC/Npc/wandering_old_adult_women.tscn",
+      "visual_source": "NPC/Npc/old_adult_women.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [
+        "NPC1/Visual/InteractableArea"
+      ],
+      "dialogue_note": "Hello traveler! Welcome to our town.",
+      "current_source_subtree": {
+        "NPC1": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(964, 173)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 9,
+              "header": "name=\"WanderingOldAdultWomen\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 581,
+              "header": "name=\"NPC1\" parent=\".\" unique_id=292343504 instance=ExtResource(\"18_l6lg6\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_old_adult_women.tscn"
+        },
+        "NPC1/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.065, 0.065)",
+            "sprite_frames": "SubResource(\"SpriteFrames_u714m\")",
+            "animation": "&\"walk_left\"",
+            "script": "res://NPC/Npc/old_adult_women_Dialog.gd",
+            "quest_ui_path": "NodePath(\"../../CanvasLayer/Panel\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_adult_women.tscn",
+              "line": 145,
+              "header": "name=\"old_adult_women\" type=\"AnimatedSprite2D\" unique_id=292343504"
+            },
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 584,
+              "header": "name=\"Visual\" parent=\"NPC1\" index=\"0\" groups=[\"Player\"]"
+            }
+          ],
+          "instance_source": "NPC/Npc/old_adult_women.tscn"
+        },
+        "NPC1/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 5.0622)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.468, 0.2301)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 588,
+              "header": "name=\"FootCollision\" parent=\"NPC1\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPC1/Visual/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 592,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\"NPC1/Visual\" unique_id=718996092"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPC1/Visual/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 23.076904)",
+            "shape": "SubResource(\"RectangleShape2D_bvw5x\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 594,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"NPC1/Visual/Area2D\" unique_id=259426367"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPC1/Visual/InteractableArea": {
+          "type": "Area2D",
+          "properties": {
+            "script": "res://scripts/interactable_area.gd",
+            "interaction_target_path": "NodePath(\"..\")",
+            "interaction_priority": "25"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 598,
+              "header": "name=\"InteractableArea\" type=\"Area2D\" parent=\"NPC1/Visual\" unique_id=995001126"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "NPC1": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.065, 0.065)",
+            "sprite_frames": "SubResource(\"SpriteFrames_u714m\")",
+            "animation": "&\"walk_left\"",
+            "position": "Vector2(964, 173)",
+            "script": "res://NPC/Npc/old_adult_women_Dialog.gd",
+            "dialogue_panel": "NodePath(\"../CanvasLayer/Panel/DialogueText\")",
+            "dialogue_label": "NodePath(\"../CanvasLayer/Panel/DialogueText\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_adult_women.tscn",
+              "line": 145,
+              "header": "name=\"old_adult_women\" type=\"AnimatedSprite2D\" unique_id=292343504"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 913,
+              "header": "name=\"NPC1\" parent=\".\" unique_id=292343504 node_paths=PackedStringArray(\"dialogue_panel\", \"dialogue_label\") groups=[\"Player\"] instance=ExtResource(\"18_l6lg6\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/old_adult_women.tscn"
+        },
+        "NPC1/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 919,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\"NPC1\" unique_id=718996092"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPC1/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 23.076904)",
+            "shape": "SubResource(\"RectangleShape2D_bvw5x\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 921,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"NPC1/Area2D\" unique_id=259426367"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(964, 173)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "Bandits",
+      "classification": "enemy / quest-critical / trigger-dependent",
+      "civilian": false,
+      "quest_critical": true,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": true,
+      "current_dialogue": true,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": true,
+      "keyboard_E": true,
+      "keyboard_Space": true,
+      "mobile_ACT": true,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [
+        "Bandits/BanditTaskTrigger"
+      ],
+      "dialogue_note": "You want to pass? Solve this first! (task index 2)",
+      "current_source_subtree": {
+        "Bandits": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"right\"",
+            "position": "Vector2(295, 300.99997)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 687,
+              "header": "name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger": {
+          "type": "Area2D",
+          "properties": {
+            "position": "Vector2(0, 62.5)",
+            "scale": "Vector2(12.5, 12.5)",
+            "script": "res://scripts/interactable_area.gd",
+            "interaction_target_path": "NodePath(\"TaskDialogAdapter\")",
+            "interaction_priority": "5"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 691,
+              "header": "name=\"BanditTaskTrigger\" type=\"Area2D\" parent=\"Bandits\" unique_id=1823517238"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(3, -5.9999695)",
+            "shape": "SubResource(\"RectangleShape2D_task_trigger\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 698,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"Bandits/BanditTaskTrigger\" unique_id=1453769249"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger/StaticBody2D": {
+          "type": "StaticBody2D",
+          "properties": {
+            "position": "Vector2(0, -3.9999695)"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 702,
+              "header": "name=\"StaticBody2D\" type=\"StaticBody2D\" parent=\"Bandits/BanditTaskTrigger\" unique_id=1844406483"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger/StaticBody2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(-5, 2)",
+            "shape": "SubResource(\"RectangleShape2D_0v1wo\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 705,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"Bandits/BanditTaskTrigger/StaticBody2D\" unique_id=1416851112"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger/TaskDialogAdapter": {
+          "type": "Node",
+          "properties": {
+            "script": "res://scripts/task_dialogue_adapter.gd",
+            "quest_ui_path": "NodePath(\"../../../CanvasLayer/Panel\")",
+            "require_task_index": "2"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 709,
+              "header": "name=\"TaskDialogAdapter\" type=\"Node\" parent=\"Bandits/BanditTaskTrigger\" unique_id=1823517240"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"right\"",
+            "position": "Vector2(295, 300.99997)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1017,
+              "header": "name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger": {
+          "type": "Area2D",
+          "properties": {
+            "position": "Vector2(0, 62.5)",
+            "scale": "Vector2(12.5, 12.5)",
+            "script": "res://world/Task1.gd",
+            "trigger_for_task_index": "2",
+            "ui_panel": "NodePath(\"../../CanvasLayer/Panel\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1021,
+              "header": "name=\"BanditTaskTrigger\" type=\"Area2D\" parent=\"Bandits\" unique_id=1823517238 node_paths=PackedStringArray(\"ui_panel\")"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(3, -5.9999695)",
+            "shape": "SubResource(\"RectangleShape2D_task_trigger\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1028,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"Bandits/BanditTaskTrigger\" unique_id=1453769249"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger/StaticBody2D": {
+          "type": "StaticBody2D",
+          "properties": {
+            "position": "Vector2(0, -3.9999695)"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1032,
+              "header": "name=\"StaticBody2D\" type=\"StaticBody2D\" parent=\"Bandits/BanditTaskTrigger\" unique_id=1844406483"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/BanditTaskTrigger/StaticBody2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(-5, 2)",
+            "shape": "SubResource(\"RectangleShape2D_0v1wo\")"
+          },
+          "sources": [
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1035,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"Bandits/BanditTaskTrigger/StaticBody2D\" unique_id=1416851112"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "Bandits2",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits2": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"left\"",
+            "position": "Vector2(422, 400)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 714,
+              "header": "name=\"Bandits2\" parent=\".\" unique_id=1778313031 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits2/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits2": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"left\"",
+            "position": "Vector2(422, 400)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1039,
+              "header": "name=\"Bandits2\" parent=\".\" unique_id=1778313031 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits2/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "Bandits3",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits3": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(342, 423)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 718,
+              "header": "name=\"Bandits3\" parent=\".\" unique_id=794017074 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits3/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits3": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(342, 423)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1043,
+              "header": "name=\"Bandits3\" parent=\".\" unique_id=794017074 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits3/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "Bandits4",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits4": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"up\"",
+            "position": "Vector2(278, 464)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 721,
+              "header": "name=\"Bandits4\" parent=\".\" unique_id=2144941427 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits4/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits4": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"up\"",
+            "position": "Vector2(278, 464)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1046,
+              "header": "name=\"Bandits4\" parent=\".\" unique_id=2144941427 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits4/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "Bandits5",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits5": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(251, 414)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 725,
+              "header": "name=\"Bandits5\" parent=\".\" unique_id=2105027165 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits5/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits5": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(251, 414)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1050,
+              "header": "name=\"Bandits5\" parent=\".\" unique_id=2105027165 instance=ExtResource(\"23_p077x\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits5/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Oakleaf",
+      "map_scene": "scenes/oak_leaf_village.tscn",
+      "node_name": "Boss-Bandit",
+      "classification": "boss / fixed",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": true,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/boss_bandit.tscn",
+      "current_scene": "NPC/Enemy/boss_bandit.tscn",
+      "visual_source": "NPC/Enemy/boss_bandit.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Boss-Bandit": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_l6wn2\")",
+            "animation": "&\"right\"",
+            "position": "Vector2(119, 432)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/boss_bandit.tscn",
+              "line": 61,
+              "header": "name=\"Boss-Bandit\" type=\"AnimatedSprite2D\" unique_id=29164339"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 728,
+              "header": "name=\"Boss-Bandit\" parent=\".\" unique_id=29164339 instance=ExtResource(\"27_0v1wo\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/boss_bandit.tscn"
+        },
+        "Boss-Bandit/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/boss_bandit.tscn",
+              "line": 66,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1206877729"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Boss-Bandit": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_l6wn2\")",
+            "animation": "&\"right\"",
+            "position": "Vector2(119, 432)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/boss_bandit.tscn",
+              "line": 61,
+              "header": "name=\"Boss-Bandit\" type=\"AnimatedSprite2D\" unique_id=29164339"
+            },
+            {
+              "file": "scenes/oak_leaf_village.tscn",
+              "line": 1053,
+              "header": "name=\"Boss-Bandit\" parent=\".\" unique_id=29164339 instance=ExtResource(\"27_0v1wo\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/boss_bandit.tscn"
+        },
+        "Boss-Bandit/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/boss_bandit.tscn",
+              "line": 66,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1206877729"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "adult-male_npc",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/adult_male_npc.tscn",
+      "current_scene": "NPC/Npc/wandering_adult_male_npc.tscn",
+      "visual_source": "NPC/Npc/adult_male_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "adult-male_npc": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "z_index": "1",
+            "position": "Vector2(1094, 417)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_adult_male_npc.tscn",
+              "line": 9,
+              "header": "name=\"WanderingAdultMaleNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1052,
+              "header": "name=\"adult-male_npc\" parent=\".\" unique_id=1227762180 instance=ExtResource(\"17_3y60n\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_adult_male_npc.tscn"
+        },
+        "adult-male_npc/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.077, 0.077)",
+            "sprite_frames": "SubResource(\"SpriteFrames_sofmc\")",
+            "animation": "&\"walk_up\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/adult_male_npc.tscn",
+              "line": 145,
+              "header": "name=\"adult-male_npc\" type=\"AnimatedSprite2D\" unique_id=1227762180"
+            },
+            {
+              "file": "NPC/Npc/wandering_adult_male_npc.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/adult_male_npc.tscn"
+        },
+        "adult-male_npc/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 5.86124)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.433125, 0.26642)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_adult_male_npc.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1056,
+              "header": "name=\"FootCollision\" parent=\"adult-male_npc\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "adult-male_npc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.077, 0.077)",
+            "sprite_frames": "SubResource(\"SpriteFrames_sofmc\")",
+            "animation": "&\"walk_up\"",
+            "z_index": "1",
+            "position": "Vector2(1094, 417)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/adult_male_npc.tscn",
+              "line": 145,
+              "header": "name=\"adult-male_npc\" type=\"AnimatedSprite2D\" unique_id=1227762180"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1424,
+              "header": "name=\"adult-male_npc\" parent=\".\" unique_id=1227762180 instance=ExtResource(\"17_3y60n\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/adult_male_npc.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(1094, 417)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "city_npc",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/city_npc.tscn",
+      "current_scene": "NPC/Npc/decorative_wandering_city_npc.tscn",
+      "visual_source": "NPC/Npc/city_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "city_npc": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "position": "Vector2(936, 306)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/decorative_wandering_city_npc.tscn",
+              "line": 9,
+              "header": "name=\"DecorativeWanderingCityNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1060,
+              "header": "name=\"city_npc\" parent=\".\" unique_id=822584812 instance=ExtResource(\"18_fnfvr\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/decorative_wandering_city_npc.tscn"
+        },
+        "city_npc/CityNpc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.061, 0.061)",
+            "sprite_frames": "SubResource(\"SpriteFrames_al70f\")",
+            "animation": "&\"walk_up\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/city_npc.tscn",
+              "line": 145,
+              "header": "name=\"city_npc\" type=\"AnimatedSprite2D\" unique_id=822584812"
+            },
+            {
+              "file": "NPC/Npc/decorative_wandering_city_npc.tscn",
+              "line": 14,
+              "header": "name=\"CityNpc\" parent=\".\" instance=ExtResource(\"2_city_npc\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/city_npc.tscn"
+        },
+        "city_npc/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_city_npc\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/decorative_wandering_city_npc.tscn",
+              "line": 16,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "city_npc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.061, 0.061)",
+            "sprite_frames": "SubResource(\"SpriteFrames_al70f\")",
+            "animation": "&\"walk_up\"",
+            "position": "Vector2(936, 306)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/city_npc.tscn",
+              "line": 145,
+              "header": "name=\"city_npc\" type=\"AnimatedSprite2D\" unique_id=822584812"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1428,
+              "header": "name=\"city_npc\" parent=\".\" unique_id=822584812 instance=ExtResource(\"18_fnfvr\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/city_npc.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(936, 306)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "old_adult_women",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/old_adult_women.tscn",
+      "current_scene": "NPC/Npc/wandering_old_adult_women.tscn",
+      "visual_source": "NPC/Npc/old_adult_women.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "old_adult_women": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(983, 420)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 9,
+              "header": "name=\"WanderingOldAdultWomen\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1063,
+              "header": "name=\"old_adult_women\" parent=\".\" unique_id=292343504 instance=ExtResource(\"19_emfti\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_old_adult_women.tscn"
+        },
+        "old_adult_women/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.065, 0.065)",
+            "sprite_frames": "SubResource(\"SpriteFrames_u714m\")",
+            "animation": "&\"walk_left\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_adult_women.tscn",
+              "line": 145,
+              "header": "name=\"old_adult_women\" type=\"AnimatedSprite2D\" unique_id=292343504"
+            },
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/old_adult_women.tscn"
+        },
+        "old_adult_women/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 5.0622)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.468, 0.2301)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1066,
+              "header": "name=\"FootCollision\" parent=\"old_adult_women\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "old_adult_women": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.065, 0.065)",
+            "sprite_frames": "SubResource(\"SpriteFrames_u714m\")",
+            "animation": "&\"walk_left\"",
+            "position": "Vector2(983, 420)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_adult_women.tscn",
+              "line": 145,
+              "header": "name=\"old_adult_women\" type=\"AnimatedSprite2D\" unique_id=292343504"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1431,
+              "header": "name=\"old_adult_women\" parent=\".\" unique_id=292343504 instance=ExtResource(\"19_emfti\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/old_adult_women.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(983, 420)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "old_npc",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/old_npc.tscn",
+      "current_scene": "NPC/Npc/wandering_old_npc.tscn",
+      "visual_source": "NPC/Npc/old_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "old_npc": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(809, 206)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_npc.tscn",
+              "line": 9,
+              "header": "name=\"WanderingOldNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1070,
+              "header": "name=\"old_npc\" parent=\".\" unique_id=207617385 instance=ExtResource(\"20_dtp6b\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_old_npc.tscn"
+        },
+        "old_npc/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.07, 0.07)",
+            "sprite_frames": "SubResource(\"SpriteFrames_fqc8v\")",
+            "animation": "&\"walk_down\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_npc.tscn",
+              "line": 145,
+              "header": "name=\"old_npc\" type=\"AnimatedSprite2D\" unique_id=207617385"
+            },
+            {
+              "file": "NPC/Npc/wandering_old_npc.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1073,
+              "header": "name=\"Visual\" parent=\"old_npc\" index=\"0\""
+            }
+          ],
+          "instance_source": "NPC/Npc/old_npc.tscn"
+        },
+        "old_npc/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4.9588)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.40005, 0.2254)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_npc.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1076,
+              "header": "name=\"FootCollision\" parent=\"old_npc\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "old_npc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.07, 0.07)",
+            "sprite_frames": "SubResource(\"SpriteFrames_fqc8v\")",
+            "animation": "&\"walk_down\"",
+            "position": "Vector2(809, 206)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_npc.tscn",
+              "line": 145,
+              "header": "name=\"old_npc\" type=\"AnimatedSprite2D\" unique_id=207617385"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1434,
+              "header": "name=\"old_npc\" parent=\".\" unique_id=207617385 instance=ExtResource(\"20_dtp6b\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/old_npc.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(809, 206)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "girl_npc",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/girl_npc.tscn",
+      "current_scene": "NPC/Npc/wandering_girl_npc.tscn",
+      "visual_source": "NPC/Npc/girl_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "girl_npc": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(958, 456)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 9,
+              "header": "name=\"WanderingGirlNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1080,
+              "header": "name=\"girl_npc\" parent=\".\" unique_id=244227400 instance=ExtResource(\"21_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_girl_npc.tscn"
+        },
+        "girl_npc/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.13, 0.13)",
+            "sprite_frames": "SubResource(\"SpriteFrames_wqyr5\")",
+            "animation": "&\"walk_right\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/girl_npc.tscn",
+              "line": 159,
+              "header": "name=\"girl_npc\" type=\"AnimatedSprite2D\" unique_id=244227400"
+            },
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1083,
+              "header": "name=\"Visual\" parent=\"girl_npc\" index=\"0\""
+            }
+          ],
+          "instance_source": "NPC/Npc/girl_npc.tscn"
+        },
+        "girl_npc/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 5.3768)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.4563, 0.26)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1086,
+              "header": "name=\"FootCollision\" parent=\"girl_npc\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "girl_npc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.13, 0.13)",
+            "sprite_frames": "SubResource(\"SpriteFrames_wqyr5\")",
+            "position": "Vector2(958, 456)",
+            "animation": "&\"walk_right\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/girl_npc.tscn",
+              "line": 159,
+              "header": "name=\"girl_npc\" type=\"AnimatedSprite2D\" unique_id=244227400"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1438,
+              "header": "name=\"girl_npc\" parent=\".\" unique_id=244227400 instance=ExtResource(\"21_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/girl_npc.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(958, 456)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "Bandits",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/wandering_bandit.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "walk_down_animation": "&\"down\"",
+            "walk_left_animation": "&\"left\"",
+            "walk_right_animation": "&\"right\"",
+            "walk_up_animation": "&\"up\"",
+            "position": "Vector2(114, 487)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 9,
+              "header": "name=\"WanderingBandit\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1104,
+              "header": "name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/wandering_bandit.tscn"
+        },
+        "Bandits/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"right\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 19,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1107,
+              "header": "name=\"Visual\" parent=\"Bandits\" index=0"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits/Visual/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 21,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"right\"",
+            "position": "Vector2(114, 487)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1456,
+              "header": "name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(114, 487)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "Bandits2",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/wandering_bandit.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits2": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "walk_down_animation": "&\"down\"",
+            "walk_left_animation": "&\"left\"",
+            "walk_right_animation": "&\"right\"",
+            "walk_up_animation": "&\"up\"",
+            "position": "Vector2(171, 463)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 9,
+              "header": "name=\"WanderingBandit\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1110,
+              "header": "name=\"Bandits2\" parent=\".\" unique_id=1760417206 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/wandering_bandit.tscn"
+        },
+        "Bandits2/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"left\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 19,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1113,
+              "header": "name=\"Visual\" parent=\"Bandits2\" index=0"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits2/Visual/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits2/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 21,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits2": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"left\"",
+            "position": "Vector2(171, 463)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1460,
+              "header": "name=\"Bandits2\" parent=\".\" unique_id=1760417206 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits2/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(171, 463)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "Bandits3",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/wandering_bandit.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits3": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "walk_down_animation": "&\"down\"",
+            "walk_left_animation": "&\"left\"",
+            "walk_right_animation": "&\"right\"",
+            "walk_up_animation": "&\"up\"",
+            "position": "Vector2(84, 425)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 9,
+              "header": "name=\"WanderingBandit\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1116,
+              "header": "name=\"Bandits3\" parent=\".\" unique_id=1038880827 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/wandering_bandit.tscn"
+        },
+        "Bandits3/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"right\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 19,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1119,
+              "header": "name=\"Visual\" parent=\"Bandits3\" index=0"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits3/Visual/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits3/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 21,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits3": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"right\"",
+            "position": "Vector2(84, 425)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1464,
+              "header": "name=\"Bandits3\" parent=\".\" unique_id=1038880827 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits3/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(84, 425)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "Bandits4",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/wandering_bandit.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits4": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "walk_down_animation": "&\"down\"",
+            "walk_left_animation": "&\"left\"",
+            "walk_right_animation": "&\"right\"",
+            "walk_up_animation": "&\"up\"",
+            "position": "Vector2(265, 325)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 9,
+              "header": "name=\"WanderingBandit\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1122,
+              "header": "name=\"Bandits4\" parent=\".\" unique_id=334121162 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/wandering_bandit.tscn"
+        },
+        "Bandits4/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"up\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 19,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1125,
+              "header": "name=\"Visual\" parent=\"Bandits4\" index=0"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits4/Visual/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits4/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 21,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits4": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"up\"",
+            "position": "Vector2(265, 325)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1468,
+              "header": "name=\"Bandits4\" parent=\".\" unique_id=334121162 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits4/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(265, 325)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "City of Knowledge",
+      "map_scene": "scenes/city_of_knowledge.tscn",
+      "node_name": "Bandits5",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/wandering_bandit.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits5": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "walk_down_animation": "&\"down\"",
+            "walk_left_animation": "&\"left\"",
+            "walk_right_animation": "&\"right\"",
+            "walk_up_animation": "&\"up\"",
+            "position": "Vector2(327, 237)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 9,
+              "header": "name=\"WanderingBandit\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1128,
+              "header": "name=\"Bandits5\" parent=\".\" unique_id=1613646875 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/wandering_bandit.tscn"
+        },
+        "Bandits5/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"down\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 19,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits5/Visual/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Bandits5/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/wandering_bandit.tscn",
+              "line": 21,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits5": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(327, 237)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/city_of_knowledge.tscn",
+              "line": 1472,
+              "header": "name=\"Bandits5\" parent=\".\" unique_id=1613646875 instance=ExtResource(\"26_gdmg8\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits5/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(327, 237)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "old_adult_women",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/old_adult_women.tscn",
+      "current_scene": "NPC/Npc/wandering_old_adult_women.tscn",
+      "visual_source": "NPC/Npc/old_adult_women.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "old_adult_women": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(336, 253)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 9,
+              "header": "name=\"WanderingOldAdultWomen\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 642,
+              "header": "name=\"old_adult_women\" parent=\".\" unique_id=292343504 instance=ExtResource(\"19_elt60\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_old_adult_women.tscn"
+        },
+        "old_adult_women/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.065, 0.065)",
+            "sprite_frames": "SubResource(\"SpriteFrames_u714m\")",
+            "animation": "&\"walk_right\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_adult_women.tscn",
+              "line": 145,
+              "header": "name=\"old_adult_women\" type=\"AnimatedSprite2D\" unique_id=292343504"
+            },
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 645,
+              "header": "name=\"Visual\" parent=\"old_adult_women\" index=\"0\""
+            }
+          ],
+          "instance_source": "NPC/Npc/old_adult_women.tscn"
+        },
+        "old_adult_women/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 5.0622)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.468, 0.2301)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_adult_women.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 648,
+              "header": "name=\"FootCollision\" parent=\"old_adult_women\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "old_adult_women": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.065, 0.065)",
+            "sprite_frames": "SubResource(\"SpriteFrames_u714m\")",
+            "animation": "&\"walk_right\"",
+            "position": "Vector2(336, 253)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_adult_women.tscn",
+              "line": 145,
+              "header": "name=\"old_adult_women\" type=\"AnimatedSprite2D\" unique_id=292343504"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1014,
+              "header": "name=\"old_adult_women\" parent=\".\" unique_id=292343504 instance=ExtResource(\"19_elt60\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/old_adult_women.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(336, 253)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "old_npc",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/old_npc.tscn",
+      "current_scene": "NPC/Npc/wandering_old_npc.tscn",
+      "visual_source": "NPC/Npc/old_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "old_npc": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(178, 284)",
+            "animation": "&\"walk_down\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_npc.tscn",
+              "line": 9,
+              "header": "name=\"WanderingOldNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 652,
+              "header": "name=\"old_npc\" parent=\".\" unique_id=207617385 instance=ExtResource(\"20_smsue\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_old_npc.tscn"
+        },
+        "old_npc/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.07, 0.07)",
+            "sprite_frames": "SubResource(\"SpriteFrames_fqc8v\")",
+            "animation": "&\"walk_up\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_npc.tscn",
+              "line": 145,
+              "header": "name=\"old_npc\" type=\"AnimatedSprite2D\" unique_id=207617385"
+            },
+            {
+              "file": "NPC/Npc/wandering_old_npc.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/old_npc.tscn"
+        },
+        "old_npc/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_old_npc.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "old_npc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.07, 0.07)",
+            "sprite_frames": "SubResource(\"SpriteFrames_fqc8v\")",
+            "animation": "&\"walk_down\"",
+            "position": "Vector2(178, 284)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/old_npc.tscn",
+              "line": 145,
+              "header": "name=\"old_npc\" type=\"AnimatedSprite2D\" unique_id=207617385"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1018,
+              "header": "name=\"old_npc\" parent=\".\" unique_id=207617385 instance=ExtResource(\"20_smsue\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/old_npc.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(178, 284)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "male-npc",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/male_npc.tscn",
+      "current_scene": "NPC/Npc/wandering_male_npc.tscn",
+      "visual_source": "NPC/Npc/male_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "male-npc": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(246, 106)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_male_npc.tscn",
+              "line": 9,
+              "header": "name=\"WanderingMaleNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 656,
+              "header": "name=\"male-npc\" parent=\".\" unique_id=736401141 instance=ExtResource(\"21_fcbjw\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_male_npc.tscn"
+        },
+        "male-npc/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.095, 0.095)",
+            "sprite_frames": "SubResource(\"SpriteFrames_dsdd5\")",
+            "animation": "&\"walk_down\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/male_npc.tscn",
+              "line": 145,
+              "header": "name=\"male-npc\" type=\"AnimatedSprite2D\" unique_id=736401141"
+            },
+            {
+              "file": "NPC/Npc/wandering_male_npc.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/male_npc.tscn"
+        },
+        "male-npc/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 7.3986)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.45315, 0.3363)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_male_npc.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 659,
+              "header": "name=\"FootCollision\" parent=\"male-npc\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "male-npc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.095, 0.095)",
+            "sprite_frames": "SubResource(\"SpriteFrames_dsdd5\")",
+            "animation": "&\"walk_down\"",
+            "position": "Vector2(246, 106)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/male_npc.tscn",
+              "line": 145,
+              "header": "name=\"male-npc\" type=\"AnimatedSprite2D\" unique_id=736401141"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1022,
+              "header": "name=\"male-npc\" parent=\".\" unique_id=736401141 instance=ExtResource(\"21_fcbjw\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/male_npc.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(246, 106)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "girl_npc",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/girl_npc.tscn",
+      "current_scene": "NPC/Npc/wandering_girl_npc.tscn",
+      "visual_source": "NPC/Npc/girl_npc.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "girl_npc": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(428, 333)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 9,
+              "header": "name=\"WanderingGirlNpc\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 663,
+              "header": "name=\"girl_npc\" parent=\".\" unique_id=244227400 instance=ExtResource(\"22_splfx\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_girl_npc.tscn"
+        },
+        "girl_npc/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.13, 0.13)",
+            "sprite_frames": "SubResource(\"SpriteFrames_wqyr5\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/girl_npc.tscn",
+              "line": 159,
+              "header": "name=\"girl_npc\" type=\"AnimatedSprite2D\" unique_id=244227400"
+            },
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/girl_npc.tscn"
+        },
+        "girl_npc/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 5.3768)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.41535, 0.26)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_girl_npc.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 666,
+              "header": "name=\"FootCollision\" parent=\"girl_npc\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "girl_npc": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.13, 0.13)",
+            "sprite_frames": "SubResource(\"SpriteFrames_wqyr5\")",
+            "position": "Vector2(428, 333)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/girl_npc.tscn",
+              "line": 159,
+              "header": "name=\"girl_npc\" type=\"AnimatedSprite2D\" unique_id=244227400"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1025,
+              "header": "name=\"girl_npc\" parent=\".\" unique_id=244227400 instance=ExtResource(\"22_splfx\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/girl_npc.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(428, 333)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "villager-male",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/villager_male.tscn",
+      "current_scene": "NPC/Npc/wandering_villager_male.tscn",
+      "visual_source": "NPC/Npc/villager_male.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "villager-male": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "walk_down_animation": "&\"walk-down\"",
+            "walk_left_animation": "&\"walk-left\"",
+            "walk_right_animation": "&\"walk-right\"",
+            "walk_up_animation": "&\"walk-up\"",
+            "position": "Vector2(235, 328)",
+            "scale": "Vector2(0.12, 0.12)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_villager_male.tscn",
+              "line": 9,
+              "header": "name=\"WanderingVillagerMale\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 670,
+              "header": "name=\"villager-male\" parent=\".\" unique_id=1399149183 instance=ExtResource(\"25_fcbjw\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_villager_male.tscn"
+        },
+        "villager-male/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(1, 1)",
+            "sprite_frames": "SubResource(\"SpriteFrames_fjlmj\")",
+            "animation": "&\"walk-right\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/villager_male.tscn",
+              "line": 145,
+              "header": "name=\"villager-male\" type=\"AnimatedSprite2D\" unique_id=1399149183"
+            },
+            {
+              "file": "NPC/Npc/wandering_villager_male.tscn",
+              "line": 19,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 674,
+              "header": "name=\"Visual\" parent=\"villager-male\" index=0"
+            }
+          ],
+          "instance_source": "NPC/Npc/villager_male.tscn"
+        },
+        "villager-male/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 4)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_villager_male.tscn",
+              "line": 21,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "villager-male": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.12, 0.12)",
+            "sprite_frames": "SubResource(\"SpriteFrames_fjlmj\")",
+            "animation": "&\"walk-right\"",
+            "position": "Vector2(235, 328)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/villager_male.tscn",
+              "line": 145,
+              "header": "name=\"villager-male\" type=\"AnimatedSprite2D\" unique_id=1399149183"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1028,
+              "header": "name=\"villager-male\" parent=\".\" unique_id=1399149183 instance=ExtResource(\"25_fcbjw\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/villager_male.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(235, 328)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "villager-female",
+      "classification": "civilian / decorative",
+      "civilian": true,
+      "quest_critical": false,
+      "enemy": false,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": true,
+      "currently_wandering_source_configured": true,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "CharacterBody2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Npc/villager_female.tscn",
+      "current_scene": "NPC/Npc/wandering_villager_female.tscn",
+      "visual_source": "NPC/Npc/villager_female.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "NO SOURCE-SUPPORTED DIALOGUE",
+      "current_source_subtree": {
+        "villager-female": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "collision_layer": "2",
+            "collision_mask": "1",
+            "script": "res://scripts/decorative_npc_wanderer.gd",
+            "visual_node_path": "NodePath(\"Visual\")",
+            "position": "Vector2(386, 412)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_villager_female.tscn",
+              "line": 9,
+              "header": "name=\"WanderingVillagerFemale\" type=\"CharacterBody2D\" groups=[\"decorative_wanderer\"]"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 677,
+              "header": "name=\"villager-female\" parent=\".\" unique_id=1540680081 instance=ExtResource(\"26_splfx\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/wandering_villager_female.tscn"
+        },
+        "villager-female/Visual": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.085, 0.085)",
+            "sprite_frames": "SubResource(\"SpriteFrames_3uf64\")",
+            "animation": "&\"walk_up\""
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/villager_female.tscn",
+              "line": 145,
+              "header": "name=\"villager-female\" type=\"AnimatedSprite2D\" unique_id=1540680081"
+            },
+            {
+              "file": "NPC/Npc/wandering_villager_female.tscn",
+              "line": 15,
+              "header": "name=\"Visual\" parent=\".\" instance=ExtResource(\"2_visual\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/villager_female.tscn"
+        },
+        "villager-female/FootCollision": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, 5.3482)",
+            "shape": "SubResource(\"RectangleShape2D_foot\")",
+            "scale": "Vector2(0.348075, 0.2431)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/wandering_villager_female.tscn",
+              "line": 17,
+              "header": "name=\"FootCollision\" type=\"CollisionShape2D\" parent=\".\""
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 680,
+              "header": "name=\"FootCollision\" parent=\"villager-female\" index=\"1\""
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "villager-female": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.085, 0.085)",
+            "sprite_frames": "SubResource(\"SpriteFrames_3uf64\")",
+            "animation": "&\"walk_up\"",
+            "position": "Vector2(386, 412)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Npc/villager_female.tscn",
+              "line": 145,
+              "header": "name=\"villager-female\" type=\"AnimatedSprite2D\" unique_id=1540680081"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1032,
+              "header": "name=\"villager-female\" parent=\".\" unique_id=1540680081 instance=ExtResource(\"26_splfx\")"
+            }
+          ],
+          "instance_source": "NPC/Npc/villager_female.tscn"
+        }
+      },
+      "wander_contract": {
+        "script": "scripts/decorative_npc_wanderer.gd",
+        "walk_speed": 30.0,
+        "wander_radius": 42.0,
+        "idle_seconds": 1.5,
+        "collision_layer": 2,
+        "collision_mask": 1,
+        "foot_collision": true,
+        "explicit_overrides": {},
+        "home_position_source": "Vector2(386, 412)",
+        "runtime_verified_by_this_audit": false
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "Bandits",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"left\"",
+            "position": "Vector2(1180, 78)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 684,
+              "header": "name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"26_ej7ce\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"left\"",
+            "position": "Vector2(1180, 78)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1035,
+              "header": "name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"26_ej7ce\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "Bandits2",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits2": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"right\"",
+            "position": "Vector2(1151, 102)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 688,
+              "header": "name=\"Bandits2\" parent=\".\" unique_id=586527210 instance=ExtResource(\"26_ej7ce\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits2/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits2": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"right\"",
+            "position": "Vector2(1151, 102)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1039,
+              "header": "name=\"Bandits2\" parent=\".\" unique_id=586527210 instance=ExtResource(\"26_ej7ce\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits2/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "Bandits3",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits3": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"up\"",
+            "position": "Vector2(1135, 128)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 692,
+              "header": "name=\"Bandits3\" parent=\".\" unique_id=960723343 instance=ExtResource(\"26_ej7ce\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits3/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits3": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"up\"",
+            "position": "Vector2(1135, 128)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1043,
+              "header": "name=\"Bandits3\" parent=\".\" unique_id=960723343 instance=ExtResource(\"26_ej7ce\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits3/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "Bandits4",
+      "classification": "enemy",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": false,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/bandits.tscn",
+      "current_scene": "NPC/Enemy/bandits.tscn",
+      "visual_source": "NPC/Enemy/bandits.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Bandits4": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(1016, 110)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 696,
+              "header": "name=\"Bandits4\" parent=\".\" unique_id=526605087 instance=ExtResource(\"26_ej7ce\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits4/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      },
+      "zip_source_subtree": {
+        "Bandits4": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "scale": "Vector2(0.08, 0.08)",
+            "sprite_frames": "SubResource(\"SpriteFrames_xrx86\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(1016, 110)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 145,
+              "header": "name=\"Bandits\" type=\"AnimatedSprite2D\" unique_id=8116170"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1047,
+              "header": "name=\"Bandits4\" parent=\".\" unique_id=526605087 instance=ExtResource(\"26_ej7ce\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/bandits.tscn"
+        },
+        "Bandits4/AnimationPlayer": {
+          "type": "AnimationPlayer",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Enemy/bandits.tscn",
+              "line": 150,
+              "header": "name=\"AnimationPlayer\" type=\"AnimationPlayer\" parent=\".\" unique_id=1718297364"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "map": "Pinehill",
+      "map_scene": "scenes/pinehill_village.tscn",
+      "node_name": "Boss-Wizard",
+      "classification": "boss / fixed",
+      "civilian": false,
+      "quest_critical": false,
+      "enemy": true,
+      "boss": true,
+      "original_zip_dialogue": false,
+      "current_dialogue": false,
+      "safe_to_wander": false,
+      "currently_wandering_source_configured": false,
+      "interaction_binding": false,
+      "keyboard_E": false,
+      "keyboard_Space": false,
+      "mobile_ACT": false,
+      "current_node_class": "AnimatedSprite2D",
+      "zip_node_class": "AnimatedSprite2D",
+      "original_scene": "NPC/Enemy/boss_wizard.tscn",
+      "current_scene": "NPC/Enemy/boss_wizard.tscn",
+      "visual_source": "NPC/Enemy/boss_wizard.tscn",
+      "base_visual_scene_matches_zip_normalized_text": true,
+      "interaction_component_paths": [],
+      "dialogue_note": "No source-supported world dialogue binding in these maps",
+      "current_source_subtree": {
+        "Boss-Wizard": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "sprite_frames": "SubResource(\"SpriteFrames_00s5w\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(1172, 52)",
+            "scale": "Vector2(0.5, 0.5)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/boss_wizard.tscn",
+              "line": 40,
+              "header": "name=\"Boss-Wizard\" type=\"AnimatedSprite2D\" unique_id=425286597"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 699,
+              "header": "name=\"Boss-Wizard\" parent=\".\" unique_id=425286597 instance=ExtResource(\"27_p8vfn\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/boss_wizard.tscn"
+        }
+      },
+      "zip_source_subtree": {
+        "Boss-Wizard": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "sprite_frames": "SubResource(\"SpriteFrames_00s5w\")",
+            "animation": "&\"down\"",
+            "position": "Vector2(1172, 52)",
+            "scale": "Vector2(0.5, 0.5)"
+          },
+          "sources": [
+            {
+              "file": "NPC/Enemy/boss_wizard.tscn",
+              "line": 40,
+              "header": "name=\"Boss-Wizard\" type=\"AnimatedSprite2D\" unique_id=425286597"
+            },
+            {
+              "file": "scenes/2nd Village/Pinehill Village.tscn",
+              "line": 1050,
+              "header": "name=\"Boss-Wizard\" parent=\".\" unique_id=425286597 instance=ExtResource(\"27_p8vfn\")"
+            }
+          ],
+          "instance_source": "NPC/Enemy/boss_wizard.tscn"
+        }
+      }
+    }
+  ],
+  "oakleaf_greeting_binding_proof": [
+    {
+      "actor": "girl_npc",
+      "component": "girl_npc/InteractableArea",
+      "target": "NodePath(\"../Visual\")",
+      "dialogue_host": "CanvasLayer/Panel",
+      "visual": "girl_npc/Visual",
+      "sensor_connections": [
+        "[connection signal=\"body_entered\" from=\"girl_npc/Area2D\" to=\"girl_npc/InteractableArea\" method=\"_on_body_entered\"]",
+        "[connection signal=\"body_exited\" from=\"girl_npc/Area2D\" to=\"girl_npc/InteractableArea\" method=\"_on_body_exited\"]"
+      ],
+      "current_children": [
+        "girl_npc",
+        "girl_npc/Visual",
+        "girl_npc/FootCollision",
+        "girl_npc/Area2D",
+        "girl_npc/Area2D/CollisionShape2D",
+        "girl_npc/InteractableArea"
+      ],
+      "source_line": 515
+    },
+    {
+      "actor": "NPC",
+      "component": "NPC/Visual/InteractableArea",
+      "target": "NodePath(\"..\")",
+      "dialogue_host": "CanvasLayer/Panel",
+      "visual": "NPC/Visual",
+      "sensor_connections": [
+        "[connection signal=\"body_entered\" from=\"NPC/Visual/Area2D\" to=\"NPC/Visual/InteractableArea\" method=\"_on_body_entered\"]",
+        "[connection signal=\"body_exited\" from=\"NPC/Visual/Area2D\" to=\"NPC/Visual/InteractableArea\" method=\"_on_body_exited\"]"
+      ],
+      "current_children": [
+        "NPC",
+        "NPC/Visual",
+        "NPC/FootCollision",
+        "NPC/Visual/Area2D",
+        "NPC/Visual/Area2D/CollisionShape2D",
+        "NPC/Visual/InteractableArea"
+      ],
+      "source_line": 534
+    },
+    {
+      "actor": "villager-female",
+      "component": "villager-female/InteractableArea",
+      "target": "NodePath(\"../Visual\")",
+      "dialogue_host": "CanvasLayer/Panel",
+      "visual": "villager-female/Visual",
+      "sensor_connections": [
+        "[connection signal=\"body_entered\" from=\"villager-female/Area2D\" to=\"villager-female/InteractableArea\" method=\"_on_body_entered\"]",
+        "[connection signal=\"body_exited\" from=\"villager-female/Area2D\" to=\"villager-female/InteractableArea\" method=\"_on_body_exited\"]"
+      ],
+      "current_children": [
+        "villager-female",
+        "villager-female/Visual",
+        "villager-female/FootCollision",
+        "villager-female/Area2D",
+        "villager-female/Area2D/CollisionShape2D",
+        "villager-female/InteractableArea"
+      ],
+      "source_line": 559
+    },
+    {
+      "actor": "NPC1",
+      "component": "NPC1/Visual/InteractableArea",
+      "target": "NodePath(\"..\")",
+      "dialogue_host": "CanvasLayer/Panel",
+      "visual": "NPC1/Visual",
+      "sensor_connections": [
+        "[connection signal=\"body_entered\" from=\"NPC1/Visual/Area2D\" to=\"NPC1/Visual/InteractableArea\" method=\"_on_body_entered\"]",
+        "[connection signal=\"body_exited\" from=\"NPC1/Visual/Area2D\" to=\"NPC1/Visual/InteractableArea\" method=\"_on_body_exited\"]"
+      ],
+      "current_children": [
+        "NPC1",
+        "NPC1/Visual",
+        "NPC1/FootCollision",
+        "NPC1/Visual/Area2D",
+        "NPC1/Visual/Area2D/CollisionShape2D",
+        "NPC1/Visual/InteractableArea"
+      ],
+      "source_line": 584
+    }
+  ],
+  "supplementary_protected_teachers": [
+    {
+      "scene": "interiors/player_house.tscn",
+      "node": "NPCTeacher",
+      "classification": "quest-critical teacher / protected",
+      "zip_dialogue": true,
+      "current_dialogue": true,
+      "safe_to_wander": false,
+      "currently_wandering": false,
+      "motion_note": "Original Tutorial scripted movement only",
+      "current_subtree": {
+        "NPCTeacher": {
+          "type": "CharacterBody2D",
+          "properties": {
+            "position": "Vector2(246, 127)",
+            "script": "res://interiors/TutorialNPC.gd"
+          },
+          "sources": [
+            {
+              "file": "interiors/player_house.tscn",
+              "line": 773,
+              "header": "name=\"NPCTeacher\" type=\"CharacterBody2D\" parent=\".\" unique_id=1573983920"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPCTeacher/TeacherMale": {
+          "type": "Sprite2D",
+          "properties": {
+            "position": "Vector2(-5, -10.000008)",
+            "scale": "Vector2(0.07407409, 0.06779662)",
+            "texture": "SubResource(\"AtlasTexture_253qt\")",
+            "centered": "false"
+          },
+          "sources": [
+            {
+              "file": "interiors/player_house.tscn",
+              "line": 777,
+              "header": "name=\"TeacherMale\" type=\"Sprite2D\" parent=\"NPCTeacher\" unique_id=148394052"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPCTeacher/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(0, -5)",
+            "shape": "SubResource(\"RectangleShape2D_2m74o\")"
+          },
+          "sources": [
+            {
+              "file": "interiors/player_house.tscn",
+              "line": 783,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"NPCTeacher\" unique_id=105596970"
+            }
+          ],
+          "instance_source": ""
+        },
+        "NPCTeacher/AudioStreamPlayer2D": {
+          "type": "AudioStreamPlayer2D",
+          "properties": {
+            "position": "Vector2(-246, -127)"
+          },
+          "sources": [
+            {
+              "file": "interiors/player_house.tscn",
+              "line": 787,
+              "header": "name=\"AudioStreamPlayer2D\" type=\"AudioStreamPlayer2D\" parent=\"NPCTeacher\" unique_id=743685888"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    },
+    {
+      "scene": "interiors/teacher_house.tscn",
+      "node": "Teacher",
+      "classification": "quest-critical teacher / protected",
+      "zip_dialogue": true,
+      "current_dialogue": true,
+      "safe_to_wander": false,
+      "currently_wandering": false,
+      "motion_note": "Fixed Teacher; no wanderer",
+      "current_subtree": {
+        "Teacher": {
+          "type": "AnimatedSprite2D",
+          "properties": {
+            "position": "Vector2(641, 341.11887)",
+            "scale": "Vector2(0.065, 0.065)",
+            "sprite_frames": "SubResource(\"SpriteFrames_droyi\")",
+            "animation": "&\"walk_down\"",
+            "script": "res://scripts/teacher_task_interaction.gd",
+            "quest_ui_path": "NodePath(\"../CanvasLayer/Panel\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Teacher.tscn",
+              "line": 156,
+              "header": "name=\"Teacher\" type=\"AnimatedSprite2D\" unique_id=316579338"
+            },
+            {
+              "file": "interiors/teacher_house.tscn",
+              "line": 869,
+              "header": "name=\"Teacher\" parent=\".\" unique_id=316579338 node_paths=PackedStringArray(\"quest_ui_path\") instance=ExtResource(\"24_bskpq\")"
+            }
+          ],
+          "instance_source": "NPC/Teacher.tscn"
+        },
+        "Teacher/Area2D": {
+          "type": "Area2D",
+          "properties": {},
+          "sources": [
+            {
+              "file": "NPC/Teacher.tscn",
+              "line": 163,
+              "header": "name=\"Area2D\" type=\"Area2D\" parent=\".\" unique_id=1251849657"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Teacher/Area2D/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(-7.69227, 9.4702)",
+            "scale": "Vector2(40.999996, 4.076921)",
+            "shape": "SubResource(\"RectangleShape2D_elawb\")"
+          },
+          "sources": [
+            {
+              "file": "NPC/Teacher.tscn",
+              "line": 165,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"Area2D\" unique_id=100424970"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Teacher/Area2D2": {
+          "type": "Area2D",
+          "properties": {
+            "position": "Vector2(-15.384399, 13.555786)",
+            "script": "res://scripts/interactable_area.gd",
+            "interaction_target_path": "NodePath(\"..\")",
+            "interaction_method": "&\"interact\"",
+            "availability_method": "&\"can_interact\"",
+            "interaction_priority": "100"
+          },
+          "sources": [
+            {
+              "file": "interiors/teacher_house.tscn",
+              "line": 874,
+              "header": "name=\"Area2D2\" type=\"Area2D\" parent=\"Teacher\" unique_id=1014855883"
+            }
+          ],
+          "instance_source": ""
+        },
+        "Teacher/Area2D2/CollisionShape2D": {
+          "type": "CollisionShape2D",
+          "properties": {
+            "position": "Vector2(7.692383, -7.692383)",
+            "shape": "SubResource(\"RectangleShape2D_vlnfo\")"
+          },
+          "sources": [
+            {
+              "file": "interiors/teacher_house.tscn",
+              "line": 882,
+              "header": "name=\"CollisionShape2D\" type=\"CollisionShape2D\" parent=\"Teacher/Area2D2\" unique_id=533990814"
+            }
+          ],
+          "instance_source": ""
+        }
+      }
+    }
+  ],
+  "runtime_player": {
+    "spawned_by": "scripts/gameplay_scene.gd::_ensure_player_instance",
+    "male_scene": "player/player_male.tscn",
+    "male_node": "Player-male",
+    "female_scene": "player/player_female.tscn",
+    "female_node": "CharacterBody2D",
+    "classification": "player; never eligible for NPC wanderer",
+    "count_per_map": "one selected gender, created at runtime; not a serialized NPC",
+    "groups": "top_down_player.gd adds lowercase player/player_character for both genders",
+    "collision_mask": 3
+  },
+  "supplementary_no_actors": [
+    "interiors/npc_house.tscn",
+    "interiors/school.tscn"
+  ],
+  "movement_input_static_checks": {
+    "default_30_px_s": true,
+    "home_captured_once": true,
+    "home_relative_bounded_target": true,
+    "overshoot_speed_clamp": true,
+    "collision_aware_move_and_slide": true,
+    "collision_causes_idle": true,
+    "idle_phases": true,
+    "dialogue_pauses": true,
+    "dialogue_resume_idle": true,
+    "E_and_Space_fallback": true,
+    "mobile_edge_feed": true,
+    "one_interaction_until_release": true,
+    "dialogue_open_release_guard": true,
+    "input_edge_single_consumption": true
+  },
+  "runtime_limitations": [
+    "No canonical runtime tests run by this audit; prior 331 checks are reference only.",
+    "Collision configuration proves map/player collision design (NPC layer 2, mask 1; player layer 1, mask 3); actual geometry, no drift, pause/resume and touch timing need fresh MCP tests. NPC-to-NPC collision is not enabled by preserved mask 1 and is not claimed.",
+    "No serialized world encounter binding exists for the remaining 15 enemies/bosses, matching provided ZIP; route inventory must distinguish presentation routing from a callable map encounter."
+  ],
+  "minimal_product_fixes": [],
+  "new_civilian_movers_required": [],
+  "source_evidence_gaps": [
+    "11 silent civilians: NO SOURCE-SUPPORTED DIALOGUE. Do not invent dialogue or infer it from shared artwork.",
+    "ZIP has no world interaction/encounter binding for Oakleaf Bandits2-5/Boss-Bandit, City Bandits1-5, or Pinehill Bandits1-4/Boss-Wizard. Preserve their locations and City movement; any new encounter wiring belongs to battle-routing scope after evidence."
+  ],
+  "preservation": {
+    "product_files_written_by_this_audit": [],
+    "required_freeze": "All current background/map props/spawn/TileMap/TileSet/bounds data, Tutorial original layout, Teacher/Task Complete triggers, 520x80 Oakleaf / 460x126 Teacher normal dialogue with 40px margin, brown controller design/size/placement and input lifecycle, Settings and HUD/timer.",
+    "normal_dialogue_dimensions": "Verified source arithmetic: serialized Oakleaf 480x88 -> QuestUI +40 width and snapped 0.9 height -> 520x80; Teacher 420x140 -> 460x126. Bottom anchors/margin 40. Runtime layout still parent-owned."
+  },
+  "source_file_sha256": {
+    "current": {
+      "scenes/oak_leaf_village.tscn": "b1e0c8e5f9b3695ecd802f4be680bde3a648661004f6f19c1f63054aa4f542ce",
+      "objects/Outside-Object/camp1.tscn": "370058a681a0082ea97a8abe84c1454766176cbe163179ca492314a36a85349c",
+      "objects/Outside-Object/campfire-1.tscn": "1d5c88ebe2cd08a7698954b7b473320381febd576bbf5548bbb9772e6cdb1fb6",
+      "objects/Outside-Object/pointer-left.tscn": "c70a2aa2b6e771f7872e284d5eb0e374c241dfd2f3d78c76187d6bc78edfb820",
+      "objects/Outside-Object/pointer-up.tscn": "cd6eaf4efc6734d25445a1b42852e82824797a57ca220235760fa705b3e49b34",
+      "houses/green_house_animation.tscn": "28d213eb40bbc95acf7dca55f6ade107a0e7e901fe191491d69855d98b2232b6",
+      "Door-Navigations-Scene2Scene/player_house_outside_door.tscn": "384a11017843109ee56ff909bdefd176ca586f7896a1b6776fd4ddd8e0946a46",
+      "houses/blue-house-animated.tscn": "667e730e346865741a546bbaae200162aee29193064295601f3fc1545f251e6a",
+      "houses/red-house-animation.tscn": "ca89fc3a1af609e7c57d70e18f2f5d2c97b84e52dcf177d78f5164b8b1becbdb",
+      "objects/Outside-Object/stone-1.tscn": "b21b0815aa10547ebb209a9518976deb33180ed1ae44a15b7d03a39520a58e6f",
+      "objects/Outside-Object/stone-3.tscn": "24b43e7bd737a274044e3e1e4417a9d54ce0e408ef6fa9d7f8dff08ccec45b59",
+      "NPC/Npc/wandering_girl_npc.tscn": "6fbb672d1cc4dc13d1bd13f5a6a8355ab84b5b528029fe096b41196792e8e467",
+      "NPC/Npc/girl_npc.tscn": "ecf34571f6a00a5267a73fc0951ecd374110a185ea57e8e5fa15b1b3ac9007fd",
+      "NPC/Npc/wandering_male_npc.tscn": "3ff055fb700fc13a8502ba461fb26e3550d78c3ce87578bb1053f7e92ef13479",
+      "NPC/Npc/male_npc.tscn": "90cd6d1af3d413b037686d9f7c80df3e181fda94a8ebee699e8102337f58ffaf",
+      "NPC/Npc/wandering_villager_female.tscn": "18b1d46ac7b5e4f4a3b49a2fe9ccf75dd54dac131047c0b88bcf8acdf335d5c7",
+      "NPC/Npc/villager_female.tscn": "be313a227d228b354d26f312fcc4178afef8821528f63fdef248e26d8df6be58",
+      "NPC/Npc/wandering_old_adult_women.tscn": "b6df1ac298672d09664fc7afe70ccd0abce3509615296697c33196c4b22d27dd",
+      "NPC/Npc/old_adult_women.tscn": "51f06e83f208b418ed8ebe7b6284f564a75d31b317ea911df61be792cda2bdb4",
+      "Door-Navigations-Scene2Scene/go_to_city_of_knowledge.tscn": "ddc5b5663d3af218186c4cae526b9ec8158520196105967e112e50e17803cdd1",
+      "NPC/Enemy/bandits.tscn": "3c31b4771f2472a1ee119f99cef506c31bdf07f5aad6e71e199d5ab31bd527d0",
+      "NPC/Enemy/boss_bandit.tscn": "77258010dc17fe32c899c68421ed24ed2444f5a0d68f04349c0e06aacd401193",
+      "scenes/city_of_knowledge.tscn": "886d4f3d53b55ea2ed115e1c15b33d8c13b166455d9360512fab649bc16a212b",
+      "houses/blue_building_animation.tscn": "0ba8646e43928f9a4f41cb546ca028f8017c92aa404a241f24a0680571d98e4b",
+      "houses/red_building_animation.tscn": "338a3cb73fb89660ebeedafe12047c508e598f44ff30031ba30a8a97fcef2ac4",
+      "houses/school-building.tscn": "493b3f7a089f0249eb1bec746dd9219fa8a699e26292432ecd3e63edb86870f5",
+      "objects/Outside-Object/destroyed-camp.tscn": "780df6edaad82109613c6308410f3db8bb83aa04d0419bf4627faa1b8d54e21a",
+      "NPC/Npc/wandering_adult_male_npc.tscn": "b9c794334efe16f69fdf9cd4e8990c8eadf1a8a5b0cb585f097e6cc71e923601",
+      "NPC/Npc/adult_male_npc.tscn": "3408b9a63b615213b99e5ac9494213defb424c235b28c606c194c7ddcb17c5cd",
+      "NPC/Npc/decorative_wandering_city_npc.tscn": "cd282976f081b328b4731f20392cc92476eecd1617fcbf983fad614dd4a416c5",
+      "NPC/Npc/city_npc.tscn": "4408f9a678d596f5408a0172dd894e2bab9d9ad7972855689f054ca73656b3a0",
+      "NPC/Npc/wandering_old_npc.tscn": "e4d17c46dcfa143505399e75db9e13217158eb1770d1438d2eee4203fe8c71a6",
+      "NPC/Npc/old_npc.tscn": "7dbf2372478be8bbe3b1a45aab4d620e5d638511035fa76f690e91cfcdeaa227",
+      "Door-Navigations-Scene2Scene/go_to_oak_leaf_village.tscn": "da113b0c7337ad878ac7c933c3a16ddc4f2633cb069aa64fc8894751a8e72c44",
+      "NPC/Enemy/wandering_bandit.tscn": "baa7c4b1f68545a7f4b4dbdcf058ac6aa4b405907149a1a5ab8c94b195ac6cbb",
+      "Door-Navigations-Scene2Scene/city_of_knowledge_to_pine_hill.tscn": "b9c6b5fb50fa454c7f716e4422e88e36a236e1f1020d998c5002255d00731697",
+      "scenes/pinehill_village.tscn": "c9af6d2fcde50429c18029e520b785e8f399c48c35a29fa8f7a6edb6c92a6c07",
+      "scenes/2nd Village/Pinehill Village.tscn": "74f6bf6e949e00b41b133053e9ca84747a73799a003d3415b64c89c343ddb86e",
+      "objects/Outside-Object/forest-light.tscn": "550b552ca28bcd54559ddc8770a15877e5ffcf8de137500408764d00f8b126b3",
+      "objects/Outside-Object/stone-2.tscn": "dd431491dddb14c2cccc4bb4994f7be358fbeeb0b621f0c11c00197ec7adee5f",
+      "houses/house_display.tscn": "635a2837439394c99ae85121e13a496ed038c6957298919f47e3e39ec1a0318e",
+      "MetroCity .2/MetroCity 2.1/wizard-house.tscn": "17b7225abe962c2ef6ae496da9f52db6d4f3c2977b37e06abf2470aa9a4089e5",
+      "objects/Outside-Object/village-light.tscn": "a717d74509c8068b544c55a8d17ff6fd622c5b70ca4538a8e5cc8b987061e96a",
+      "NPC/Npc/wandering_villager_male.tscn": "9cd6276f5d4d2ff69e2198ffef1d8a126263183cb9a853845402c743d993eeb9",
+      "NPC/Npc/villager_male.tscn": "7f183f2d31ac87cd74906448c28bb852d92458c47b034bd38cf268d3d4c8cf24",
+      "NPC/Enemy/boss_wizard.tscn": "ea6f04f8fc60b85205703f1e41b5fe945d227b79781c5f9d2f9b9bcdff6d57ba",
+      "Door-Navigations-Scene2Scene/pinehill_to_city_of_knowledge.tscn": "01b8d4e9d1fd71757e28f90a262979fe51e5e0b61f1d38b8e6e9d91c6e732b8a",
+      "scripts/decorative_npc_wanderer.gd": "beada51813d5384fc6664abbc141a1c5745e0a502298f4dd72f3368602b01ede",
+      "NPC/Npc/old_adult_women_Dialog.gd": "5e31fec070c5683d79a73def5f46ab0aa16c59e7e4250a1c27980dadbc305229",
+      "scripts/input_manager.gd": "3e8c47dc23ffc7b626fbd37e83a9637676bba51792405336a3ad699513ca54d4",
+      "scripts/interaction_manager.gd": "62bb3947d4a8001238f8ca44a32bf4c086a11d811f636818621b02e8ee2d69ce",
+      "scripts/interactable_area.gd": "ea8843ac0523169cf42c17c599a426f09346dc688aec596e8dde690840c00c4b",
+      "scripts/mobile_controls.gd": "6af0bb36dc768a8aefcf76fe3ec177208ea0f1d4cd0af03e15b1bf9ec0a0c36b",
+      "scripts/touch_hold_button.gd": "a7e8966e0ddaa2ad87c5088de7ee8aecbbf64c6f84f12880c7ea127e43ffea9c",
+      "scripts/npc_collision_manager.gd": "45cb356ee14dfc42182ac6d287ea96c0bc231a1c8a2561ecc35688dbdec0d968",
+      "scripts/top_down_player.gd": "a0be0fe8f62ce101f9f733259c1a031ea06595ac5d614a45c3f16407d7a9d10b",
+      "scripts/gameplay_scene.gd": "8cce83bc6862ace4e529f6d9d1a887f59835fa20db23d33c9a1cb563f29ee17a",
+      "scripts/task_dialogue_adapter.gd": "2a49598eef53f6ee516f3750011409d837a5d156c2e1fc1c7381f62e2cc679bb",
+      "scripts/teacher_task_interaction.gd": "baa86aa2a8dd790b03fe41436cdd71809a721c7da2199483a3b6dac408a8fafa",
+      "world/Task1.gd": "7b48c82746e6ad34e2146211ea5cd9058c143a3bed87896db23943a1544ce835",
+      "world/task_progress_trigger.gd": "0fcaa4f06c6422c1dac0408f533ff9546a07e794bb50b077b95e5f93d9ab2148",
+      "world/QuestUI.gd": "e01c3ab0b046b8962f6e8a2b77018c24edf3ea7afd9632447688a823d754c58c",
+      "interiors/TutorialNPC.gd": "e7b6ccf85393b93cc54c349b5cd9a2b614d255f223d6669a0631ce4863791f2f",
+      "interiors/player_house.tscn": "16ea5c76fb116566474995dc23b394341a5a4c50e077e6137a235326a861528f",
+      "objects/Room-Interior-Furnitures/Bed-1.tscn": "6b8705e064d520a554e26ac62215b05d8ac628f6baec1f57b857377c30562f6e",
+      "objects/Room-Interior-Furnitures/bookshell.tscn": "d6ae080286ee51ca45290346ffde6b6b8491fd3f786c5b69a02a4a614942f9b9",
+      "objects/Room-Interior-Furnitures/door-carpet.tscn": "c306ed7ce241db789deeffa67a3f67cc450440b8e8d84846f2b8e85d831239e0",
+      "objects/Room-Interior-Furnitures/living-tv.tscn": "822da9281bc033a46df42a38a605d103795778862b56281e294f5cbff9868a3d",
+      "objects/Room-Interior-Furnitures/side-sofa.tscn": "06e44c9db9b062469627932ac3e29730f1ccb101729c03096d3c6e80126ef13a",
+      "objects/Room-Interior-Furnitures/computertable.tscn": "82fcf8c403feb537541dbad3319596a9ee9c82235b7b8340a91b0bfe081db6d2",
+      "objects/Room-Interior-Furnitures/computer.tscn": "7cabe1a5829857f78009111e713fceedd981de116a52d2c163997fd8c558fa95",
+      "objects/Room-Interior-Furnitures/stove.tscn": "8ecb21164f3cf54868f7a79151838ba4c1858b8869a567e5b7d6499676cca749",
+      "objects/Room-Interior-Furnitures/plate-cabinet.tscn": "29ee41dfa87cf406ca98b2e7f4b1d0548ab92dca20800bfa27013c3a986d0c33",
+      "objects/Room-Interior-Furnitures/Heater.tscn": "c99a270d270f16b194ecf142b34dc74389676e1d166338fa3f49a251d0d8e95e",
+      "objects/Room-Interior-Furnitures/kitchen.tscn": "b69127ed3970e9dabb071906dae0b1cd162c8a75c1891520ad96134b22c7afea",
+      "objects/Room-Interior-Furnitures/diningtable.tscn": "ee9cf4058cccf28c601011db42dd26fa2b649f8f83f1fad01454ebb6a8865e19",
+      "objects/Room-Interior-Furnitures/longchair-2.tscn": "6b39c87723e6898b2f8f8bd3f2eefe0345388b4a87405b2a1388531939155e63",
+      "objects/Room-Interior-Furnitures/longchair-1.tscn": "e9c8339d31587fce6b2e743c759e560ffdaf7794459d8cb876d06babd7a3fa6d",
+      "objects/Room-Interior-Furnitures/cabinet-decot.tscn": "f0309c2bc94205a4a333bbe08f474c47d121b309bce3bf12d8b46a76517b1af0",
+      "objects/Room-Interior-Furnitures/long-cabinet.tscn": "504517a365d0013abc3076209472aff706b81cb0a310129544370414a170dad7",
+      "objects/Room-Interior-Furnitures/designtree.tscn": "686526e3c8d885a782ad378529ed978e58ce0d3128d1dc3dabc908b9634f2125",
+      "Door-Navigations-Scene2Scene/interior_house_door.tscn": "d2d2d4c940c5880ddc092c534f23254a0f147b430fca363d9ee590c68753c70b",
+      "interiors/teacher_house.tscn": "e42de27b9fb7c13063c96ef009dca61580809d9fe74c3e93284e148d48b1dd51",
+      "objects/Room-Interior-Furnitures/carpet.tscn": "f358fba705e9d0ce61087d6f27d3863643c0b45438695675fcf7f5dab964e6b8",
+      "objects/Room-Interior-Furnitures/living-clock.tscn": "edcd74d6fde8bbe8625ae51a7f1c8bdaca3004c847f136286455a473aa336d3b",
+      "objects/Room-Interior-Furnitures/bed-3.tscn": "d552f144c14b1167c5d75334aee9508d519c28a469dd91a57000bfb530f4ba68",
+      "objects/Room-Interior-Furnitures/teacher_table.tscn": "a476541505324e53ea132bda93f9e4b2d122b434dde0e8f91b8a9c4b0450e8b8",
+      "NPC/Teacher.tscn": "08a66a24f32dbc75792f6e5b1a0e277893b83cd001eccf9b62ec0db189d97b42",
+      "interiors/npc_house.tscn": "48d1f23d9e6a5d8fc9586c9045bdc29241dcc2d94497d7f499d3ce4e49441a97",
+      "objects/Room-Interior-Furnitures/bed-2.tscn": "0c62f5d9471571743e703e74a3ce931fdb40d15d0516c532fb404b1a66036db9",
+      "objects/Room-Interior-Furnitures/ceiling-decor.tscn": "e2dc7cb12d895132fe7c3a37f2084e40a565dec4ba8c36cde88223b90c7b6c2f",
+      "interiors/school.tscn": "1bd176613f4777c6dc5fba1c29c2cdd4da3249b294a344f50f76412711b8004d",
+      "objects/Room-Interior-Furnitures/student_chair.tscn": "10ef0e6a82bbadde9ead58c853fa3719a4a817e598e3b1ef3fc3be221be870d1",
+      "objects/Room-Interior-Furnitures/books.tscn": "aef4aba74b7ef90ef940a00ea64a9277b9363127e396f686bba47b55e5cd24eb",
+      "objects/Room-Interior-Furnitures/black-board-side.tscn": "b97510b5e090447922cc293b878894cd0ea8efae44c91fd2041407dce3f2aa98",
+      "objects/Room-Interior-Furnitures/locker.tscn": "5052d97b5e6b970bcd1c3b5f3fe974a6506bfcacaed9c96a79f85e74ce25dfd6",
+      "objects/Room-Interior-Furnitures/activity_board.tscn": "83bcc9b3313f6c035763d02affd3d697668de948530e7f6487b14e85871a1f35",
+      "ui/mobile_controls.tscn": "4c672914b47502c842c120a08b0d5141f9ea30f4c11fd71d8162f6578853aa8d",
+      "ui/game_hud.tscn": "a2c2e8811dbdc6905a828729e6afbf72af0621d8acb7f4bdd2e7188893f71078",
+      "scenes/Settings-Ingame/settings_ingame.tscn": "beec5cad8d18048a1a6c531c6caa3c12df830509b9f4a3f94df05d84a21673e6",
+      "project.godot": "de69cdb2614e7be28da34e40a4a2435ee8f9e2765e86df7b84da7a381bbd0bb7",
+      "player/player_male.tscn": "30d8c9875845af25787dcb56a943d5cda408e7f8e96d11dbf4c6966de079abe7",
+      "player/player_female.tscn": "f378b392f3c0e25ad717f3466db85e4b294d66e4716082ea1d0b45ffbf989939"
+    },
+    "zip": {
+      "scenes/oak_leaf_village.tscn": "4481e2ff8aab2acfdf84a4932f3829328854dff778fc8d09812976f7b7cfd609",
+      "objects/Outside-Object/camp1.tscn": "370058a681a0082ea97a8abe84c1454766176cbe163179ca492314a36a85349c",
+      "objects/Outside-Object/campfire-1.tscn": "1d5c88ebe2cd08a7698954b7b473320381febd576bbf5548bbb9772e6cdb1fb6",
+      "objects/Outside-Object/pointer-left.tscn": "c70a2aa2b6e771f7872e284d5eb0e374c241dfd2f3d78c76187d6bc78edfb820",
+      "objects/Outside-Object/pointer-up.tscn": "cd6eaf4efc6734d25445a1b42852e82824797a57ca220235760fa705b3e49b34",
+      "houses/green_house_animation.tscn": "28d213eb40bbc95acf7dca55f6ade107a0e7e901fe191491d69855d98b2232b6",
+      "Door-Navigations-Scene2Scene/player_house_outside_door.tscn": "384a11017843109ee56ff909bdefd176ca586f7896a1b6776fd4ddd8e0946a46",
+      "houses/blue-house-animated.tscn": "667e730e346865741a546bbaae200162aee29193064295601f3fc1545f251e6a",
+      "houses/red-house-animation.tscn": "ca89fc3a1af609e7c57d70e18f2f5d2c97b84e52dcf177d78f5164b8b1becbdb",
+      "objects/Outside-Object/stone-1.tscn": "b21b0815aa10547ebb209a9518976deb33180ed1ae44a15b7d03a39520a58e6f",
+      "objects/Outside-Object/stone-3.tscn": "24b43e7bd737a274044e3e1e4417a9d54ce0e408ef6fa9d7f8dff08ccec45b59",
+      "NPC/Npc/girl_npc.tscn": "ecf34571f6a00a5267a73fc0951ecd374110a185ea57e8e5fa15b1b3ac9007fd",
+      "NPC/Npc/male_npc.tscn": "90cd6d1af3d413b037686d9f7c80df3e181fda94a8ebee699e8102337f58ffaf",
+      "NPC/Npc/villager_female.tscn": "be313a227d228b354d26f312fcc4178afef8821528f63fdef248e26d8df6be58",
+      "NPC/Npc/old_adult_women.tscn": "51f06e83f208b418ed8ebe7b6284f564a75d31b317ea911df61be792cda2bdb4",
+      "Door-Navigations-Scene2Scene/go_to_city_of_knowledge.tscn": "ddc5b5663d3af218186c4cae526b9ec8158520196105967e112e50e17803cdd1",
+      "NPC/Enemy/bandits.tscn": "3c31b4771f2472a1ee119f99cef506c31bdf07f5aad6e71e199d5ab31bd527d0",
+      "NPC/Enemy/boss_bandit.tscn": "77258010dc17fe32c899c68421ed24ed2444f5a0d68f04349c0e06aacd401193",
+      "scenes/city_of_knowledge.tscn": "d33c8206c9613135a7c77103411b69da6ca62cfa36a244fb25368059d1d941dd",
+      "houses/blue_building_animation.tscn": "0ba8646e43928f9a4f41cb546ca028f8017c92aa404a241f24a0680571d98e4b",
+      "houses/red_building_animation.tscn": "338a3cb73fb89660ebeedafe12047c508e598f44ff30031ba30a8a97fcef2ac4",
+      "houses/school-building.tscn": "493b3f7a089f0249eb1bec746dd9219fa8a699e26292432ecd3e63edb86870f5",
+      "objects/Outside-Object/destroyed-camp.tscn": "780df6edaad82109613c6308410f3db8bb83aa04d0419bf4627faa1b8d54e21a",
+      "NPC/Npc/adult_male_npc.tscn": "3408b9a63b615213b99e5ac9494213defb424c235b28c606c194c7ddcb17c5cd",
+      "NPC/Npc/city_npc.tscn": "4408f9a678d596f5408a0172dd894e2bab9d9ad7972855689f054ca73656b3a0",
+      "NPC/Npc/old_npc.tscn": "7dbf2372478be8bbe3b1a45aab4d620e5d638511035fa76f690e91cfcdeaa227",
+      "Door-Navigations-Scene2Scene/go_to_oak_leaf_village.tscn": "da113b0c7337ad878ac7c933c3a16ddc4f2633cb069aa64fc8894751a8e72c44",
+      "Door-Navigations-Scene2Scene/city_of_knowledge_to_pine_hill.tscn": "b9c6b5fb50fa454c7f716e4422e88e36a236e1f1020d998c5002255d00731697",
+      "scenes/pinehill_village.tscn": "c9af6d2fcde50429c18029e520b785e8f399c48c35a29fa8f7a6edb6c92a6c07",
+      "scenes/2nd Village/Pinehill Village.tscn": "9890ab43f5e4a100119e04968c4cfbd534864bae5cafbb9f55df4481626d530e",
+      "objects/Outside-Object/forest-light.tscn": "550b552ca28bcd54559ddc8770a15877e5ffcf8de137500408764d00f8b126b3",
+      "objects/Outside-Object/stone-2.tscn": "dd431491dddb14c2cccc4bb4994f7be358fbeeb0b621f0c11c00197ec7adee5f",
+      "houses/house_display.tscn": "635a2837439394c99ae85121e13a496ed038c6957298919f47e3e39ec1a0318e",
+      "MetroCity .2/MetroCity 2.1/wizard-house.tscn": "17b7225abe962c2ef6ae496da9f52db6d4f3c2977b37e06abf2470aa9a4089e5",
+      "objects/Outside-Object/village-light.tscn": "a717d74509c8068b544c55a8d17ff6fd622c5b70ca4538a8e5cc8b987061e96a",
+      "NPC/Npc/villager_male.tscn": "7f183f2d31ac87cd74906448c28bb852d92458c47b034bd38cf268d3d4c8cf24",
+      "NPC/Enemy/boss_wizard.tscn": "ea6f04f8fc60b85205703f1e41b5fe945d227b79781c5f9d2f9b9bcdff6d57ba",
+      "Door-Navigations-Scene2Scene/pinehill_to_city_of_knowledge.tscn": "01b8d4e9d1fd71757e28f90a262979fe51e5e0b61f1d38b8e6e9d91c6e732b8a",
+      "NPC/Npc/old_adult_women_Dialog.gd": "34ea9fa1d08e53927e22ade075941d353e827b08248b0051021e9a5ef3a5d81b",
+      "world/QuestUI.gd": "5ead56f673d25b273c40219f71736b5f3d0ec947aedccaa48de56436e790932f",
+      "scripts/game_state.gd": "70a2826d0441455a7891e71f529b2bf979966bd0b436b55a298ce989b6a3150f",
+      "interiors/TutorialNPC.gd": "3112611b225b7b0a29af6a094f5eab7a67b092ffe824ac9f28f58ff5b40fb460",
+      "interiors/player_house.tscn": "16ea5c76fb116566474995dc23b394341a5a4c50e077e6137a235326a861528f",
+      "objects/Room-Interior-Furnitures/Bed-1.tscn": "6b8705e064d520a554e26ac62215b05d8ac628f6baec1f57b857377c30562f6e",
+      "objects/Room-Interior-Furnitures/bookshell.tscn": "d6ae080286ee51ca45290346ffde6b6b8491fd3f786c5b69a02a4a614942f9b9",
+      "objects/Room-Interior-Furnitures/door-carpet.tscn": "c306ed7ce241db789deeffa67a3f67cc450440b8e8d84846f2b8e85d831239e0",
+      "objects/Room-Interior-Furnitures/living-tv.tscn": "822da9281bc033a46df42a38a605d103795778862b56281e294f5cbff9868a3d",
+      "objects/Room-Interior-Furnitures/side-sofa.tscn": "06e44c9db9b062469627932ac3e29730f1ccb101729c03096d3c6e80126ef13a",
+      "objects/Room-Interior-Furnitures/computertable.tscn": "82fcf8c403feb537541dbad3319596a9ee9c82235b7b8340a91b0bfe081db6d2",
+      "objects/Room-Interior-Furnitures/computer.tscn": "7cabe1a5829857f78009111e713fceedd981de116a52d2c163997fd8c558fa95",
+      "objects/Room-Interior-Furnitures/stove.tscn": "8ecb21164f3cf54868f7a79151838ba4c1858b8869a567e5b7d6499676cca749",
+      "objects/Room-Interior-Furnitures/plate-cabinet.tscn": "29ee41dfa87cf406ca98b2e7f4b1d0548ab92dca20800bfa27013c3a986d0c33",
+      "objects/Room-Interior-Furnitures/Heater.tscn": "c99a270d270f16b194ecf142b34dc74389676e1d166338fa3f49a251d0d8e95e",
+      "objects/Room-Interior-Furnitures/kitchen.tscn": "b69127ed3970e9dabb071906dae0b1cd162c8a75c1891520ad96134b22c7afea",
+      "objects/Room-Interior-Furnitures/diningtable.tscn": "ee9cf4058cccf28c601011db42dd26fa2b649f8f83f1fad01454ebb6a8865e19",
+      "objects/Room-Interior-Furnitures/longchair-2.tscn": "6b39c87723e6898b2f8f8bd3f2eefe0345388b4a87405b2a1388531939155e63",
+      "objects/Room-Interior-Furnitures/longchair-1.tscn": "e9c8339d31587fce6b2e743c759e560ffdaf7794459d8cb876d06babd7a3fa6d",
+      "objects/Room-Interior-Furnitures/cabinet-decot.tscn": "f0309c2bc94205a4a333bbe08f474c47d121b309bce3bf12d8b46a76517b1af0",
+      "objects/Room-Interior-Furnitures/long-cabinet.tscn": "504517a365d0013abc3076209472aff706b81cb0a310129544370414a170dad7",
+      "objects/Room-Interior-Furnitures/designtree.tscn": "686526e3c8d885a782ad378529ed978e58ce0d3128d1dc3dabc908b9634f2125",
+      "Door-Navigations-Scene2Scene/interior_house_door.tscn": "d2d2d4c940c5880ddc092c534f23254a0f147b430fca363d9ee590c68753c70b",
+      "interiors/teacher_house.tscn": "e4df21943d62801067a58b195acc34bf19d2d2f3406924f05e0ca72a0a99b507",
+      "objects/Room-Interior-Furnitures/carpet.tscn": "f358fba705e9d0ce61087d6f27d3863643c0b45438695675fcf7f5dab964e6b8",
+      "objects/Room-Interior-Furnitures/living-clock.tscn": "edcd74d6fde8bbe8625ae51a7f1c8bdaca3004c847f136286455a473aa336d3b",
+      "objects/Room-Interior-Furnitures/bed-3.tscn": "d552f144c14b1167c5d75334aee9508d519c28a469dd91a57000bfb530f4ba68",
+      "objects/Room-Interior-Furnitures/teacher_table.tscn": "a476541505324e53ea132bda93f9e4b2d122b434dde0e8f91b8a9c4b0450e8b8",
+      "NPC/Teacher.tscn": "b1a15a258951553e168d3898e01a1ae720a19073436ea423a0403d4d55c66fec",
+      "interiors/npc_house.tscn": "48d1f23d9e6a5d8fc9586c9045bdc29241dcc2d94497d7f499d3ce4e49441a97",
+      "objects/Room-Interior-Furnitures/bed-2.tscn": "0c62f5d9471571743e703e74a3ce931fdb40d15d0516c532fb404b1a66036db9",
+      "objects/Room-Interior-Furnitures/ceiling-decor.tscn": "e2dc7cb12d895132fe7c3a37f2084e40a565dec4ba8c36cde88223b90c7b6c2f",
+      "interiors/school.tscn": "1bd176613f4777c6dc5fba1c29c2cdd4da3249b294a344f50f76412711b8004d",
+      "objects/Room-Interior-Furnitures/student_chair.tscn": "10ef0e6a82bbadde9ead58c853fa3719a4a817e598e3b1ef3fc3be221be870d1",
+      "objects/Room-Interior-Furnitures/books.tscn": "aef4aba74b7ef90ef940a00ea64a9277b9363127e396f686bba47b55e5cd24eb",
+      "objects/Room-Interior-Furnitures/black-board-side.tscn": "b97510b5e090447922cc293b878894cd0ea8efae44c91fd2041407dce3f2aa98",
+      "objects/Room-Interior-Furnitures/locker.tscn": "5052d97b5e6b970bcd1c3b5f3fe974a6506bfcacaed9c96a79f85e74ce25dfd6",
+      "objects/Room-Interior-Furnitures/activity_board.tscn": "83bcc9b3313f6c035763d02affd3d697668de948530e7f6487b14e85871a1f35"
+    }
+  }
+}

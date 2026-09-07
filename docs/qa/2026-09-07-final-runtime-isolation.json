@@ -1,0 +1,55 @@
+{
+  "canonical_root": "C:\\Users\\vince\\Documents\\Capstone-Project\\capstone-theresians-quest",
+  "launch_scene": "tools/final_world_quest_test.tscn",
+  "isolation": [
+    "HttpApi _ready reads configuration and logs only; it does not request network or instantiate HTTPRequest.",
+    "RemoteSync _ready connects signals and reads pending data only; starting lease id is0, credential empty, preventing heartbeat. Its original node is freed before fixture profile, save, answer, or progress actions.",
+    "QuestionProvider startup waits for encounter context. Its request_get resolves /root/HttpApi, replaced by PoolTransport before fixtures.",
+    "Final harness first frees original RemoteSync and HttpApi, adds in-memory PoolTransport and ResultCapture, then assigns unique-save GameState subclass. Every test request returns a dictionary with no sockets/HTTPRequest/URL or transport forwarding.",
+    "Fixture save path is unique user://saves/final_world_quest_<ticks>.json; save override writes only this path. load_save reads only that exact test path. No human save modification.",
+    "Actual RemoteSync observer is later instantiated only with _pending_file set to unique user://final_remote_quest_<ticks>.json before add_child/_ready. Its processing is disabled. All its requests resolve the same in-memory PoolTransport; no original HttpApi is restored.",
+    "New-game and load calls pass false for session reset. Test credentials are offline fixture-only values; no real account identity or server lease is loaded.",
+    "The harness rejects and frees any newly added HTTPRequest before the caller can issue request, and asserts zero HTTPRequest nodes before fixture gameplay.",
+    "production_qa_enabled true is retained byte-for-byte for human use. No product configuration is changed for tests."
+  ],
+  "sha256": {
+    "tools/final_world_quest_test.gd": "4111b3f48c3bbd48a7d9e7883554e099255e07efc5638eaef127df0e88dd9808",
+    "tools/preservation_regression_state.gd": "f6f86f8d724486a8ae36ac5e85e5422d5a985e9592e5e304adc85faa2a8c90be",
+    "scripts/http_api.gd": "0f283dc7f1e56b16b3ffbaa94897039e6fbd092eca1b4cb47e4661c06322acd6",
+    "scripts/remote_sync.gd": "03c02cede01cc52241b452c56ef57b8a8497c2e69fad7738fcf0b77587cc0e76",
+    "scripts/question_provider.gd": "59b258d7bcebd2e76f39f1d92dec3e1952c299591359bd5840a521fc5870d381",
+    "scripts/game_state.gd": "41859e50cebf551e04511b43633c97da674a7531d80842440cafe4cf70d12a06",
+    "scripts/main_menu_scene.gd": "ec0b0d4820dcf194c86f5bb1065ed2cdd2cde02dd370a5021c680e034f563c99",
+    "project.godot": "de69cdb2614e7be28da34e40a4a2435ee8f9e2765e86df7b84da7a381bbd0bb7",
+    "Data/api_config.json": "1b0c81a2f675e39f694bd307234e33c0f2151c81281f371d30717ed0be51c2f5",
+    "tools/final_civilian_preservation_test.gd": "a944ab1318dc08c5fd43d6748e2e5b4d09a58c3efe5d5c3df2d1f529ff53bfcb",
+    "tools/gameplay_civilian_expansion_test.gd": "9a6c4a166ea591803642cf1386d595b2f7100778c2aa4b289150bcd9df72854f",
+    "tools/final_ui_preservation_test.gd": "ad34ab5f9858aea6b3c77597c1b645e7ebedb4bee23ad48d511012a3fe757762",
+    "tools/final_vs_provider_test.gd": "890f7004f7646ff02d1cbf96e7e5a68fac5ad1b00daba4f51d13881ee921970b",
+    "tools/final_world_quest_test.tscn": "5525a61467c50ead897e92924c225f049362213f145682697099180eeb5379db",
+    "tools/final_vs_provider_test.tscn": "6a40f29df039399bfc99582685dfede682506cf8e2662c67d6b97eee42e13162",
+    "tools/final_civilian_preservation_test.tscn": "aeed8b7a64df7097fda07c983ca87532dbf57876e596d6390f7ce0f5bf4a7b18",
+    "tools/final_ui_preservation_test.tscn": "daf9b578996ec3b74f82bbc44b68f16e78eb61cb2964986c27116e538feb62a2"
+  },
+  "civilian_isolation": [
+    "tools/final_civilian_preservation_test.gd inherits gameplay_civilian_expansion_test.gd._run unchanged; that method first frees original RemoteSync,HttpApi,QuestionProvider before any profile/map fixture, with no await before freeing them.",
+    "It then sets GameState to preservation_regression_state.gd, whose save_game writes only a unique test-owned user://saves/gameplay_civilian_expansion_<ticks>.json. start_new_game(PROFILE,false) cannot emit session reset.",
+    "No HttpApi or RemoteSync replacement is ever installed by civilian tests. No direct socket/HTTP API exists in its test body. Its runtime-added HTTPRequest guard also fails closed.",
+    "The original pending sync file is only read by normal autoload ready; original RemoteSync is removed before any state event, with empty leaseid/credential preventing startup heartbeat.",
+    "Inherited tests only load three canonical maps, simulate input/physics, and write new QA JSON plus unique fixture save. The existing immutable map snapshot remains read-only."
+  ],
+  "ui_isolation": [
+    "final_ui_preservation_test._run first frees all3 live transports without awaiting; uses unique test save subclass, local scene/input/layout checks, no network-capable transport restored; adds same HTTPRequest guard."
+  ],
+  "all_eight_vs_isolation": [
+    "Launch only tools/final_vs_provider_test.tscn, an isolated fixture scene, never loading screen or Start.",
+    "Inherited Node ready calls overridden _run: first removes original RemoteSync and HttpApi before any begin_encounter. Fresh GameState student and parent IDs must be empty or test terminates. No profile is loaded or started.",
+    "PoolTransport.request_get returns only a locally constructed dictionary after process_frame. It has no URL, HTTPRequest, HTTPClient, socket, or forwarding call. Actual QuestionProvider resolves /root/HttpApi to this PoolTransport.",
+    "ResultCapture.record_question_attempt only appends a duplicated dictionary to a local array. Original QuizManager resolves /root/RemoteSync to this stub and cannot invoke the original RemoteSync.",
+    "No save_game/load_save/start_new_game/request_post call is present in this harness. GameState.begin_encounter records only in-memory context/signals; end_battle clears state. No actual QuestUI route is attached to these fixtures, so no quest advancement/save can follow.",
+    "All8 scene resources and their effect/health scripts perform only UI/animation/heart updates; their sole changed integration dependency QuizManager modifies in-memory counters and calls ResultCapture.",
+    "HTTP bootstrap behavior inspected separately: HttpApi ready config/log only; RemoteSync ready read/connect only with no lease; no startup gameplay. Additional node_added guard rejects any real HTTPRequest before it can call request.",
+    "Writes are new run-stamped QA screenshots and QA JSON only. production_qa_enabled remains true and byte-unchanged; no live transport exists during the test."
+  ],
+  "final_runtime_live_network_calls": 0
+}

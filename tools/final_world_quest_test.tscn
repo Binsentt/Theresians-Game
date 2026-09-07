@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/final_world_quest_test.gd" id="1_xkl73"]
+
+[node name="root" type="Node" unique_id=1677648151]
+script = ExtResource("1_xkl73")

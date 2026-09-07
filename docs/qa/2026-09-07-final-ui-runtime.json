@@ -1,0 +1,2519 @@
+{
+	"canonical_root": "C:/Users/vince/Documents/Capstone-Project/capstone-theresians-quest/",
+	"checks": [
+		{
+			"name": "girl_npc existing interaction sensor found",
+			"passed": true
+		},
+		{
+			"name": "res://scenes/oak_leaf_village.tscn/girl_npc held opening press leaves first line intact",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original-content (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "girl_npc original style and font retained",
+			"passed": true
+		},
+		{
+			"name": "girl_npc exact greeting unchanged",
+			"passed": true
+		},
+		{
+			"name": "girl_npc dialogue still pauses wandering",
+			"passed": true
+		},
+		{
+			"name": "girl_npc deliberate close preserves quest and resumes exploration",
+			"passed": true
+		},
+		{
+			"name": "girl_npc existing control lifecycle restored",
+			"passed": true
+		},
+		{
+			"name": "NPC existing interaction sensor found",
+			"passed": true
+		},
+		{
+			"name": "res://scenes/oak_leaf_village.tscn/NPC held opening press leaves first line intact",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "NPC original-content (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "NPC original style and font retained",
+			"passed": true
+		},
+		{
+			"name": "NPC exact greeting unchanged",
+			"passed": true
+		},
+		{
+			"name": "NPC dialogue still pauses wandering",
+			"passed": true
+		},
+		{
+			"name": "NPC deliberate close preserves quest and resumes exploration",
+			"passed": true
+		},
+		{
+			"name": "NPC existing control lifecycle restored",
+			"passed": true
+		},
+		{
+			"name": "villager-female existing interaction sensor found",
+			"passed": true
+		},
+		{
+			"name": "res://scenes/oak_leaf_village.tscn/villager-female held opening press leaves first line intact",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "villager-female original-content (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "villager-female original style and font retained",
+			"passed": true
+		},
+		{
+			"name": "villager-female exact greeting unchanged",
+			"passed": true
+		},
+		{
+			"name": "villager-female dialogue still pauses wandering",
+			"passed": true
+		},
+		{
+			"name": "villager-female deliberate close preserves quest and resumes exploration",
+			"passed": true
+		},
+		{
+			"name": "villager-female existing control lifecycle restored",
+			"passed": true
+		},
+		{
+			"name": "NPC1 existing interaction sensor found",
+			"passed": true
+		},
+		{
+			"name": "res://scenes/oak_leaf_village.tscn/NPC1 held opening press leaves first line intact",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original-content (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "NPC1 original style and font retained",
+			"passed": true
+		},
+		{
+			"name": "NPC1 exact greeting unchanged",
+			"passed": true
+		},
+		{
+			"name": "NPC1 dialogue still pauses wandering",
+			"passed": true
+		},
+		{
+			"name": "NPC1 deliberate close preserves quest and resumes exploration",
+			"passed": true
+		},
+		{
+			"name": "NPC1 existing control lifecycle restored",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture retains all text and wraps into multiple lines",
+			"passed": true
+		},
+		{
+			"name": "Long fixture continuation advances once",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture final deliberate close still works",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture retains all text and wraps into multiple lines",
+			"passed": true
+		},
+		{
+			"name": "Long fixture continuation advances once",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture final deliberate close still works",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture retains all text and wraps into multiple lines",
+			"passed": true
+		},
+		{
+			"name": "Long fixture continuation advances once",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture final deliberate close still works",
+			"passed": true
+		},
+		{
+			"name": "Teacher existing interaction sensor found",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn/Teacher held opening press leaves first line intact",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "Teacher original-content (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Teacher original style and font retained",
+			"passed": true
+		},
+		{
+			"name": "Teacher one press advances exactly one line without completing early",
+			"passed": true
+		},
+		{
+			"name": "Teacher existing final deliberate close completes its task once",
+			"passed": true
+		},
+		{
+			"name": "Teacher existing control lifecycle restored",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture retains all text and wraps into multiple lines",
+			"passed": true
+		},
+		{
+			"name": "Long fixture continuation advances once",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1215, 545): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture final deliberate close still works",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture retains all text and wraps into multiple lines",
+			"passed": true
+		},
+		{
+			"name": "Long fixture continuation advances once",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (844, 390): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture final deliberate close still works",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "long-fixture long (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture retains all text and wraps into multiple lines",
+			"passed": true
+		},
+		{
+			"name": "Long fixture continuation advances once",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): width slightly increased",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): compact normal height; long text can fit naturally",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): bottom-center with preserved 40px margin",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): original 18px horizontal and 12px vertical padding",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): all wrapped lines fit without clipping",
+			"passed": true
+		},
+		{
+			"name": "short-after-long short (1280, 800): clear of ACT with normal dialogue D-pad lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Long fixture final deliberate close still works",
+			"passed": true
+		},
+		{
+			"name": "res://scenes/city_of_knowledge.tscn unchanged: no existing shared civilian dialogue component (N/A)",
+			"passed": true
+		},
+		{
+			"name": "res://scenes/pinehill_village.tscn unchanged: no existing shared civilian dialogue component (N/A)",
+			"passed": true
+		},
+		{
+			"name": "Bandit actual interaction opens world dialogue only",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1215, 545) horizontally centered",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1215, 545) bottom-center with 40px margin",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1215, 545) original box height preserved",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1215, 545) independent of player/world position",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1215, 545) dialogue clear of ACT",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1215, 545) approved dialogue control lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (844, 390) horizontally centered",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (844, 390) bottom-center with 40px margin",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (844, 390) original box height preserved",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (844, 390) independent of player/world position",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (844, 390) dialogue clear of ACT",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (844, 390) approved dialogue control lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1280, 800) horizontally centered",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1280, 800) bottom-center with 40px margin",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1280, 800) original box height preserved",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1280, 800) independent of player/world position",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1280, 800) dialogue clear of ACT",
+			"passed": true
+		},
+		{
+			"name": "Bandit at (1280, 800) approved dialogue control lifecycle",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1215, 545)",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): panel initially closed",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn one controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn native debug Interact visible",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad up",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad down",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad left",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad right",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn menu hides controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn exploration restores controller",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): opening releases obstructing held D-pad",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ZIP anchor_left",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ZIP anchor_top",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ZIP anchor_right",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ZIP anchor_bottom",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ZIP offset_left",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ZIP offset_top",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ZIP offset_right",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ZIP offset_bottom",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): original lower rectangle 4,428 / 1211x117",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): original Teacher image and drawn size",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): original Next text and size",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): original Next signal binding",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): viewport-relative independent of world position",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): after normal visibility updates: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): after normal visibility updates: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): resize while open: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): resize while open: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): keyboard exploration mode preserved",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): keyboard movement behavior unchanged during dialogue",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): Tutorial quest unchanged before completion",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): real Next click advances exactly one line",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): Next has no duplicate delayed advancement",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): original movement instruction image",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): held keyboard E and echo advance only one line",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): one Next press reaches step 3",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): one Next press reaches step 4",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): one Next press reaches step 5",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): one Next press reaches step 6",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): one Next press reaches step 7",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): final line waits for deliberate close",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): all child geometry, artwork style and font preserved",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): final Next completes only Tutorial",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): existing next quest appears after deliberate close",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): all control geometry/styles/visibility restored exactly",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn one controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn native debug Interact visible",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad up",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad down",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad left",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad right",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn menu hides controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn exploration restores controller",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): late controller attachment: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): late controller attachment: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1215, 545): scene exit/reentry clears Tutorial-only suppression",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (844, 390)",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): panel initially closed",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn one controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn native debug Interact visible",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad up",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad down",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad left",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad right",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn menu hides controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn exploration restores controller",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): opening releases obstructing held D-pad",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ZIP anchor_left",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ZIP anchor_top",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ZIP anchor_right",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ZIP anchor_bottom",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ZIP offset_left",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ZIP offset_top",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ZIP offset_right",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ZIP offset_bottom",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): original lower rectangle 4,428 / 1211x117",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): original Teacher image and drawn size",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): original Next text and size",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): original Next signal binding",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): viewport-relative independent of world position",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): after normal visibility updates: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): after normal visibility updates: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): resize while open: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): resize while open: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): keyboard exploration mode preserved",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): keyboard movement behavior unchanged during dialogue",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): Tutorial quest unchanged before completion",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): real Next click advances exactly one line",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): Next has no duplicate delayed advancement",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): original movement instruction image",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): held keyboard E and echo advance only one line",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): one Next press reaches step 3",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): one Next press reaches step 4",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): one Next press reaches step 5",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): one Next press reaches step 6",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): one Next press reaches step 7",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): final line waits for deliberate close",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): all child geometry, artwork style and font preserved",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): final Next completes only Tutorial",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): existing next quest appears after deliberate close",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): all control geometry/styles/visibility restored exactly",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn one controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn native debug Interact visible",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad up",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad down",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad left",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad right",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn menu hides controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn exploration restores controller",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): late controller attachment: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): late controller attachment: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (844, 390): scene exit/reentry clears Tutorial-only suppression",
+			"passed": true
+		},
+		{
+			"name": "Actual client size is (1280, 800)",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): panel initially closed",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn one controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn native debug Interact visible",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad up",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad down",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad left",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad right",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn menu hides controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn exploration restores controller",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): opening releases obstructing held D-pad",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ZIP anchor_left",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ZIP anchor_top",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ZIP anchor_right",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ZIP anchor_bottom",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ZIP offset_left",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ZIP offset_top",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ZIP offset_right",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ZIP offset_bottom",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): original lower rectangle 4,428 / 1211x117",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): original Teacher image and drawn size",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): original Next text and size",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): original Next signal binding",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): viewport-relative independent of world position",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): after normal visibility updates: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): after normal visibility updates: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): resize while open: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): resize while open: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): keyboard exploration mode preserved",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): keyboard movement behavior unchanged during dialogue",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): Tutorial quest unchanged before completion",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): real Next click advances exactly one line",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): Next has no duplicate delayed advancement",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): original movement instruction image",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): held keyboard E and echo advance only one line",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): one Next press reaches step 3",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): one Next press reaches step 4",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): one Next press reaches step 5",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): one Next press reaches step 6",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): one Next press reaches step 7",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): final line waits for deliberate close",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): all child geometry, artwork style and font preserved",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): final Next completes only Tutorial",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): existing next quest appears after deliberate close",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): all control geometry/styles/visibility restored exactly",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn one controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn native debug Interact visible",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad up",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad down",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad left",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn D-pad right",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn menu hides controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/player_house.tscn exploration restores controller",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): late controller attachment: MovementMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): late controller attachment: ActionMargin hides only if it obstructs portrait or Next",
+			"passed": true
+		},
+		{
+			"name": "Tutorial (1280, 800): scene exit/reentry clears Tutorial-only suppression",
+			"passed": true
+		}
+	],
+	"failed": 0,
+	"live_network_calls": 0,
+	"normal": [
+		{
+			"actor": "girl_npc",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "girl_npc",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "girl_npc",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1280, 800)"
+		},
+		{
+			"actor": "NPC",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "NPC",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "NPC",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1280, 800)"
+		},
+		{
+			"actor": "villager-female",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "villager-female",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "villager-female",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1280, 800)"
+		},
+		{
+			"actor": "NPC1",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "NPC1",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "NPC1",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1280, 800)"
+		},
+		{
+			"actor": "long-fixture",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 191.0,
+			"label_minimum": "(1.0, 167.0)",
+			"label_rect": "[P: (365.5, 326.0), S: (484.0, 167.0)]",
+			"line_count": 5,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 314.0), S: (520.0, 191.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "long",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 5,
+			"width": 520.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "short-after-long",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "short",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "long-fixture",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 191.0,
+			"label_minimum": "(1.0, 167.0)",
+			"label_rect": "[P: (365.5, 326.0), S: (484.0, 167.0)]",
+			"line_count": 5,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 314.0), S: (520.0, 191.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "long",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 5,
+			"width": 520.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "short-after-long",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "short",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "long-fixture",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 191.0,
+			"label_minimum": "(1.0, 167.0)",
+			"label_rect": "[P: (365.5, 326.0), S: (484.0, 167.0)]",
+			"line_count": 5,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 314.0), S: (520.0, 191.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "long",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 5,
+			"width": 520.0,
+			"window": "(1280, 800)"
+		},
+		{
+			"actor": "short-after-long",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 80.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (365.5, 449.0), S: (484.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -260.0,
+			"offset_right": 260.0,
+			"offset_top": -120.0,
+			"rect": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"scene": "res://scenes/oak_leaf_village.tscn",
+			"stage": "short",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 520.0,
+			"window": "(1280, 800)"
+		},
+		{
+			"actor": "Teacher",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 126.0,
+			"label_minimum": "(1.0, 65.0)",
+			"label_rect": "[P: (395.5, 409.0), S: (424.0, 65.0)]",
+			"line_count": 2,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 379.0), S: (460.0, 126.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 2,
+			"width": 460.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "Teacher",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 126.0,
+			"label_minimum": "(1.0, 65.0)",
+			"label_rect": "[P: (395.5, 409.0), S: (424.0, 65.0)]",
+			"line_count": 2,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 379.0), S: (460.0, 126.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 2,
+			"width": 460.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "Teacher",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 126.0,
+			"label_minimum": "(1.0, 65.0)",
+			"label_rect": "[P: (395.5, 409.0), S: (424.0, 65.0)]",
+			"line_count": 2,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 379.0), S: (460.0, 126.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "original-content",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 2,
+			"width": 460.0,
+			"window": "(1280, 800)"
+		},
+		{
+			"actor": "long-fixture",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 225.0,
+			"label_minimum": "(1.0, 201.0)",
+			"label_rect": "[P: (395.5, 292.0), S: (424.0, 201.0)]",
+			"line_count": 6,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 280.0), S: (460.0, 225.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "long",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 6,
+			"width": 460.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "short-after-long",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 126.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (395.5, 426.0), S: (424.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 379.0), S: (460.0, 126.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "short",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 460.0,
+			"window": "(1215, 545)"
+		},
+		{
+			"actor": "long-fixture",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 225.0,
+			"label_minimum": "(1.0, 201.0)",
+			"label_rect": "[P: (395.5, 292.0), S: (424.0, 201.0)]",
+			"line_count": 6,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 280.0), S: (460.0, 225.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "long",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 6,
+			"width": 460.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "short-after-long",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 126.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (395.5, 426.0), S: (424.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 379.0), S: (460.0, 126.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "short",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 460.0,
+			"window": "(844, 390)"
+		},
+		{
+			"actor": "long-fixture",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 225.0,
+			"label_minimum": "(1.0, 201.0)",
+			"label_rect": "[P: (395.5, 292.0), S: (424.0, 201.0)]",
+			"line_count": 6,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 280.0), S: (460.0, 225.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "long",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 6,
+			"width": 460.0,
+			"window": "(1280, 800)"
+		},
+		{
+			"actor": "short-after-long",
+			"anchor_bottom": 1.0,
+			"anchor_left": 0.5,
+			"anchor_right": 0.5,
+			"anchor_top": 1.0,
+			"height": 126.0,
+			"label_minimum": "(1.0, 31.0)",
+			"label_rect": "[P: (395.5, 426.0), S: (424.0, 31.0)]",
+			"line_count": 1,
+			"offset_bottom": -40.0,
+			"offset_left": -230.0,
+			"offset_right": 230.0,
+			"offset_top": -166.0,
+			"rect": "[P: (377.5, 379.0), S: (460.0, 126.0)]",
+			"scene": "res://interiors/teacher_house.tscn",
+			"stage": "short",
+			"viewport": "(1215.0, 545.0)",
+			"visible_lines": 1,
+			"width": 460.0,
+			"window": "(1280, 800)"
+		}
+	],
+	"passed": 433,
+	"pointer_events": [
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		}
+	],
+	"shared_world": [
+		{
+			"act": "[P: (966.0, 296.0), S: (174.0, 134.0)]",
+			"actual_window": "(1215, 545)",
+			"dialogue": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"requested_window": "(1215, 545)",
+			"role": "Bandit",
+			"viewport": "(1215.0, 545.0)"
+		},
+		{
+			"act": "[P: (966.0, 296.0), S: (174.0, 134.0)]",
+			"actual_window": "(844, 390)",
+			"dialogue": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"requested_window": "(844, 390)",
+			"role": "Bandit",
+			"viewport": "(1215.0, 545.0)"
+		},
+		{
+			"act": "[P: (966.0, 296.0), S: (174.0, 134.0)]",
+			"actual_window": "(1280, 800)",
+			"dialogue": "[P: (347.5, 425.0), S: (520.0, 80.0)]",
+			"requested_window": "(1280, 800)",
+			"role": "Bandit",
+			"viewport": "(1215.0, 545.0)"
+		}
+	],
+	"tutorial": [
+		{
+			"act_hidden": false,
+			"movement_hidden": true,
+			"next": "[P: (1107.178, 503.148), S: (107.822, 39.852)]",
+			"panel": "[P: (4.0, 428.0), S: (1211.0, 117.0)]",
+			"portrait": "[P: (4.0, 428.0), S: (140.0001, 116.0)]",
+			"viewport": "(1215.0, 545.0)",
+			"window": "(1215, 545)"
+		},
+		{
+			"act_hidden": false,
+			"movement_hidden": true,
+			"next": "[P: (1107.178, 503.148), S: (107.822, 39.852)]",
+			"panel": "[P: (4.0, 428.0), S: (1211.0, 117.0)]",
+			"portrait": "[P: (4.0, 428.0), S: (140.0001, 116.0)]",
+			"viewport": "(1215.0, 545.0)",
+			"window": "(844, 390)"
+		},
+		{
+			"act_hidden": false,
+			"movement_hidden": true,
+			"next": "[P: (1107.178, 503.148), S: (107.822, 39.852)]",
+			"panel": "[P: (4.0, 428.0), S: (1211.0, 117.0)]",
+			"portrait": "[P: (4.0, 428.0), S: (140.0001, 116.0)]",
+			"viewport": "(1215.0, 545.0)",
+			"window": "(1280, 800)"
+		}
+	]
+}

@@ -1,0 +1,1660 @@
+{
+	"checks": [
+		{
+			"name": "No real HTTPRequest nodes exist before any fixture gameplay",
+			"passed": true
+		},
+		{
+			"name": "Every HTTP operation resolves only to the in-memory transport",
+			"passed": true
+		},
+		{
+			"name": "Actual canonical QuestionProvider is active",
+			"passed": true
+		},
+		{
+			"name": "during Tutorial: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "during Tutorial: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "during Tutorial: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "Tutorial save/load retains the active tutorial",
+			"passed": true
+		},
+		{
+			"name": "Original Next sequence completes Tutorial without advancing Teacher House",
+			"passed": true
+		},
+		{
+			"name": "after Tutorial: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "after Tutorial: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "after Tutorial: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "Post-Tutorial objective remains source-supported Teacher House",
+			"passed": true
+		},
+		{
+			"name": "Original Teacher House arrival trigger remains bound",
+			"passed": true
+		},
+		{
+			"name": "Teacher House arrival trigger advances and saves exactly once",
+			"passed": true
+		},
+		{
+			"name": "Teacher House arrival: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "Teacher House arrival: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "Teacher House arrival: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn one controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn native debug Interact visible",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn D-pad up",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn D-pad down",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn D-pad left",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn D-pad right",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn menu hides controller",
+			"passed": true
+		},
+		{
+			"name": "res://interiors/teacher_house.tscn exploration restores controller",
+			"passed": true
+		},
+		{
+			"name": "Teacher held opening press leaves line one intact",
+			"passed": true
+		},
+		{
+			"name": "Dialogue retains Interact while hiding movement",
+			"passed": true
+		},
+		{
+			"name": "Teacher duplicate trigger rejected",
+			"passed": true
+		},
+		{
+			"name": "Teacher next held press advances only one line",
+			"passed": true
+		},
+		{
+			"name": "Teacher final deliberate close advances correct task once",
+			"passed": true
+		},
+		{
+			"name": "Teacher final close saves once",
+			"passed": true
+		},
+		{
+			"name": "Teacher close restores exploration controls",
+			"passed": true
+		},
+		{
+			"name": "Canonical keyboard interact action exists",
+			"passed": true
+		},
+		{
+			"name": "Keyboard E and echo advance only one line",
+			"passed": true
+		},
+		{
+			"name": "Keyboard Space performs final deliberate close",
+			"passed": true
+		},
+		{
+			"name": "Quick keyboard press/release between frames advances once",
+			"passed": true
+		},
+		{
+			"name": "Quick touch press/release between frames advances once",
+			"passed": true
+		},
+		{
+			"name": "Simultaneous keyboard and touch share one held action",
+			"passed": true
+		},
+		{
+			"name": "Release then touch closes final line once",
+			"passed": true
+		},
+		{
+			"name": "Unlock does not turn a held keyboard key into a new press",
+			"passed": true
+		},
+		{
+			"name": "Teacher final deliberate close exposes the First Bandit objective",
+			"passed": true
+		},
+		{
+			"name": "Teacher conversation completed: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "Teacher conversation completed: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "Teacher conversation completed: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "Existing focused stale-title restoration is present",
+			"passed": true
+		},
+		{
+			"name": "HEAD loader counterfactual compiles in memory",
+			"passed": true
+		},
+		{
+			"name": "HEAD loader reproduces completed checkpoint with obsolete Teacher House quest",
+			"passed": true
+		},
+		{
+			"name": "Stale title is reconciled to authoritative checkpoint 1",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 1: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 1: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 1: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "Stale title is reconciled to authoritative checkpoint 2",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 2: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 2: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 2: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "Stale title is reconciled to authoritative checkpoint 3",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 3: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 3: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "stale title at checkpoint 3: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "Completed source-proven chain cannot duplicate or restart advancement",
+			"passed": true
+		},
+		{
+			"name": "Existing two focused QuestUI corrections are present",
+			"passed": true
+		},
+		{
+			"name": "HEAD route and host counterfactual compiles in memory",
+			"passed": true
+		},
+		{
+			"name": "female: first ACT opens the existing world dialogue",
+			"passed": true
+		},
+		{
+			"name": "female: deliberate close enters actual battle",
+			"passed": true
+		},
+		{
+			"name": "HEAD counterfactual reproduces female routed to male VS",
+			"passed": true
+		},
+		{
+			"name": "female: exactly one active VS manager and visible original question label",
+			"passed": true
+		},
+		{
+			"name": "female: no active replacement QuestionContainer or MultipleChoice overlay",
+			"passed": true
+		},
+		{
+			"name": "female: HTTP pool response passes through actual QuestionProvider into original UI",
+			"passed": true
+		},
+		{
+			"name": "female: normalized question retains set traceability and difficulty",
+			"passed": true
+		},
+		{
+			"name": "female: original ChoiceA is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "female: original ChoiceB is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "female: original ChoiceC is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "female: original ChoiceD is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "female: exactly four normalized choices retain the backend correct answer",
+			"passed": true
+		},
+		{
+			"name": "female: world controller follows approved battle hide rule",
+			"passed": true
+		},
+		{
+			"name": "female: preserved HUD and timeout modal draw above all battle presentation",
+			"passed": true
+		},
+		{
+			"name": "female: original questions draw above original art and the world canvas stays behind battle",
+			"passed": true
+		},
+		{
+			"name": "female: actual pointer click reaches preserved Settings above battle",
+			"passed": true
+		},
+		{
+			"name": "female: actual Settings close returns to the same battle",
+			"passed": true
+		},
+		{
+			"name": "female: original Sprite2D is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original Sprite2D is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: original player is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original player is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: original Bandit is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original Bandit is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: original PlayerHealth/Hearts is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original PlayerHealth/Hearts is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: original EnemyHealth/Hearts is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original EnemyHealth/Hearts is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: canonical original presentation capture saved",
+			"passed": true
+		},
+		{
+			"name": "female: one terminal completion and one result per actual answer",
+			"passed": true
+		},
+		{
+			"name": "female: victory saves progression exactly once",
+			"passed": true
+		},
+		{
+			"name": "female: victory retains completed task checkpoint without Teacher House regression",
+			"passed": true
+		},
+		{
+			"name": "HEAD counterfactual removes shared greeting host",
+			"passed": true
+		},
+		{
+			"name": "female: original world destination, visibility and controller restore",
+			"passed": true
+		},
+		{
+			"name": "female: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "male: first ACT opens the existing world dialogue",
+			"passed": true
+		},
+		{
+			"name": "male: deliberate close enters actual battle",
+			"passed": true
+		},
+		{
+			"name": "male: original gender-matched VS scene is active",
+			"passed": true
+		},
+		{
+			"name": "male: exactly one active VS manager and visible original question label",
+			"passed": true
+		},
+		{
+			"name": "male: no active replacement QuestionContainer or MultipleChoice overlay",
+			"passed": true
+		},
+		{
+			"name": "male: HTTP pool response passes through actual QuestionProvider into original UI",
+			"passed": true
+		},
+		{
+			"name": "male: normalized question retains set traceability and difficulty",
+			"passed": true
+		},
+		{
+			"name": "male: original ChoiceA is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "male: original ChoiceB is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "male: original ChoiceC is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "male: original ChoiceD is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "male: exactly four normalized choices retain the backend correct answer",
+			"passed": true
+		},
+		{
+			"name": "male: world controller follows approved battle hide rule",
+			"passed": true
+		},
+		{
+			"name": "male: preserved HUD and timeout modal draw above all battle presentation",
+			"passed": true
+		},
+		{
+			"name": "male: original questions draw above original art and the world canvas stays behind battle",
+			"passed": true
+		},
+		{
+			"name": "male: actual pointer click reaches preserved Settings above battle",
+			"passed": true
+		},
+		{
+			"name": "male: actual Settings close returns to the same battle",
+			"passed": true
+		},
+		{
+			"name": "male: original Sprite2D is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original Sprite2D is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: original player is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original player is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: original Bandit is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original Bandit is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: original PlayerHealth/Hearts is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original PlayerHealth/Hearts is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: original EnemyHealth/Hearts is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original EnemyHealth/Hearts is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: canonical original presentation capture saved",
+			"passed": true
+		},
+		{
+			"name": "male: one terminal completion and one result per actual answer",
+			"passed": true
+		},
+		{
+			"name": "male: victory saves progression exactly once",
+			"passed": true
+		},
+		{
+			"name": "male: victory retains completed task checkpoint without Teacher House regression",
+			"passed": true
+		},
+		{
+			"name": "Completed quest retains shared greeting host",
+			"passed": true
+		},
+		{
+			"name": "girl_npc: after final battle the actual civilian greeting can still open",
+			"passed": true
+		},
+		{
+			"name": "girl_npc: post-battle greeting closes once without replaying quest or battle",
+			"passed": true
+		},
+		{
+			"name": "NPC: after final battle the actual civilian greeting can still open",
+			"passed": true
+		},
+		{
+			"name": "NPC: post-battle greeting closes once without replaying quest or battle",
+			"passed": true
+		},
+		{
+			"name": "villager-female: after final battle the actual civilian greeting can still open",
+			"passed": true
+		},
+		{
+			"name": "villager-female: post-battle greeting closes once without replaying quest or battle",
+			"passed": true
+		},
+		{
+			"name": "NPC1: after final battle the actual civilian greeting can still open",
+			"passed": true
+		},
+		{
+			"name": "NPC1: post-battle greeting closes once without replaying quest or battle",
+			"passed": true
+		},
+		{
+			"name": "male: original world destination, visibility and controller restore",
+			"passed": true
+		},
+		{
+			"name": "post-Bandit: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "post-Bandit: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "post-Bandit: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "male: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "male: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "female: first ACT opens the existing world dialogue",
+			"passed": true
+		},
+		{
+			"name": "female: deliberate close enters actual battle",
+			"passed": true
+		},
+		{
+			"name": "female: original gender-matched VS scene is active",
+			"passed": true
+		},
+		{
+			"name": "female: exactly one active VS manager and visible original question label",
+			"passed": true
+		},
+		{
+			"name": "female: no active replacement QuestionContainer or MultipleChoice overlay",
+			"passed": true
+		},
+		{
+			"name": "female: HTTP pool response passes through actual QuestionProvider into original UI",
+			"passed": true
+		},
+		{
+			"name": "female: normalized question retains set traceability and difficulty",
+			"passed": true
+		},
+		{
+			"name": "female: original ChoiceA is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "female: original ChoiceB is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "female: original ChoiceC is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "female: original ChoiceD is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "female: exactly four normalized choices retain the backend correct answer",
+			"passed": true
+		},
+		{
+			"name": "female: world controller follows approved battle hide rule",
+			"passed": true
+		},
+		{
+			"name": "female: preserved HUD and timeout modal draw above all battle presentation",
+			"passed": true
+		},
+		{
+			"name": "female: original questions draw above original art and the world canvas stays behind battle",
+			"passed": true
+		},
+		{
+			"name": "female: actual pointer click reaches preserved Settings above battle",
+			"passed": true
+		},
+		{
+			"name": "female: actual Settings close returns to the same battle",
+			"passed": true
+		},
+		{
+			"name": "female: original Sprite2D is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original Sprite2D is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: original player is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original player is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: original Bandit is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original Bandit is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: original PlayerHealth/Hearts is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original PlayerHealth/Hearts is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: original EnemyHealth/Hearts is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "female: original EnemyHealth/Hearts is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "female: canonical original presentation capture saved",
+			"passed": true
+		},
+		{
+			"name": "female: one terminal completion and one result per actual answer",
+			"passed": true
+		},
+		{
+			"name": "female: victory saves progression exactly once",
+			"passed": true
+		},
+		{
+			"name": "female: victory retains completed task checkpoint without Teacher House regression",
+			"passed": true
+		},
+		{
+			"name": "Completed quest retains shared greeting host",
+			"passed": true
+		},
+		{
+			"name": "girl_npc: after final battle the actual civilian greeting can still open",
+			"passed": true
+		},
+		{
+			"name": "girl_npc: post-battle greeting closes once without replaying quest or battle",
+			"passed": true
+		},
+		{
+			"name": "NPC: after final battle the actual civilian greeting can still open",
+			"passed": true
+		},
+		{
+			"name": "NPC: post-battle greeting closes once without replaying quest or battle",
+			"passed": true
+		},
+		{
+			"name": "villager-female: after final battle the actual civilian greeting can still open",
+			"passed": true
+		},
+		{
+			"name": "villager-female: post-battle greeting closes once without replaying quest or battle",
+			"passed": true
+		},
+		{
+			"name": "NPC1: after final battle the actual civilian greeting can still open",
+			"passed": true
+		},
+		{
+			"name": "NPC1: post-battle greeting closes once without replaying quest or battle",
+			"passed": true
+		},
+		{
+			"name": "female: original world destination, visibility and controller restore",
+			"passed": true
+		},
+		{
+			"name": "post-Bandit: real serializer/file/loader retains authoritative checkpoint and title",
+			"passed": true
+		},
+		{
+			"name": "post-Bandit: actual scene reload and HUD cannot reactivate an earlier objective",
+			"passed": true
+		},
+		{
+			"name": "post-Bandit: existing save schema remains version 8 with identical keys",
+			"passed": true
+		},
+		{
+			"name": "female: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "female: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "female: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "male: first ACT opens the existing world dialogue",
+			"passed": true
+		},
+		{
+			"name": "male: deliberate close enters actual battle",
+			"passed": true
+		},
+		{
+			"name": "male: original gender-matched VS scene is active",
+			"passed": true
+		},
+		{
+			"name": "male: exactly one active VS manager and visible original question label",
+			"passed": true
+		},
+		{
+			"name": "male: no active replacement QuestionContainer or MultipleChoice overlay",
+			"passed": true
+		},
+		{
+			"name": "male: HTTP pool response passes through actual QuestionProvider into original UI",
+			"passed": true
+		},
+		{
+			"name": "male: normalized question retains set traceability and difficulty",
+			"passed": true
+		},
+		{
+			"name": "male: original ChoiceA is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "male: original ChoiceB is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "male: original ChoiceC is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "male: original ChoiceD is visible and usable",
+			"passed": true
+		},
+		{
+			"name": "male: exactly four normalized choices retain the backend correct answer",
+			"passed": true
+		},
+		{
+			"name": "male: world controller follows approved battle hide rule",
+			"passed": true
+		},
+		{
+			"name": "male: preserved HUD and timeout modal draw above all battle presentation",
+			"passed": true
+		},
+		{
+			"name": "male: original questions draw above original art and the world canvas stays behind battle",
+			"passed": true
+		},
+		{
+			"name": "male: actual pointer click reaches preserved Settings above battle",
+			"passed": true
+		},
+		{
+			"name": "male: actual Settings close returns to the same battle",
+			"passed": true
+		},
+		{
+			"name": "male: original Sprite2D is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original Sprite2D is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: original player is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original player is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: original Bandit is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original Bandit is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: original PlayerHealth/Hearts is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original PlayerHealth/Hearts is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: original EnemyHealth/Hearts is rendered inside the battle viewport",
+			"passed": true
+		},
+		{
+			"name": "male: original EnemyHealth/Hearts is independent of the world camera",
+			"passed": true
+		},
+		{
+			"name": "male: canonical original presentation capture saved",
+			"passed": true
+		},
+		{
+			"name": "male: one terminal completion and one result per actual answer",
+			"passed": true
+		},
+		{
+			"name": "Defeat does not save a false task completion",
+			"passed": true
+		},
+		{
+			"name": "Defeat preserves the first Bandit checkpoint and retry contract",
+			"passed": true
+		},
+		{
+			"name": "male: original world destination, visibility and controller restore",
+			"passed": true
+		},
+		{
+			"name": "male: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "male: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "male: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "male: actual provider keeps the exact Grade + Difficulty API and optional Topic contract",
+			"passed": true
+		},
+		{
+			"name": "RemoteSync progress response 200 cannot downgrade local authoritative quest",
+			"passed": true
+		},
+		{
+			"name": "RemoteSync progress response 503 cannot downgrade local authoritative quest",
+			"passed": true
+		},
+		{
+			"name": "Actual RemoteSync activity endpoint receives exactly one fixture POST",
+			"passed": true
+		},
+		{
+			"name": "RemoteSync queue/activity/result stale response fields cannot reactivate Teacher House",
+			"passed": true
+		},
+		{
+			"name": "RemoteSync projects completed authoritative checkpoint",
+			"passed": true
+		},
+		{
+			"name": "RemoteSync projects completed authoritative checkpoint",
+			"passed": true
+		},
+		{
+			"name": "RemoteSync projects completed authoritative checkpoint",
+			"passed": true
+		},
+		{
+			"name": "Timeout fixture enters the real original battle",
+			"passed": true
+		},
+		{
+			"name": "Battle timeout keeps the existing return modal visible",
+			"passed": true
+		},
+		{
+			"name": "Actual timeout Return button receives exactly one pointer press",
+			"passed": true
+		},
+		{
+			"name": "Actual timeout Return click reaches Main Menu and unpauses",
+			"passed": true
+		}
+	],
+	"failed": 0,
+	"live_network_calls": 0,
+	"passed": 236,
+	"pointer_events": [
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/Players_house/CanvasLayer/Panel/Button",
+			"position": "(1161.089, 523.074)",
+			"pressed": 1,
+			"target": "/root/Players_house/CanvasLayer/Panel/Button"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/Settings-Ingame/Settings-Logo-Button",
+			"position": "(1173.0, 38.0)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/Settings-Ingame/Settings-Logo-Button"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/Settings-Ingame/SettingsPopup/TextureRect/X",
+			"position": "(832.4307, 188.1578)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/Settings-Ingame/SettingsPopup/TextureRect/X"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/Settings-Ingame/Settings-Logo-Button",
+			"position": "(1173.0, 38.0)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/Settings-Ingame/Settings-Logo-Button"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/Settings-Ingame/SettingsPopup/TextureRect/X",
+			"position": "(832.4307, 188.1578)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/Settings-Ingame/SettingsPopup/TextureRect/X"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/Settings-Ingame/Settings-Logo-Button",
+			"position": "(1173.0, 38.0)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/Settings-Ingame/Settings-Logo-Button"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/Settings-Ingame/SettingsPopup/TextureRect/X",
+			"position": "(832.4307, 188.1578)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/Settings-Ingame/SettingsPopup/TextureRect/X"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/female_vs_bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/female_vs_bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/female_vs_bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/female_vs_bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/female_vs_bandit/CanvasLayer/Panel/ChoiceB",
+			"position": "(579.0, 301.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/female_vs_bandit/CanvasLayer/Panel/ChoiceB"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/Settings-Ingame/Settings-Logo-Button",
+			"position": "(1173.0, 38.0)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/Settings-Ingame/Settings-Logo-Button"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/Settings-Ingame/SettingsPopup/TextureRect/X",
+			"position": "(832.4307, 188.1578)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/Settings-Ingame/SettingsPopup/TextureRect/X"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceC",
+			"position": "(579.0, 336.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceC"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceC",
+			"position": "(579.0, 336.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceC"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceC",
+			"position": "(579.0, 336.5)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/ChoiceC"
+		},
+		{
+			"hovered": "/root/OakLeaf Village/GameHUD/GameOverOverlay/PanelContainer/VBoxContainer/ReturnButton",
+			"position": "(607.5, 229.0)",
+			"pressed": 1,
+			"target": "/root/OakLeaf Village/GameHUD/GameOverOverlay/PanelContainer/VBoxContainer/ReturnButton"
+		}
+	],
+	"presentations": [
+		{
+			"choices": [
+				"19",
+				"17",
+				"18",
+				"16"
+			],
+			"gender": "female",
+			"manager_paths": [
+				"/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit"
+			],
+			"question_paths": [
+				"/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/QuestionLabel"
+			],
+			"replacement_paths": [],
+			"scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
+			"screenshot": "res://docs/qa/2026-09-07-final-original-female-head-counterfactual-bandit.png"
+		},
+		{
+			"choices": [
+				"19",
+				"17",
+				"18",
+				"16"
+			],
+			"gender": "male",
+			"manager_paths": [
+				"/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit"
+			],
+			"question_paths": [
+				"/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/QuestionLabel"
+			],
+			"replacement_paths": [],
+			"scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
+			"screenshot": "res://docs/qa/2026-09-07-final-original-male-bandit.png"
+		},
+		{
+			"choices": [
+				"19",
+				"17",
+				"18",
+				"16"
+			],
+			"gender": "female",
+			"manager_paths": [
+				"/root/OakLeaf Village/OriginalBattlePresentation/female_vs_bandit"
+			],
+			"question_paths": [
+				"/root/OakLeaf Village/OriginalBattlePresentation/female_vs_bandit/CanvasLayer/Panel/QuestionLabel"
+			],
+			"replacement_paths": [],
+			"scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn",
+			"screenshot": "res://docs/qa/2026-09-07-final-original-female-bandit.png"
+		},
+		{
+			"choices": [
+				"19",
+				"17",
+				"18",
+				"16"
+			],
+			"gender": "male",
+			"manager_paths": [
+				"/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit"
+			],
+			"question_paths": [
+				"/root/OakLeaf Village/OriginalBattlePresentation/Male-vs-Bandit/CanvasLayer/Panel/QuestionLabel"
+			],
+			"replacement_paths": [],
+			"scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
+			"screenshot": "res://docs/qa/2026-09-07-final-original-male-defeat-bandit.png"
+		}
+	],
+	"quest_observations": [
+		{
+			"case": "during Tutorial",
+			"hud": "Tutorial",
+			"index": 0,
+			"quest": "Tutorial"
+		},
+		{
+			"case": "after Tutorial",
+			"hud": "Go to the Teacher's House",
+			"index": 0,
+			"quest": "Go to the Teacher's House"
+		},
+		{
+			"case": "Teacher House arrival",
+			"hud": "Talk to the Teacher",
+			"index": 1,
+			"quest": "Talk to the Teacher"
+		},
+		{
+			"case": "Teacher conversation completed",
+			"hud": "Challenge the player with math questions",
+			"index": 2,
+			"quest": "Challenge the player with math questions "
+		},
+		{
+			"case": "HEAD stale-save counterfactual",
+			"index": 3,
+			"quest": "Go to the Teacher's House"
+		},
+		{
+			"case": "stale title at checkpoint 1",
+			"hud": "Talk to the Teacher",
+			"index": 1,
+			"quest": "Talk to the Teacher"
+		},
+		{
+			"case": "stale title at checkpoint 2",
+			"hud": "Challenge the player with math questions",
+			"index": 2,
+			"quest": "Challenge the player with math questions "
+		},
+		{
+			"case": "stale title at checkpoint 3",
+			"hud": "",
+			"index": 3,
+			"quest": "No active quest"
+		},
+		{
+			"case": "post-Bandit",
+			"hud": "",
+			"index": 3,
+			"quest": "No active quest"
+		},
+		{
+			"case": "post-Bandit",
+			"hud": "",
+			"index": 3,
+			"quest": "No active quest"
+		},
+		{
+			"case": "actual RemoteSync observer with stale response fixtures",
+			"live_calls": 0,
+			"posts": [
+				{
+					"path": "/api/game/progress",
+					"payload": {
+						"correct_answers": 9,
+						"current_map": "res://interiors/player_house.tscn",
+						"current_quest": "No active quest",
+						"current_scene": "res://scenes/oak_leaf_village.tscn",
+						"difficulty_level": "Easy",
+						"gender": "male",
+						"grade_level": "Grade 1",
+						"incorrect_answers": 3,
+						"learning_cycle_version": 0,
+						"lesson_progress": 0,
+						"parent_id": "123456",
+						"playtime_session_credential": "offline-fixture-credential",
+						"playtime_session_id": 123,
+						"progress_percentage": 0,
+						"quest_progress": 3,
+						"save_date": "2026-09-07",
+						"save_status": "saved",
+						"save_time": "20:14:42",
+						"save_timestamp": 1788783282,
+						"score": 0,
+						"student_id": "12345678",
+						"student_name": "Local preservation fixture",
+						"total_play_time": 0,
+						"total_questions": 12,
+						"total_quests_completed": 0
+					}
+				},
+				{
+					"path": "/api/game/progress",
+					"payload": {
+						"correct_answers": 9,
+						"current_map": "res://interiors/player_house.tscn",
+						"current_quest": "No active quest",
+						"current_scene": "res://scenes/oak_leaf_village.tscn",
+						"difficulty_level": "Easy",
+						"gender": "male",
+						"grade_level": "Grade 1",
+						"incorrect_answers": 3,
+						"learning_cycle_version": 0,
+						"lesson_progress": 0,
+						"parent_id": "123456",
+						"playtime_session_credential": "offline-fixture-credential",
+						"playtime_session_id": 123,
+						"progress_percentage": 0,
+						"quest_progress": 3,
+						"save_date": "2026-09-07",
+						"save_status": "saved",
+						"save_time": "20:14:42",
+						"save_timestamp": 1788783282,
+						"score": 0,
+						"student_id": "12345678",
+						"student_name": "Local preservation fixture",
+						"total_play_time": 0,
+						"total_questions": 12,
+						"total_quests_completed": 0
+					}
+				},
+				{
+					"path": "/api/game/progress",
+					"payload": {
+						"city_of_knowledge_unlocked": false,
+						"correct_answers": 9.0,
+						"current_lives": 3.0,
+						"current_map": "res://interiors/player_house.tscn",
+						"current_quest": "No active quest",
+						"current_task_index": 3.0,
+						"difficulty_level": "Easy",
+						"encounter_context": {
+							"encounter_id": "quest_task_2",
+							"quest_checkpoint": 2.0,
+							"question_scope": {
+								"difficulty": "Easy",
+								"grade": "Grade 1"
+							},
+							"retry_count": 1.0,
+							"source_position": {
+								"x": 299.0,
+								"y": 285.0
+							},
+							"source_scene_path": "res://scenes/oak_leaf_village.tscn"
+						},
+						"gender": "male",
+						"grade_level": "Grade 1",
+						"incorrect_answers": 3.0,
+						"learning_cycle_started_at": "",
+						"learning_cycle_version": 0.0,
+						"lesson_progress": 0.0,
+						"max_lives": 3.0,
+						"parent_id": "123456",
+						"player_name": "Local preservation fixture",
+						"player_position": {
+							"x": 299.0,
+							"y": 285.0
+						},
+						"progress_percentage": 0.0,
+						"save_date": "2026-09-07",
+						"save_time": "20:14:42",
+						"save_timestamp": 1788783282.0,
+						"save_version": 8.0,
+						"scene_path": "res://scenes/oak_leaf_village.tscn",
+						"score": 0.0,
+						"student_id": "12345678",
+						"total_play_time": 0.0,
+						"total_questions": 12.0,
+						"total_quests_completed": 0.0
+					}
+				},
+				{
+					"path": "/api/game/activity",
+					"payload": {
+						"event_key": "cycle:0:task:2:3:task_completed:quest:main:task:2:complete",
+						"event_type": "task_completed",
+						"learning_cycle_version": 0,
+						"session_credential": "offline-fixture-credential",
+						"session_id": 123,
+						"task_id": "Challenge the Player with Math Questions"
+					}
+				},
+				{
+					"path": "/api/game/result",
+					"payload": {
+						"difficulty": "Easy",
+						"grade_level": "Grade 1",
+						"learning_cycle_version": 0,
+						"parent_id": "123456",
+						"playtime_session_credential": "offline-fixture-credential",
+						"playtime_session_id": 123,
+						"question_set_id": 901,
+						"score": 1,
+						"student_id": "12345678",
+						"student_name": "Local preservation fixture",
+						"total_items": 1
+					}
+				}
+			]
+		}
+	],
+	"question_requests": [
+		{
+			"params": {
+				"difficulty": "Easy",
+				"grade": "Grade 1"
+			},
+			"path": "/api/game/questions"
+		},
+		{
+			"params": {
+				"difficulty": "Easy",
+				"grade": "Grade 1"
+			},
+			"path": "/api/game/questions"
+		},
+		{
+			"params": {
+				"difficulty": "Easy",
+				"grade": "Grade 1"
+			},
+			"path": "/api/game/questions"
+		},
+		{
+			"params": {
+				"difficulty": "Easy",
+				"grade": "Grade 1"
+			},
+			"path": "/api/game/questions"
+		},
+		{
+			"params": {
+				"difficulty": "Easy",
+				"grade": "Grade 1"
+			},
+			"path": "/api/game/questions"
+		}
+	],
+	"recorded_answers": [
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9004",
+				"question": "Backend fixture 4: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9005",
+				"question": "Backend fixture 5: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9002",
+				"question": "Backend fixture 2: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9004",
+				"question": "Backend fixture 4: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9002",
+				"question": "Backend fixture 2: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9005",
+				"question": "Backend fixture 5: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9002",
+				"question": "Backend fixture 2: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9001",
+				"question": "Backend fixture 1: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": true,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9005",
+				"question": "Backend fixture 5: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": false,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9000",
+				"question": "Backend fixture 0: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": false,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9002",
+				"question": "Backend fixture 2: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		},
+		{
+			"correct": false,
+			"question": {
+				"choices": [
+					"19",
+					"17",
+					"18",
+					"16"
+				],
+				"correct": "1",
+				"difficulty": "Easy",
+				"grade": "Grade 1",
+				"grade_level": "Grade 1",
+				"id": "9001",
+				"question": "Backend fixture 1: 11 + 6 = ?",
+				"question_set_id": 901
+			}
+		}
+	]
+}
