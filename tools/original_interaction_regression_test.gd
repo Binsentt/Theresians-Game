@@ -5,8 +5,8 @@ extends "res://tools/preservation_restoration_test.gd"
 const NPC_CASES := [
 	{"actor": "girl_npc", "target": "Visual"},
 	{"actor": "villager-female", "target": "Visual"},
-	{"actor": "NPC", "target": ""},
-	{"actor": "NPC1", "target": ""},
+	{"actor": "NPC", "target": "Visual"},
+	{"actor": "NPC1", "target": "Visual"},
 ]
 const OUTSIDE_NPC_REGIONS := Vector2(-2000, -2000)
 const SCENE_DIRECTORY_FOR_BANDIT := "res://Battle/Battle-Enemy/"
@@ -65,9 +65,9 @@ func _npc_proximity(npc_case: Dictionary) -> void:
 	for wanderer in get_tree().get_nodes_in_group("decorative_wanderer"):
 		wanderer.set_physics_process(false)
 	var target: Node = actor if String(npc_case.target).is_empty() else actor.get_node_or_null(String(npc_case.target))
-	var sensor := actor.get_node_or_null("Area2D") as Area2D
-	var collider := actor.get_node_or_null("Area2D/CollisionShape2D") as CollisionShape2D
-	var component := actor.get_node_or_null("InteractableArea")
+	var sensor := actor.find_child("Area2D", true, false) as Area2D
+	var collider := sensor.get_node_or_null("CollisionShape2D") as CollisionShape2D if sensor != null else null
+	var component := actor.find_child("InteractableArea", true, false)
 	var structures_present := target != null and sensor != null and collider != null and component != null
 	_expect(structures_present, String(npc_case.actor) + ": original physical sensor and interaction component exist")
 	if not structures_present:
@@ -198,7 +198,7 @@ func _check_dialogue_placement(scene: Node, label: String) -> void:
 	var panel := scene.get_node_or_null("CanvasLayer/DialoguePanel") as Control
 	_expect(panel != null, label + ": existing shared dialogue panel exists")
 	if panel != null:
-		_expect(is_equal_approx(panel.anchor_top, 0.62) and is_equal_approx(panel.anchor_bottom, 0.62), label + ": approved dialogue placement at 0.62 is retained")
+		_expect(is_equal_approx(panel.anchor_top, 1.0) and is_equal_approx(panel.anchor_bottom, 1.0) and absf(panel.get_viewport_rect().size.y - panel.get_global_rect().end.y - 40.0) < 1.5, label + ": authorized dialogue bottom-center placement is retained")
 
 
 func _physics_frames(count: int) -> void:
@@ -241,7 +241,7 @@ func _roundtrip_wrapped_npc_bindings() -> void:
 
 func _check_packed_npc_bindings(scene: Node, phase: String) -> void:
 	var ui := scene.get_node_or_null("CanvasLayer/Panel")
-	for actor_name in ["girl_npc", "villager-female"]:
+	for actor_name in ["girl_npc", "villager-female", "NPC", "NPC1"]:
 		var actor := scene.get_node_or_null(actor_name)
 		var visual := scene.get_node_or_null(actor_name + "/Visual")
 		_expect(actor != null and scene.is_editable_instance(actor), actor_name + ": proper editable-instance metadata persists " + phase)

@@ -125,7 +125,7 @@ func _run() -> void:
 	_assert_source_order(quest_completion_block, "await begin_dialogue", "GameState.advance_task_and_save", "Teacher completion persists through the canonical task-advance path")
 	_assert_equal(quest_ui_source.contains("completion_type := \"task_completed\" if current_task_data.has(\"next_scene\") else \"quest_completed\""), true, "Teacher completion keeps its notification-compatible quest completion event type")
 	_assert_equal(quest_ui_source.contains("\"key\": \"quest:main:task:%d:complete\""), true, "Teacher completion emits a stable notification key")
-	_assert_equal(oak_source.contains("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"]"), true, "Oak Leaf contains one shared DialoguePanel")
+	_assert_equal(oak_source.count("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"") == 1, true, "Oak Leaf contains one shared DialoguePanel regardless of editor node IDs")
 	_assert_equal(oak_source.contains("TeacherTriggerPortrait"), false, "Oak Leaf removes the retired top-right Teacher portrait path")
 	_assert_equal(teacher_house_source.contains("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"]"), true, "Teacher House provides the same single-scene DialoguePanel contract")
 
@@ -252,7 +252,8 @@ func _run() -> void:
 		InputManager.set_mobile_interact_pressed(true)
 		await process_frame
 		InputManager.set_mobile_interact_pressed(false)
-		_assert_equal(InputManager.consume_interact_just_pressed(), false, "releasing Interact clears an unconsumed pending edge")
+		_assert_equal(InputManager.consume_interact_just_pressed(), true, "a quick press/release retains one unconsumed interaction edge")
+		_assert_equal(InputManager.consume_interact_just_pressed(), false, "the released interaction edge cannot be consumed twice")
 		InputManager.clear_mobile_state()
 
 	# A lock must release the widgets themselves, not only the manager's state.
@@ -369,7 +370,7 @@ func _run() -> void:
 	_assert_equal(game_state.get_scene_fallback_spawn(game_state.current_scene_path), Vector2(176, 368), "Pinehill fallback remains unchanged")
 
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://saves"))
-	var legacy_save_path := "user://saves/mobile_exploration_legacy_scene_test.json"
+	var legacy_save_path := "user://saves/mobile_exploration_legacy_scene_test_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
 	var legacy_save_file := FileAccess.open(legacy_save_path, FileAccess.WRITE)
 	if legacy_save_file == null:
 		_failures += 1
@@ -383,13 +384,14 @@ func _run() -> void:
 			"scene_path": LEGACY_PLAYER_HOUSE_PATH
 		}))
 		legacy_save_file.close()
-		var loaded_save := game_state.load_save(legacy_save_path)
+		var loaded_save := game_state.load_save(legacy_save_path, false)
 		_assert_equal(loaded_save.get("scene_path", ""), CANONICAL_PLAYER_HOUSE_PATH, "load_save migrates the legacy Player House scene path")
 		_assert_equal(game_state.current_scene_path, CANONICAL_PLAYER_HOUSE_PATH, "load_save applies the canonical Player House scene path")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(legacy_save_path))
 
 	loaded_game_state.free()
 	game_state.free()
+	print("MOBILE_EXPLORATION_SERVICES_TEST " + JSON.stringify({"failed": _failures}))
 	get_tree().quit(1 if _failures > 0 else 0)
 
 

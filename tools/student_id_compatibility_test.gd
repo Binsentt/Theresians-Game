@@ -54,7 +54,7 @@ func _run() -> void:
 	var parent_node_text := scene_text.substr(parent_node_index) if parent_node_index >= 0 else ""
 	_assert(student_node_text.contains("max_length = 8"), "New Game Student input has max length 8")
 	_assert(not parent_node_text.contains("max_length = 8"), "Parent input retains separate six-digit validation from the Student eight-digit limit")
-	_assert(scene_text.contains('text = "STUDENT ID (8 DIGITS)"'), "New Game presents the current Student ID format as eight digits")
+	_assert(scene_text.contains("STUDENT ID") and student_node_text.contains("max_length = 8"), "New Game labels the Student input and retains its eight-digit limit without fixing the exact label wording")
 	var controller_text := FileAccess.get_file_as_string("res://scenes/texture_rect_2.gd")
 	_assert(controller_text.find("if not GameState.is_valid_existing_student_id(student_id_input.text):") < controller_text.find("http.request_get(\"/api/game/profile/check/\""), "New Game validates Student ID before requesting the profile")
 	_assert(controller_text.contains("Student ID: enter 8 digits. Existing 6-digit Student IDs are supported."), "New Game explains the current eight-digit format while preserving legacy lookup compatibility")

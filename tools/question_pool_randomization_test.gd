@@ -1,10 +1,10 @@
-extends SceneTree
+extends Node
 
 const QuestionProviderScript = preload("res://scripts/question_provider.gd")
 const BASE_SCOPE := {"grade": "Grade 1", "difficulty": "Easy"}
 
 
-func _init() -> void:
+func _ready() -> void:
 	call_deferred("_run")
 
 
@@ -21,7 +21,7 @@ func _run() -> void:
 	provider.free()
 	if not failed:
 		print("[Question Pool Randomization Test] PASS")
-	quit(1 if failed else 0)
+	get_tree().quit(1 if failed else 0)
 
 
 func _assert_single_question_cycle(provider: Node) -> bool:

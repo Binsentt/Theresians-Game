@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/gameplay_battle_tree_audit.gd" id="1_28jfe"]
+
+[node name="root" type="Node" unique_id=2076716236]
+script = ExtResource("1_28jfe")

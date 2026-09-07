@@ -1,9 +1,9 @@
-extends SceneTree
+extends Node
 
 const QuestionProviderScript = preload("res://scripts/question_provider.gd")
 
 
-func _init() -> void:
+func _ready() -> void:
 	call_deferred("_run")
 
 
@@ -60,7 +60,9 @@ func _run() -> void:
 
 	failed = not _assert_remote_sync_payload_contract() or failed
 	provider.free()
-	quit(1 if failed else 0)
+	if not failed:
+		print("QUESTION_SET_TRACEABILITY_TEST PASSED")
+	get_tree().quit(1 if failed else 0)
 
 
 func _normalize_question_with_learning_file_id(provider: Node, learning_file_id: Variant) -> Dictionary:

@@ -1,0 +1,2063 @@
+{
+  "audit": "2026-09-07 battle routing source re-audit",
+  "captured_at_utc": "2026-09-07T07:23:55.395083+00:00",
+  "canonical_root": "C:\\Users\\vince\\Documents\\Capstone-Project\\capstone-theresians-quest",
+  "canonical_head": "3d846de475713d1f34a747d345f36217a453586f",
+  "archive": "C:\\Users\\vince\\Downloads\\capstone-theresians-quest6.zip",
+  "archive_root": "capstone-theresians-quest6/",
+  "read_only_product": true,
+  "written_files": [
+    "docs/qa/2026-09-07-battle-routing-reaudit.md",
+    "docs/qa/2026-09-07-battle-routing-reaudit.json"
+  ],
+  "engine_actions_performed": 0,
+  "runtime_acceptance_claimed": false,
+  "production_requests_performed": 0,
+  "source_search": {
+    "excluded": [
+      "dot directories including .worktrees/.godot/.git",
+      "tools",
+      "docs"
+    ],
+    "suffixes": [
+      ".gd",
+      ".godot",
+      ".json",
+      ".tres",
+      ".tscn"
+    ],
+    "zip_file_count": 177,
+    "canonical_file_count": 198,
+    "replacement_pattern": "BattleScene|battle_scene\\.tscn|QuestionContainer|Question[ _-]Container|multiple[ _-]?choice",
+    "zip_replacement_hits": [],
+    "canonical_replacement_hits": [],
+    "zip_direct_battle_references": [
+      {
+        "path": "scripts/game_over.gd",
+        "line": 19,
+        "text": "\tget_tree().change_scene_to_file(\"res://Battle/Battle-Enemy/male_vs_bandit.tscn\")"
+      },
+      {
+        "path": "scripts/game_state.gd",
+        "line": 76,
+        "text": "\t\t\"next_scene\": \"res://Battle/Battle-Enemy/male_vs_bandit.tscn\","
+      }
+    ],
+    "canonical_direct_battle_references": [
+      {
+        "path": "scripts/game_over.gd",
+        "line": 19,
+        "text": "\tget_tree().change_scene_to_file(\"res://Battle/Battle-Enemy/male_vs_bandit.tscn\")"
+      },
+      {
+        "path": "scripts/game_state.gd",
+        "line": 112,
+        "text": "\t\t\"next_scene\": \"res://Battle/Battle-Enemy/male_vs_bandit.tscn\","
+      },
+      {
+        "path": "world/QuestUI.gd",
+        "line": 87,
+        "text": "\t\tif GameState.gender == \"female\" and battle_scene_path == \"res://Battle/Battle-Enemy/male_vs_bandit.tscn\":"
+      },
+      {
+        "path": "world/QuestUI.gd",
+        "line": 88,
+        "text": "\t\t\tbattle_scene_path = \"res://Battle/Battle-Enemy/female_vs_bandit.tscn\""
+      }
+    ],
+    "git_history_note": "git log --all -S QuestionContainer and -S BattleScene restricted to *.gd/*.tscn produced no matches; filename history searches also empty. This is not proof about unavailable/deleted external copies."
+  },
+  "routing_matrix": [
+    {
+      "area": "Oakleaf",
+      "enemy_class": "Normal Bandit",
+      "gender": "male",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
+      "zip_gameplay_route": "res://Battle/Battle-Enemy/male_vs_bandit.tscn (first Bandits actor only; no gender branch)",
+      "canonical_gameplay_route": "res://Battle/Battle-Enemy/male_vs_bandit.tscn (first Bandits actor only)",
+      "status": "PARTIAL: first Bandit source route; remaining four Oakleaf actors lack milestones",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "scenes/oak_leaf_village.tscn:677",
+        "scenes/oak_leaf_village.tscn:695",
+        "scripts/task_dialogue_adapter.gd:22",
+        "scripts/task_dialogue_adapter.gd:49",
+        "scripts/game_state.gd:112",
+        "world/QuestUI.gd:86"
+      ]
+    },
+    {
+      "area": "Oakleaf",
+      "enemy_class": "Normal Bandit",
+      "gender": "female",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/female_vs_bandit.tscn",
+      "zip_gameplay_route": "res://Battle/Battle-Enemy/male_vs_bandit.tscn (first Bandits actor only; no gender branch)",
+      "canonical_gameplay_route": "res://Battle/Battle-Enemy/female_vs_bandit.tscn (first Bandits actor only)",
+      "status": "PARTIAL: first Bandit source route; remaining four Oakleaf actors lack milestones",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "scenes/oak_leaf_village.tscn:677",
+        "scenes/oak_leaf_village.tscn:695",
+        "scripts/task_dialogue_adapter.gd:22",
+        "scripts/task_dialogue_adapter.gd:49",
+        "scripts/game_state.gd:112",
+        "world/QuestUI.gd:86"
+      ]
+    },
+    {
+      "area": "Oakleaf",
+      "enemy_class": "Boss Bandit",
+      "gender": "male",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/male_vs_boss.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "Oakleaf",
+      "enemy_class": "Boss Bandit",
+      "gender": "female",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/female_vs_boss_bandit.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "City of Knowledge",
+      "enemy_class": "Normal Bandit",
+      "gender": "male",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "City of Knowledge",
+      "enemy_class": "Normal Bandit",
+      "gender": "female",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/female_vs_bandit.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "Pinehill",
+      "enemy_class": "Normal Bandit",
+      "gender": "male",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "Pinehill",
+      "enemy_class": "Normal Bandit",
+      "gender": "female",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/female_vs_bandit.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "Pinehill",
+      "enemy_class": "Wizard",
+      "gender": "male",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/male_vs_wizard.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "Pinehill",
+      "enemy_class": "Wizard",
+      "gender": "female",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/female_vs_wizard1.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "Final Teacher (location/milestone unproven)",
+      "enemy_class": "Teacher",
+      "gender": "male",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/male_vs_teacher.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    },
+    {
+      "area": "Final Teacher (location/milestone unproven)",
+      "enemy_class": "Teacher",
+      "gender": "female",
+      "source_supported_presentation": "res://Battle/Battle-Enemy/female_vs_teacher.tscn",
+      "zip_gameplay_route": null,
+      "canonical_gameplay_route": null,
+      "status": "NOT PROVEN BY SOURCE: presentation exists, encounter route/milestone absent",
+      "runtime_status": "PARENT MCP VERIFICATION / HUMAN RECHECK PENDING",
+      "route_evidence": [
+        "No caller in canonical and ZIP product source scans; see map actors and caller evidence."
+      ]
+    }
+  ],
+  "full_vs_scenes": [
+    {
+      "path": "Battle/Battle-Enemy/male_vs_bandit.tscn",
+      "gender": "male",
+      "enemy_class": "Bandit",
+      "player_portrait": "Battle/Player-male-battle.tscn",
+      "enemy_portrait": "Battle/Bandit-Battle.tscn",
+      "zip_sha256": "59f17631c0e52483067d1a7919e9caae0d3cb7e6e47474937c4cd19717f5be9a",
+      "canonical_sha256": "59f17631c0e52483067d1a7919e9caae0d3cb7e6e47474937c4cd19717f5be9a",
+      "identical": true,
+      "required_node_bindings": {
+        "player": {
+          "line": 28,
+          "declaration": "[node name=\"player\" parent=\".\" unique_id=613505580 instance=ExtResource(\"3_h4x7j\")]"
+        },
+        "Bandit": {
+          "line": 20,
+          "declaration": "[node name=\"Bandit\" parent=\".\" unique_id=1578274707 instance=ExtResource(\"2_d3do4\")]"
+        },
+        "player/SlashEffect": {
+          "line": 32,
+          "declaration": "[node name=\"SlashEffect\" parent=\"player\" unique_id=564064422 instance=ExtResource(\"4_83bnn\")]"
+        },
+        "Bandit/SlashEffect": {
+          "line": 24,
+          "declaration": "[node name=\"SlashEffect\" parent=\"Bandit\" unique_id=1705485500 instance=ExtResource(\"4_83bnn\")]"
+        },
+        "CanvasLayer/Panel/QuestionLabel": {
+          "line": 62,
+          "declaration": "[node name=\"QuestionLabel\" type=\"Label\" parent=\"CanvasLayer/Panel\" unique_id=152173940]"
+        },
+        "CanvasLayer/Panel/ChoiceA": {
+          "line": 77,
+          "declaration": "[node name=\"ChoiceA\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=1805345444 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceB": {
+          "line": 85,
+          "declaration": "[node name=\"ChoiceB\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=639686116 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceC": {
+          "line": 93,
+          "declaration": "[node name=\"ChoiceC\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=678988720 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceD": {
+          "line": 101,
+          "declaration": "[node name=\"ChoiceD\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=509893750 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "PlayerHealth": {
+          "line": 109,
+          "declaration": "[node name=\"PlayerHealth\" type=\"Node2D\" parent=\".\" unique_id=2138523422]"
+        },
+        "EnemyHealth": {
+          "line": 135,
+          "declaration": "[node name=\"EnemyHealth\" type=\"Node2D\" parent=\".\" unique_id=1022832029]"
+        },
+        "PlayerHealth/Hearts/Heart1": {
+          "line": 120,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=934430920]"
+        },
+        "PlayerHealth/Hearts/Heart2": {
+          "line": 125,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=1101661845]"
+        },
+        "PlayerHealth/Hearts/Heart3": {
+          "line": 130,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=905673802]"
+        },
+        "EnemyHealth/Hearts/Heart1": {
+          "line": 147,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1579133023]"
+        },
+        "EnemyHealth/Hearts/Heart2": {
+          "line": 152,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1890307404]"
+        },
+        "EnemyHealth/Hearts/Heart3": {
+          "line": 157,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=950681664]"
+        }
+      },
+      "four_choice_connections": [
+        {
+          "line": 162,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceA\" to=\".\" method=\"_on_choice_a_pressed\"]"
+        },
+        {
+          "line": 163,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceB\" to=\".\" method=\"_on_choice_b_pressed\"]"
+        },
+        {
+          "line": 164,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceC\" to=\".\" method=\"_on_choice_c_pressed\"]"
+        },
+        {
+          "line": 165,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceD\" to=\".\" method=\"_on_choice_d_pressed\"]"
+        }
+      ],
+      "active_product_route": true
+    },
+    {
+      "path": "Battle/Battle-Enemy/female_vs_bandit.tscn",
+      "gender": "female",
+      "enemy_class": "Bandit",
+      "player_portrait": "Battle/player_female_battle.tscn",
+      "enemy_portrait": "Battle/Bandit-Battle.tscn",
+      "zip_sha256": "361c553c05a36b9212b88a6140ec8b54cbffa0a9867ec152bcef279bda1ec887",
+      "canonical_sha256": "361c553c05a36b9212b88a6140ec8b54cbffa0a9867ec152bcef279bda1ec887",
+      "identical": true,
+      "required_node_bindings": {
+        "player": {
+          "line": 20,
+          "declaration": "[node name=\"player\" parent=\".\" unique_id=1697331761 instance=ExtResource(\"5_xboir\")]"
+        },
+        "Bandit": {
+          "line": 28,
+          "declaration": "[node name=\"Bandit\" parent=\".\" unique_id=1578274707 instance=ExtResource(\"3_kyxq5\")]"
+        },
+        "player/SlashEffect": {
+          "line": 24,
+          "declaration": "[node name=\"SlashEffect\" parent=\"player\" unique_id=564064422 instance=ExtResource(\"4_rk7g7\")]"
+        },
+        "Bandit/SlashEffect": {
+          "line": 32,
+          "declaration": "[node name=\"SlashEffect\" parent=\"Bandit\" unique_id=1705485500 instance=ExtResource(\"4_rk7g7\")]"
+        },
+        "CanvasLayer/Panel/QuestionLabel": {
+          "line": 62,
+          "declaration": "[node name=\"QuestionLabel\" type=\"Label\" parent=\"CanvasLayer/Panel\" unique_id=152173940]"
+        },
+        "CanvasLayer/Panel/ChoiceA": {
+          "line": 77,
+          "declaration": "[node name=\"ChoiceA\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=1805345444 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceB": {
+          "line": 85,
+          "declaration": "[node name=\"ChoiceB\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=639686116 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceC": {
+          "line": 93,
+          "declaration": "[node name=\"ChoiceC\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=678988720 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceD": {
+          "line": 101,
+          "declaration": "[node name=\"ChoiceD\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=509893750 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "PlayerHealth": {
+          "line": 109,
+          "declaration": "[node name=\"PlayerHealth\" type=\"Node2D\" parent=\".\" unique_id=2138523422]"
+        },
+        "EnemyHealth": {
+          "line": 135,
+          "declaration": "[node name=\"EnemyHealth\" type=\"Node2D\" parent=\".\" unique_id=1022832029]"
+        },
+        "PlayerHealth/Hearts/Heart1": {
+          "line": 120,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=934430920]"
+        },
+        "PlayerHealth/Hearts/Heart2": {
+          "line": 125,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=1101661845]"
+        },
+        "PlayerHealth/Hearts/Heart3": {
+          "line": 130,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=905673802]"
+        },
+        "EnemyHealth/Hearts/Heart1": {
+          "line": 147,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1579133023]"
+        },
+        "EnemyHealth/Hearts/Heart2": {
+          "line": 152,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1890307404]"
+        },
+        "EnemyHealth/Hearts/Heart3": {
+          "line": 157,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=950681664]"
+        }
+      },
+      "four_choice_connections": [
+        {
+          "line": 162,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceA\" to=\".\" method=\"_on_choice_a_pressed\"]"
+        },
+        {
+          "line": 163,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceB\" to=\".\" method=\"_on_choice_b_pressed\"]"
+        },
+        {
+          "line": 164,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceC\" to=\".\" method=\"_on_choice_c_pressed\"]"
+        },
+        {
+          "line": 165,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceD\" to=\".\" method=\"_on_choice_d_pressed\"]"
+        }
+      ],
+      "active_product_route": true
+    },
+    {
+      "path": "Battle/Battle-Enemy/male_vs_boss.tscn",
+      "gender": "male",
+      "enemy_class": "Boss Bandit",
+      "player_portrait": "Battle/Player-male-battle.tscn",
+      "enemy_portrait": "Battle/boss_bandit_battle.tscn",
+      "zip_sha256": "da38150a295948053a0d8d0bc96df3f05c0f2ad5ed044d26ea4a0434fec8e51e",
+      "canonical_sha256": "da38150a295948053a0d8d0bc96df3f05c0f2ad5ed044d26ea4a0434fec8e51e",
+      "identical": true,
+      "required_node_bindings": {
+        "player": {
+          "line": 28,
+          "declaration": "[node name=\"player\" parent=\".\" unique_id=613505580 instance=ExtResource(\"5_u66q0\")]"
+        },
+        "Bandit": {
+          "line": 20,
+          "declaration": "[node name=\"Bandit\" parent=\".\" unique_id=1582334348 instance=ExtResource(\"3_2xl1j\")]"
+        },
+        "player/SlashEffect": {
+          "line": 32,
+          "declaration": "[node name=\"SlashEffect\" parent=\"player\" unique_id=564064422 instance=ExtResource(\"4_wuc0l\")]"
+        },
+        "Bandit/SlashEffect": {
+          "line": 24,
+          "declaration": "[node name=\"SlashEffect\" parent=\"Bandit\" unique_id=1705485500 instance=ExtResource(\"4_wuc0l\")]"
+        },
+        "CanvasLayer/Panel/QuestionLabel": {
+          "line": 62,
+          "declaration": "[node name=\"QuestionLabel\" type=\"Label\" parent=\"CanvasLayer/Panel\" unique_id=152173940]"
+        },
+        "CanvasLayer/Panel/ChoiceA": {
+          "line": 77,
+          "declaration": "[node name=\"ChoiceA\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=1805345444 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceB": {
+          "line": 85,
+          "declaration": "[node name=\"ChoiceB\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=639686116 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceC": {
+          "line": 93,
+          "declaration": "[node name=\"ChoiceC\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=678988720 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceD": {
+          "line": 101,
+          "declaration": "[node name=\"ChoiceD\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=509893750 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "PlayerHealth": {
+          "line": 109,
+          "declaration": "[node name=\"PlayerHealth\" type=\"Node2D\" parent=\".\" unique_id=2138523422]"
+        },
+        "EnemyHealth": {
+          "line": 135,
+          "declaration": "[node name=\"EnemyHealth\" type=\"Node2D\" parent=\".\" unique_id=1022832029]"
+        },
+        "PlayerHealth/Hearts/Heart1": {
+          "line": 120,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=934430920]"
+        },
+        "PlayerHealth/Hearts/Heart2": {
+          "line": 125,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=1101661845]"
+        },
+        "PlayerHealth/Hearts/Heart3": {
+          "line": 130,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=905673802]"
+        },
+        "EnemyHealth/Hearts/Heart1": {
+          "line": 147,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1579133023]"
+        },
+        "EnemyHealth/Hearts/Heart2": {
+          "line": 152,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1890307404]"
+        },
+        "EnemyHealth/Hearts/Heart3": {
+          "line": 157,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=950681664]"
+        }
+      },
+      "four_choice_connections": [
+        {
+          "line": 162,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceA\" to=\".\" method=\"_on_choice_a_pressed\"]"
+        },
+        {
+          "line": 163,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceB\" to=\".\" method=\"_on_choice_b_pressed\"]"
+        },
+        {
+          "line": 164,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceC\" to=\".\" method=\"_on_choice_c_pressed\"]"
+        },
+        {
+          "line": 165,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceD\" to=\".\" method=\"_on_choice_d_pressed\"]"
+        }
+      ],
+      "active_product_route": false
+    },
+    {
+      "path": "Battle/Battle-Enemy/female_vs_boss_bandit.tscn",
+      "gender": "female",
+      "enemy_class": "Boss Bandit",
+      "player_portrait": "Battle/player_female_battle.tscn",
+      "enemy_portrait": "Battle/boss_bandit_battle.tscn",
+      "zip_sha256": "5a273fc1282f4ddf86c6c32a8f09e47eb6a53e02a0725e4bd6bf7b0e0f2a2374",
+      "canonical_sha256": "5a273fc1282f4ddf86c6c32a8f09e47eb6a53e02a0725e4bd6bf7b0e0f2a2374",
+      "identical": true,
+      "required_node_bindings": {
+        "player": {
+          "line": 28,
+          "declaration": "[node name=\"player\" parent=\".\" unique_id=1697331761 instance=ExtResource(\"2_1jsbf\")]"
+        },
+        "Bandit": {
+          "line": 20,
+          "declaration": "[node name=\"Bandit\" parent=\".\" unique_id=1582334348 instance=ExtResource(\"3_2j0m2\")]"
+        },
+        "player/SlashEffect": {
+          "line": 32,
+          "declaration": "[node name=\"SlashEffect\" parent=\"player\" unique_id=564064422 instance=ExtResource(\"4_rmnm4\")]"
+        },
+        "Bandit/SlashEffect": {
+          "line": 24,
+          "declaration": "[node name=\"SlashEffect\" parent=\"Bandit\" unique_id=1705485500 instance=ExtResource(\"4_rmnm4\")]"
+        },
+        "CanvasLayer/Panel/QuestionLabel": {
+          "line": 62,
+          "declaration": "[node name=\"QuestionLabel\" type=\"Label\" parent=\"CanvasLayer/Panel\" unique_id=152173940]"
+        },
+        "CanvasLayer/Panel/ChoiceA": {
+          "line": 77,
+          "declaration": "[node name=\"ChoiceA\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=1805345444 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceB": {
+          "line": 85,
+          "declaration": "[node name=\"ChoiceB\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=639686116 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceC": {
+          "line": 93,
+          "declaration": "[node name=\"ChoiceC\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=678988720 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceD": {
+          "line": 101,
+          "declaration": "[node name=\"ChoiceD\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=509893750 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "PlayerHealth": {
+          "line": 109,
+          "declaration": "[node name=\"PlayerHealth\" type=\"Node2D\" parent=\".\" unique_id=2138523422]"
+        },
+        "EnemyHealth": {
+          "line": 135,
+          "declaration": "[node name=\"EnemyHealth\" type=\"Node2D\" parent=\".\" unique_id=1022832029]"
+        },
+        "PlayerHealth/Hearts/Heart1": {
+          "line": 120,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=934430920]"
+        },
+        "PlayerHealth/Hearts/Heart2": {
+          "line": 125,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=1101661845]"
+        },
+        "PlayerHealth/Hearts/Heart3": {
+          "line": 130,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=905673802]"
+        },
+        "EnemyHealth/Hearts/Heart1": {
+          "line": 147,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1579133023]"
+        },
+        "EnemyHealth/Hearts/Heart2": {
+          "line": 152,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1890307404]"
+        },
+        "EnemyHealth/Hearts/Heart3": {
+          "line": 157,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=950681664]"
+        }
+      },
+      "four_choice_connections": [
+        {
+          "line": 162,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceA\" to=\".\" method=\"_on_choice_a_pressed\"]"
+        },
+        {
+          "line": 163,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceB\" to=\".\" method=\"_on_choice_b_pressed\"]"
+        },
+        {
+          "line": 164,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceC\" to=\".\" method=\"_on_choice_c_pressed\"]"
+        },
+        {
+          "line": 165,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceD\" to=\".\" method=\"_on_choice_d_pressed\"]"
+        }
+      ],
+      "active_product_route": false
+    },
+    {
+      "path": "Battle/Battle-Enemy/male_vs_wizard.tscn",
+      "gender": "male",
+      "enemy_class": "Wizard",
+      "player_portrait": "Battle/Player-male-battle.tscn",
+      "enemy_portrait": "Battle/Wizard-Battle.tscn",
+      "zip_sha256": "ae3888789a293168c1c9bc52f51e26d85a59fce471582b21822a8084f208dc7c",
+      "canonical_sha256": "ae3888789a293168c1c9bc52f51e26d85a59fce471582b21822a8084f208dc7c",
+      "identical": true,
+      "required_node_bindings": {
+        "player": {
+          "line": 28,
+          "declaration": "[node name=\"player\" parent=\".\" unique_id=613505580 instance=ExtResource(\"2_hcxri\")]"
+        },
+        "Bandit": {
+          "line": 20,
+          "declaration": "[node name=\"Bandit\" parent=\".\" unique_id=1165125145 instance=ExtResource(\"3_6dk8j\")]"
+        },
+        "player/SlashEffect": {
+          "line": 32,
+          "declaration": "[node name=\"SlashEffect\" parent=\"player\" unique_id=564064422 instance=ExtResource(\"4_24xwd\")]"
+        },
+        "Bandit/SlashEffect": {
+          "line": 24,
+          "declaration": "[node name=\"SlashEffect\" parent=\"Bandit\" unique_id=1705485500 instance=ExtResource(\"4_24xwd\")]"
+        },
+        "CanvasLayer/Panel/QuestionLabel": {
+          "line": 62,
+          "declaration": "[node name=\"QuestionLabel\" type=\"Label\" parent=\"CanvasLayer/Panel\" unique_id=152173940]"
+        },
+        "CanvasLayer/Panel/ChoiceA": {
+          "line": 77,
+          "declaration": "[node name=\"ChoiceA\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=1805345444 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceB": {
+          "line": 85,
+          "declaration": "[node name=\"ChoiceB\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=639686116 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceC": {
+          "line": 93,
+          "declaration": "[node name=\"ChoiceC\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=678988720 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceD": {
+          "line": 101,
+          "declaration": "[node name=\"ChoiceD\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=509893750 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "PlayerHealth": {
+          "line": 109,
+          "declaration": "[node name=\"PlayerHealth\" type=\"Node2D\" parent=\".\" unique_id=2138523422]"
+        },
+        "EnemyHealth": {
+          "line": 135,
+          "declaration": "[node name=\"EnemyHealth\" type=\"Node2D\" parent=\".\" unique_id=1022832029]"
+        },
+        "PlayerHealth/Hearts/Heart1": {
+          "line": 120,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=934430920]"
+        },
+        "PlayerHealth/Hearts/Heart2": {
+          "line": 125,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=1101661845]"
+        },
+        "PlayerHealth/Hearts/Heart3": {
+          "line": 130,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=905673802]"
+        },
+        "EnemyHealth/Hearts/Heart1": {
+          "line": 147,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1579133023]"
+        },
+        "EnemyHealth/Hearts/Heart2": {
+          "line": 152,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1890307404]"
+        },
+        "EnemyHealth/Hearts/Heart3": {
+          "line": 157,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=950681664]"
+        }
+      },
+      "four_choice_connections": [
+        {
+          "line": 162,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceA\" to=\".\" method=\"_on_choice_a_pressed\"]"
+        },
+        {
+          "line": 163,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceB\" to=\".\" method=\"_on_choice_b_pressed\"]"
+        },
+        {
+          "line": 164,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceC\" to=\".\" method=\"_on_choice_c_pressed\"]"
+        },
+        {
+          "line": 165,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceD\" to=\".\" method=\"_on_choice_d_pressed\"]"
+        }
+      ],
+      "active_product_route": false
+    },
+    {
+      "path": "Battle/Battle-Enemy/female_vs_wizard1.tscn",
+      "gender": "female",
+      "enemy_class": "Wizard",
+      "player_portrait": "Battle/player_female_battle.tscn",
+      "enemy_portrait": "Battle/Wizard-Battle.tscn",
+      "zip_sha256": "a9790a92d4c312102794703dfbcb3e5d5f87a096a552d091ba9705b6ae935763",
+      "canonical_sha256": "a9790a92d4c312102794703dfbcb3e5d5f87a096a552d091ba9705b6ae935763",
+      "identical": true,
+      "required_node_bindings": {
+        "player": {
+          "line": 28,
+          "declaration": "[node name=\"player\" parent=\".\" unique_id=1697331761 instance=ExtResource(\"5_u44iw\")]"
+        },
+        "Bandit": {
+          "line": 20,
+          "declaration": "[node name=\"Bandit\" parent=\".\" unique_id=1165125145 instance=ExtResource(\"3_d2drs\")]"
+        },
+        "player/SlashEffect": {
+          "line": 32,
+          "declaration": "[node name=\"SlashEffect\" parent=\"player\" unique_id=564064422 instance=ExtResource(\"4_obngj\")]"
+        },
+        "Bandit/SlashEffect": {
+          "line": 24,
+          "declaration": "[node name=\"SlashEffect\" parent=\"Bandit\" unique_id=1705485500 instance=ExtResource(\"4_obngj\")]"
+        },
+        "CanvasLayer/Panel/QuestionLabel": {
+          "line": 62,
+          "declaration": "[node name=\"QuestionLabel\" type=\"Label\" parent=\"CanvasLayer/Panel\" unique_id=152173940]"
+        },
+        "CanvasLayer/Panel/ChoiceA": {
+          "line": 77,
+          "declaration": "[node name=\"ChoiceA\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=1805345444 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceB": {
+          "line": 85,
+          "declaration": "[node name=\"ChoiceB\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=639686116 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceC": {
+          "line": 93,
+          "declaration": "[node name=\"ChoiceC\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=678988720 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceD": {
+          "line": 101,
+          "declaration": "[node name=\"ChoiceD\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=509893750 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "PlayerHealth": {
+          "line": 109,
+          "declaration": "[node name=\"PlayerHealth\" type=\"Node2D\" parent=\".\" unique_id=2138523422]"
+        },
+        "EnemyHealth": {
+          "line": 135,
+          "declaration": "[node name=\"EnemyHealth\" type=\"Node2D\" parent=\".\" unique_id=1022832029]"
+        },
+        "PlayerHealth/Hearts/Heart1": {
+          "line": 120,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=934430920]"
+        },
+        "PlayerHealth/Hearts/Heart2": {
+          "line": 125,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=1101661845]"
+        },
+        "PlayerHealth/Hearts/Heart3": {
+          "line": 130,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=905673802]"
+        },
+        "EnemyHealth/Hearts/Heart1": {
+          "line": 147,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1579133023]"
+        },
+        "EnemyHealth/Hearts/Heart2": {
+          "line": 152,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1890307404]"
+        },
+        "EnemyHealth/Hearts/Heart3": {
+          "line": 157,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=950681664]"
+        }
+      },
+      "four_choice_connections": [
+        {
+          "line": 162,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceA\" to=\".\" method=\"_on_choice_a_pressed\"]"
+        },
+        {
+          "line": 163,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceB\" to=\".\" method=\"_on_choice_b_pressed\"]"
+        },
+        {
+          "line": 164,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceC\" to=\".\" method=\"_on_choice_c_pressed\"]"
+        },
+        {
+          "line": 165,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceD\" to=\".\" method=\"_on_choice_d_pressed\"]"
+        }
+      ],
+      "active_product_route": false
+    },
+    {
+      "path": "Battle/Battle-Enemy/male_vs_teacher.tscn",
+      "gender": "male",
+      "enemy_class": "Teacher",
+      "player_portrait": "Battle/Player-male-battle.tscn",
+      "enemy_portrait": "Battle/Teacher_Battle.tscn",
+      "zip_sha256": "b456323b73c844b7d5ba9e512ce0243c67d38997557d453941b61621e7fc0209",
+      "canonical_sha256": "b456323b73c844b7d5ba9e512ce0243c67d38997557d453941b61621e7fc0209",
+      "identical": true,
+      "required_node_bindings": {
+        "player": {
+          "line": 28,
+          "declaration": "[node name=\"player\" parent=\".\" unique_id=613505580 instance=ExtResource(\"5_338pc\")]"
+        },
+        "Bandit": {
+          "line": 20,
+          "declaration": "[node name=\"Bandit\" parent=\".\" unique_id=85654838 instance=ExtResource(\"3_85o54\")]"
+        },
+        "player/SlashEffect": {
+          "line": 32,
+          "declaration": "[node name=\"SlashEffect\" parent=\"player\" unique_id=564064422 instance=ExtResource(\"4_1kns0\")]"
+        },
+        "Bandit/SlashEffect": {
+          "line": 24,
+          "declaration": "[node name=\"SlashEffect\" parent=\"Bandit\" unique_id=1705485500 instance=ExtResource(\"4_1kns0\")]"
+        },
+        "CanvasLayer/Panel/QuestionLabel": {
+          "line": 62,
+          "declaration": "[node name=\"QuestionLabel\" type=\"Label\" parent=\"CanvasLayer/Panel\" unique_id=152173940]"
+        },
+        "CanvasLayer/Panel/ChoiceA": {
+          "line": 77,
+          "declaration": "[node name=\"ChoiceA\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=1805345444 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceB": {
+          "line": 85,
+          "declaration": "[node name=\"ChoiceB\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=639686116 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceC": {
+          "line": 93,
+          "declaration": "[node name=\"ChoiceC\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=678988720 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceD": {
+          "line": 101,
+          "declaration": "[node name=\"ChoiceD\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=509893750 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "PlayerHealth": {
+          "line": 109,
+          "declaration": "[node name=\"PlayerHealth\" type=\"Node2D\" parent=\".\" unique_id=2138523422]"
+        },
+        "EnemyHealth": {
+          "line": 135,
+          "declaration": "[node name=\"EnemyHealth\" type=\"Node2D\" parent=\".\" unique_id=1022832029]"
+        },
+        "PlayerHealth/Hearts/Heart1": {
+          "line": 120,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=934430920]"
+        },
+        "PlayerHealth/Hearts/Heart2": {
+          "line": 125,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=1101661845]"
+        },
+        "PlayerHealth/Hearts/Heart3": {
+          "line": 130,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=905673802]"
+        },
+        "EnemyHealth/Hearts/Heart1": {
+          "line": 147,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1579133023]"
+        },
+        "EnemyHealth/Hearts/Heart2": {
+          "line": 152,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1890307404]"
+        },
+        "EnemyHealth/Hearts/Heart3": {
+          "line": 157,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=950681664]"
+        }
+      },
+      "four_choice_connections": [
+        {
+          "line": 162,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceA\" to=\".\" method=\"_on_choice_a_pressed\"]"
+        },
+        {
+          "line": 163,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceB\" to=\".\" method=\"_on_choice_b_pressed\"]"
+        },
+        {
+          "line": 164,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceC\" to=\".\" method=\"_on_choice_c_pressed\"]"
+        },
+        {
+          "line": 165,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceD\" to=\".\" method=\"_on_choice_d_pressed\"]"
+        }
+      ],
+      "active_product_route": false
+    },
+    {
+      "path": "Battle/Battle-Enemy/female_vs_teacher.tscn",
+      "gender": "female",
+      "enemy_class": "Teacher",
+      "player_portrait": "Battle/player_female_battle.tscn",
+      "enemy_portrait": "Battle/Teacher_Battle.tscn",
+      "zip_sha256": "2b594b68b9fa7a18da93d9dcf723a3a050909c98a93fb85185245e331e0b78ad",
+      "canonical_sha256": "2b594b68b9fa7a18da93d9dcf723a3a050909c98a93fb85185245e331e0b78ad",
+      "identical": true,
+      "required_node_bindings": {
+        "player": {
+          "line": 28,
+          "declaration": "[node name=\"player\" parent=\".\" unique_id=1697331761 instance=ExtResource(\"2_wch0p\")]"
+        },
+        "Bandit": {
+          "line": 20,
+          "declaration": "[node name=\"Bandit\" parent=\".\" unique_id=85654838 instance=ExtResource(\"3_es4am\")]"
+        },
+        "player/SlashEffect": {
+          "line": 32,
+          "declaration": "[node name=\"SlashEffect\" parent=\"player\" unique_id=564064422 instance=ExtResource(\"4_80a48\")]"
+        },
+        "Bandit/SlashEffect": {
+          "line": 24,
+          "declaration": "[node name=\"SlashEffect\" parent=\"Bandit\" unique_id=1705485500 instance=ExtResource(\"4_80a48\")]"
+        },
+        "CanvasLayer/Panel/QuestionLabel": {
+          "line": 62,
+          "declaration": "[node name=\"QuestionLabel\" type=\"Label\" parent=\"CanvasLayer/Panel\" unique_id=152173940]"
+        },
+        "CanvasLayer/Panel/ChoiceA": {
+          "line": 77,
+          "declaration": "[node name=\"ChoiceA\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=1805345444 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceB": {
+          "line": 85,
+          "declaration": "[node name=\"ChoiceB\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=639686116 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceC": {
+          "line": 93,
+          "declaration": "[node name=\"ChoiceC\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=678988720 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "CanvasLayer/Panel/ChoiceD": {
+          "line": 101,
+          "declaration": "[node name=\"ChoiceD\" type=\"Button\" parent=\"CanvasLayer/Panel\" unique_id=509893750 groups=[\"dialogue_ui\", \"npc\"]]"
+        },
+        "PlayerHealth": {
+          "line": 109,
+          "declaration": "[node name=\"PlayerHealth\" type=\"Node2D\" parent=\".\" unique_id=2138523422]"
+        },
+        "EnemyHealth": {
+          "line": 135,
+          "declaration": "[node name=\"EnemyHealth\" type=\"Node2D\" parent=\".\" unique_id=1022832029]"
+        },
+        "PlayerHealth/Hearts/Heart1": {
+          "line": 120,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=934430920]"
+        },
+        "PlayerHealth/Hearts/Heart2": {
+          "line": 125,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=1101661845]"
+        },
+        "PlayerHealth/Hearts/Heart3": {
+          "line": 130,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"PlayerHealth/Hearts\" unique_id=905673802]"
+        },
+        "EnemyHealth/Hearts/Heart1": {
+          "line": 147,
+          "declaration": "[node name=\"Heart1\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1579133023]"
+        },
+        "EnemyHealth/Hearts/Heart2": {
+          "line": 152,
+          "declaration": "[node name=\"Heart2\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=1890307404]"
+        },
+        "EnemyHealth/Hearts/Heart3": {
+          "line": 157,
+          "declaration": "[node name=\"Heart3\" type=\"TextureRect\" parent=\"EnemyHealth/Hearts\" unique_id=950681664]"
+        }
+      },
+      "four_choice_connections": [
+        {
+          "line": 162,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceA\" to=\".\" method=\"_on_choice_a_pressed\"]"
+        },
+        {
+          "line": 163,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceB\" to=\".\" method=\"_on_choice_b_pressed\"]"
+        },
+        {
+          "line": 164,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceC\" to=\".\" method=\"_on_choice_c_pressed\"]"
+        },
+        {
+          "line": 165,
+          "declaration": "[connection signal=\"pressed\" from=\"CanvasLayer/Panel/ChoiceD\" to=\".\" method=\"_on_choice_d_pressed\"]"
+        }
+      ],
+      "active_product_route": false
+    }
+  ],
+  "presentation_dependency_comparison": {
+    "method": "Follow ext_resource path links recursively through .tscn/.tres from eight full VS scenes; compare raw archive/current bytes; do not treat newer QuestionProvider code as presentation dependency",
+    "full_scene_count": 8,
+    "dependency_count_excluding_eight_roots": 142,
+    "identical_dependencies_excluding_eight_roots": 141,
+    "all_files_count_including_eight_roots": 150,
+    "all_identical_count": 149,
+    "different_paths": [
+      "Battle/Battle-Enemy/QuizManager.gd"
+    ],
+    "missing": [],
+    "files": {
+      "Battle/Battle-Enemy/female_vs_teacher.tscn": {
+        "zip_sha256": "2b594b68b9fa7a18da93d9dcf723a3a050909c98a93fb85185245e331e0b78ad",
+        "canonical_sha256": "2b594b68b9fa7a18da93d9dcf723a3a050909c98a93fb85185245e331e0b78ad",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/EnemyHealth.gd": {
+        "zip_sha256": "47a1aa538151ff956b461428fad501ac6cbac3d40ff35fa1768e3853010ada07",
+        "canonical_sha256": "47a1aa538151ff956b461428fad501ac6cbac3d40ff35fa1768e3853010ada07",
+        "identical": true
+      },
+      "assets/hearth.png": {
+        "zip_sha256": "ec9e2732ef6b81cd6066efeb7faeff26e015363e5534b9c2d7fa0c8ccbbf0cb5",
+        "canonical_sha256": "ec9e2732ef6b81cd6066efeb7faeff26e015363e5534b9c2d7fa0c8ccbbf0cb5",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/PlayerHealth.gd": {
+        "zip_sha256": "47a1aa538151ff956b461428fad501ac6cbac3d40ff35fa1768e3853010ada07",
+        "canonical_sha256": "47a1aa538151ff956b461428fad501ac6cbac3d40ff35fa1768e3853010ada07",
+        "identical": true
+      },
+      "assets/playerHp.png": {
+        "zip_sha256": "cad718e5eb0f03042aeec3398f50969467d8ec2ef900701b00c1dc601d2ee73a",
+        "canonical_sha256": "cad718e5eb0f03042aeec3398f50969467d8ec2ef900701b00c1dc601d2ee73a",
+        "identical": true
+      },
+      "assets/Effects/SlashEffect.tscn": {
+        "zip_sha256": "c0270fa7217d51af649e89a0bdd8ed587796d83ccf7033ca854ddeaa6be4aa63",
+        "canonical_sha256": "c0270fa7217d51af649e89a0bdd8ed587796d83ccf7033ca854ddeaa6be4aa63",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_059.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_058.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_057.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_056.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_055.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_054.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_053.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_052.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_051.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_050.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_049.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_048.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_047.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_046.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_045.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_044.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_043.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_042.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_041.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_040.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_039.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_038.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_037.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_036.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_035.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_034.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_033.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_032.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_031.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_030.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_029.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_028.png": {
+        "zip_sha256": "e0c663d6b1680f29b08e5d7a3830c7b23626980cc0995915419f180decfcfbc8",
+        "canonical_sha256": "e0c663d6b1680f29b08e5d7a3830c7b23626980cc0995915419f180decfcfbc8",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_027.png": {
+        "zip_sha256": "00723ff5247cae047b5088e68ca0fb0bc14849ee84529bf77f159cf7f3c66e3a",
+        "canonical_sha256": "00723ff5247cae047b5088e68ca0fb0bc14849ee84529bf77f159cf7f3c66e3a",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_026.png": {
+        "zip_sha256": "ff39ea66250c2902ec40109910ea4196d80cdf1c71072a8569289c6d72156efc",
+        "canonical_sha256": "ff39ea66250c2902ec40109910ea4196d80cdf1c71072a8569289c6d72156efc",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_025.png": {
+        "zip_sha256": "ce4ed9618a5f1188d4ca75ced704a5755f4d216fed2392672a379d2ddebb00fa",
+        "canonical_sha256": "ce4ed9618a5f1188d4ca75ced704a5755f4d216fed2392672a379d2ddebb00fa",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_024.png": {
+        "zip_sha256": "700ab981cbf4370b7cfbf69789a0c1c985e2a250a91c24394574d7c47a2a4e55",
+        "canonical_sha256": "700ab981cbf4370b7cfbf69789a0c1c985e2a250a91c24394574d7c47a2a4e55",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_023.png": {
+        "zip_sha256": "3bf34eaca96f7f2cfea929ad8855f356e5b3bf349b8fa7cb60ec38cbe63c3617",
+        "canonical_sha256": "3bf34eaca96f7f2cfea929ad8855f356e5b3bf349b8fa7cb60ec38cbe63c3617",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_022.png": {
+        "zip_sha256": "32fd591931a70486fe5fa6081ca760955c15409052ed1f0ba94f1698b860abd9",
+        "canonical_sha256": "32fd591931a70486fe5fa6081ca760955c15409052ed1f0ba94f1698b860abd9",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_021.png": {
+        "zip_sha256": "c9cb48d843cf14184c8bc429374053bf8158fb6407dfa8b7b179a66385f3291e",
+        "canonical_sha256": "c9cb48d843cf14184c8bc429374053bf8158fb6407dfa8b7b179a66385f3291e",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_020.png": {
+        "zip_sha256": "4fdb4dc9e64d80a04a56087a1dae4e1f98c7bf887dc63bce4b98c5ee96f2a3cf",
+        "canonical_sha256": "4fdb4dc9e64d80a04a56087a1dae4e1f98c7bf887dc63bce4b98c5ee96f2a3cf",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_019.png": {
+        "zip_sha256": "369695478a7482bdbe6cd879556877010f1d39b6c9a1135844f81074633a473c",
+        "canonical_sha256": "369695478a7482bdbe6cd879556877010f1d39b6c9a1135844f81074633a473c",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_018.png": {
+        "zip_sha256": "d545f3f880cc4558dea0e1485fab3b2e7b858fcf879852da407ca53dcba2e8e3",
+        "canonical_sha256": "d545f3f880cc4558dea0e1485fab3b2e7b858fcf879852da407ca53dcba2e8e3",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_017.png": {
+        "zip_sha256": "3f568bf7e8c64ab2169508a342fc2b07eb796d72dda3d99631b58e5f860f1282",
+        "canonical_sha256": "3f568bf7e8c64ab2169508a342fc2b07eb796d72dda3d99631b58e5f860f1282",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_016.png": {
+        "zip_sha256": "ca51adbd16d32acc864e2bbaf55170588bac789559484231fd198706f1a58bec",
+        "canonical_sha256": "ca51adbd16d32acc864e2bbaf55170588bac789559484231fd198706f1a58bec",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_015.png": {
+        "zip_sha256": "c92380cc226a81c7169cf45fe6e3a3ab058672d4adb5df9c53fa9143f1f3d5d8",
+        "canonical_sha256": "c92380cc226a81c7169cf45fe6e3a3ab058672d4adb5df9c53fa9143f1f3d5d8",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_014.png": {
+        "zip_sha256": "2b366b0ab6002f2bf4d19232c3609c1b5df2cf30316f8daf3174a1610ba87fbe",
+        "canonical_sha256": "2b366b0ab6002f2bf4d19232c3609c1b5df2cf30316f8daf3174a1610ba87fbe",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_013.png": {
+        "zip_sha256": "77eccaa758bc1dee2786b4ded3bb1a4477040f4f699d5e2ea89c17a154ab1497",
+        "canonical_sha256": "77eccaa758bc1dee2786b4ded3bb1a4477040f4f699d5e2ea89c17a154ab1497",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_012.png": {
+        "zip_sha256": "a69f27413cfd25d045eca4af177f804d0cf965886e13428189682d920ac55b06",
+        "canonical_sha256": "a69f27413cfd25d045eca4af177f804d0cf965886e13428189682d920ac55b06",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_011.png": {
+        "zip_sha256": "cd295dedff3c7a64140e35b41ed4535338c68c41dd3746f022568bf50db9a37f",
+        "canonical_sha256": "cd295dedff3c7a64140e35b41ed4535338c68c41dd3746f022568bf50db9a37f",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_010.png": {
+        "zip_sha256": "183a448ac38bad9c01329da7c3ce9215b58a52c5da191c8bf7a47eb14a7ac530",
+        "canonical_sha256": "183a448ac38bad9c01329da7c3ce9215b58a52c5da191c8bf7a47eb14a7ac530",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_009.png": {
+        "zip_sha256": "7f00cd9c2a4e1eb51331ec49c52ff7bc5b790ca9a4fa00a99215a38f2d84a8bf",
+        "canonical_sha256": "7f00cd9c2a4e1eb51331ec49c52ff7bc5b790ca9a4fa00a99215a38f2d84a8bf",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_008.png": {
+        "zip_sha256": "286bbfcc2d5a09795b75b1bf522eba80badc585d1042826f09175db6180779d7",
+        "canonical_sha256": "286bbfcc2d5a09795b75b1bf522eba80badc585d1042826f09175db6180779d7",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_007.png": {
+        "zip_sha256": "724050aa1da70ea9016685faeb56584826b41e9df1c0fc2d1b8925b28a81c670",
+        "canonical_sha256": "724050aa1da70ea9016685faeb56584826b41e9df1c0fc2d1b8925b28a81c670",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_006.png": {
+        "zip_sha256": "e5e02bad3a32f6e4d519529e8c647fdc1f93360dcf5c028d98c15bada8c7482d",
+        "canonical_sha256": "e5e02bad3a32f6e4d519529e8c647fdc1f93360dcf5c028d98c15bada8c7482d",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_005.png": {
+        "zip_sha256": "d24eb40c9347e8be146b30295fffc97040c86b55f2fb5ae22292bc7ce994c2e5",
+        "canonical_sha256": "d24eb40c9347e8be146b30295fffc97040c86b55f2fb5ae22292bc7ce994c2e5",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_004.png": {
+        "zip_sha256": "123489548190e245242086a6146587a75152e73b7bd1f6fcf594b2f87d98979c",
+        "canonical_sha256": "123489548190e245242086a6146587a75152e73b7bd1f6fcf594b2f87d98979c",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_003.png": {
+        "zip_sha256": "c264e944a1040325db7a5301ac533479ffecd838477a2ab53a7ea2fe03a4821d",
+        "canonical_sha256": "c264e944a1040325db7a5301ac533479ffecd838477a2ab53a7ea2fe03a4821d",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_002.png": {
+        "zip_sha256": "d50cba5844feada1a6e77d97f42d86e23b31b982fd4aa935a2ce05fee32e769b",
+        "canonical_sha256": "d50cba5844feada1a6e77d97f42d86e23b31b982fd4aa935a2ce05fee32e769b",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_001.png": {
+        "zip_sha256": "e49c253138ac4f7967d78730c90fb48dfc67da6ee98a5f63fc729715eabff152",
+        "canonical_sha256": "e49c253138ac4f7967d78730c90fb48dfc67da6ee98a5f63fc729715eabff152",
+        "identical": true
+      },
+      "assets/Effects/Hit/Effect_SmallHit_1_000.png": {
+        "zip_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "canonical_sha256": "e119c908b6b433f7af236450f7bc976e73d893fc1f93c8867afc9a34bc552eb4",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_059.png": {
+        "zip_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "canonical_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_058.png": {
+        "zip_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "canonical_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_057.png": {
+        "zip_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "canonical_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_056.png": {
+        "zip_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "canonical_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_055.png": {
+        "zip_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "canonical_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_054.png": {
+        "zip_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "canonical_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_053.png": {
+        "zip_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "canonical_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_052.png": {
+        "zip_sha256": "d42a75e66e7e04ab553a8836c8ed3b25ecf0430884b07b1fadb4959307e8dc14",
+        "canonical_sha256": "d42a75e66e7e04ab553a8836c8ed3b25ecf0430884b07b1fadb4959307e8dc14",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_051.png": {
+        "zip_sha256": "4c7238104e94260ea22bebaf05982f49a1cf76c31bbea4c20d144e1743340eb5",
+        "canonical_sha256": "4c7238104e94260ea22bebaf05982f49a1cf76c31bbea4c20d144e1743340eb5",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_050.png": {
+        "zip_sha256": "7dc5c883019e8ffa66c83840a6e443a6b1a56daf74e9e06ac9274f0944b9c699",
+        "canonical_sha256": "7dc5c883019e8ffa66c83840a6e443a6b1a56daf74e9e06ac9274f0944b9c699",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_049.png": {
+        "zip_sha256": "adc5dfb2b3de7451d222f211e63fbebc64be694a010168269a866b4a39b97720",
+        "canonical_sha256": "adc5dfb2b3de7451d222f211e63fbebc64be694a010168269a866b4a39b97720",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_048.png": {
+        "zip_sha256": "6497e55187b4e741b53718062aac3eaba5bba89a8c0a6e93a6992970dfdab8af",
+        "canonical_sha256": "6497e55187b4e741b53718062aac3eaba5bba89a8c0a6e93a6992970dfdab8af",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_047.png": {
+        "zip_sha256": "d87ee9716c6553a94359ba41a121d72532a08e8c0407a0e7a7dafaedb839eac0",
+        "canonical_sha256": "d87ee9716c6553a94359ba41a121d72532a08e8c0407a0e7a7dafaedb839eac0",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_046.png": {
+        "zip_sha256": "c6a10167705a54b56616a4146e4f059e68af3d9cdba06d47bda97ec00caa2bc4",
+        "canonical_sha256": "c6a10167705a54b56616a4146e4f059e68af3d9cdba06d47bda97ec00caa2bc4",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_045.png": {
+        "zip_sha256": "f38775e02ce313db46f1510c1d92450865c68f0b06558e842821f7e28867d4d3",
+        "canonical_sha256": "f38775e02ce313db46f1510c1d92450865c68f0b06558e842821f7e28867d4d3",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_044.png": {
+        "zip_sha256": "df3f05bb725c98221430d5f7093fa2601f6016004a0143ad021beb633b79bcb1",
+        "canonical_sha256": "df3f05bb725c98221430d5f7093fa2601f6016004a0143ad021beb633b79bcb1",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_043.png": {
+        "zip_sha256": "8442de822cd15a9f3b29541af604f50d8007f80a626daabf7122c406a1dff9cd",
+        "canonical_sha256": "8442de822cd15a9f3b29541af604f50d8007f80a626daabf7122c406a1dff9cd",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_042.png": {
+        "zip_sha256": "8b26a962a430b12d3168f690ebb0dd7f014045974c6875afbf6e83fd7cd8db9f",
+        "canonical_sha256": "8b26a962a430b12d3168f690ebb0dd7f014045974c6875afbf6e83fd7cd8db9f",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_041.png": {
+        "zip_sha256": "df9656935aef289de45b7a48af92d833a9b0ba8a3c61113a4e91c308da2533ef",
+        "canonical_sha256": "df9656935aef289de45b7a48af92d833a9b0ba8a3c61113a4e91c308da2533ef",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_040.png": {
+        "zip_sha256": "fc361a5fe17c91b8e3c61178dec0fb8ceae39c812fdbeee4c87cd65d7cf21c5a",
+        "canonical_sha256": "fc361a5fe17c91b8e3c61178dec0fb8ceae39c812fdbeee4c87cd65d7cf21c5a",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_039.png": {
+        "zip_sha256": "dace9ed42c08113d9eb97923aa62f7aa9c8b59f86731831628b7ba33e6c5034f",
+        "canonical_sha256": "dace9ed42c08113d9eb97923aa62f7aa9c8b59f86731831628b7ba33e6c5034f",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_038.png": {
+        "zip_sha256": "03d25eec981862969b666b1d6b722f88f0c492146127bd93ed532d1bacf55b83",
+        "canonical_sha256": "03d25eec981862969b666b1d6b722f88f0c492146127bd93ed532d1bacf55b83",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_037.png": {
+        "zip_sha256": "7355db08f71890f9e16b10561c7bc7abf26622bf02d89e12e2601288f9b0c3d6",
+        "canonical_sha256": "7355db08f71890f9e16b10561c7bc7abf26622bf02d89e12e2601288f9b0c3d6",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_036.png": {
+        "zip_sha256": "5f6f1fb3d49c0c4e9a88ea9bfa5a191929c390b7f26f9e24f6daa3b31bbddff0",
+        "canonical_sha256": "5f6f1fb3d49c0c4e9a88ea9bfa5a191929c390b7f26f9e24f6daa3b31bbddff0",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_035.png": {
+        "zip_sha256": "becb222f5dfe9a05f72c39d1e340b83a110c479fbd9541c8a93f4fc06462f8cc",
+        "canonical_sha256": "becb222f5dfe9a05f72c39d1e340b83a110c479fbd9541c8a93f4fc06462f8cc",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_034.png": {
+        "zip_sha256": "0ea88109ff0c14a20560fac589f7a92f69afc6dadc164562596fff0ccda5516f",
+        "canonical_sha256": "0ea88109ff0c14a20560fac589f7a92f69afc6dadc164562596fff0ccda5516f",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_033.png": {
+        "zip_sha256": "eb94b1966f0a07366af315f04d8cf94e1315c62e3d119d59d9d9929e8ab8c375",
+        "canonical_sha256": "eb94b1966f0a07366af315f04d8cf94e1315c62e3d119d59d9d9929e8ab8c375",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_032.png": {
+        "zip_sha256": "e6b9c1738e512a7000b1a77e1d0a1ce2ef510ba91d6cca9f8c61260c647a49be",
+        "canonical_sha256": "e6b9c1738e512a7000b1a77e1d0a1ce2ef510ba91d6cca9f8c61260c647a49be",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_031.png": {
+        "zip_sha256": "fde4ca7f7895d6f28be19e5205d4e6958e4125351ae4a1e64a1679a80698969f",
+        "canonical_sha256": "fde4ca7f7895d6f28be19e5205d4e6958e4125351ae4a1e64a1679a80698969f",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_030.png": {
+        "zip_sha256": "a5f377b490a4d8b94e32312450a995585725e39144f3bffdb50001a8e4f2eaf9",
+        "canonical_sha256": "a5f377b490a4d8b94e32312450a995585725e39144f3bffdb50001a8e4f2eaf9",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_029.png": {
+        "zip_sha256": "54c3477433f0584715b4e9662962a54efb552c8c850c7e71bb46964ad54879b9",
+        "canonical_sha256": "54c3477433f0584715b4e9662962a54efb552c8c850c7e71bb46964ad54879b9",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_028.png": {
+        "zip_sha256": "8ab151aaa11c731f3311744bc298c5f6ef70016b890ad225bea7beb9536c38ca",
+        "canonical_sha256": "8ab151aaa11c731f3311744bc298c5f6ef70016b890ad225bea7beb9536c38ca",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_027.png": {
+        "zip_sha256": "106e9c6532950e73d3339fbfe7a6f58dacc68d90e633948ced14b46eeef4a89b",
+        "canonical_sha256": "106e9c6532950e73d3339fbfe7a6f58dacc68d90e633948ced14b46eeef4a89b",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_026.png": {
+        "zip_sha256": "b1438491f9594ca0072ac892953a1295eaaa166cc7525674affa1bb31a1dd3ab",
+        "canonical_sha256": "b1438491f9594ca0072ac892953a1295eaaa166cc7525674affa1bb31a1dd3ab",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_025.png": {
+        "zip_sha256": "552de16c6ce5aaffec3021520a6085b24c5f5297b0aab1dbfc92fddcf5a2bbc0",
+        "canonical_sha256": "552de16c6ce5aaffec3021520a6085b24c5f5297b0aab1dbfc92fddcf5a2bbc0",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_024.png": {
+        "zip_sha256": "bd5fd7058f327fe2cc2a7bfd6036009b10f6264e68f8b779f76a077b6ca9d3fc",
+        "canonical_sha256": "bd5fd7058f327fe2cc2a7bfd6036009b10f6264e68f8b779f76a077b6ca9d3fc",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_023.png": {
+        "zip_sha256": "5f952378d7f951d6ecca0e2d49a3ca09fbba0f4fc7833ca9afbc71e9b91459b3",
+        "canonical_sha256": "5f952378d7f951d6ecca0e2d49a3ca09fbba0f4fc7833ca9afbc71e9b91459b3",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_022.png": {
+        "zip_sha256": "150742c297b9156cf5f9184dc52700e841031b592aa8c3bec3b26ff550115115",
+        "canonical_sha256": "150742c297b9156cf5f9184dc52700e841031b592aa8c3bec3b26ff550115115",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_021.png": {
+        "zip_sha256": "fb7d3da16cee29a22a701fec3bc493a6122d2fc2f4e6a797181b34a16b5b3fb9",
+        "canonical_sha256": "fb7d3da16cee29a22a701fec3bc493a6122d2fc2f4e6a797181b34a16b5b3fb9",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_020.png": {
+        "zip_sha256": "21597cfb7a89b094ef449c359cb41b91f7b114388cbb18d8dcf07e8dd948e0bb",
+        "canonical_sha256": "21597cfb7a89b094ef449c359cb41b91f7b114388cbb18d8dcf07e8dd948e0bb",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_019.png": {
+        "zip_sha256": "9ce60b3439edfa312aae23d8579178fb2feeadf1f82db51fb7c040068824277a",
+        "canonical_sha256": "9ce60b3439edfa312aae23d8579178fb2feeadf1f82db51fb7c040068824277a",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_018.png": {
+        "zip_sha256": "f8e3da1351185b8d4c15d48e7643b535890410c0cb7adaa937a54749cdd4d67d",
+        "canonical_sha256": "f8e3da1351185b8d4c15d48e7643b535890410c0cb7adaa937a54749cdd4d67d",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_017.png": {
+        "zip_sha256": "08743b0d0cb7080e347be152529c94c97ef4838277c958e2cfd63f949793ea8a",
+        "canonical_sha256": "08743b0d0cb7080e347be152529c94c97ef4838277c958e2cfd63f949793ea8a",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_016.png": {
+        "zip_sha256": "606a04008003ae26476d842158dc535e0b8c810a31156d2c43bc73808323ea23",
+        "canonical_sha256": "606a04008003ae26476d842158dc535e0b8c810a31156d2c43bc73808323ea23",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_015.png": {
+        "zip_sha256": "6a5b5bbb951765fe2b56bae80aa4c7653e1846cb9a713c070368989134122811",
+        "canonical_sha256": "6a5b5bbb951765fe2b56bae80aa4c7653e1846cb9a713c070368989134122811",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_014.png": {
+        "zip_sha256": "672482a09e867919d75c0ae505fc1f6a80d62914d347facda25c53b65c841ace",
+        "canonical_sha256": "672482a09e867919d75c0ae505fc1f6a80d62914d347facda25c53b65c841ace",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_013.png": {
+        "zip_sha256": "a020f1e5c52fda54a25ce24b6c40ac707e36583faff9cecec0e4e6cef9941d67",
+        "canonical_sha256": "a020f1e5c52fda54a25ce24b6c40ac707e36583faff9cecec0e4e6cef9941d67",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_012.png": {
+        "zip_sha256": "d991f64a3e7e100aed1452f40f9cf8982320612866c3103997d9761dc7dd136c",
+        "canonical_sha256": "d991f64a3e7e100aed1452f40f9cf8982320612866c3103997d9761dc7dd136c",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_011.png": {
+        "zip_sha256": "f8a7956ef7ce5141f3b7cf43976c65df254a1181872cf021ea4746d03b802660",
+        "canonical_sha256": "f8a7956ef7ce5141f3b7cf43976c65df254a1181872cf021ea4746d03b802660",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_010.png": {
+        "zip_sha256": "93edb07fce1ee275b7dd956262d63d3b9021414c946aacc2b6c7da5b1b7911e2",
+        "canonical_sha256": "93edb07fce1ee275b7dd956262d63d3b9021414c946aacc2b6c7da5b1b7911e2",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_009.png": {
+        "zip_sha256": "b8a26379d6c04c199dddd6d712b0f80a26e35196aa40ebd9c2a33740e4616264",
+        "canonical_sha256": "b8a26379d6c04c199dddd6d712b0f80a26e35196aa40ebd9c2a33740e4616264",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_008.png": {
+        "zip_sha256": "d253703d5964be5f367691613a8d5818d6aad4280cf943dd63a84bf5033ab49d",
+        "canonical_sha256": "d253703d5964be5f367691613a8d5818d6aad4280cf943dd63a84bf5033ab49d",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_007.png": {
+        "zip_sha256": "50f54f4c86a3c14ed567560ddb156b2818046d992ac5c9cdc499972d848a8058",
+        "canonical_sha256": "50f54f4c86a3c14ed567560ddb156b2818046d992ac5c9cdc499972d848a8058",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_006.png": {
+        "zip_sha256": "d51451999c8602fe43f4aee6f4d34ede94808f18fe1a23d913c57e6a76ea7272",
+        "canonical_sha256": "d51451999c8602fe43f4aee6f4d34ede94808f18fe1a23d913c57e6a76ea7272",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_005.png": {
+        "zip_sha256": "581edc93742e7060fd070e3819dc571ad860e0cc53cc887aad584e173ff3d9ea",
+        "canonical_sha256": "581edc93742e7060fd070e3819dc571ad860e0cc53cc887aad584e173ff3d9ea",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_004.png": {
+        "zip_sha256": "38743c53221c96f66a406f9aea1793c22f9d20ca48d86af5f52b121ab736c41e",
+        "canonical_sha256": "38743c53221c96f66a406f9aea1793c22f9d20ca48d86af5f52b121ab736c41e",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_003.png": {
+        "zip_sha256": "08e1c398eaca161d49873932d10bc3052fe10b9a1e9a992f153887f20e39fa80",
+        "canonical_sha256": "08e1c398eaca161d49873932d10bc3052fe10b9a1e9a992f153887f20e39fa80",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_002.png": {
+        "zip_sha256": "dca241f871122483353e0ca30fcaf405cffd3215688ad8c4b6d9a3110e51eb80",
+        "canonical_sha256": "dca241f871122483353e0ca30fcaf405cffd3215688ad8c4b6d9a3110e51eb80",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_001.png": {
+        "zip_sha256": "5815abfcc03f4f03682262e1245dedd952b1e6a39313298fc5bb3d68165acf45",
+        "canonical_sha256": "5815abfcc03f4f03682262e1245dedd952b1e6a39313298fc5bb3d68165acf45",
+        "identical": true
+      },
+      "assets/Effects/explode/Effect_Explosion2_1_000.png": {
+        "zip_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "canonical_sha256": "38253cdcfbc3bdaeb3111e365fdae59144e7c06628d3eb4d2e6f4eb750a9b62e",
+        "identical": true
+      },
+      "assets/Effects/slash.png": {
+        "zip_sha256": "a3b8c1f7d37705b9ebdfb53763e9269d8e57ccf5131aec9a14ee50aa4dc44e81",
+        "canonical_sha256": "a3b8c1f7d37705b9ebdfb53763e9269d8e57ccf5131aec9a14ee50aa4dc44e81",
+        "identical": true
+      },
+      "assets/Effects/hit_effect.gd": {
+        "zip_sha256": "ba9f47b716d87d7e6a7db570bb21dd6f1b45eb84e7ee4f0e4843d43be49ac8e3",
+        "canonical_sha256": "ba9f47b716d87d7e6a7db570bb21dd6f1b45eb84e7ee4f0e4843d43be49ac8e3",
+        "identical": true
+      },
+      "Battle/Teacher_Battle.tscn": {
+        "zip_sha256": "9b64f04d7260a19e6777e2544b831c85fc72036e954338414cbc878026197d6d",
+        "canonical_sha256": "9b64f04d7260a19e6777e2544b831c85fc72036e954338414cbc878026197d6d",
+        "identical": true
+      },
+      "Battle/Teacher-Battle.png": {
+        "zip_sha256": "f600fcfadb0238c1868c64d7f4f365d265605be4c70b2ee99fbcc4aa776d66f0",
+        "canonical_sha256": "f600fcfadb0238c1868c64d7f4f365d265605be4c70b2ee99fbcc4aa776d66f0",
+        "identical": true
+      },
+      "Battle/player_female_battle.tscn": {
+        "zip_sha256": "4617fb71c9a8a228d2b535200bd5e2fe6d2711e4594afaa4748ad84b10a35a52",
+        "canonical_sha256": "4617fb71c9a8a228d2b535200bd5e2fe6d2711e4594afaa4748ad84b10a35a52",
+        "identical": true
+      },
+      "Battle/Player-Female-Battle.png": {
+        "zip_sha256": "7b3e724eab59203e00ba374971c093b4387ebdfdd070a46b2bec6a3d0d7c8f76",
+        "canonical_sha256": "7b3e724eab59203e00ba374971c093b4387ebdfdd070a46b2bec6a3d0d7c8f76",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/QuizManager.gd": {
+        "zip_sha256": "833048b2f1f2b0cb48e7b542f22b1eb6ba501aa9d35d02201f69a3afeb2af042",
+        "canonical_sha256": "62fdf29fda44a6c3b2fe72d417d73ea100e688b062a933f870ed7544fe7333d4",
+        "identical": false
+      },
+      "Battle/Bg-battle.tscn": {
+        "zip_sha256": "d5062a834fe657290baf6bf041e12d6eafc857abf522171393d4cf94bd495257",
+        "canonical_sha256": "d5062a834fe657290baf6bf041e12d6eafc857abf522171393d4cf94bd495257",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/battleBg.png": {
+        "zip_sha256": "b2c0bda4af0763a016948bcfa71651e2cea80ed5b60dc16203590b182330103f",
+        "canonical_sha256": "b2c0bda4af0763a016948bcfa71651e2cea80ed5b60dc16203590b182330103f",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/male_vs_teacher.tscn": {
+        "zip_sha256": "b456323b73c844b7d5ba9e512ce0243c67d38997557d453941b61621e7fc0209",
+        "canonical_sha256": "b456323b73c844b7d5ba9e512ce0243c67d38997557d453941b61621e7fc0209",
+        "identical": true
+      },
+      "Battle/Player-male-battle.tscn": {
+        "zip_sha256": "b6dbdbc87d74454c2a05d5f8902856bc9b5f53433440faeae0ea3114165e4f60",
+        "canonical_sha256": "b6dbdbc87d74454c2a05d5f8902856bc9b5f53433440faeae0ea3114165e4f60",
+        "identical": true
+      },
+      "Battle/Player-Male-Battle.png": {
+        "zip_sha256": "1fdfb6fbb1de8718b19485bc7f844dddef12292c38027d921a08ed1abc08ebb9",
+        "canonical_sha256": "1fdfb6fbb1de8718b19485bc7f844dddef12292c38027d921a08ed1abc08ebb9",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/female_vs_wizard1.tscn": {
+        "zip_sha256": "a9790a92d4c312102794703dfbcb3e5d5f87a096a552d091ba9705b6ae935763",
+        "canonical_sha256": "a9790a92d4c312102794703dfbcb3e5d5f87a096a552d091ba9705b6ae935763",
+        "identical": true
+      },
+      "Battle/Wizard-Battle.tscn": {
+        "zip_sha256": "69db76a8faee341ca8ea8c4b446ffbfc0fb81d77d61984afe0936bd786ea7330",
+        "canonical_sha256": "69db76a8faee341ca8ea8c4b446ffbfc0fb81d77d61984afe0936bd786ea7330",
+        "identical": true
+      },
+      "Battle/Wizard-Battle.png": {
+        "zip_sha256": "30ba69fdd83420c1d1d51ad1263db0bba89340307e2118e26f77caaadff57d4a",
+        "canonical_sha256": "30ba69fdd83420c1d1d51ad1263db0bba89340307e2118e26f77caaadff57d4a",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/male_vs_wizard.tscn": {
+        "zip_sha256": "ae3888789a293168c1c9bc52f51e26d85a59fce471582b21822a8084f208dc7c",
+        "canonical_sha256": "ae3888789a293168c1c9bc52f51e26d85a59fce471582b21822a8084f208dc7c",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/female_vs_boss_bandit.tscn": {
+        "zip_sha256": "5a273fc1282f4ddf86c6c32a8f09e47eb6a53e02a0725e4bd6bf7b0e0f2a2374",
+        "canonical_sha256": "5a273fc1282f4ddf86c6c32a8f09e47eb6a53e02a0725e4bd6bf7b0e0f2a2374",
+        "identical": true
+      },
+      "Battle/boss_bandit_battle.tscn": {
+        "zip_sha256": "5859a8933486cf4489132edc4cb724ddbb45c4f10a8350ad8bb279a33afc8ef7",
+        "canonical_sha256": "5859a8933486cf4489132edc4cb724ddbb45c4f10a8350ad8bb279a33afc8ef7",
+        "identical": true
+      },
+      "Battle/Boss-Bandit-Battle.png": {
+        "zip_sha256": "e357433ef48cfa749c29c7e4287542de9990cc9a160efa6b731493d415b67bb8",
+        "canonical_sha256": "e357433ef48cfa749c29c7e4287542de9990cc9a160efa6b731493d415b67bb8",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/male_vs_boss.tscn": {
+        "zip_sha256": "da38150a295948053a0d8d0bc96df3f05c0f2ad5ed044d26ea4a0434fec8e51e",
+        "canonical_sha256": "da38150a295948053a0d8d0bc96df3f05c0f2ad5ed044d26ea4a0434fec8e51e",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/female_vs_bandit.tscn": {
+        "zip_sha256": "361c553c05a36b9212b88a6140ec8b54cbffa0a9867ec152bcef279bda1ec887",
+        "canonical_sha256": "361c553c05a36b9212b88a6140ec8b54cbffa0a9867ec152bcef279bda1ec887",
+        "identical": true
+      },
+      "Battle/Bandit-Battle.tscn": {
+        "zip_sha256": "36e552609e897ab1380d17add5a4d8ce8018bcbcd7c6308fbdba0d85342f2ef2",
+        "canonical_sha256": "36e552609e897ab1380d17add5a4d8ce8018bcbcd7c6308fbdba0d85342f2ef2",
+        "identical": true
+      },
+      "Battle/Bandit-Battle.png": {
+        "zip_sha256": "24668f1f40d82c4e63571f93574efb9454f9563ffb9cc36abdaecb53f9a25cd7",
+        "canonical_sha256": "24668f1f40d82c4e63571f93574efb9454f9563ffb9cc36abdaecb53f9a25cd7",
+        "identical": true
+      },
+      "Battle/Battle-Enemy/male_vs_bandit.tscn": {
+        "zip_sha256": "59f17631c0e52483067d1a7919e9caae0d3cb7e6e47474937c4cd19717f5be9a",
+        "canonical_sha256": "59f17631c0e52483067d1a7919e9caae0d3cb7e6e47474937c4cd19717f5be9a",
+        "identical": true
+      }
+    }
+  },
+  "map_actors": [
+    {
+      "baseline": "ZIP",
+      "path": "scenes/oak_leaf_village.tscn",
+      "actors": [
+        {
+          "line": 1017,
+          "block": "[node name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(295, 300.99997)\nanimation = &\"right\""
+        },
+        {
+          "line": 1021,
+          "block": "[node name=\"BanditTaskTrigger\" type=\"Area2D\" parent=\"Bandits\" unique_id=1823517238 node_paths=PackedStringArray(\"ui_panel\")]\nposition = Vector2(0, 62.5)\nscale = Vector2(12.5, 12.5)\nscript = ExtResource(\"24_task\")\ntrigger_for_task_index = 2\nui_panel = NodePath(\"../../CanvasLayer/Panel\")"
+        },
+        {
+          "line": 1039,
+          "block": "[node name=\"Bandits2\" parent=\".\" unique_id=1778313031 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(422, 400)\nanimation = &\"left\""
+        },
+        {
+          "line": 1043,
+          "block": "[node name=\"Bandits3\" parent=\".\" unique_id=794017074 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(342, 423)"
+        },
+        {
+          "line": 1046,
+          "block": "[node name=\"Bandits4\" parent=\".\" unique_id=2144941427 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(278, 464)\nanimation = &\"up\""
+        },
+        {
+          "line": 1050,
+          "block": "[node name=\"Bandits5\" parent=\".\" unique_id=2105027165 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(251, 414)"
+        },
+        {
+          "line": 1053,
+          "block": "[node name=\"Boss-Bandit\" parent=\".\" unique_id=29164339 instance=ExtResource(\"27_0v1wo\")]\nposition = Vector2(119, 432)\nanimation = &\"right\""
+        },
+        {
+          "line": 1057,
+          "block": "[node name=\"BattleLayer\" type=\"CanvasLayer\" parent=\".\" unique_id=243336393]"
+        }
+      ]
+    },
+    {
+      "baseline": "canonical",
+      "path": "scenes/oak_leaf_village.tscn",
+      "actors": [
+        {
+          "line": 673,
+          "block": "[node name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(295, 300.99997)\nanimation = &\"right\""
+        },
+        {
+          "line": 677,
+          "block": "[node name=\"BanditTaskTrigger\" type=\"Area2D\" parent=\"Bandits\" unique_id=1823517238]\nposition = Vector2(0, 62.5)\nscale = Vector2(12.5, 12.5)\nscript = ExtResource(\"29_interactable\")\ninteraction_target_path = NodePath(\"TaskDialogAdapter\")\ninteraction_priority = 5"
+        },
+        {
+          "line": 695,
+          "block": "[node name=\"TaskDialogAdapter\" type=\"Node\" parent=\"Bandits/BanditTaskTrigger\" unique_id=1823517240]\nscript = ExtResource(\"30_taskdialog\")\nquest_ui_path = NodePath(\"../../../CanvasLayer/Panel\")\nrequire_task_index = 2"
+        },
+        {
+          "line": 700,
+          "block": "[node name=\"Bandits2\" parent=\".\" unique_id=1778313031 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(422, 400)\nanimation = &\"left\""
+        },
+        {
+          "line": 704,
+          "block": "[node name=\"Bandits3\" parent=\".\" unique_id=794017074 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(342, 423)"
+        },
+        {
+          "line": 707,
+          "block": "[node name=\"Bandits4\" parent=\".\" unique_id=2144941427 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(278, 464)\nanimation = &\"up\""
+        },
+        {
+          "line": 711,
+          "block": "[node name=\"Bandits5\" parent=\".\" unique_id=2105027165 instance=ExtResource(\"23_p077x\")]\nposition = Vector2(251, 414)"
+        },
+        {
+          "line": 714,
+          "block": "[node name=\"Boss-Bandit\" parent=\".\" unique_id=29164339 instance=ExtResource(\"27_0v1wo\")]\nposition = Vector2(119, 432)\nanimation = &\"right\""
+        },
+        {
+          "line": 718,
+          "block": "[node name=\"BattleLayer\" type=\"CanvasLayer\" parent=\".\" unique_id=243336393]"
+        }
+      ]
+    },
+    {
+      "baseline": "ZIP",
+      "path": "scenes/city_of_knowledge.tscn",
+      "actors": [
+        {
+          "line": 1456,
+          "block": "[node name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(114, 487)\nanimation = &\"right\""
+        },
+        {
+          "line": 1460,
+          "block": "[node name=\"Bandits2\" parent=\".\" unique_id=1760417206 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(171, 463)\nanimation = &\"left\""
+        },
+        {
+          "line": 1464,
+          "block": "[node name=\"Bandits3\" parent=\".\" unique_id=1038880827 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(84, 425)\nanimation = &\"right\""
+        },
+        {
+          "line": 1468,
+          "block": "[node name=\"Bandits4\" parent=\".\" unique_id=334121162 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(265, 325)\nanimation = &\"up\""
+        },
+        {
+          "line": 1472,
+          "block": "[node name=\"Bandits5\" parent=\".\" unique_id=1613646875 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(327, 237)"
+        }
+      ]
+    },
+    {
+      "baseline": "canonical",
+      "path": "scenes/city_of_knowledge.tscn",
+      "actors": [
+        {
+          "line": 1084,
+          "block": "[node name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(114, 487)"
+        },
+        {
+          "line": 1090,
+          "block": "[node name=\"Bandits2\" parent=\".\" unique_id=1760417206 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(171, 463)"
+        },
+        {
+          "line": 1096,
+          "block": "[node name=\"Bandits3\" parent=\".\" unique_id=1038880827 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(84, 425)"
+        },
+        {
+          "line": 1102,
+          "block": "[node name=\"Bandits4\" parent=\".\" unique_id=334121162 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(265, 325)"
+        },
+        {
+          "line": 1108,
+          "block": "[node name=\"Bandits5\" parent=\".\" unique_id=1613646875 instance=ExtResource(\"26_gdmg8\")]\nposition = Vector2(327, 237)"
+        }
+      ]
+    },
+    {
+      "baseline": "ZIP",
+      "path": "scenes/2nd Village/Pinehill Village.tscn",
+      "actors": [
+        {
+          "line": 1035,
+          "block": "[node name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"26_ej7ce\")]\nposition = Vector2(1180, 78)\nanimation = &\"left\""
+        },
+        {
+          "line": 1039,
+          "block": "[node name=\"Bandits2\" parent=\".\" unique_id=586527210 instance=ExtResource(\"26_ej7ce\")]\nposition = Vector2(1151, 102)\nanimation = &\"right\""
+        },
+        {
+          "line": 1043,
+          "block": "[node name=\"Bandits3\" parent=\".\" unique_id=960723343 instance=ExtResource(\"26_ej7ce\")]\nposition = Vector2(1135, 128)\nanimation = &\"up\""
+        },
+        {
+          "line": 1047,
+          "block": "[node name=\"Bandits4\" parent=\".\" unique_id=526605087 instance=ExtResource(\"26_ej7ce\")]\nposition = Vector2(1016, 110)"
+        },
+        {
+          "line": 1050,
+          "block": "[node name=\"Boss-Wizard\" parent=\".\" unique_id=425286597 instance=ExtResource(\"27_p8vfn\")]\nposition = Vector2(1172, 52)\nscale = Vector2(0.5, 0.5)"
+        }
+      ]
+    },
+    {
+      "baseline": "canonical",
+      "path": "scenes/2nd Village/Pinehill Village.tscn",
+      "actors": [
+        {
+          "line": 666,
+          "block": "[node name=\"Bandits\" parent=\".\" unique_id=8116170 instance=ExtResource(\"26_ej7ce\")]\nposition = Vector2(1180, 78)\nanimation = &\"left\""
+        },
+        {
+          "line": 670,
+          "block": "[node name=\"Bandits2\" parent=\".\" unique_id=586527210 instance=ExtResource(\"26_ej7ce\")]\nposition = Vector2(1151, 102)\nanimation = &\"right\""
+        },
+        {
+          "line": 674,
+          "block": "[node name=\"Bandits3\" parent=\".\" unique_id=960723343 instance=ExtResource(\"26_ej7ce\")]\nposition = Vector2(1135, 128)\nanimation = &\"up\""
+        },
+        {
+          "line": 678,
+          "block": "[node name=\"Bandits4\" parent=\".\" unique_id=526605087 instance=ExtResource(\"26_ej7ce\")]\nposition = Vector2(1016, 110)"
+        },
+        {
+          "line": 681,
+          "block": "[node name=\"Boss-Wizard\" parent=\".\" unique_id=425286597 instance=ExtResource(\"27_p8vfn\")]\nposition = Vector2(1172, 52)\nscale = Vector2(0.5, 0.5)"
+        }
+      ]
+    }
+  ],
+  "inactive_resource_callers": {
+    "scripts/game_over.gd": {
+      "zip": [],
+      "canonical": []
+    },
+    "world/Task1.gd": {
+      "zip": [
+        {
+          "path": "interiors/teacher_house.tscn",
+          "line": 27,
+          "text": "[ext_resource type=\"Script\" uid=\"uid://c0jg3gqbauv5\" path=\"res://world/Task1.gd\" id=\"25_gfwfy\"]"
+        },
+        {
+          "path": "scenes/oak_leaf_village.tscn",
+          "line": 27,
+          "text": "[ext_resource type=\"Script\" uid=\"uid://c0jg3gqbauv5\" path=\"res://world/Task1.gd\" id=\"24_task\"]"
+        }
+      ],
+      "canonical": []
+    },
+    "world/Task3.gd": {
+      "zip": [],
+      "canonical": []
+    },
+    "world/Quest3.gd": {
+      "zip": [],
+      "canonical": []
+    },
+    "interiors/Task2.gd": {
+      "zip": [],
+      "canonical": []
+    },
+    "interiors/Quest2.gd": {
+      "zip": [],
+      "canonical": []
+    },
+    "Battle/Battle-Enemy/male_vs_boss_bandit.tscn": {
+      "zip": [],
+      "canonical": []
+    }
+  },
+  "known_regressions": {
+    "newly_proven_current_battle_presentation_or_route_regressions": [],
+    "historical_terminal_effect_truncation": "Already repaired in canonical HEAD 3d846de; QuizManager._finish_battle awaits existing animation_finished before battle_finished. Existing staged analytics is separate and preserved.",
+    "first_female_route": "ZIP lacks gender branch; current pre-existing QuestUI female substitution selects original female_vs_bandit. Do not regress this improvement."
+  },
+  "source_gaps": [
+    "No milestones or encounter callers for other four Oakleaf Bandits, Oakleaf Boss Bandit, five City Bandits, four Pinehill Bandits, Pinehill Wizard, or final Teacher battle.",
+    "No gameplay writer sets city_of_knowledge_unlocked true; load can restore it.",
+    "No authoritative whole-game milestone denominator."
+  ],
+  "critical_source_snapshot": {
+    "project.godot": "de69cdb2614e7be28da34e40a4a2435ee8f9e2765e86df7b84da7a381bbd0bb7",
+    "world/QuestUI.gd": "2942bca6d52cf7deaef56482eb1eb8cc13a8b7ad530daa80e573f5aadb370448",
+    "scripts/game_state.gd": "41859e50cebf551e04511b43633c97da674a7531d80842440cafe4cf70d12a06",
+    "Battle/Battle-Enemy/QuizManager.gd": "62fdf29fda44a6c3b2fe72d417d73ea100e688b062a933f870ed7544fe7333d4",
+    "scripts/question_provider.gd": "59b258d7bcebd2e76f39f1d92dec3e1952c299591359bd5840a521fc5870d381",
+    "scripts/remote_sync.gd": "03c02cede01cc52241b452c56ef57b8a8497c2e69fad7738fcf0b77587cc0e76",
+    "scripts/task_dialogue_adapter.gd": "2a49598eef53f6ee516f3750011409d837a5d156c2e1fc1c7381f62e2cc679bb",
+    "scripts/game_over.gd": "835cce6ee85196e591b00874878cadb95f60bf9f9d7dbf87efd8e573dfb8733e",
+    "scripts/game_over_scene.gd": "4f374a25440708d43fe4ad59d01e73173a65933ae38f0958913c1feeb13e9174"
+  },
+  "runtime_followup": {
+    "source_only_conclusion_superseded": true,
+    "proven_defect": "Original VS canvas inherited world Camera2D; original question CanvasLayer alone remained in viewport",
+    "focused_file": "world/QuestUI.gd",
+    "original_scene_and_asset_edits": 0,
+    "canonical_actual_encounter_checks": {
+      "pass": 107,
+      "fail": 0
+    },
+    "all_original_variant_checks": {
+      "pass": 594,
+      "fail": 0,
+      "cases": 16
+    },
+    "human_recheck_pending": true,
+    "later_routing_gaps_unchanged": true,
+    "concurrent_map_preservation_gate": "RESOLVED; original copies and diffs retained; canonical source/runtime verified",
+    "map_drift_correction": "29 reviewed reverse hunks applied with explicit user authorization; all three intended source hashes match; archive UIDs isolated with docs/qa/.gdignore; fresh civilian snapshot gate 331/0."
+  }
+}

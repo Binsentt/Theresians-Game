@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/gameplay_legacy_contract_suite.gd" id="1_7tvhh"]
+
+[node name="root" type="Node" unique_id=87003751]
+script = ExtResource("1_7tvhh")

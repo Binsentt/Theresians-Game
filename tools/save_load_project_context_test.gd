@@ -1,7 +1,6 @@
 extends Node
 
 const TEST_SCENE := "res://interiors/player_house.tscn"
-const TEST_SAVE := "user://saves/project_context_verification_save.json"
 const PREVIOUS_SCHEMA_SAVE := "user://saves/project_context_previous_schema_save.json"
 
 var _failures: Array[String] = []
@@ -13,7 +12,16 @@ func _ready() -> void:
 
 func _run() -> void:
 	_promote_to_root()
-	# This scene is only run from the disposable project identity created by the verifier.
+	# Keep the real serializer/loader while isolating writes in this canonical run.
+	for autoload_name in ["RemoteSync", "HttpApi"]:
+		var autoload := get_node_or_null("/root/" + autoload_name)
+		if autoload != null:
+			autoload.free()
+	GameState.set_script(load("res://tools/preservation_regression_state.gd"))
+	if FileAccess.file_exists(PREVIOUS_SCHEMA_SAVE):
+		_assert(false, "Previous-schema fixture path must be absent; existing user data is preserved")
+		_finish()
+		return
 	GameState.apply_save_data({
 		"save_version": GameState.SAVE_VERSION,
 		"player_name": "Verification Student",
@@ -37,7 +45,7 @@ func _run() -> void:
 	_assert(GameState.current_scene_path == TEST_SCENE, "Load restores the saved scene")
 	_assert(GameState.player_position == Vector2(128.0, 96.0), "Load restores player position")
 	_assert(GameState.current_lives == 2 and GameState.max_lives == 3, "Load restores player lives")
-	_assert(GameState.current_task_index == 2 and GameState.current_quest == "Verification Quest", "Load restores quest progress")
+	_assert(GameState.current_task_index == 2 and GameState.current_quest == String(GameState.tasks[2].get("quest_text", "")), "Load restores the authoritative checkpoint and reconciles its saved quest title")
 
 	var previous_file := FileAccess.open(PREVIOUS_SCHEMA_SAVE, FileAccess.WRITE)
 	_assert(previous_file != null, "Previous-schema fixture can be created in isolated user data")
@@ -56,7 +64,6 @@ func _run() -> void:
 		_assert(GameState.current_task_index == GameState.tasks.size(), "Existing compatibility clamps old task indexes safely")
 
 	_cleanup_file(save_path)
-	_cleanup_file(TEST_SAVE)
 	_cleanup_file(PREVIOUS_SCHEMA_SAVE)
 	_finish()
 

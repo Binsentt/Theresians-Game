@@ -37,6 +37,9 @@ func _property_value(instance: Object, candidates: Array[String]) -> Variant:
 	return null
 
 func _stop_loading_timers(loading: Node) -> void:
+	# These fixtures inspect the controller without allowing it to replace the
+	# runner's scene. Its real background resource jobs are drained before exit.
+	loading.set_process(false)
 	for timer_name in ["DotsTimer", "ProgressTimer", "StartTimer"]:
 		var timer := _find_named(loading, timer_name) as Timer
 		if timer != null:
@@ -174,6 +177,14 @@ func _run() -> void:
 				_fail("GameOverSound stream or bus is incorrect")
 		game_over.queue_free()
 
+	for destination in ["res://scenes/main_menu.tscn", "res://interiors/player_house.tscn"]:
+		while ResourceLoader.load_threaded_get_status(destination) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			await get_tree().process_frame
+		if ResourceLoader.load_threaded_get_status(destination) == ResourceLoader.THREAD_LOAD_LOADED:
+			if ResourceLoader.load_threaded_get(destination) == null:
+				_fail("Prepared destination fails to load: " + destination)
+		elif ResourceLoader.load_threaded_get_status(destination) == ResourceLoader.THREAD_LOAD_FAILED:
+			_fail("Prepared destination fails to load: " + destination)
 	if failures.is_empty():
 		print("PRODUCTION_POLISH_GODOT_TEST PASSED")
 		get_tree().quit(0)

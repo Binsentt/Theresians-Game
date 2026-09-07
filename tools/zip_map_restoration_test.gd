@@ -136,7 +136,7 @@ func _presentation() -> void:
 			await _frames(6)
 			var rect := panel.get_global_rect()
 			var viewport := panel.get_viewport_rect().size
-			_expect(absf(rect.get_center().x - viewport.x * 0.5) < 1.0 and absf(rect.get_center().y - viewport.y * 0.62) < 1.0, path + " shared dialogue lower-middle at " + str(window_size))
+			_expect(absf(rect.get_center().x - viewport.x * 0.5) < 1.0 and absf(viewport.y - rect.end.y - 40.0) < 1.5, path + " shared dialogue bottom-center at " + str(window_size))
 			_expect(not rect.intersects(_button(scene).get_global_rect()), path + " dialogue does not overlap ACT at " + str(window_size))
 			_expect(_button(scene).is_visible_in_tree() and not _button(scene, "up").is_visible_in_tree(), path + " existing dialogue control lifecycle unchanged")
 			observations[path + str(window_size)] = {"dialogue": str(rect), "viewport": str(viewport), "act": str(_button(scene).get_global_rect())}

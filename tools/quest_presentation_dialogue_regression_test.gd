@@ -369,7 +369,7 @@ func _exercise_scene_contracts(_manager: Node) -> void:
     var oak_leaf_source := _read_source("res://scenes/oak_leaf_village.tscn")
     var greeting_source := _read_source("res://NPC/Npc/old_adult_women_Dialog.gd")
     _expect(
-        oak_leaf_source.count("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"]") == 1,
+        oak_leaf_source.count("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"") == 1,
         "Oak Leaf must contain exactly one shared DialoguePanel."
     )
     _expect(
@@ -378,7 +378,7 @@ func _exercise_scene_contracts(_manager: Node) -> void:
     )
     _expect(
         oak_leaf_source.contains("[node name=\"QuestText\" type=\"Label\" parent=\"CanvasLayer/Panel\"")
-            and oak_leaf_source.contains("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"]"),
+            and oak_leaf_source.contains("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\""),
         "The legacy QuestUI bridge and one DialoguePanel must remain separate."
     )
 

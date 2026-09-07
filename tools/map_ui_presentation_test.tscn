@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/map_ui_presentation_test.gd" id="1_mwntc"]
+
+[node name="root" type="Node" unique_id=1191415213]
+script = ExtResource("1_mwntc")

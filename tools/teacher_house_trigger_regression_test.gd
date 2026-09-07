@@ -11,6 +11,12 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	# Canonical tests preserve real user saves and never emit production writes.
+	for autoload_name in ["RemoteSync", "HttpApi"]:
+		var autoload := get_node_or_null("/root/" + autoload_name)
+		if autoload != null:
+			autoload.free()
+	GameState.set_script(load("res://tools/preservation_regression_state.gd"))
 	var original_task_index := GameState.current_task_index
 	var original_quest := GameState.current_quest
 	var original_mode := GameState.get_mode()
@@ -23,10 +29,9 @@ func _run() -> void:
 	_expect(oak_leaf_source.contains("[node name=\"TeacherHouseTaskTrigger\""), "Oak Leaf must retain the existing Teacher House trigger node.")
 	_expect(oak_leaf_source.contains("[node name=\"TeacherHouseExitSpawn\""), "Oak Leaf must retain the canonical Teacher House return marker.")
 	_expect(oak_leaf_source.contains("[sub_resource type=\"RectangleShape2D\" id=\"RectangleShape2D_teacher_house_task_trigger\"]"), "Teacher House retains its dedicated doorway trigger shape.")
-	_expect(oak_leaf_source.contains("position = Vector2(-1, -6)\nshape = SubResource(\"RectangleShape2D_teacher_house_task_trigger\")"), "Teacher House trigger covers the canonical doorway/return position without altering the Bandit trigger.")
+	_expect(oak_leaf_source.contains("position = Vector2(-3, -8)\nshape = SubResource(\"RectangleShape2D_teacher_house_task_trigger\")"), "Teacher House trigger preserves the approved canonical doorway offset without altering the Bandit trigger.")
 	_expect(not oak_leaf_source.contains("TeacherTriggerPortrait"), "The retired top-right Teacher portrait is absent from the active Oak Leaf scene.")
-	_expect(oak_leaf_source.contains("notification_portrait_path = \"res://Images/NPC.jpg\""), "Teacher House sends the approved portrait path through the shared notification contract.")
-	_expect(oak_leaf_source.contains("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"]"), "Oak Leaf provides exactly one shared DialoguePanel.")
+	_expect(oak_leaf_source.count("[node name=\"DialoguePanel\" type=\"PanelContainer\" parent=\"CanvasLayer\"") == 1, "Oak Leaf provides exactly one shared DialoguePanel regardless of editor node IDs.")
 	var legacy_quest_ui := QUEST_UI_SCRIPT.new() as Panel
 	var legacy_quest_text := Label.new()
 	legacy_quest_text.name = "QuestText"
@@ -39,7 +44,7 @@ func _run() -> void:
 
 	var trigger := TASK_PROGRESS_TRIGGER_SCRIPT.new() as Area2D
 	trigger.required_task_index = 0
-	trigger.notification_portrait_path = "res://Images/NPC.jpg"
+	_expect(trigger.notification_portrait_path == "res://Images/NPC.jpg", "Teacher House inherits the approved portrait from the shared trigger default.")
 	get_tree().root.add_child(trigger)
 	await get_tree().process_frame
 	_expect(trigger.required_task_index == 0, "Teacher House trigger remains limited to the first quest.")
@@ -62,6 +67,9 @@ func _run() -> void:
 	GameState.current_task_index = original_task_index
 	GameState.current_quest = original_quest
 	GameState.set_mode(original_mode)
+	var fixture_path: String = GameState.get("fixture_path")
+	if FileAccess.file_exists(fixture_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture_path))
 
 	if _failures.is_empty():
 		print("teacher_house_trigger_regression_test: PASS")

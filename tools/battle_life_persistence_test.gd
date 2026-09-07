@@ -36,6 +36,9 @@ func _run() -> void:
 	var legacy := GameStateScript.new()
 	legacy.apply_save_data({"player_name": "Legacy", "learning_cycle_version": 0}, false)
 	_expect(legacy.current_lives == 3, "A legacy save without life fields must use the safe canonical default.")
+	state.free()
+	loaded.free()
+	legacy.free()
 	_finish()
 
 
