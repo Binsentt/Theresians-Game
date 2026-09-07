@@ -51,7 +51,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if _touch_trigger_consumed:
 		return
 	_touch_trigger_consumed = true
-	_begin_transition(body)
+	_begin_transition.call_deferred(body)
 
 func _on_body_exited(body: Node2D) -> void:
 	if body == null or body != _player_in_range:
@@ -62,7 +62,9 @@ func _on_body_exited(body: Node2D) -> void:
 func _begin_transition(body: Node2D) -> void:
 	if is_transitioning:
 		return
-	if body == null or not _is_player(body):
+	if not is_inside_tree() or not is_instance_valid(body) or not body.is_inside_tree():
+		return
+	if not _is_player(body):
 		return
 	if requires_city_of_knowledge_unlock and not GameState.city_of_knowledge_unlocked:
 		return

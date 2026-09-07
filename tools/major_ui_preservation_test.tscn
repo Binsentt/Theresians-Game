@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/major_ui_preservation_test.gd" id="1_xsdh1"]
+
+[node name="root" type="Node" unique_id=731455597]
+script = ExtResource("1_xsdh1")

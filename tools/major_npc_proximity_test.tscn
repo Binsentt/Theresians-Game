@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/major_npc_proximity_test.gd" id="1_p05l3"]
+
+[node name="root" type="Node" unique_id=1258067105]
+script = ExtResource("1_p05l3")

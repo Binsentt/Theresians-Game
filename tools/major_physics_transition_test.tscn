@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/major_physics_transition_test.gd" id="1_3bs6t"]
+
+[node name="root" type="Node" unique_id=1245786598]
+script = ExtResource("1_3bs6t")

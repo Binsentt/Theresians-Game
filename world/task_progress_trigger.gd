@@ -44,7 +44,7 @@ func _on_body_entered(body: Node2D) -> void:
 		return
 
 	_consumed = true
-	monitoring = false
+	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 	task_triggered.emit({
 		"type": "task_trigger",

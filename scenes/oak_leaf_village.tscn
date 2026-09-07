@@ -244,13 +244,13 @@ physics_layer_0/collision_layer = 1
 sources/0 = SubResource("TileSetAtlasSource_1km1q")
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0r4je"]
-size = Vector2(48.461914, 84.61542)
+size = Vector2(12, 10)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_7cmds"]
 size = Vector2(50, 100)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sbohv"]
-size = Vector2(66.66492, 111.11133)
+size = Vector2(12, 10)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bvw5x"]
 size = Vector2(92.30762, 138.46143)
@@ -521,7 +521,7 @@ quest_ui_path = NodePath("../../CanvasLayer/Panel")
 [node name="Area2D" type="Area2D" parent="girl_npc" unique_id=1965730284]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="girl_npc/Area2D" unique_id=626135846]
-position = Vector2(14.230469, -3.8459473)
+position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_0r4je")
 
 [node name="InteractableArea" type="Area2D" parent="girl_npc" unique_id=995001123]
@@ -570,7 +570,7 @@ quest_ui_path = NodePath("../../CanvasLayer/Panel")
 [node name="Area2D" type="Area2D" parent="villager-female" unique_id=458782454]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="villager-female/Area2D" unique_id=852987118]
-position = Vector2(-0.0009765625, 0)
+position = Vector2(0, 4)
 scale = Vector2(1.0000001, 1.0000001)
 shape = SubResource("RectangleShape2D_sbohv")
 
