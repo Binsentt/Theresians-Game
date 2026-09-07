@@ -886,7 +886,7 @@ editable_children = true
 z_index = 1
 position = Vector2(1174, 176)
 
-[node name="Visual" parent="girl_npc" index=0 node_paths=PackedStringArray("quest_ui_path")]
+[node name="Visual" parent="girl_npc" index=0]
 animation = &"walk_down"
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
@@ -930,7 +930,7 @@ editable_children = true
 z_index = 1
 position = Vector2(976.99994, 468.99997)
 
-[node name="Visual" parent="villager-female" index=0 node_paths=PackedStringArray("quest_ui_path")]
+[node name="Visual" parent="villager-female" index=0]
 scale = Vector2(0.09, 0.09)
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")

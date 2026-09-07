@@ -7,6 +7,7 @@ const EDITOR_TEST_ENVIRONMENT := "THERESIANS_MOBILE_CONTROLS_TEST"
 @export var force_visible_for_testing: bool = false
 
 @onready var root: Control = $Root
+@onready var movement_margin: Control = $Root/MovementMargin
 @onready var up_button: TouchHoldButton = $Root/MovementMargin/MovementPanel/MovementBox/TopRow/UpButton
 @onready var left_button: TouchHoldButton = $Root/MovementMargin/MovementPanel/MovementBox/MiddleRow/LeftButton
 @onready var right_button: TouchHoldButton = $Root/MovementMargin/MovementPanel/MovementBox/MiddleRow/RightButton
@@ -127,12 +128,20 @@ func _update_visibility() -> void:
 	if not is_inside_tree():
 		return
 
-	var should_show: bool = _is_exploration_mode() \
-			and not InputManager.is_input_locked() \
-			and (force_visible_for_testing \
+	var available: bool = not InputManager.is_input_locked() \
+			and (OS.is_debug_build() \
+					or force_visible_for_testing \
 					or _is_explicit_editor_test_mode() \
 					or OS.has_feature("mobile") \
 					or DisplayServer.is_touchscreen_available())
+	var show_movement := available and _is_exploration_mode()
+	var should_show := available and (_is_exploration_mode() or GameState.get_mode() == GameState.GameMode.DIALOGUE)
+	movement_margin.visible = show_movement
+	if not show_movement:
+		up_button.force_release()
+		left_button.force_release()
+		right_button.force_release()
+		down_button.force_release()
 	if should_show:
 		action_margin.visible = true
 		action_panel.visible = true

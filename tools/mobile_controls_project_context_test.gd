@@ -88,7 +88,7 @@ func _run() -> void:
 
 	GameState.set_mode(GameState.GameMode.DIALOGUE)
 	await _wait_frames(2)
-	_assert(not controls.visible, "Dialogue mode hides mobile controls")
+	_assert(not up_button.is_visible_in_tree() and action_button.is_visible_in_tree(), "Dialogue hides movement and retains the existing Interact continuation")
 	_assert(InputManager.get_movement_vector() == Vector2.ZERO, "Dialogue mode clears held mobile movement")
 	GameState.set_mode(GameState.GameMode.EXPLORATION)
 	InputManager.lock_input("project_context_mobile_test")

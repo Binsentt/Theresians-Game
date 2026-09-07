@@ -15,6 +15,11 @@ var _tutorial_activity_completed = false
 
 func _ready():
 	panel.visible = false
+	# E/Space are handled by the shared Interact action, not a second focused
+	# Button activation on key release. Mouse/touch Next remains unchanged.
+	panel.get_node("Button").focus_mode = Control.FOCUS_NONE
+	if not GameState.is_tutorial_active():
+		hide_npc()
 
 func _physics_process(delta):
 	if timer < move_time:
@@ -32,9 +37,35 @@ func _physics_process(delta):
 
 # 👉 START
 func start_tutorial():
+	if not GameState.is_tutorial_active():
+		return
 	panel.visible = true
 	step = 0
 	show_step()
+	InteractionManager.register(self)
+
+
+func can_interact() -> bool:
+	return GameState.is_tutorial_active() and panel.visible
+
+
+func interact() -> bool:
+	if not can_interact():
+		return false
+	next_step()
+	return true
+
+
+func get_interaction_position() -> Vector2:
+	return global_position
+
+
+func get_interaction_priority() -> int:
+	return 100
+
+
+func _exit_tree() -> void:
+	InteractionManager.unregister(self)
 
 
 # 👉 SHOW CURRENT STEP
@@ -94,6 +125,7 @@ func next_step():
 
 func hide_npc():
 	print("Hiding full NPCTeacher")
+	InteractionManager.unregister(self)
 
 	# stop logic
 	set_physics_process(false)
@@ -102,7 +134,7 @@ func hide_npc():
 	# disable collision
 	var col = get_node_or_null("CollisionShape2D")
 	if col:
-		col.disabled = true
+		col.set_deferred("disabled", true)
 
 	# hide ALL children visually
 	for child in get_children():

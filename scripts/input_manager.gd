@@ -6,6 +6,7 @@ const DIRECTION_LEFT := "left"
 const DIRECTION_RIGHT := "right"
 const DIRECTION_UP := "up"
 const DIRECTION_DOWN := "down"
+const ACTION_INTERACT: StringName = &"interact"
 
 var movement_vector: Vector2 = Vector2.ZERO
 var interact_pressed: bool = false
@@ -17,9 +18,20 @@ var _mobile_right: bool = false
 var _mobile_up: bool = false
 var _mobile_down: bool = false
 var _mobile_interact_pressed: bool = false
+var _interact_edge_frame: int = -1
 
 
 func _ready() -> void:
+	# Restore the preserved E/Space interaction mapping only when absent.
+	# Keep existing configured bindings and menu/text-entry actions intact.
+	if not InputMap.has_action(ACTION_INTERACT):
+		InputMap.add_action(ACTION_INTERACT)
+		var letter := InputEventKey.new()
+		letter.physical_keycode = KEY_E
+		InputMap.action_add_event(ACTION_INTERACT, letter)
+		var space := InputEventKey.new()
+		space.keycode = KEY_SPACE
+		InputMap.action_add_event(ACTION_INTERACT, space)
 	call_deferred("_connect_lifecycle_signals")
 
 
@@ -41,13 +53,33 @@ func _connect_lifecycle_signals() -> void:
 	if scene_tree != null and not scene_tree.scene_changed.is_connected(_on_scene_changed):
 		scene_tree.scene_changed.connect(_on_scene_changed)
 
+func _input(event: InputEvent) -> void:
+	# Capture short keyboard taps even when both events arrive between frames.
+	if not is_input_locked() and event.is_action(ACTION_INTERACT):
+		_update_interact_state()
+
+
 func _process(_delta: float) -> void:
 	if is_input_locked():
 		clear_mobile_state()
 		return
 
 	movement_vector = _get_mobile_vector()
-	interact_pressed = _mobile_interact_pressed
+	if Engine.get_process_frames() > _interact_edge_frame + 1:
+		interact_just_pressed = false
+	_update_interact_state()
+
+
+func _update_interact_state() -> void:
+	var held := _mobile_interact_pressed or _keyboard_interact_held()
+	if held and not interact_pressed:
+		interact_just_pressed = true
+		_interact_edge_frame = Engine.get_process_frames()
+	interact_pressed = held
+
+
+func _keyboard_interact_held() -> bool:
+	return InputMap.has_action(ACTION_INTERACT) and Input.is_action_pressed(ACTION_INTERACT)
 
 func get_movement_vector() -> Vector2:
 	return movement_vector
@@ -81,12 +113,8 @@ func set_mobile_interact_pressed(held: bool) -> void:
 	if is_input_locked():
 		return
 
-	if held and not _mobile_interact_pressed:
-		interact_just_pressed = true
 	_mobile_interact_pressed = held
-	if not held:
-		interact_pressed = false
-		interact_just_pressed = false
+	_update_interact_state()
 
 func clear_mobile_state() -> void:
 	_mobile_left = false
@@ -95,7 +123,7 @@ func clear_mobile_state() -> void:
 	_mobile_down = false
 	_mobile_interact_pressed = false
 	movement_vector = Vector2.ZERO
-	interact_pressed = false
+	interact_pressed = _keyboard_interact_held()
 	interact_just_pressed = false
 
 func lock_input(reason: String = "global") -> void:
@@ -114,7 +142,7 @@ func unlock_input(reason: String = "global") -> void:
 	if normalized_reason.is_empty():
 		normalized_reason = "global"
 	_input_lock_reasons.erase(normalized_reason)
-	interact_pressed = false
+	interact_pressed = _keyboard_interact_held()
 	interact_just_pressed = false
 	if was_locked and not is_input_locked():
 		input_lock_changed.emit(false)
@@ -128,7 +156,13 @@ func _get_mobile_vector() -> Vector2:
 	return Vector2(x_axis, y_axis).limit_length(1.0)
 
 func _on_game_mode_changed(_previous_mode: Variant, current_mode: Variant) -> void:
-	if current_mode != GameState.GameMode.EXPLORATION:
+	if current_mode == GameState.GameMode.DIALOGUE:
+		_mobile_left = false
+		_mobile_right = false
+		_mobile_up = false
+		_mobile_down = false
+		movement_vector = Vector2.ZERO
+	elif current_mode != GameState.GameMode.EXPLORATION:
 		clear_mobile_state()
 
 

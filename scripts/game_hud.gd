@@ -106,6 +106,8 @@ func _update_quest_label() -> void:
 
 
 func _get_active_quest_text() -> String:
+	if GameState.is_tutorial_active():
+		return GameState.TUTORIAL_QUEST
 	if GameState.current_task_index >= 0 and GameState.current_task_index < GameState.tasks.size():
 		return String(GameState.tasks[GameState.current_task_index].get("quest_text", "")).strip_edges()
 

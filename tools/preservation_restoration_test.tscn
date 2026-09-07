@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/preservation_restoration_test.gd" id="1_bkb60"]
+
+[node name="root" type="Node" unique_id=1359679354]
+script = ExtResource("1_bkb60")

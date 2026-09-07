@@ -21,6 +21,7 @@ enum GameMode { EXPLORATION, DIALOGUE, CUTSCENE, BATTLE, MENU }
 const SAVE_VERSION := 8
 const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
+const TUTORIAL_QUEST := "Tutorial"
 const SAVE_DIRECTORY := "user://saves"
 const VALID_REGISTRATION_GRADES := ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
 
@@ -212,6 +213,7 @@ func advance_task_and_save(event: Dictionary) -> Dictionary:
 
 	var previous_index := current_task_index
 	current_task_index += 1
+	current_quest = String(tasks[current_task_index].get("quest_text", "")) if current_task_index < tasks.size() else DEFAULT_QUEST
 	var save_path := save_game()
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_notify_progress(event)
@@ -240,7 +242,7 @@ func get_task_activity_metadata(task_index: int) -> Dictionary:
 
 
 func emit_tutorial_activity_started() -> bool:
-	if _tutorial_activity_started or current_task_index != 0:
+	if _tutorial_activity_started or not is_tutorial_active():
 		return false
 	var tutorial_metadata := _get_tutorial_activity_metadata()
 	if tutorial_metadata.is_empty():
@@ -256,13 +258,19 @@ func emit_tutorial_activity_started() -> bool:
 	return true
 
 
+func is_tutorial_active() -> bool:
+	return current_task_index == 0 and not _tutorial_activity_completed
+
+
 func complete_tutorial_activity() -> bool:
-	if _tutorial_activity_completed:
+	if not is_tutorial_active():
 		return false
 	var tutorial_metadata := _get_tutorial_activity_metadata()
 	if tutorial_metadata.is_empty():
 		return false
 	_tutorial_activity_completed = true
+	current_quest = String(tasks[0].get("quest_text", ""))
+	quest_changed.emit(current_quest)
 	canonical_activity_boundary.emit({
 		"type": "task_completed",
 		"key": "tutorial:complete",
@@ -398,7 +406,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	parent_id = String(profile.get("parent_id", ""))
 	set_learning_cycle(profile.get("learning_cycle", {}))
 
-	current_quest = DEFAULT_QUEST
+	current_quest = TUTORIAL_QUEST
 	current_lives = max_lives
 	current_scene_path = START_SCENE_PATH
 	player_position = get_scene_fallback_spawn(START_SCENE_PATH)
@@ -793,7 +801,7 @@ func build_save_data() -> Dictionary:
 		"parent_id": parent_id,
 		"learning_cycle_version": learning_cycle_version,
 		"learning_cycle_started_at": learning_cycle_started_at,
-		"current_quest": current_quest,
+		"current_quest": TUTORIAL_QUEST if is_tutorial_active() else current_quest,
 		"scene_path": current_scene_path,
 		"current_map": current_map,
 		"player_position": {
@@ -899,6 +907,11 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	encounter_context = _normalize_encounter_context(data.get("encounter_context", {}))
 	city_of_knowledge_unlocked = bool(data.get("city_of_knowledge_unlocked", false))
 	current_task_index = clampi(int(data.get("current_task_index", 0)), 0, tasks.size())
+	# Version 8 already persists current_quest. Unmarked legacy saves retain
+	# their existing task checkpoint rather than replaying an unrecorded tutorial.
+	_tutorial_activity_completed = current_task_index > 0 or current_quest != TUTORIAL_QUEST
+	_tutorial_activity_started = false
+	_started_task_activity_ids.clear()
 	score = int(data.get("score", 0))
 	correct_answers = int(data.get("correct_answers", 0))
 	incorrect_answers = int(data.get("incorrect_answers", 0))

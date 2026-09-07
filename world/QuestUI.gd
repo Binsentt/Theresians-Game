@@ -172,12 +172,8 @@ func _normalize_dialogue_lines(lines: Array) -> Array[String]:
 
 
 func _is_interact_held() -> bool:
-	if InputManager != null and InputManager.has_method("is_interact_pressed") and InputManager.is_interact_pressed():
-		return true
-	return InputMap.has_action(&"interact") and Input.is_action_pressed(&"interact")
+	return InputManager.is_interact_pressed()
 
 
 func _consume_interact_press() -> bool:
-	if InputManager != null and InputManager.has_method("consume_interact_just_pressed") and InputManager.consume_interact_just_pressed():
-		return true
-	return InputMap.has_action(&"interact") and Input.is_action_just_pressed(&"interact")
+	return InputManager.consume_interact_just_pressed()

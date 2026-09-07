@@ -1455,18 +1455,26 @@ position = Vector2(128, 508)
 
 [node name="Bandits" parent="." unique_id=8116170 instance=ExtResource("26_gdmg8")]
 position = Vector2(114, 487)
+
+[node name="Visual" parent="Bandits" index=0]
 animation = &"right"
 
 [node name="Bandits2" parent="." unique_id=1760417206 instance=ExtResource("26_gdmg8")]
 position = Vector2(171, 463)
+
+[node name="Visual" parent="Bandits2" index=0]
 animation = &"left"
 
 [node name="Bandits3" parent="." unique_id=1038880827 instance=ExtResource("26_gdmg8")]
 position = Vector2(84, 425)
+
+[node name="Visual" parent="Bandits3" index=0]
 animation = &"right"
 
 [node name="Bandits4" parent="." unique_id=334121162 instance=ExtResource("26_gdmg8")]
 position = Vector2(265, 325)
+
+[node name="Visual" parent="Bandits4" index=0]
 animation = &"up"
 
 [node name="Bandits5" parent="." unique_id=1613646875 instance=ExtResource("26_gdmg8")]
