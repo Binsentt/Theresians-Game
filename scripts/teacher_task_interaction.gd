@@ -21,7 +21,10 @@ func can_interact() -> bool:
 	var is_initial_teacher_task := GameState.current_task_index == 1
 	var is_oakleaf_return := GameState.has_method("is_oakleaf_return_to_teacher_active") \
 			and bool(GameState.call("is_oakleaf_return_to_teacher_active"))
-	if _active or (not is_initial_teacher_task and not is_oakleaf_return):
+	var is_city_school := GameState.has_method("is_city_school_active") \
+			and bool(GameState.call("is_city_school_active")) \
+			and _is_school_scene()
+	if _active or (not is_initial_teacher_task and not is_oakleaf_return and not is_city_school):
 		return false
 	if GameState.get_mode() != GameState.GameMode.EXPLORATION:
 		return false
@@ -68,3 +71,9 @@ func _is_input_locked() -> bool:
 	return input_manager == null \
 			or not input_manager.has_method("is_input_locked") \
 			or bool(input_manager.call("is_input_locked"))
+
+
+func _is_school_scene() -> bool:
+	var current_scene := get_tree().current_scene
+	return current_scene != null \
+			and current_scene.scene_file_path == "res://interiors/school.tscn"

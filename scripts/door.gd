@@ -9,6 +9,7 @@ class_name Door
 @export var play_open_animation_before_transition: bool = false
 @export var play_fade_transition: bool = false
 @export var requires_city_of_knowledge_unlock: bool = false
+@export var requires_city_school_completion: bool = false
 @export var animation_target_path: NodePath = NodePath()
 @export_range(0.01, 0.3, 0.01) var animation_step_duration: float = 0.06
 @export_range(0.05, 3.0, 0.05) var fade_duration: float = 0.25
@@ -67,6 +68,11 @@ func _begin_transition(body: Node2D) -> void:
 	if not _is_player(body):
 		return
 	if requires_city_of_knowledge_unlock and not GameState.city_of_knowledge_unlocked:
+		return
+	if requires_city_school_completion \
+			and (not GameState.city_of_knowledge_unlocked \
+			or not GameState.has_method("is_city_next_path_unlocked") \
+			or not GameState.is_city_next_path_unlocked()):
 		return
 
 	var resolved_destination := _resolve_destination_scene_path()

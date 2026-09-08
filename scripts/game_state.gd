@@ -36,6 +36,8 @@ const OAKLEAF_BANDIT_TASK_INDEX := 3
 const OAKLEAF_BOSS_TASK_INDEX := 4
 const OAKLEAF_RETURN_TEACHER_TASK_INDEX := 5
 const CITY_OF_KNOWLEDGE_TASK_INDEX := 6
+const CITY_SCHOOL_TASK_INDEX := 7
+const CITY_NEXT_PATH_TASK_INDEX := 8
 
 const PLAYER_SCENES := {
 	"male": "res://player/player_male.tscn",
@@ -83,6 +85,9 @@ var current_battle_enemy_path: NodePath = NodePath()
 var encounter_context: Dictionary = {}
 
 var city_of_knowledge_unlocked := false
+var city_first_arrival_seen := false
+var city_school_stage_complete := false
+var city_next_path_unlocked := false
 var score: int = 0
 var correct_answers: int = 0
 var incorrect_answers: int = 0
@@ -154,6 +159,17 @@ var tasks = [
 		"activity_id": "go-to-city-of-knowledge-school",
 		"activity_label": "Go to the City of Knowledge / School",
 		"quest_text": "Go to the City of Knowledge / School",
+	},
+	{
+		"activity_id": "go-to-school",
+		"activity_label": "Go to the School",
+		"quest_text": "Go to the School",
+		"dialogue": ["To continue, you must pass a greater challenge."],
+	},
+	{
+		"activity_id": "go-to-pinehill-village",
+		"activity_label": "Go to Pinehill Village",
+		"quest_text": "Go to Pinehill Village",
 	}
 ]
 
@@ -357,9 +373,85 @@ func complete_oakleaf_teacher_return() -> Dictionary:
 	}
 
 
+func is_city_school_active() -> bool:
+	return city_of_knowledge_unlocked \
+			and city_first_arrival_seen \
+			and not city_school_stage_complete \
+			and current_task_index == CITY_SCHOOL_TASK_INDEX
+
+
+func is_city_next_path_unlocked() -> bool:
+	return city_next_path_unlocked
+
+
+func mark_city_first_arrival() -> Dictionary:
+	if not city_of_knowledge_unlocked \
+			or city_first_arrival_seen \
+			or city_school_stage_complete \
+			or city_next_path_unlocked \
+			or current_task_index != CITY_OF_KNOWLEDGE_TASK_INDEX:
+		return {"changed": false, "action": "blocked"}
+
+	city_first_arrival_seen = true
+	var previous_index := current_task_index
+	current_task_index = CITY_SCHOOL_TASK_INDEX
+	current_quest = get_current_quest_text()
+	quest_changed.emit(current_quest)
+	var event := {
+		"type": "task_completed",
+		"key": "quest:city:first-arrival:complete",
+		"title": "City of Knowledge Reached",
+		"description": "Go to the School.",
+		"source": "city_scene_entry",
+		"reason": "city_unlocked_arrival",
+	}
+	task_state_changed.emit(previous_index, current_task_index, event)
+	_notify_progress(event)
+	var save_path := save_game()
+	return {
+		"changed": true,
+		"action": "city_first_arrival",
+		"current_index": current_task_index,
+		"save_path": save_path,
+	}
+
+
+func complete_city_school_teacher() -> Dictionary:
+	if not is_city_school_active():
+		return {"changed": false, "action": "blocked"}
+
+	city_school_stage_complete = true
+	city_next_path_unlocked = true
+	var previous_index := current_task_index
+	current_task_index = CITY_NEXT_PATH_TASK_INDEX
+	current_quest = get_current_quest_text()
+	quest_changed.emit(current_quest)
+	var event := {
+		"type": "task_completed",
+		"key": "quest:city:school-teacher:complete",
+		"title": "School Complete",
+		"description": "Go to Pinehill Village.",
+		"source": "teacher_task_interaction",
+		"reason": "city_school_teacher",
+	}
+	task_state_changed.emit(previous_index, current_task_index, event)
+	_notify_progress(event)
+	var save_path := save_game()
+	return {
+		"changed": true,
+		"action": "city_school_complete",
+		"current_index": current_task_index,
+		"save_path": save_path,
+	}
+
+
 func get_current_quest_text() -> String:
 	if is_tutorial_active():
 		return TUTORIAL_QUEST
+	if city_next_path_unlocked or city_school_stage_complete:
+		return String(tasks[CITY_NEXT_PATH_TASK_INDEX].get("quest_text", "Go to Pinehill Village"))
+	if city_first_arrival_seen:
+		return String(tasks[CITY_SCHOOL_TASK_INDEX].get("quest_text", "Go to the School"))
 	if current_task_index == OAKLEAF_BANDIT_TASK_INDEX:
 		return "Defeat All Bandits"
 	if current_task_index >= 0 and current_task_index < tasks.size():
@@ -597,6 +689,9 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	current_scene_path = START_SCENE_PATH
 	player_position = get_scene_fallback_spawn(START_SCENE_PATH)
 	city_of_knowledge_unlocked = false
+	city_first_arrival_seen = false
+	city_school_stage_complete = false
+	city_next_path_unlocked = false
 	current_task_index = 0
 	_reset_oakleaf_progression()
 	_tutorial_activity_started = false
@@ -787,6 +882,8 @@ func finalize_new_game_registration() -> bool:
 
 func handle_scene_entered(scene_path: String) -> void:
 	current_scene_path = _normalize_scene_path(scene_path)
+	if current_scene_path == "res://scenes/city_of_knowledge.tscn":
+		mark_city_first_arrival()
 
 func get_player_scene_path() -> String:
 	return PLAYER_SCENES.get(gender, PLAYER_SCENES["male"])
@@ -1008,6 +1105,9 @@ func build_save_data() -> Dictionary:
 		"max_lives": max_lives,
 		"encounter_context": encounter_context.duplicate(true),
 		"city_of_knowledge_unlocked": city_of_knowledge_unlocked,
+		"city_first_arrival_seen": city_first_arrival_seen,
+		"city_school_stage_complete": city_school_stage_complete,
+		"city_next_path_unlocked": city_next_path_unlocked,
 		"oakleaf_defeated_bandits": oakleaf_defeated_bandits.duplicate(true),
 		"oakleaf_boss_defeated": oakleaf_boss_defeated,
 		"oakleaf_return_to_teacher": oakleaf_return_to_teacher,
@@ -1105,8 +1205,21 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	current_lives = clampi(current_lives, 0, max_lives)
 	encounter_context = _normalize_encounter_context(data.get("encounter_context", {}))
 	city_of_knowledge_unlocked = bool(data.get("city_of_knowledge_unlocked", false))
+	city_first_arrival_seen = bool(data.get("city_first_arrival_seen", false))
+	city_school_stage_complete = bool(data.get("city_school_stage_complete", false))
+	city_next_path_unlocked = bool(data.get("city_next_path_unlocked", false))
 	var loaded_task_index := clampi(int(data.get("current_task_index", 0)), 0, tasks.size())
 	current_task_index = loaded_task_index
+	if not data.has("city_first_arrival_seen"):
+		city_first_arrival_seen = loaded_task_index >= CITY_SCHOOL_TASK_INDEX
+	if not data.has("city_school_stage_complete"):
+		city_school_stage_complete = loaded_task_index >= CITY_NEXT_PATH_TASK_INDEX
+	if not data.has("city_next_path_unlocked"):
+		city_next_path_unlocked = loaded_task_index >= CITY_NEXT_PATH_TASK_INDEX
+	if city_next_path_unlocked or city_school_stage_complete:
+		current_task_index = maxi(current_task_index, CITY_NEXT_PATH_TASK_INDEX)
+	elif city_first_arrival_seen:
+		current_task_index = maxi(current_task_index, CITY_SCHOOL_TASK_INDEX)
 	oakleaf_defeated_bandits = _normalize_oakleaf_defeated_bandits(
 		data.get("oakleaf_defeated_bandits", null),
 		loaded_task_index

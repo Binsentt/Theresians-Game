@@ -143,6 +143,13 @@ func show_completed_with_dialogue() -> void:
 func play_teacher_dialogue() -> void:
 	# TeacherTaskInteraction continues to own the DIALOGUE mode frame and its
 	# one-shot guard. This method only runs the existing quest continuation.
+	if GameState.has_method("is_city_school_active") \
+			and bool(GameState.call("is_city_school_active")):
+		var school_task: Dictionary = GameState.tasks[GameState.CITY_SCHOOL_TASK_INDEX]
+		await begin_dialogue(school_task.get("dialogue", []))
+		GameState.complete_city_school_teacher()
+		update_task_ui()
+		return
 	if GameState.has_method("is_oakleaf_return_to_teacher_active") \
 			and bool(GameState.call("is_oakleaf_return_to_teacher_active")):
 		var return_task: Dictionary = GameState.tasks[GameState.current_task_index]

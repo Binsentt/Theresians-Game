@@ -13,6 +13,7 @@ destination_spawn_marker_name = "spawn_from_pinehill"
 destination_facing_direction = "up"
 play_fade_transition = true
 fade_duration = 2.0
+requires_city_of_knowledge_unlock = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=285165697]
 shape = SubResource("RectangleShape2D_gq1wv")

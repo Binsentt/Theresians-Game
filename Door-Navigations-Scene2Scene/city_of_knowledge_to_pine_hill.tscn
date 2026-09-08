@@ -13,6 +13,7 @@ destination_spawn_marker_name = "spawn_from_city"
 destination_facing_direction = "down"
 play_fade_transition = true
 fade_duration = 2.0
+requires_city_school_completion = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_city_to_pinehill")

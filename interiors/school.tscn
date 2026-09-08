@@ -11,6 +11,10 @@
 [ext_resource type="Script" uid="uid://dj1e3x8n6lo6a" path="res://scripts/scene_hud_host.gd" id="9_hud"]
 [ext_resource type="Script" uid="uid://cv4g5p3cow42t" path="res://scripts/gameplay_scene.gd" id="10_gameplay"]
 [ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="11_door"]
+[ext_resource type="PackedScene" path="res://NPC/Teacher.tscn" id="12_teacher"]
+[ext_resource type="Script" path="res://world/QuestUI.gd" id="13_quest_ui"]
+[ext_resource type="Script" path="res://scripts/teacher_task_interaction.gd" id="14_teacher_task"]
+[ext_resource type="Script" path="res://scripts/interactable_area.gd" id="15_interactable"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0e4pt"]
 texture = ExtResource("1_ynkk1")
@@ -644,6 +648,25 @@ sources/2 = SubResource("TileSetAtlasSource_6t3jf")
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_school_exit"]
 size = Vector2(20, 24)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_school_teacher_interaction"]
+size = Vector2(24, 20)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_school_dialogue_panel"]
+bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.96)
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94902, 0.823529, 0.443137, 1)
+
 [node name="Node2D" type="Node2D" unique_id=547720080]
 script = ExtResource("10_gameplay")
 
@@ -802,6 +825,95 @@ use_return_context = true
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ExitDoor" unique_id=419092982]
 position = Vector2(-101, -25)
 shape = SubResource("RectangleShape2D_school_exit")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Panel" type="Panel" parent="CanvasLayer" groups=["quest_ui"]]
+self_modulate = Color(1, 1, 1, 0)
+anchors_preset = -1
+anchor_left = 0.002
+anchor_top = 0.145
+anchor_right = 0.258
+anchor_bottom = 0.286
+offset_left = 1.57
+offset_top = 48.975
+offset_right = 2.53
+offset_bottom = 49.13
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+script = ExtResource("13_quest_ui")
+
+[node name="QuestText" type="Label" parent="CanvasLayer/Panel"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.025
+anchor_right = 0.936
+anchor_bottom = 0.831
+offset_left = 1.2
+offset_top = 15.0
+offset_right = -0.032
+offset_bottom = 0.013
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="FeedbackText" type="Label" parent="CanvasLayer/Panel"]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.025
+anchor_right = 0.906
+anchor_bottom = 0.803
+offset_left = -0.275
+offset_top = 15.0
+offset_right = 0.21
+offset_bottom = 0.049
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="DialoguePanel" type="PanelContainer" parent="CanvasLayer"]
+visible = false
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.62
+anchor_right = 0.5
+anchor_bottom = 0.62
+offset_left = -210.0
+offset_top = -70.0
+offset_right = 210.0
+offset_bottom = 70.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_school_dialogue_panel")
+
+[node name="DialogueLabel" type="Label" parent="CanvasLayer/DialoguePanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Teacher" parent="." node_paths=PackedStringArray("quest_ui_path") instance=ExtResource("12_teacher")]
+position = Vector2(391, 341)
+script = ExtResource("14_teacher_task")
+quest_ui_path = NodePath("../CanvasLayer/Panel")
+
+[node name="Area2D2" type="Area2D" parent="Teacher"]
+script = ExtResource("15_interactable")
+interaction_target_path = NodePath("..")
+interaction_method = &"interact"
+availability_method = &"can_interact"
+interaction_priority = 100
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Teacher/Area2D2"]
+position = Vector2(0, 8)
+shape = SubResource("RectangleShape2D_school_teacher_interaction")
 
 [node name="InteriorCollisionBuilder" type="Node" parent="." unique_id=1617049088]
 script = ExtResource("8_collisions")
