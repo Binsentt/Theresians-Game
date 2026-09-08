@@ -18,6 +18,18 @@ corner_radius_top_right = 18
 corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_all"]
+bg_color = Color(0.337255, 0.12549, 0.156863, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.898039, 0.752941, 0.415686, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [node name="LoadGameScene" type="Control" unique_id=395386632]
 layout_mode = 3
 anchors_preset = 15
@@ -80,10 +92,26 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
+[node name="DeleteAllButton" type="Button" parent="TextureRect/SavePanel/MarginContainer/Content"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_delete_all")
+theme_override_styles/hover = SubResource("StyleBoxFlat_delete_all")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_delete_all")
+text = "Delete All"
+
 [node name="DeleteSaveConfirmation" type="ConfirmationDialog" parent="."]
 title = "Confirm Delete"
 dialog_text = "Delete this save?"
 ok_button_text = "Delete"
+cancel_button_text = "Cancel"
+exclusive = true
+
+[node name="DeleteAllSaveConfirmation" type="ConfirmationDialog" parent="."]
+title = "Confirm Delete All"
+dialog_text = "Delete all saved games? This cannot be undone."
+ok_button_text = "Delete All"
 cancel_button_text = "Cancel"
 exclusive = true
 

@@ -7,9 +7,12 @@ const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
 @onready var saves_container: VBoxContainer = $TextureRect/SavePanel/MarginContainer/Content/ScrollContainer/SavesContainer
 @onready var empty_label: Label = $TextureRect/SavePanel/MarginContainer/Content/EmptyLabel
 @onready var delete_confirmation: ConfirmationDialog = $DeleteSaveConfirmation
+@onready var delete_all_button: Button = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/DeleteAllButton") as Button
+@onready var delete_all_confirmation: ConfirmationDialog = get_node_or_null("DeleteAllSaveConfirmation") as ConfirmationDialog
 
 var _save_transitioning: bool = false
 var _pending_delete_path: String = ""
+var _delete_all_pending: bool = false
 var _save_entries_by_path: Dictionary = {}
 var _save_list_revision: int = 0
 
@@ -19,6 +22,12 @@ func _ready() -> void:
 		delete_confirmation.confirmed.connect(_on_delete_confirmed)
 	if not delete_confirmation.canceled.is_connected(_on_delete_canceled):
 		delete_confirmation.canceled.connect(_on_delete_canceled)
+	if delete_all_button != null and not delete_all_button.pressed.is_connected(_on_delete_all_requested):
+		delete_all_button.pressed.connect(_on_delete_all_requested)
+	if delete_all_confirmation != null and not delete_all_confirmation.confirmed.is_connected(_on_delete_all_confirmed):
+		delete_all_confirmation.confirmed.connect(_on_delete_all_confirmed)
+	if delete_all_confirmation != null and not delete_all_confirmation.canceled.is_connected(_on_delete_all_canceled):
+		delete_all_confirmation.canceled.connect(_on_delete_all_canceled)
 	_refresh_save_list()
 
 func _refresh_save_list() -> void:
@@ -30,6 +39,8 @@ func _refresh_save_list() -> void:
 	var saves: Array[Dictionary] = GameState.list_saves()
 	empty_label.text = "No save data found"
 	empty_label.visible = saves.is_empty()
+	if delete_all_button != null:
+		delete_all_button.disabled = _save_transitioning or saves.is_empty()
 
 	for save_data: Dictionary in saves:
 		var save_entry: Control = SAVE_ENTRY_SCENE.instantiate() as Control
@@ -98,6 +109,34 @@ func _on_delete_confirmed() -> void:
 
 func _on_delete_canceled() -> void:
 	_pending_delete_path = ""
+
+func _on_delete_all_requested() -> void:
+	if _save_transitioning or delete_all_confirmation == null:
+		return
+	_delete_all_pending = true
+	delete_all_confirmation.popup_centered()
+
+func _on_delete_all_confirmed() -> void:
+	if not _delete_all_pending:
+		return
+	_delete_all_pending = false
+	var deletion_failed := false
+	for save_data: Dictionary in GameState.list_saves():
+		var save_path := String(save_data.get("save_path", ""))
+		if save_path.is_empty():
+			continue
+		if GameState.delete_save(save_path):
+			continue
+		if FileAccess.file_exists(ProjectSettings.globalize_path(save_path)):
+			deletion_failed = true
+
+	_refresh_save_list()
+	if deletion_failed:
+		empty_label.text = "Unable to delete all saved games."
+		empty_label.visible = true
+
+func _on_delete_all_canceled() -> void:
+	_delete_all_pending = false
 
 func _on_save_selected(save_path: String) -> void:
 	if _save_transitioning:

@@ -1294,4 +1294,19 @@ func _clear_battle_state() -> void:
 
 
 func _sort_saves_desc(a: Dictionary, b: Dictionary) -> bool:
-	return int(a.get("save_timestamp", 0)) > int(b.get("save_timestamp", 0))
+	var a_timestamp := int(a.get("save_timestamp", 0))
+	var b_timestamp := int(b.get("save_timestamp", 0))
+	if a_timestamp != b_timestamp:
+		return a_timestamp > b_timestamp
+
+	# Timestamp is authoritative for current saves. Date/time remains the
+	# truthful fallback for legacy entries or same-second saves.
+	var a_date_time := "%sT%s" % [
+		String(a.get("save_date", "")).strip_edges(),
+		String(a.get("save_time", "")).strip_edges()
+	]
+	var b_date_time := "%sT%s" % [
+		String(b.get("save_date", "")).strip_edges(),
+		String(b.get("save_time", "")).strip_edges()
+	]
+	return a_date_time > b_date_time
