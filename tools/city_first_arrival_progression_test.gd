@@ -66,6 +66,11 @@ func _run() -> void:
 
 	var repeated_arrival: Dictionary = state.mark_city_first_arrival()
 	_expect(repeated_arrival.get("changed", false) != true, "repeated City arrival emits no duplicate transition")
+	var city_stage_save: Dictionary = state.build_save_data()
+	state.start_new_game(PROFILE, false)
+	state.apply_save_data(city_stage_save, false)
+	_expect(state.get("city_first_arrival_seen") == true and state.current_task_index == int(state.get("CITY_SCHOOL_TASK_INDEX")), "Save/Load preserves the first-arrival School objective")
+	_expect(state.get_current_quest_text() == "Go to the School", "Save/Load preserves the City School quest text")
 	state.handle_scene_entered(SCHOOL)
 	_expect(state.is_city_school_active(), "School Teacher gate remains active inside School")
 	var teacher_result: Dictionary = state.complete_city_school_teacher()
