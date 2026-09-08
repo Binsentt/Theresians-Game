@@ -2,6 +2,7 @@ extends Node2D
 
 const GAME_HUD_SCENE := preload("res://ui/game_hud.tscn")
 const MOBILE_CONTROLS_SCENE := preload("res://ui/mobile_controls.tscn")
+const OAKLEAF_BATTLE_ENCOUNTER := preload("res://scripts/oakleaf_battle_encounter.gd")
 
 var _player: Node2D = null
 
@@ -15,6 +16,7 @@ func _ready() -> void:
 	_ensure_hud()
 	_ensure_mobile_controls()
 	NpcCollisionManager.ensure_scene_collisions(self)
+	OAKLEAF_BATTLE_ENCOUNTER.install_for_scene(self, OAKLEAF_BATTLE_ENCOUNTER)
 
 	InputManager.unlock_input("door_transition")
 
