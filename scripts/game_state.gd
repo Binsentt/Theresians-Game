@@ -134,7 +134,7 @@ var tasks = [
 	{
 		"activity_id": "oakleaf-bandits",
 		"activity_label": "Defeat the Oakleaf Bandits",
-		"quest_text": "Defeat the remaining Oakleaf Bandits",
+		"quest_text": "Defeat All Bandits",
 	},
 	{
 		"activity_id": "oakleaf-boss-bandit",
@@ -361,7 +361,7 @@ func get_current_quest_text() -> String:
 	if is_tutorial_active():
 		return TUTORIAL_QUEST
 	if current_task_index == OAKLEAF_BANDIT_TASK_INDEX:
-		return "Defeat the remaining Oakleaf Bandits (%d remaining)" % (OAKLEAF_BANDIT_IDS.size() - get_oakleaf_defeated_bandit_count())
+		return "Defeat All Bandits"
 	if current_task_index >= 0 and current_task_index < tasks.size():
 		return String(tasks[current_task_index].get("quest_text", ""))
 	return current_quest.strip_edges()
