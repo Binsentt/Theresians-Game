@@ -86,7 +86,7 @@ func show_completed_with_dialogue() -> void:
 		var source_scene := get_tree().current_scene
 		var source_scene_path := source_scene.scene_file_path if source_scene != null else GameState.current_scene_path
 		GameState.begin_encounter({
-			"encounter_id": "quest_task_%d" % GameState.current_task_index,
+			"encounter_id": "oakleaf_bandits1" if GameState.current_task_index == 2 else "quest_task_%d" % GameState.current_task_index,
 			"source_scene_path": source_scene_path,
 			"source_position": source_position,
 			"quest_checkpoint": GameState.current_task_index,
@@ -143,6 +143,13 @@ func show_completed_with_dialogue() -> void:
 func play_teacher_dialogue() -> void:
 	# TeacherTaskInteraction continues to own the DIALOGUE mode frame and its
 	# one-shot guard. This method only runs the existing quest continuation.
+	if GameState.has_method("is_oakleaf_return_to_teacher_active") \
+			and bool(GameState.call("is_oakleaf_return_to_teacher_active")):
+		var return_task: Dictionary = GameState.tasks[GameState.current_task_index]
+		await begin_dialogue(return_task.get("dialogue", []))
+		GameState.complete_oakleaf_teacher_return()
+		update_task_ui()
+		return
 	await show_completed_with_dialogue()
 
 

@@ -114,6 +114,10 @@ func _update_quest_label() -> void:
 
 
 func _get_active_quest_text() -> String:
+	if GameState.has_method("get_current_quest_text"):
+		var authoritative_text := String(GameState.call("get_current_quest_text")).strip_edges()
+		if not authoritative_text.is_empty() and authoritative_text != GameState.DEFAULT_QUEST:
+			return authoritative_text
 	if GameState.is_tutorial_active():
 		return GameState.TUTORIAL_QUEST
 	if GameState.current_task_index >= 0 and GameState.current_task_index < GameState.tasks.size():

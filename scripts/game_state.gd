@@ -18,12 +18,24 @@ signal playtime_warning(remaining_minutes: int)
 
 enum GameMode { EXPLORATION, DIALOGUE, CUTSCENE, BATTLE, MENU }
 
-const SAVE_VERSION := 8
+const SAVE_VERSION := 9
 const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
 const TUTORIAL_QUEST := "Tutorial"
 const SAVE_DIRECTORY := "user://saves"
 const VALID_REGISTRATION_GRADES := ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
+const OAKLEAF_BANDIT_IDS: Array[String] = [
+	"oakleaf_bandits1",
+	"oakleaf_bandits2",
+	"oakleaf_bandits3",
+	"oakleaf_bandits4",
+	"oakleaf_bandits5",
+]
+const OAKLEAF_BOSS_ID := "oakleaf_boss_bandit"
+const OAKLEAF_BANDIT_TASK_INDEX := 3
+const OAKLEAF_BOSS_TASK_INDEX := 4
+const OAKLEAF_RETURN_TEACHER_TASK_INDEX := 5
+const CITY_OF_KNOWLEDGE_TASK_INDEX := 6
 
 const PLAYER_SCENES := {
 	"male": "res://player/player_male.tscn",
@@ -82,6 +94,9 @@ var total_play_time: int = 0
 var difficulty_level: String = "Unknown"
 
 var current_task_index: int = 0
+var oakleaf_defeated_bandits: Dictionary = {}
+var oakleaf_boss_defeated: bool = false
+var oakleaf_return_to_teacher: bool = false
 var _tutorial_activity_started: bool = false
 var _tutorial_activity_completed: bool = false
 var _started_task_activity_ids: Dictionary = {}
@@ -115,6 +130,30 @@ var tasks = [
 			"grade": "Grade 1",
 			"difficulty": "Easy",
 		}
+	},
+	{
+		"activity_id": "oakleaf-bandits",
+		"activity_label": "Defeat the Oakleaf Bandits",
+		"quest_text": "Defeat the remaining Oakleaf Bandits",
+	},
+	{
+		"activity_id": "oakleaf-boss-bandit",
+		"activity_label": "Defeat the Boss Bandit",
+		"quest_text": "Defeat the Boss Bandit",
+	},
+	{
+		"activity_id": "oakleaf-return-to-teacher",
+		"activity_label": "Return to the Teacher",
+		"quest_text": "Return to the Teacher",
+		"dialogue": [
+			"Teacher: You defeated the Oakleaf Bandits and their Boss.",
+			"Teacher: The City of Knowledge and School are now open to you.",
+		],
+	},
+	{
+		"activity_id": "go-to-city-of-knowledge-school",
+		"activity_label": "Go to the City of Knowledge / School",
+		"quest_text": "Go to the City of Knowledge / School",
 	}
 ]
 
@@ -181,6 +220,153 @@ func complete_task() -> void:
 		current_task_index += 1
 
 
+func _reset_oakleaf_progression() -> void:
+	oakleaf_defeated_bandits.clear()
+	for encounter_id in OAKLEAF_BANDIT_IDS:
+		oakleaf_defeated_bandits[encounter_id] = false
+	oakleaf_boss_defeated = false
+	oakleaf_return_to_teacher = false
+
+
+func is_oakleaf_bandit_defeated(encounter_id: String) -> bool:
+	return bool(oakleaf_defeated_bandits.get(encounter_id.strip_edges(), false))
+
+
+func is_oakleaf_encounter_defeated(encounter_id: String) -> bool:
+	var normalized_id := encounter_id.strip_edges()
+	if normalized_id == OAKLEAF_BOSS_ID:
+		return oakleaf_boss_defeated
+	return is_oakleaf_bandit_defeated(normalized_id)
+
+
+func get_oakleaf_defeated_bandit_count() -> int:
+	var defeated_count := 0
+	for encounter_id in OAKLEAF_BANDIT_IDS:
+		if is_oakleaf_bandit_defeated(encounter_id):
+			defeated_count += 1
+	return defeated_count
+
+
+func are_all_oakleaf_bandits_defeated() -> bool:
+	return get_oakleaf_defeated_bandit_count() == OAKLEAF_BANDIT_IDS.size()
+
+
+func can_start_oakleaf_encounter(encounter_id: String) -> bool:
+	var normalized_id := encounter_id.strip_edges()
+	if normalized_id in OAKLEAF_BANDIT_IDS:
+		if is_oakleaf_bandit_defeated(normalized_id):
+			return false
+		if normalized_id == OAKLEAF_BANDIT_IDS[0]:
+			return current_task_index == 2
+		return current_task_index == OAKLEAF_BANDIT_TASK_INDEX
+	if normalized_id == OAKLEAF_BOSS_ID:
+		return current_task_index == OAKLEAF_BOSS_TASK_INDEX \
+				and are_all_oakleaf_bandits_defeated() \
+				and not oakleaf_boss_defeated
+	return false
+
+
+func record_oakleaf_encounter_victory(encounter_id: String) -> Dictionary:
+	return _record_oakleaf_encounter_victory(encounter_id, true)
+
+
+func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> Dictionary:
+	var normalized_id := encounter_id.strip_edges()
+	if normalized_id in OAKLEAF_BANDIT_IDS:
+		if not can_start_oakleaf_encounter(normalized_id):
+			return {"changed": false, "action": "blocked", "encounter_id": normalized_id}
+		oakleaf_defeated_bandits[normalized_id] = true
+		var previous_index := current_task_index
+		if normalized_id != OAKLEAF_BANDIT_IDS[0] and are_all_oakleaf_bandits_defeated():
+			current_task_index = OAKLEAF_BOSS_TASK_INDEX
+		current_quest = get_current_quest_text()
+		quest_changed.emit(current_quest)
+		if current_task_index != previous_index:
+			task_state_changed.emit(previous_index, current_task_index, {
+				"type": "quest_updated",
+				"key": "quest:oakleaf:normal-bandits:complete",
+				"title": "Oakleaf Bandits Complete",
+				"description": "The Boss Bandit is now available.",
+			})
+		if persist and normalized_id != OAKLEAF_BANDIT_IDS[0]:
+			save_game()
+		return {
+			"changed": true,
+			"action": "bandit_defeated",
+			"encounter_id": normalized_id,
+			"defeated_count": get_oakleaf_defeated_bandit_count(),
+			"current_index": current_task_index,
+		}
+
+	if normalized_id == OAKLEAF_BOSS_ID:
+		if not can_start_oakleaf_encounter(normalized_id):
+			return {"changed": false, "action": "blocked", "encounter_id": normalized_id}
+		oakleaf_boss_defeated = true
+		oakleaf_return_to_teacher = true
+		var previous_index := current_task_index
+		current_task_index = OAKLEAF_RETURN_TEACHER_TASK_INDEX
+		current_quest = get_current_quest_text()
+		quest_changed.emit(current_quest)
+		task_state_changed.emit(previous_index, current_task_index, {
+			"type": "quest_updated",
+			"key": "quest:oakleaf:boss:complete",
+			"title": "Boss Bandit Defeated",
+			"description": "Return to the Teacher.",
+		})
+		if persist:
+			save_game()
+		return {
+			"changed": true,
+			"action": "boss_defeated",
+			"encounter_id": normalized_id,
+			"current_index": current_task_index,
+		}
+
+	return {"changed": false, "action": "ignored", "encounter_id": normalized_id}
+
+
+func is_oakleaf_return_to_teacher_active() -> bool:
+	return oakleaf_return_to_teacher and current_task_index == OAKLEAF_RETURN_TEACHER_TASK_INDEX
+
+
+func complete_oakleaf_teacher_return() -> Dictionary:
+	if not is_oakleaf_return_to_teacher_active():
+		return {"changed": false, "action": "blocked"}
+	var previous_index := current_task_index
+	oakleaf_return_to_teacher = false
+	city_of_knowledge_unlocked = true
+	current_task_index = CITY_OF_KNOWLEDGE_TASK_INDEX
+	current_quest = get_current_quest_text()
+	quest_changed.emit(current_quest)
+	var event := {
+		"type": "task_completed",
+		"key": "quest:oakleaf:return-teacher:complete",
+		"title": "Oakleaf Quest Complete",
+		"description": "Go to the City of Knowledge / School.",
+		"source": "teacher_task_interaction",
+		"reason": "oakleaf_boss_return",
+	}
+	task_state_changed.emit(previous_index, current_task_index, event)
+	_notify_progress(event)
+	var save_path := save_game()
+	return {
+		"changed": true,
+		"action": "oakleaf_complete",
+		"current_index": current_task_index,
+		"save_path": save_path,
+	}
+
+
+func get_current_quest_text() -> String:
+	if is_tutorial_active():
+		return TUTORIAL_QUEST
+	if current_task_index == OAKLEAF_BANDIT_TASK_INDEX:
+		return "Defeat the remaining Oakleaf Bandits (%d remaining)" % (OAKLEAF_BANDIT_IDS.size() - get_oakleaf_defeated_bandit_count())
+	if current_task_index >= 0 and current_task_index < tasks.size():
+		return String(tasks[current_task_index].get("quest_text", ""))
+	return current_quest.strip_edges()
+
+
 func _notify_progress(event: Dictionary) -> void:
 	var notification_manager := get_node_or_null("/root/QuestNotificationManager")
 	if notification_manager == null:
@@ -213,7 +399,7 @@ func advance_task_and_save(event: Dictionary) -> Dictionary:
 
 	var previous_index := current_task_index
 	current_task_index += 1
-	current_quest = String(tasks[current_task_index].get("quest_text", "")) if current_task_index < tasks.size() else DEFAULT_QUEST
+	current_quest = get_current_quest_text()
 	var save_path := save_game()
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_notify_progress(event)
@@ -412,6 +598,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	player_position = get_scene_fallback_spawn(START_SCENE_PATH)
 	city_of_knowledge_unlocked = false
 	current_task_index = 0
+	_reset_oakleaf_progression()
 	_tutorial_activity_started = false
 	_tutorial_activity_completed = false
 	_started_task_activity_ids.clear()
@@ -714,7 +901,16 @@ func record_encounter_victory() -> Dictionary:
 		pop_mode()
 	battle_ended.emit()
 	encounter_lifecycle_changed.emit({})
-	return {"success": true, "action": "victory", "context": completed_context}
+	var oakleaf_result := _record_oakleaf_encounter_victory(
+		String(completed_context.get("encounter_id", "")),
+		true
+	)
+	return {
+		"success": true,
+		"action": "victory",
+		"context": completed_context,
+		"oakleaf": oakleaf_result,
+	}
 
 
 func end_battle() -> void:
@@ -812,6 +1008,9 @@ func build_save_data() -> Dictionary:
 		"max_lives": max_lives,
 		"encounter_context": encounter_context.duplicate(true),
 		"city_of_knowledge_unlocked": city_of_knowledge_unlocked,
+		"oakleaf_defeated_bandits": oakleaf_defeated_bandits.duplicate(true),
+		"oakleaf_boss_defeated": oakleaf_boss_defeated,
+		"oakleaf_return_to_teacher": oakleaf_return_to_teacher,
 		"current_task_index": current_task_index,
 		"score": score,
 		"correct_answers": correct_answers,
@@ -906,15 +1105,20 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	current_lives = clampi(current_lives, 0, max_lives)
 	encounter_context = _normalize_encounter_context(data.get("encounter_context", {}))
 	city_of_knowledge_unlocked = bool(data.get("city_of_knowledge_unlocked", false))
-	current_task_index = clampi(int(data.get("current_task_index", 0)), 0, tasks.size())
-	# Version 8 already persists current_quest. Unmarked legacy saves retain
+	var loaded_task_index := clampi(int(data.get("current_task_index", 0)), 0, tasks.size())
+	current_task_index = loaded_task_index
+	oakleaf_defeated_bandits = _normalize_oakleaf_defeated_bandits(
+		data.get("oakleaf_defeated_bandits", null),
+		loaded_task_index
+	)
+	oakleaf_boss_defeated = bool(data.get("oakleaf_boss_defeated", false))
+	oakleaf_return_to_teacher = bool(data.get("oakleaf_return_to_teacher", false))
+	# Existing saves persist current_quest. Unmarked legacy saves retain
 	# their existing task checkpoint rather than replaying an unrecorded tutorial.
 	_tutorial_activity_completed = current_task_index > 0 or current_quest != TUTORIAL_QUEST
 	# Older saves can carry a completed checkpoint with an obsolete quest title.
 	# The checkpoint is authoritative; reconcile presentation without replaying tasks.
-	current_quest = TUTORIAL_QUEST if is_tutorial_active() else (
-		String(tasks[current_task_index].get("quest_text", "")) if current_task_index < tasks.size() else DEFAULT_QUEST
-	)
+	current_quest = get_current_quest_text()
 	_tutorial_activity_started = false
 	_started_task_activity_ids.clear()
 	score = int(data.get("score", 0))
@@ -1152,6 +1356,21 @@ func _normalize_encounter_context(value: Variant) -> Dictionary:
 		"retry_count": maxi(0, int(value.get("retry_count", 0))),
 		"question_scope": _normalize_question_scope(value.get("question_scope", {}), source_scene_path),
 	}
+
+
+func _normalize_oakleaf_defeated_bandits(value: Variant, loaded_task_index: int) -> Dictionary:
+	var normalized: Dictionary = {}
+	for encounter_id in OAKLEAF_BANDIT_IDS:
+		normalized[encounter_id] = false
+	if value is Dictionary:
+		for encounter_id in OAKLEAF_BANDIT_IDS:
+			normalized[encounter_id] = bool(value.get(encounter_id, false))
+		return normalized
+	# Version 8 saves have no per-encounter field, but checkpoint 3 is only
+	# reachable after the original First Bandit task has completed.
+	if loaded_task_index >= OAKLEAF_BANDIT_TASK_INDEX:
+		normalized[OAKLEAF_BANDIT_IDS[0]] = true
+	return normalized
 
 
 func _vector2_to_dictionary(value: Vector2) -> Dictionary:

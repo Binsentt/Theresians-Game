@@ -47,15 +47,25 @@ static func install_for_scene(world: Node2D, component_script: Script) -> void:
 		return
 	if component_script == null:
 		return
+	var first_bandit := world.get_node_or_null("Bandits") as Node2D
+	if first_bandit != null and GameState.has_method("is_oakleaf_encounter_defeated") \
+			and bool(GameState.call("is_oakleaf_encounter_defeated", "oakleaf_bandits1")):
+		first_bandit.queue_free()
 	for actor_name in ROUTES:
 		var actor := world.get_node_or_null(String(actor_name)) as Node2D
 		if actor == null or actor.get_node_or_null(COMPONENT_NAME) != null:
+			continue
+		var route: Dictionary = ROUTES[actor_name]
+		var encounter_id := String(route.get("encounter_id", ""))
+		if GameState.has_method("is_oakleaf_encounter_defeated") \
+				and bool(GameState.call("is_oakleaf_encounter_defeated", encounter_id)):
+			actor.queue_free()
 			continue
 		var encounter := component_script.new() as Node
 		if encounter == null:
 			continue
 		encounter.name = COMPONENT_NAME
-		encounter.call("configure", actor, ROUTES[actor_name])
+		encounter.call("configure", actor, route)
 		actor.add_child(encounter)
 
 
@@ -76,7 +86,11 @@ func _exit_tree() -> void:
 
 
 func is_registration_valid() -> bool:
-	return not _defeated and _actor != null and is_instance_valid(_actor) and _actor.is_inside_tree()
+	return not _defeated \
+			and _actor != null \
+			and is_instance_valid(_actor) \
+			and _actor.is_inside_tree() \
+			and _can_start_encounter()
 
 
 func can_interact() -> bool:
@@ -86,6 +100,12 @@ func can_interact() -> bool:
 		return false
 	var player := get_tree().get_first_node_in_group("player_character") as Node2D
 	return player != null and player.global_position.distance_to(_actor.global_position) <= INTERACTION_RANGE
+
+
+func _can_start_encounter() -> bool:
+	if not GameState.has_method("can_start_oakleaf_encounter"):
+		return true
+	return bool(GameState.call("can_start_oakleaf_encounter", String(_route.get("encounter_id", ""))))
 
 
 func get_interaction_position() -> Vector2:

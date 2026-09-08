@@ -18,7 +18,10 @@ func _exit_tree() -> void:
 
 
 func can_interact() -> bool:
-	if _active or GameState.current_task_index != 1:
+	var is_initial_teacher_task := GameState.current_task_index == 1
+	var is_oakleaf_return := GameState.has_method("is_oakleaf_return_to_teacher_active") \
+			and bool(GameState.call("is_oakleaf_return_to_teacher_active"))
+	if _active or (not is_initial_teacher_task and not is_oakleaf_return):
 		return false
 	if GameState.get_mode() != GameState.GameMode.EXPLORATION:
 		return false

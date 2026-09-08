@@ -76,7 +76,7 @@ func _run() -> void:
 
 
 func _run_case(case_data: Dictionary, gender: String) -> void:
-	_prepare_case(gender)
+	_prepare_case(gender, String(case_data.actor))
 	_expect(await _load_scene(OAKLEAF_SCENE), "%s %s: canonical Oakleaf scene loads" % [case_data.actor, gender])
 	await _frames(4)
 	var world := get_tree().current_scene
@@ -84,9 +84,10 @@ func _run_case(case_data: Dictionary, gender: String) -> void:
 	var other_name := "Bandits3" if String(case_data.actor) == "Bandits2" else "Bandits2"
 	var other_actor := world.get_node_or_null(other_name) as Node2D if world != null else null
 	var encounter := actor.get_node_or_null(ROUTE_NODE) if actor != null else null
-	_expect(actor != null and other_actor != null, "%s %s: only existing Oakleaf actor nodes are used" % [case_data.actor, gender])
+	var has_expected_other_actor := String(case_data.actor) == "Boss-Bandit" or other_actor != null
+	_expect(actor != null and has_expected_other_actor, "%s %s: only existing Oakleaf actor nodes are used" % [case_data.actor, gender])
 	_expect(encounter != null, "%s %s: exactly one focused encounter component is installed" % [case_data.actor, gender])
-	if actor == null or other_actor == null or encounter == null:
+	if actor == null or (not has_expected_other_actor) or encounter == null:
 		return
 	_expect(actor.get_children().filter(func(child: Node) -> bool: return child.name == ROUTE_NODE).size() == 1, "%s %s: duplicate encounter component is zero" % [case_data.actor, gender])
 	var player := get_tree().get_first_node_in_group("player_character") as Node2D
@@ -112,16 +113,32 @@ func _run_case(case_data: Dictionary, gender: String) -> void:
 	_expect(battle.scene_file_path == expected_scene, "%s %s: routes to the required original VS scene" % [case_data.actor, gender])
 	_expect(String(GameState.get_active_encounter_context().get("encounter_id", "")) == String(case_data.encounter_id), "%s %s: encounter identity is independent" % [case_data.actor, gender])
 	await _verify_original_presentation(battle, "%s %s" % [case_data.actor, gender])
-	await _win_and_verify_state(battle, actor, other_actor, int(GameState.current_task_index), "%s %s" % [case_data.actor, gender])
+	var expected_index := 5 if String(case_data.actor) == "Boss-Bandit" else int(GameState.current_task_index)
+	await _win_and_verify_state(battle, actor, other_actor, expected_index, "%s %s" % [case_data.actor, gender])
 
 
-func _prepare_case(gender: String) -> void:
+func _prepare_case(gender: String, actor_name: String) -> void:
 	InputManager.clear_mobile_state()
 	GameState.gender = gender
 	GameState.grade_level = "Grade 1"
 	GameState.difficulty_level = "Easy"
 	GameState.playtime_authorized = true
-	GameState.current_task_index = 2
+	GameState.oakleaf_defeated_bandits = {
+		"oakleaf_bandits1": true,
+		"oakleaf_bandits2": false,
+		"oakleaf_bandits3": false,
+		"oakleaf_bandits4": false,
+		"oakleaf_bandits5": false,
+	}
+	if actor_name == "Boss-Bandit":
+		GameState.current_task_index = 4
+		for encounter_id in GameState.OAKLEAF_BANDIT_IDS:
+			GameState.oakleaf_defeated_bandits[encounter_id] = true
+	else:
+		GameState.current_task_index = 3
+	GameState.oakleaf_boss_defeated = false
+	GameState.oakleaf_return_to_teacher = false
+	GameState.current_quest = GameState.get_current_quest_text()
 	GameState.encounter_context.clear()
 	GameState.end_battle()
 	GameState.set_mode(GameState.GameMode.EXPLORATION)
@@ -174,7 +191,8 @@ func _win_and_verify_state(battle: Node, actor: Node2D, other_actor: Node2D, tas
 		await get_tree().process_frame
 	await _frames(2)
 	_expect(not is_instance_valid(actor), label + ": victory defeats only this actor")
-	_expect(is_instance_valid(other_actor) and other_actor.get_node_or_null(ROUTE_NODE) != null, label + ": another bandit keeps its independent encounter state")
+	if other_actor != null:
+		_expect(is_instance_valid(other_actor) and other_actor.get_node_or_null(ROUTE_NODE) != null, label + ": another bandit keeps its independent encounter state")
 	_expect(GameState.current_task_index == task_before and GameState.get_active_encounter_context().is_empty() and GameState.get_mode() == GameState.GameMode.EXPLORATION, label + ": victory does not reset or advance quest state")
 
 
@@ -260,7 +278,7 @@ func _finish() -> void:
 	for check in _checks:
 		if not bool(check.passed):
 			failed += 1
-	var report := {"passed": _checks.size() - failed, "failed": failed, "cases": CASES.size() * 2, "requests": _transport.requests.size() if _transport != null else 0}
+	var report := {"passed": _checks.size() - failed, "failed": failed, "cases": CASES.size() * 2, "requests": _transport.requests.size() if _transport != null else 0, "checks": _checks}
 	var report_file := FileAccess.open("res://tools/oakleaf_bandit_routing_result.json", FileAccess.WRITE)
 	if report_file != null:
 		report_file.store_string(JSON.stringify(report))
