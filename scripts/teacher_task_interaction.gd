@@ -24,7 +24,10 @@ func can_interact() -> bool:
 	var is_city_school := GameState.has_method("is_city_school_active") \
 			and bool(GameState.call("is_city_school_active")) \
 			and _is_school_scene()
-	if _active or (not is_initial_teacher_task and not is_oakleaf_return and not is_city_school):
+	var is_final_teacher := GameState.has_method("is_final_teacher_active") \
+			and bool(GameState.call("is_final_teacher_active")) \
+			and _is_school_scene()
+	if _active or (not is_initial_teacher_task and not is_oakleaf_return and not is_city_school and not is_final_teacher):
 		return false
 	if GameState.get_mode() != GameState.GameMode.EXPLORATION:
 		return false

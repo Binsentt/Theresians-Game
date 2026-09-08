@@ -74,6 +74,16 @@ func _begin_transition(body: Node2D) -> void:
 			or not GameState.has_method("is_city_next_path_unlocked") \
 			or not GameState.is_city_next_path_unlocked()):
 		return
+	var destination_lower := destination_scene_path.to_lower()
+	if destination_lower.contains("pinehill") \
+			and GameState.has_method("is_pinehill_unlocked") \
+			and not GameState.is_pinehill_unlocked():
+		return
+	if destination_lower.contains("city_of_knowledge") \
+			and GameState.has_method("is_final_teacher_active") \
+			and GameState.current_task_index >= GameState.WIZARD_TASK_INDEX \
+			and GameState.return_to_city_stage < 2:
+		return
 
 	var resolved_destination := _resolve_destination_scene_path()
 	if resolved_destination.is_empty():

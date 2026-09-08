@@ -1,0 +1,49 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/progression_dialogue_overlay.gd" id="1_script"]
+[ext_resource type="FontFile" path="res://Font/PressStart2P.ttf" id="2_font"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_dialogue"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94902, 0.823529, 0.443137, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="ProgressionDialogueOverlay" type="CanvasLayer"]
+layer = 110
+script = ExtResource("1_script")
+
+[node name="DialoguePanel" type="PanelContainer" parent="."]
+anchors_preset = 12
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 190.0
+offset_top = -132.0
+offset_right = -190.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBox_dialogue")
+
+[node name="DialogueLabel" type="Label" parent="DialoguePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.858824, 0.878431, 0.956863, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 10
+text = "Dialogue"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3

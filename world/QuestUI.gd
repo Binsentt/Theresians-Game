@@ -157,6 +157,50 @@ func play_teacher_dialogue() -> void:
 		GameState.complete_oakleaf_teacher_return()
 		update_task_ui()
 		return
+	if GameState.has_method("is_final_teacher_active") \
+			and bool(GameState.call("is_final_teacher_active")):
+		var final_task: Dictionary = GameState.tasks[GameState.FINAL_TEACHER_TASK_INDEX]
+		await begin_dialogue(final_task.get("dialogue", []))
+		if not GameState.playtime_authorized:
+			return
+		var player := get_tree().get_first_node_in_group("player_character") as Node2D
+		var source_scene := get_tree().current_scene as Node2D
+		if source_scene == null:
+			return
+		var source_position := player.global_position if player != null else GameState.player_position
+		GameState.begin_encounter({
+			"encounter_id": "final_teacher",
+			"source_scene_path": source_scene.scene_file_path,
+			"source_position": source_position,
+			"quest_checkpoint": GameState.current_task_index,
+			"question_scope": {"difficulty": "Difficult"},
+		})
+		var battle_scene_path := "res://Battle/Battle-Enemy/female_vs_teacher.tscn" if GameState.gender == "female" else "res://Battle/Battle-Enemy/male_vs_teacher.tscn"
+		var battle_scene: Node = load(battle_scene_path).instantiate()
+		var battle_layer := CanvasLayer.new()
+		battle_layer.name = "OriginalBattlePresentation"
+		battle_layer.layer = -1
+		var world_was_visible := source_scene.visible
+		source_scene.hide()
+		source_scene.add_child(battle_layer)
+		var question_layer := battle_scene.get_node_or_null("CanvasLayer") as CanvasLayer
+		if question_layer != null:
+			question_layer.layer = 0
+		battle_layer.add_child(battle_scene)
+		GameState.begin_battle(battle_scene)
+		visible = false
+		var battle_won: bool = await battle_scene.battle_finished
+		if is_instance_valid(battle_layer):
+			battle_layer.queue_free()
+		if is_instance_valid(source_scene):
+			source_scene.visible = world_was_visible
+		visible = true
+		if battle_won:
+			GameState.record_encounter_victory()
+		else:
+			GameState.record_encounter_loss()
+		update_task_ui()
+		return
 	await show_completed_with_dialogue()
 
 

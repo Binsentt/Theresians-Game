@@ -37,7 +37,32 @@ const OAKLEAF_BOSS_TASK_INDEX := 4
 const OAKLEAF_RETURN_TEACHER_TASK_INDEX := 5
 const CITY_OF_KNOWLEDGE_TASK_INDEX := 6
 const CITY_SCHOOL_TASK_INDEX := 7
-const CITY_NEXT_PATH_TASK_INDEX := 8
+const CITY_SCHOOL_TEACHER_TASK_INDEX := 8
+const CITY_NEXT_PATH_TASK_INDEX := 9
+const DEEP_FOREST_BANDIT_TASK_INDEX := 10
+const PINEHILL_ARRIVAL_TASK_INDEX := 11
+const PINEHILL_OLD_MAN_TASK_INDEX := 12
+const PINEHILL_BANDIT_TASK_INDEX := 13
+const WIZARD_TASK_INDEX := 14
+const RETURN_CITY_TASK_INDEX := 15
+const FINAL_SCHOOL_TASK_INDEX := 16
+const FINAL_TEACHER_TASK_INDEX := 17
+
+const DEEP_FOREST_BANDIT_IDS: Array[String] = [
+	"deep_forest_bandits1",
+	"deep_forest_bandits2",
+	"deep_forest_bandits3",
+	"deep_forest_bandits4",
+	"deep_forest_bandits5",
+]
+const PINEHILL_BANDIT_IDS: Array[String] = [
+	"pinehill_bandits1",
+	"pinehill_bandits2",
+	"pinehill_bandits3",
+	"pinehill_bandits4",
+]
+const RETURN_PATH_BANDIT_IDS: Array[String] = []
+const PROGRESSION_BANDIT_IDS: Array[String] = DEEP_FOREST_BANDIT_IDS + PINEHILL_BANDIT_IDS + RETURN_PATH_BANDIT_IDS
 
 const PLAYER_SCENES := {
 	"male": "res://player/player_male.tscn",
@@ -54,7 +79,8 @@ const LEGACY_SCENE_ALIASES := {
 	"res://interiors/players_house.tscn": "res://interiors/player_house.tscn",
 	"res://world/player_house_outside_door.tscn": "res://scenes/oak_leaf_village.tscn",
 	"res://world/teacher_house_outside_door.tscn": "res://scenes/oak_leaf_village.tscn",
-	"res://world/npc_house_outside_door.tscn": "res://scenes/oak_leaf_village.tscn"
+	"res://world/npc_house_outside_door.tscn": "res://scenes/oak_leaf_village.tscn",
+	"res://scenes/pinehill_village.tscn": "res://scenes/2nd Village/Pinehill Village.tscn"
 }
 
 const SCENE_FALLBACK_SPAWNS := {
@@ -88,6 +114,16 @@ var city_of_knowledge_unlocked := false
 var city_first_arrival_seen := false
 var city_school_stage_complete := false
 var city_next_path_unlocked := false
+var city_school_stage: int = 0
+var deep_forest_defeated_bandits: Dictionary = {}
+var pinehill_unlocked := false
+var pinehill_old_man_completed := false
+var pinehill_defeated_bandits: Dictionary = {}
+var wizard_defeated := false
+var return_to_city_stage: int = 0
+var return_path_defeated_bandits: Dictionary = {}
+var final_teacher_defeated := false
+var journey_complete := false
 var score: int = 0
 var correct_answers: int = 0
 var incorrect_answers: int = 0
@@ -156,8 +192,8 @@ var tasks = [
 		],
 	},
 	{
-		"activity_id": "go-to-city-of-knowledge-school",
-		"activity_label": "Go to the City of Knowledge / School",
+		"activity_id": "go-to-city-of-knowledge",
+		"activity_label": "Go to the City of Knowledge",
 		"quest_text": "Go to the City of Knowledge / School",
 	},
 	{
@@ -167,10 +203,59 @@ var tasks = [
 		"dialogue": ["To continue, you must pass a greater challenge."],
 	},
 	{
+		"activity_id": "talk-to-city-school-teacher",
+		"activity_label": "Talk to the Math Teacher",
+		"quest_text": "Talk to the Math Teacher",
+		"dialogue": ["Teacher: To continue, you must pass a greater challenge."]
+	},
+	{
 		"activity_id": "go-to-pinehill-village",
 		"activity_label": "Go to Pinehill Village",
 		"quest_text": "Go to Pinehill Village",
-	}
+	},
+	{
+		"activity_id": "deep-forest-bandits",
+		"activity_label": "Defeat the Deep Forest Bandits",
+		"quest_text": "Defeat All Bandits",
+	},
+	{
+		"activity_id": "pinehill-arrival",
+		"activity_label": "Reach Pinehill Village",
+		"quest_text": "Go to Pinehill Village",
+	},
+	{
+		"activity_id": "talk-to-old-man",
+		"activity_label": "Talk to the Old Man",
+		"quest_text": "Talk to the Old Man",
+		"dialogue": ["Old Man: A powerful Wizard is ahead.", "Old Man: The Bandits guard the way. Defeat them first."]
+	},
+	{
+		"activity_id": "pinehill-bandits",
+		"activity_label": "Defeat the Pinehill Bandits",
+		"quest_text": "Defeat All Bandits",
+	},
+	{
+		"activity_id": "defeat-the-wizard",
+		"activity_label": "Defeat the Wizard",
+		"quest_text": "Defeat the Wizard",
+		"dialogue": ["Wizard: Your final challenge awaits in the City of Knowledge.", "Wizard: Return to the School and face the Teacher."]
+	},
+	{
+		"activity_id": "return-to-city-of-knowledge",
+		"activity_label": "Return to the City of Knowledge",
+		"quest_text": "Return to the City of Knowledge",
+	},
+	{
+		"activity_id": "return-to-city-school",
+		"activity_label": "Go to the School",
+		"quest_text": "Go to the School",
+	},
+	{
+		"activity_id": "final-teacher",
+		"activity_label": "Talk to the Master Teacher",
+		"quest_text": "Talk to the Master Teacher",
+		"dialogue": ["Teacher: Welcome back. This is your final Math challenge."]
+	},
 ]
 
 const DEFAULT_PLAYTIME_LIMIT_MINUTES := 60
@@ -242,6 +327,25 @@ func _reset_oakleaf_progression() -> void:
 		oakleaf_defeated_bandits[encounter_id] = false
 	oakleaf_boss_defeated = false
 	oakleaf_return_to_teacher = false
+
+
+func _reset_world_progression() -> void:
+	city_school_stage = 0
+	deep_forest_defeated_bandits.clear()
+	for encounter_id in DEEP_FOREST_BANDIT_IDS:
+		deep_forest_defeated_bandits[encounter_id] = false
+	pinehill_unlocked = false
+	pinehill_old_man_completed = false
+	pinehill_defeated_bandits.clear()
+	for encounter_id in PINEHILL_BANDIT_IDS:
+		pinehill_defeated_bandits[encounter_id] = false
+	wizard_defeated = false
+	return_to_city_stage = 0
+	return_path_defeated_bandits.clear()
+	for encounter_id in RETURN_PATH_BANDIT_IDS:
+		return_path_defeated_bandits[encounter_id] = false
+	final_teacher_defeated = false
+	journey_complete = false
 
 
 func is_oakleaf_bandit_defeated(encounter_id: String) -> bool:
@@ -377,11 +481,15 @@ func is_city_school_active() -> bool:
 	return city_of_knowledge_unlocked \
 			and city_first_arrival_seen \
 			and not city_school_stage_complete \
-			and current_task_index == CITY_SCHOOL_TASK_INDEX
+			and current_task_index in [CITY_SCHOOL_TASK_INDEX, CITY_SCHOOL_TEACHER_TASK_INDEX]
 
 
 func is_city_next_path_unlocked() -> bool:
 	return city_next_path_unlocked
+
+
+func is_pinehill_unlocked() -> bool:
+	return pinehill_unlocked
 
 
 func mark_city_first_arrival() -> Dictionary:
@@ -393,6 +501,7 @@ func mark_city_first_arrival() -> Dictionary:
 		return {"changed": false, "action": "blocked"}
 
 	city_first_arrival_seen = true
+	city_school_stage = 1
 	var previous_index := current_task_index
 	current_task_index = CITY_SCHOOL_TASK_INDEX
 	current_quest = get_current_quest_text()
@@ -422,7 +531,10 @@ func complete_city_school_teacher() -> Dictionary:
 
 	city_school_stage_complete = true
 	city_next_path_unlocked = true
+	city_school_stage = 2
 	var previous_index := current_task_index
+	# Preserve the established School completion checkpoint. The City scene entry
+	# below activates the newly restored deep-forest encounter stage.
 	current_task_index = CITY_NEXT_PATH_TASK_INDEX
 	current_quest = get_current_quest_text()
 	quest_changed.emit(current_quest)
@@ -430,7 +542,7 @@ func complete_city_school_teacher() -> Dictionary:
 		"type": "task_completed",
 		"key": "quest:city:school-teacher:complete",
 		"title": "School Complete",
-		"description": "Go to Pinehill Village.",
+		"description": "Defeat All Bandits on the forest path.",
 		"source": "teacher_task_interaction",
 		"reason": "city_school_teacher",
 	}
@@ -445,13 +557,180 @@ func complete_city_school_teacher() -> Dictionary:
 	}
 
 
+func is_final_teacher_active() -> bool:
+	return current_task_index == FINAL_TEACHER_TASK_INDEX \
+			and not final_teacher_defeated \
+			and not journey_complete \
+			and return_to_city_stage >= 2
+
+
+func _progression_group_for_id(encounter_id: String) -> String:
+	var normalized_id := encounter_id.strip_edges()
+	if normalized_id in DEEP_FOREST_BANDIT_IDS:
+		return "deep_forest"
+	if normalized_id in PINEHILL_BANDIT_IDS:
+		return "pinehill"
+	if normalized_id in RETURN_PATH_BANDIT_IDS:
+		return "return_path"
+	return ""
+
+
+func _progression_defeat_map(group: String) -> Dictionary:
+	match group:
+		"deep_forest":
+			return deep_forest_defeated_bandits
+		"pinehill":
+			return pinehill_defeated_bandits
+		"return_path":
+			return return_path_defeated_bandits
+		_:
+			return {}
+
+
+func is_progression_encounter_defeated(encounter_id: String) -> bool:
+	var normalized_id := encounter_id.strip_edges()
+	if normalized_id == "pinehill_wizard":
+		return wizard_defeated
+	if normalized_id == "final_teacher":
+		return final_teacher_defeated
+	var group := _progression_group_for_id(normalized_id)
+	if group.is_empty():
+		return false
+	return bool(_progression_defeat_map(group).get(normalized_id, false))
+
+
+func are_all_progression_bandits_defeated(group: String) -> bool:
+	var normalized_group := group.strip_edges().to_lower()
+	var ids: Array[String] = []
+	match normalized_group:
+		"deep_forest":
+			ids = DEEP_FOREST_BANDIT_IDS
+		"pinehill":
+			ids = PINEHILL_BANDIT_IDS
+		"return_path":
+			ids = RETURN_PATH_BANDIT_IDS
+		_:
+			return false
+	var defeated := _progression_defeat_map(normalized_group)
+	for encounter_id in ids:
+		if not bool(defeated.get(encounter_id, false)):
+			return false
+	return true
+
+
+func can_start_progression_encounter(encounter_id: String) -> bool:
+	var normalized_id := encounter_id.strip_edges()
+	if is_progression_encounter_defeated(normalized_id):
+		return false
+	var group := _progression_group_for_id(normalized_id)
+	if group == "deep_forest":
+		return current_task_index == DEEP_FOREST_BANDIT_TASK_INDEX
+	if group == "pinehill":
+		return current_task_index == PINEHILL_BANDIT_TASK_INDEX and pinehill_old_man_completed
+	if normalized_id == "pinehill_wizard":
+		return current_task_index == WIZARD_TASK_INDEX \
+				and are_all_progression_bandits_defeated("pinehill") \
+				and not wizard_defeated
+	if normalized_id == "final_teacher":
+		return is_final_teacher_active()
+	return false
+
+
+func _advance_progression_checkpoint(previous_index: int, next_index: int, key: String, title: String, description: String) -> void:
+	if next_index <= previous_index:
+		return
+	current_task_index = next_index
+	current_quest = get_current_quest_text()
+	quest_changed.emit(current_quest)
+	task_state_changed.emit(previous_index, current_task_index, {
+		"type": "quest_updated",
+		"key": key,
+		"title": title,
+		"description": description,
+	})
+
+
+func record_progression_encounter_victory(encounter_id: String, persist: bool = true) -> Dictionary:
+	var normalized_id := encounter_id.strip_edges()
+	if not can_start_progression_encounter(normalized_id):
+		return {"changed": false, "action": "blocked", "encounter_id": normalized_id}
+	var group := _progression_group_for_id(normalized_id)
+	if not group.is_empty():
+		_progression_defeat_map(group)[normalized_id] = true
+	var previous_index := current_task_index
+	var action := "progression_encounter_defeated"
+	if group == "deep_forest" and are_all_progression_bandits_defeated(group):
+		pinehill_unlocked = true
+		current_task_index = PINEHILL_ARRIVAL_TASK_INDEX
+		action = "deep_forest_complete"
+	elif group == "pinehill" and are_all_progression_bandits_defeated(group):
+		current_task_index = WIZARD_TASK_INDEX
+		action = "pinehill_bandits_complete"
+	elif normalized_id == "pinehill_wizard":
+		wizard_defeated = true
+		return_to_city_stage = 2
+		current_task_index = RETURN_CITY_TASK_INDEX
+		action = "wizard_complete"
+	elif normalized_id == "final_teacher":
+		final_teacher_defeated = true
+		journey_complete = true
+		city_school_stage = 4
+		current_task_index = tasks.size()
+		action = "journey_complete"
+	if current_task_index != previous_index:
+		_advance_progression_checkpoint(previous_index, current_task_index,
+			"quest:world:%s" % action, action.replace("_", " ").capitalize(), get_current_quest_text())
+	else:
+		current_quest = get_current_quest_text()
+		quest_changed.emit(current_quest)
+	var save_path := ""
+	if persist:
+		save_path = save_game()
+	return {
+		"changed": true,
+		"action": action,
+		"encounter_id": normalized_id,
+		"current_index": current_task_index,
+		"save_path": save_path,
+	}
+
+
+func complete_pinehill_old_man() -> Dictionary:
+	if pinehill_old_man_completed or current_task_index != PINEHILL_OLD_MAN_TASK_INDEX:
+		return {"changed": false, "action": "blocked"}
+	pinehill_old_man_completed = true
+	var previous_index := current_task_index
+	_advance_progression_checkpoint(previous_index, PINEHILL_BANDIT_TASK_INDEX,
+		"quest:pinehill:old-man", "Old Man", "Defeat All Bandits.")
+	var save_path := save_game()
+	return {"changed": true, "action": "old_man_complete", "current_index": current_task_index, "save_path": save_path}
+
+
 func get_current_quest_text() -> String:
 	if is_tutorial_active():
 		return TUTORIAL_QUEST
-	if city_next_path_unlocked or city_school_stage_complete:
-		return String(tasks[CITY_NEXT_PATH_TASK_INDEX].get("quest_text", "Go to Pinehill Village"))
+	if journey_complete:
+		return "Math Champion"
+	if current_task_index == DEEP_FOREST_BANDIT_TASK_INDEX or current_task_index == PINEHILL_BANDIT_TASK_INDEX:
+		return "Defeat All Bandits"
+	if current_task_index == WIZARD_TASK_INDEX:
+		return "Defeat the Wizard"
+	if current_task_index == FINAL_TEACHER_TASK_INDEX:
+		return "Talk to the Master Teacher"
+	if current_task_index >= PINEHILL_OLD_MAN_TASK_INDEX and current_task_index < PINEHILL_BANDIT_TASK_INDEX:
+		return "Talk to the Old Man"
+	if current_task_index == CITY_NEXT_PATH_TASK_INDEX or (city_next_path_unlocked and current_task_index < DEEP_FOREST_BANDIT_TASK_INDEX):
+		return "Go to Pinehill Village"
+	if current_task_index == PINEHILL_ARRIVAL_TASK_INDEX:
+		return "Go to Pinehill Village"
+	if current_task_index == RETURN_CITY_TASK_INDEX:
+		return "Return to the City of Knowledge"
+	if current_task_index == FINAL_SCHOOL_TASK_INDEX:
+		return "Go to the School"
 	if city_first_arrival_seen:
-		return String(tasks[CITY_SCHOOL_TASK_INDEX].get("quest_text", "Go to the School"))
+		if current_task_index == CITY_SCHOOL_TEACHER_TASK_INDEX:
+			return "Talk to the Math Teacher"
+		return "Go to the School"
 	if current_task_index == OAKLEAF_BANDIT_TASK_INDEX:
 		return "Defeat All Bandits"
 	if current_task_index >= 0 and current_task_index < tasks.size():
@@ -694,6 +973,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	city_next_path_unlocked = false
 	current_task_index = 0
 	_reset_oakleaf_progression()
+	_reset_world_progression()
 	_tutorial_activity_started = false
 	_tutorial_activity_completed = false
 	_started_task_activity_ids.clear()
@@ -883,7 +1163,35 @@ func finalize_new_game_registration() -> bool:
 func handle_scene_entered(scene_path: String) -> void:
 	current_scene_path = _normalize_scene_path(scene_path)
 	if current_scene_path == "res://scenes/city_of_knowledge.tscn":
-		mark_city_first_arrival()
+		if return_to_city_stage >= 2 and current_task_index == RETURN_CITY_TASK_INDEX:
+			current_task_index = FINAL_SCHOOL_TASK_INDEX
+			current_quest = get_current_quest_text()
+			quest_changed.emit(current_quest)
+			save_game()
+		elif city_school_stage_complete and current_task_index == CITY_NEXT_PATH_TASK_INDEX:
+			current_task_index = DEEP_FOREST_BANDIT_TASK_INDEX
+			current_quest = get_current_quest_text()
+			quest_changed.emit(current_quest)
+			save_game()
+		else:
+			mark_city_first_arrival()
+	elif current_scene_path == "res://interiors/school.tscn":
+		if current_task_index == CITY_SCHOOL_TASK_INDEX and city_first_arrival_seen and not city_school_stage_complete:
+			current_task_index = CITY_SCHOOL_TEACHER_TASK_INDEX
+			current_quest = get_current_quest_text()
+			quest_changed.emit(current_quest)
+			save_game()
+		elif current_task_index == FINAL_SCHOOL_TASK_INDEX and return_to_city_stage >= 2:
+			current_task_index = FINAL_TEACHER_TASK_INDEX
+			current_quest = get_current_quest_text()
+			quest_changed.emit(current_quest)
+			save_game()
+	elif current_scene_path == "res://scenes/2nd Village/Pinehill Village.tscn" \
+			and pinehill_unlocked and current_task_index == PINEHILL_ARRIVAL_TASK_INDEX:
+		current_task_index = PINEHILL_OLD_MAN_TASK_INDEX
+		current_quest = get_current_quest_text()
+		quest_changed.emit(current_quest)
+		save_game()
 
 func get_player_scene_path() -> String:
 	return PLAYER_SCENES.get(gender, PLAYER_SCENES["male"])
@@ -1002,11 +1310,16 @@ func record_encounter_victory() -> Dictionary:
 		String(completed_context.get("encounter_id", "")),
 		true
 	)
+	var progression_result := record_progression_encounter_victory(
+		String(completed_context.get("encounter_id", "")),
+		true
+	)
 	return {
 		"success": true,
 		"action": "victory",
 		"context": completed_context,
 		"oakleaf": oakleaf_result,
+		"progression": progression_result,
 	}
 
 
@@ -1108,6 +1421,16 @@ func build_save_data() -> Dictionary:
 		"city_first_arrival_seen": city_first_arrival_seen,
 		"city_school_stage_complete": city_school_stage_complete,
 		"city_next_path_unlocked": city_next_path_unlocked,
+		"city_school_stage": city_school_stage,
+		"deep_forest_defeated_bandits": deep_forest_defeated_bandits.duplicate(true),
+		"pinehill_unlocked": pinehill_unlocked,
+		"pinehill_old_man_completed": pinehill_old_man_completed,
+		"pinehill_defeated_bandits": pinehill_defeated_bandits.duplicate(true),
+		"wizard_defeated": wizard_defeated,
+		"return_to_city_stage": return_to_city_stage,
+		"return_path_defeated_bandits": return_path_defeated_bandits.duplicate(true),
+		"final_teacher_defeated": final_teacher_defeated,
+		"journey_complete": journey_complete,
 		"oakleaf_defeated_bandits": oakleaf_defeated_bandits.duplicate(true),
 		"oakleaf_boss_defeated": oakleaf_boss_defeated,
 		"oakleaf_return_to_teacher": oakleaf_return_to_teacher,
@@ -1208,6 +1531,7 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	city_first_arrival_seen = bool(data.get("city_first_arrival_seen", false))
 	city_school_stage_complete = bool(data.get("city_school_stage_complete", false))
 	city_next_path_unlocked = bool(data.get("city_next_path_unlocked", false))
+	city_school_stage = clampi(int(data.get("city_school_stage", 0)), 0, 4)
 	var loaded_task_index := clampi(int(data.get("current_task_index", 0)), 0, tasks.size())
 	current_task_index = loaded_task_index
 	if not data.has("city_first_arrival_seen"):
@@ -1220,12 +1544,50 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 		current_task_index = maxi(current_task_index, CITY_NEXT_PATH_TASK_INDEX)
 	elif city_first_arrival_seen:
 		current_task_index = maxi(current_task_index, CITY_SCHOOL_TASK_INDEX)
+	if not data.has("city_school_stage"):
+		city_school_stage = 2 if city_school_stage_complete else (1 if city_first_arrival_seen else 0)
 	oakleaf_defeated_bandits = _normalize_oakleaf_defeated_bandits(
 		data.get("oakleaf_defeated_bandits", null),
 		loaded_task_index
 	)
 	oakleaf_boss_defeated = bool(data.get("oakleaf_boss_defeated", false))
 	oakleaf_return_to_teacher = bool(data.get("oakleaf_return_to_teacher", false))
+	deep_forest_defeated_bandits = _normalize_progression_defeated_bandits(
+		data.get("deep_forest_defeated_bandits", null), DEEP_FOREST_BANDIT_IDS
+	)
+	pinehill_unlocked = bool(data.get("pinehill_unlocked", false))
+	pinehill_old_man_completed = bool(data.get("pinehill_old_man_completed", false))
+	pinehill_defeated_bandits = _normalize_progression_defeated_bandits(
+		data.get("pinehill_defeated_bandits", null), PINEHILL_BANDIT_IDS
+	)
+	wizard_defeated = bool(data.get("wizard_defeated", false))
+	return_to_city_stage = clampi(int(data.get("return_to_city_stage", 0)), 0, 2)
+	return_path_defeated_bandits = _normalize_progression_defeated_bandits(
+		data.get("return_path_defeated_bandits", null), RETURN_PATH_BANDIT_IDS
+	)
+	final_teacher_defeated = bool(data.get("final_teacher_defeated", false))
+	journey_complete = bool(data.get("journey_complete", false))
+	# Monotonic migration for SAVE_VERSION 9 records that predate the extended
+	# world timeline. Optional fields default safely and never move a checkpoint
+	# backward or replay an already completed stage.
+	if journey_complete or final_teacher_defeated:
+		journey_complete = journey_complete or final_teacher_defeated
+		final_teacher_defeated = true
+		city_school_stage = 4
+		current_task_index = tasks.size()
+	elif return_to_city_stage >= 2:
+		current_task_index = maxi(current_task_index, RETURN_CITY_TASK_INDEX)
+	elif wizard_defeated:
+		return_to_city_stage = 2
+		current_task_index = maxi(current_task_index, RETURN_CITY_TASK_INDEX)
+	elif are_all_progression_bandits_defeated("pinehill"):
+		current_task_index = maxi(current_task_index, WIZARD_TASK_INDEX)
+	elif pinehill_old_man_completed:
+		current_task_index = maxi(current_task_index, PINEHILL_BANDIT_TASK_INDEX)
+	elif pinehill_unlocked:
+		current_task_index = maxi(current_task_index, PINEHILL_ARRIVAL_TASK_INDEX)
+	elif are_all_progression_bandits_defeated("deep_forest"):
+		current_task_index = maxi(current_task_index, PINEHILL_ARRIVAL_TASK_INDEX)
 	# Existing saves persist current_quest. Unmarked legacy saves retain
 	# their existing task checkpoint rather than replaying an unrecorded tutorial.
 	_tutorial_activity_completed = current_task_index > 0 or current_quest != TUTORIAL_QUEST
@@ -1483,6 +1845,16 @@ func _normalize_oakleaf_defeated_bandits(value: Variant, loaded_task_index: int)
 	# reachable after the original First Bandit task has completed.
 	if loaded_task_index >= OAKLEAF_BANDIT_TASK_INDEX:
 		normalized[OAKLEAF_BANDIT_IDS[0]] = true
+	return normalized
+
+
+func _normalize_progression_defeated_bandits(value: Variant, ids: Array[String]) -> Dictionary:
+	var normalized: Dictionary = {}
+	for encounter_id in ids:
+		normalized[encounter_id] = false
+	if value is Dictionary:
+		for encounter_id in ids:
+			normalized[encounter_id] = bool(value.get(encounter_id, false))
 	return normalized
 
 
