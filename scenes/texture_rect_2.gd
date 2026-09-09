@@ -485,7 +485,19 @@ func _on_start_exit() -> void:
 	_animate_button(start_btn, normal_scale, release_duration)
 
 func _on_start_pressed() -> void:
+	if OS.is_debug_build():
+		print("NEW GAME PLAY SIGNAL: handler=_on_start_pressed profile_accepted=%s canonical_profile_stored=%s gender=%s grade=%s button_disabled=%s step_transitioning=%s pending_play=%s" % [
+			str(_canonical_identity_locked),
+			str(not _canonical_student_name.is_empty() and _canonical_grade in GameState.VALID_REGISTRATION_GRADES),
+			selected_gender if not selected_gender.is_empty() else "not_selected",
+			selected_grade if not selected_grade.is_empty() else "not_selected",
+			str(start_btn.disabled),
+			str(_step_transitioning),
+			str(_play_transitioning),
+		])
 	if _play_transitioning:
+		if OS.is_debug_build():
+			print("NEW GAME PLAY GUARD: duplicate pending Play ignored")
 		return
 
 	_play_transitioning = true
@@ -499,6 +511,8 @@ func _on_start_pressed() -> void:
 
 	var validation_error := _first_registration_error()
 	if not validation_error.is_empty():
+		if OS.is_debug_build():
+			print("NEW GAME PLAY GUARD: registration validation failed")
 		_show_validation(validation_error)
 		_focus_first_invalid_field(validation_error)
 		_animate_button(start_btn, normal_scale, release_duration)
@@ -507,6 +521,8 @@ func _on_start_pressed() -> void:
 
 	_hide_validation()
 	var registration := GameState.get_new_game_registration()
+	if OS.is_debug_build():
+		print("NEW GAME PLAY REQUEST: method=POST route=/api/playtime/start target_base_url=%s" % str(get_node_or_null("/root/HttpApi").get("base_url") if get_node_or_null("/root/HttpApi") != null else "unavailable"))
 	var playtimeResult := await RemoteSync.request_playtime_session({
 		"student_id": String(registration.get("student_id", "")),
 		"parent_id": String(registration.get("parent_id", "")),
@@ -514,6 +530,13 @@ func _on_start_pressed() -> void:
 		"grade_level": String(registration.get("grade", "")),
 		"section": String(registration.get("section", ""))
 	})
+	if OS.is_debug_build():
+		print("NEW GAME PLAY RESULT: status=%d ok=%s can_play=%s should_block=%s" % [
+			int(playtimeResult.get("status", 0)),
+			str(playtimeResult.get("ok", false)),
+			str(playtimeResult.get("can_play", null)),
+			str(playtimeResult.get("should_block", false)),
+		])
 	if not playtimeResult.ok or playtimeResult.get("can_play", true) == false or playtimeResult.get("should_block", false) == true:
 		var errorText := String(playtimeResult.get("error", "Unable to connect to playtime service."))
 		if playtimeResult.get("status", 0) == 403 or playtimeResult.get("should_block", false) == true:
@@ -522,7 +545,14 @@ func _on_start_pressed() -> void:
 		_play_transitioning = false
 		return
 
-	if not GameState.finalize_new_game_registration():
+	if OS.is_debug_build():
+		print("NEW GAME PLAY FINALIZE: registration_valid=%s local_save_present=%s server_authorized=true" % [
+			str(GameState.is_valid_new_game_registration(registration)),
+			str(GameState.has_existing_game_profile_for_student_id(String(registration.get("student_id", "")))),
+		])
+	if not GameState.finalize_new_game_registration(true):
+		if OS.is_debug_build():
+			print("NEW GAME PLAY GUARD: GameState finalization failed")
 		_show_validation(_first_registration_error())
 		_play_transitioning = false
 		return
@@ -538,7 +568,11 @@ func _on_start_pressed() -> void:
 		LoadingScreenController.prepare_new_game(PLAYER_HOUSE_SCENE_PATH)
 	else:
 		LoadingScreenController.cancel_pending_request()
+	if OS.is_debug_build():
+		print("NEW GAME PLAY TRANSITION: requested_scene=%s loading_target=%s" % [next_scene_path, PLAYER_HOUSE_SCENE_PATH])
 	var result := get_tree().change_scene_to_file(next_scene_path)
+	if OS.is_debug_build():
+		print("NEW GAME PLAY TRANSITION RESULT: code=%d fired=%s" % [result, str(result == OK)])
 	if result != OK:
 		LoadingScreenController.cancel_pending_request()
 		_play_transitioning = false

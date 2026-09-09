@@ -31,6 +31,7 @@ func _run() -> void:
 	_remote.set_script(RemoteSyncStub)
 
 	await _verify_current_eight_digit_pair_and_tutorial()
+	await _verify_server_authorized_pair_is_not_blocked_by_a_stale_local_save()
 	await _verify_legacy_six_digit_pair()
 	await _verify_wrong_parent()
 	await _verify_missing_parent()
@@ -58,12 +59,38 @@ func _verify_current_eight_digit_pair_and_tutorial() -> void:
 	_expect(bool(wizard.get("_step_transitioning")), "Play becomes visible during the short Name/Grade fade")
 	print("NEW GAME TRACE: student_length=8 parent_length=6 selected_grade=Grade 4 method=GET route=/api/game/profile/check/[STUDENT]?parent_id=[PARENT] sent=true status=200")
 
-	await _press(wizard.get_node("NameGradeSelect/Start") as BaseButton)
+	var start_button := wizard.get_node("NameGradeSelect/Start") as BaseButton
+	var play_click := await _click_label_center(start_button)
+	_expect(String(play_click.get("hovered", "")).ends_with("/NameGradeSelect/Start"), "the visible PLAY label center resolves to the real Start button")
+	_expect(int(play_click.get("pressed_count", 0)) == 1, "a mouse click on the visible PLAY label emits the Play pressed signal once")
+	start_button.pressed.emit()
+	await get_tree().process_frame
 	_expect(await _wait_for_scene(LOADING, 240), "valid pair reaches canonical Loading")
 	_expect(await _wait_for_scene(PLAYER_HOUSE, 480), "valid pair reaches Player House tutorial entry")
 	_expect(_state.is_tutorial_active(), "Tutorial is active after the valid New Game transition")
 	_expect(String(_state.student_id) == _current_student_id and String(_state.parent_id) == "654321", "canonical linked identity is committed to GameState")
-	_expect(_remote.requests.size() == 1, "the preserved Play press starts exactly one playtime request")
+	_expect(_remote.requests.size() == 1, "a rapid second Play activation cannot duplicate the start request")
+
+
+func _verify_server_authorized_pair_is_not_blocked_by_a_stale_local_save() -> void:
+	_current_student_id = _unused_student_id(8)
+	var fixture_path := _write_stale_local_save(_current_student_id)
+	_expect(not fixture_path.is_empty(), "the stale local-save regression fixture is disposable and created locally")
+	_expect(_state.has_existing_game_profile_for_student_id(_current_student_id), "the regression fixture reproduces the stale local-save guard")
+	_set_profile_response(200, _valid_profile_body("Server Authorized Student", "Grade 5"))
+	var wizard := await _open_ids_step()
+	if wizard == null:
+		_remove_local_fixture(fixture_path)
+		return
+	_set_ids(wizard, _current_student_id, "654321")
+	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
+	_expect(await _wait_for_visible(wizard.get_node("NameGradeSelect"), 240), "the server-authorized profile reaches Play even when a stale local save exists")
+	await _wait_for_transition(wizard)
+	_expect(not _state.finalize_new_game_registration(), "the default GameState finalization guard still protects an existing device-local save")
+	await _click_label_center(wizard.get_node("NameGradeSelect/Start") as BaseButton)
+	_remove_local_fixture(fixture_path)
+	_expect(await _wait_for_scene(LOADING, 240), "a server-authorized profile is not silently blocked by a stale local save")
+	_expect(await _wait_for_scene(PLAYER_HOUSE, 480), "the server-authorized profile reaches the Player House tutorial")
 
 
 func _verify_legacy_six_digit_pair() -> void:
@@ -219,6 +246,24 @@ func _unused_student_id(length: int) -> String:
 	return ("8" if length == 8 else "6").repeat(length)
 
 
+func _write_stale_local_save(student_code: String) -> String:
+	var directory_path := ProjectSettings.globalize_path("user://saves")
+	if DirAccess.make_dir_recursive_absolute(directory_path) != OK:
+		return ""
+	var path := "user://saves/start_play_stale_%d.json" % Time.get_ticks_usec()
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return ""
+	file.store_string(JSON.stringify({"student_id": student_code}))
+	file.close()
+	return path
+
+
+func _remove_local_fixture(path: String) -> void:
+	if not path.is_empty() and FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
 func _validation_text(wizard: Node) -> String:
 	var label := wizard.get_node("ValidationPanel/MarginContainer/ValidationLabel") as Label
 	return label.text
@@ -228,6 +273,35 @@ func _press(button: BaseButton) -> void:
 	button.pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+func _click_label_center(button: BaseButton) -> Dictionary:
+	await RenderingServer.frame_post_draw
+	var label := button.get_node("Label") as Control
+	var position := label.get_global_transform_with_canvas() * (label.size / 2.0)
+	var record := {
+		"hovered": "none",
+		"pressed_count": 0,
+	}
+	button.pressed.connect(func() -> void: record.pressed_count += 1, CONNECT_ONE_SHOT)
+	var motion := InputEventMouseMotion.new()
+	motion.position = position
+	motion.global_position = position
+	get_viewport().push_input(motion, true)
+	await get_tree().process_frame
+	var hovered := get_viewport().gui_get_hovered_control()
+	record.hovered = str(hovered.get_path()) if hovered != null else "none"
+	for is_pressed in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.position = position
+		event.global_position = position
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.button_mask = MOUSE_BUTTON_MASK_LEFT if is_pressed else 0
+		event.pressed = is_pressed
+		get_viewport().push_input(event, true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	return record
 
 
 func _wait_for_transition(wizard: Node) -> void:

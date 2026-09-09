@@ -1141,11 +1141,14 @@ func has_existing_game_profile_for_student_id(student_id: String) -> bool:
 	directory.list_dir_end()
 	return false
 
-func finalize_new_game_registration() -> bool:
+func finalize_new_game_registration(server_authorized: bool = false) -> bool:
 	var values := get_new_game_registration()
 	if not is_valid_new_game_registration(values):
 		return false
-	if has_existing_game_profile_for_student_id(String(values.get("student_id", ""))):
+	# New Game normally protects a device-local profile. The canonical New Game
+	# controller may override that guard only after the backend has explicitly
+	# authorized this Student/Parent pair and issued the playtime decision.
+	if not server_authorized and has_existing_game_profile_for_student_id(String(values.get("student_id", ""))):
 		return false
 
 	start_new_game({
