@@ -342,10 +342,31 @@ func _validate_ids_with_backend() -> Dictionary:
 	if http == null:
 		return {"ok": false, "error": "Unable to connect to the server. Please try again."}
 
+	if OS.is_debug_build():
+		print("NEW GAME PROFILE SUBMIT: student_length=%d parent_length=%d selected_grade=%s method=GET route=/api/game/profile/check/[STUDENT]?parent_id=[PARENT] target_base_url=%s" % [
+			student_id_input.text.length(),
+			parent_id_input.text.length(),
+			selected_grade if not selected_grade.is_empty() else "not_selected_before_profile",
+			str(http.get("base_url")),
+		])
 	var profile_result: Dictionary = await http.request_get("/api/game/profile/check/" + student_id_input.text, {
 		"parent_id": parent_id_input.text
 	})
 	var profile_body: Dictionary = profile_result.get("body", {})
+	if OS.is_debug_build():
+		var trace_error := str(profile_body.get("error", profile_body.get("message", ""))).strip_edges()
+		trace_error = trace_error.replace(student_id_input.text, "[STUDENT]").replace(parent_id_input.text, "[PARENT]")
+		var trace_profile: Variant = profile_body.get("canonical_profile", {})
+		var trace_grade := ""
+		if trace_profile is Dictionary:
+			trace_grade = str(trace_profile.get("grade_level", "")).strip_edges()
+		print("NEW GAME PROFILE RESULT: request_sent=true status=%d can_play=%s canonical_profile_present=%s selected_grade=%s error=%s" % [
+			int(profile_result.get("status", 0)),
+			str(profile_body.get("can_play", null)),
+			str(trace_profile is Dictionary and not trace_profile.is_empty()),
+			trace_grade if not trace_grade.is_empty() else "not_applied",
+			trace_error,
+		])
 	var profile_ok := bool(profile_result.get("ok", false)) or bool(profile_body.get("ok", false))
 	var profile_status: int = int(profile_result.get("status", 0))
 	if not profile_ok or profile_status < 200 or profile_status >= 300:
@@ -464,10 +485,15 @@ func _on_start_exit() -> void:
 	_animate_button(start_btn, normal_scale, release_duration)
 
 func _on_start_pressed() -> void:
-	if _play_transitioning or _step_transitioning:
+	if _play_transitioning:
 		return
 
 	_play_transitioning = true
+	# The Name/Grade panel becomes visible while its short fade is still active.
+	# Preserve a real Play press made in that visible interval instead of
+	# silently discarding it.
+	while _step_transitioning:
+		await get_tree().process_frame
 	_animate_button(start_btn, pressed_scale, press_duration)
 	_sync_form_to_registration()
 
