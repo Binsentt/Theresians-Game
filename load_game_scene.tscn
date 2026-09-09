@@ -73,6 +73,47 @@ theme_override_constants/margin_bottom = 16
 layout_mode = 2
 theme_override_constants/separation = 12
 
+[node name="IdentityPromptLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_fonts/font = ExtResource("3_4ntfu")
+theme_override_font_sizes/font_size = 12
+text = "VERIFY STUDENT TO VIEW SAVES"
+horizontal_alignment = 1
+
+[node name="IdentityFields" type="HBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="StudentIdInput" type="LineEdit" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityFields"]
+custom_minimum_size = Vector2(220, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Student ID"
+max_length = 8
+
+[node name="ParentIdInput" type="LineEdit" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityFields"]
+custom_minimum_size = Vector2(190, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Parent ID"
+max_length = 6
+
+[node name="VerifyButton" type="Button" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityFields"]
+custom_minimum_size = Vector2(130, 34)
+layout_mode = 2
+theme_override_fonts/font = ExtResource("3_4ntfu")
+theme_override_font_sizes/font_size = 12
+text = "VERIFY"
+
+[node name="IdentityStatusLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
+theme_override_font_sizes/font_size = 14
+text = "Verify the linked Student and Parent IDs to view saves."
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="EmptyLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content"]
 visible = false
 layout_mode = 2
@@ -83,7 +124,7 @@ text = "No save data found"
 horizontal_alignment = 1
 
 [node name="ScrollContainer" type="ScrollContainer" parent="TextureRect/SavePanel/MarginContainer/Content"]
-custom_minimum_size = Vector2(0, 300)
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3
 

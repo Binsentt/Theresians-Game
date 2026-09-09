@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/first_bandit_interaction_project_context_test.gd" id="1_test"]
+
+[node name="FirstBanditInteractionFemaleProjectContextTest" type="Node"]
+script = ExtResource("1_test")
+test_gender = "female"

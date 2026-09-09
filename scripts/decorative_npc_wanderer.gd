@@ -54,14 +54,14 @@ func _physics_process(delta: float) -> void:
 		_begin_next_leg()
 		return
 
-	var direction := global_position.direction_to(_target_position)
+	var direction := _to_cardinal_direction(global_position.direction_to(_target_position))
 	var remaining_distance := global_position.distance_to(_target_position)
 	var frame_speed := walk_speed if delta <= 0.0 else minf(walk_speed, remaining_distance / delta)
 	velocity = direction * frame_speed
 	_play_walking(direction)
 	move_and_slide()
 	if get_slide_collision_count() > 0:
-		_enter_idle()
+		_recover_from_collision()
 
 
 func _begin_next_leg() -> void:
@@ -87,6 +87,15 @@ func _enter_idle() -> void:
 	velocity = Vector2.ZERO
 	_idle_remaining = idle_seconds
 	_play_idle()
+
+
+func _recover_from_collision() -> void:
+	# A blocked outbound leg must not be retried forever after every idle.
+	# Return along the same cardinal lane, then continue with the next direction.
+	_target_position = _home_position
+	_returning_home = false
+	_next_direction_index = (_next_direction_index + 1) % CARDINAL_DIRECTIONS.size()
+	_enter_idle()
 
 
 func _to_cardinal_direction(direction: Vector2) -> Vector2:

@@ -9,12 +9,17 @@ const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
 @onready var delete_confirmation: ConfirmationDialog = $DeleteSaveConfirmation
 @onready var delete_all_button: Button = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/DeleteAllButton") as Button
 @onready var delete_all_confirmation: ConfirmationDialog = get_node_or_null("DeleteAllSaveConfirmation") as ConfirmationDialog
+@onready var student_id_input: LineEdit = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields/StudentIdInput") as LineEdit
+@onready var parent_id_input: LineEdit = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields/ParentIdInput") as LineEdit
+@onready var verify_owner_button: Button = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields/VerifyButton") as Button
+@onready var identity_status_label: Label = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityStatusLabel") as Label
 
 var _save_transitioning: bool = false
 var _pending_delete_path: String = ""
 var _delete_all_pending: bool = false
 var _save_entries_by_path: Dictionary = {}
 var _save_list_revision: int = 0
+var _owner_verification_pending := false
 
 func _ready() -> void:
 	MusicManager.play_for_scene(scene_file_path)
@@ -28,7 +33,89 @@ func _ready() -> void:
 		delete_all_confirmation.confirmed.connect(_on_delete_all_confirmed)
 	if delete_all_confirmation != null and not delete_all_confirmation.canceled.is_connected(_on_delete_all_canceled):
 		delete_all_confirmation.canceled.connect(_on_delete_all_canceled)
+	if verify_owner_button != null and not verify_owner_button.pressed.is_connected(_verify_save_owner):
+		verify_owner_button.pressed.connect(_verify_save_owner)
+	_hydrate_save_owner()
 	_refresh_save_list()
+
+
+func _hydrate_save_owner() -> void:
+	if student_id_input != null:
+		student_id_input.text = GameState.student_id
+	if parent_id_input != null:
+		parent_id_input.text = GameState.parent_id
+	if identity_status_label == null:
+		return
+	if GameState.is_valid_existing_student_id(GameState.student_id) \
+			and GameState.is_valid_six_digit_id(GameState.parent_id):
+		identity_status_label.text = "Showing saves for Student %s" % GameState.student_id
+		identity_status_label.visible = true
+	else:
+		identity_status_label.text = "Verify the linked Student and Parent IDs to view saves."
+		identity_status_label.visible = true
+
+
+func _verify_save_owner() -> void:
+	if _owner_verification_pending or student_id_input == null or parent_id_input == null:
+		return
+	var student_code := GameState.sanitize_student_id(student_id_input.text)
+	var parent_code := GameState.sanitize_six_digit_id(parent_id_input.text)
+	student_id_input.text = student_code
+	parent_id_input.text = parent_code
+	if not GameState.is_valid_existing_student_id(student_code):
+		_show_owner_error("Student ID must contain 8 digits, or 6 digits for an existing legacy Student.")
+		return
+	if not GameState.is_valid_six_digit_id(parent_code):
+		_show_owner_error("Parent ID must contain exactly 6 digits.")
+		return
+
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		_show_owner_error("Unable to connect to the server. Please try again.")
+		return
+	_owner_verification_pending = true
+	verify_owner_button.disabled = true
+	var profile_result: Dictionary = await http.request_get(
+		"/api/game/profile/check/" + student_code,
+		{"parent_id": parent_code}
+	)
+	_owner_verification_pending = false
+	verify_owner_button.disabled = false
+	var body: Dictionary = profile_result.get("body", {}) if profile_result.get("body", {}) is Dictionary else {}
+	var status := int(profile_result.get("status", 0))
+	var request_ok: bool = (bool(profile_result.get("ok", false)) or bool(body.get("ok", false))) \
+			and status >= 200 and status < 300 \
+			and bool(body.get("can_play", true))
+	if not request_ok:
+		var message := String(body.get("error", body.get("message", "Unable to verify the linked Student profile."))).strip_edges()
+		_show_owner_error(message if not message.is_empty() else "Unable to verify the linked Student profile.")
+		return
+	var canonical_profile: Variant = body.get("canonical_profile", {})
+	if not (canonical_profile is Dictionary):
+		_show_owner_error("Unable to verify the linked Student profile.")
+		return
+	var canonical_student_id := String(canonical_profile.get("student_id", student_code)).strip_edges()
+	if canonical_student_id != student_code:
+		_show_owner_error("The verified Student profile does not match the requested Student ID.")
+		return
+
+	GameState.student_id = student_code
+	GameState.parent_id = parent_code
+	var canonical_name := String(canonical_profile.get("name", "")).strip_edges()
+	var canonical_grade := String(canonical_profile.get("grade_level", "")).strip_edges()
+	if not canonical_name.is_empty():
+		GameState.player_name = canonical_name
+	if not canonical_grade.is_empty():
+		GameState.grade_level = canonical_grade
+	identity_status_label.text = "Showing saves for Student %s" % student_code
+	identity_status_label.visible = true
+	_refresh_save_list()
+
+
+func _show_owner_error(message: String) -> void:
+	if identity_status_label != null:
+		identity_status_label.text = message
+		identity_status_label.visible = true
 
 func _refresh_save_list() -> void:
 	_save_list_revision += 1
@@ -120,15 +207,8 @@ func _on_delete_all_confirmed() -> void:
 	if not _delete_all_pending:
 		return
 	_delete_all_pending = false
-	var deletion_failed := false
-	for save_data: Dictionary in GameState.list_saves():
-		var save_path := String(save_data.get("save_path", ""))
-		if save_path.is_empty():
-			continue
-		if GameState.delete_save(save_path):
-			continue
-		if FileAccess.file_exists(ProjectSettings.globalize_path(save_path)):
-			deletion_failed = true
+	var deletion_result: Dictionary = GameState.delete_all_saves()
+	var deletion_failed := int(deletion_result.get("failed_count", 0)) > 0
 
 	_refresh_save_list()
 	if deletion_failed:

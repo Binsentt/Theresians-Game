@@ -12,6 +12,8 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	GameState.student_id = "001234"
+	GameState.parent_id = "009876"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SAVE_DIRECTORY))
 	_write_fixture(LEGACY_SAVE_PATH, JSON.stringify({
 		"student_id": "001234",
@@ -28,12 +30,10 @@ func _run() -> void:
 	var loaded_legacy := GameState.load_save(LEGACY_SAVE_PATH, false)
 	_assert(not loaded_legacy.is_empty(), "loadable legacy saves continue through the normal load path")
 	_assert(GameState.current_scene_path == GameState.START_SCENE_PATH, "legacy load resumes at the safe default scene")
-	_assert(not malformed_save.is_empty(), "malformed saves remain visible for individual cleanup")
-	_assert(not bool(malformed_save.get("loadable", true)), "malformed saves are never loadable")
-	_assert(not String(malformed_save.get("save_error", "")).is_empty(), "malformed saves show an unavailable reason")
+	_assert(malformed_save.is_empty(), "malformed saves without provable ownership remain hidden")
 	_assert(GameState.load_save(MALFORMED_SAVE_PATH, false).is_empty(), "malformed saves are rejected by the normal load path")
-	_assert(GameState.delete_save(MALFORMED_SAVE_PATH), "only the selected malformed local file can be deleted")
-	_assert(FileAccess.file_exists(LEGACY_SAVE_PATH), "deleting malformed data leaves other local saves intact")
+	_assert(not GameState.delete_save(MALFORMED_SAVE_PATH), "malformed saves are not silently assigned to the current Student for deletion")
+	_assert(FileAccess.file_exists(MALFORMED_SAVE_PATH) and FileAccess.file_exists(LEGACY_SAVE_PATH), "ambiguous data and owned legacy saves both remain intact")
 
 	_cleanup()
 	if _failures.is_empty():

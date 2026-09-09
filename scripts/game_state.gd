@@ -1357,11 +1357,16 @@ func get_current_battle_enemy() -> Node:
 
 
 func save_game() -> String:
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty():
+		push_warning("Save skipped because no valid Student identity is active.")
+		return ""
 	_ensure_save_directory()
 
 	var now: Dictionary = Time.get_datetime_dict_from_system()
-	var save_path: String = "%s/save_%04d%02d%02d_%02d%02d%02d.json" % [
+	var save_stem: String = "%s/save_%s_%04d%02d%02d_%02d%02d%02d" % [
 		SAVE_DIRECTORY,
+		owner_id,
 		int(now.get("year", 0)),
 		int(now.get("month", 0)),
 		int(now.get("day", 0)),
@@ -1369,6 +1374,11 @@ func save_game() -> String:
 		int(now.get("minute", 0)),
 		int(now.get("second", 0))
 	]
+	var save_path := save_stem + ".json"
+	var collision_suffix := 2
+	while FileAccess.file_exists(save_path):
+		save_path = "%s_%03d.json" % [save_stem, collision_suffix]
+		collision_suffix += 1
 	var data := build_save_data()
 
 	var file := FileAccess.open(save_path, FileAccess.WRITE)
@@ -1451,6 +1461,8 @@ func build_save_data() -> Dictionary:
 
 func list_saves() -> Array[Dictionary]:
 	var saves: Array[Dictionary] = []
+	if _get_current_save_owner_id().is_empty():
+		return saves
 	var directory := DirAccess.open(ProjectSettings.globalize_path(SAVE_DIRECTORY))
 	if directory == null:
 		return saves
@@ -1461,9 +1473,10 @@ func list_saves() -> Array[Dictionary]:
 		if not directory.current_is_dir() and file_name.ends_with(".json"):
 			var save_path := SAVE_DIRECTORY + "/" + file_name
 			var save_data := _read_save_file(save_path)
-			if save_data.is_empty():
-				saves.append(_build_unavailable_save_entry(save_path, "This save file is malformed or unavailable."))
-			else:
+			# Ownership must be proven from the saved canonical Student ID. Broken
+			# or ownerless legacy files remain untouched but are not exposed to
+			# whichever Student happens to use this device next.
+			if _is_save_owned_by_current_student(save_data):
 				saves.append(_prepare_save_entry(save_data, save_path))
 		file_name = directory.get_next()
 
@@ -1486,8 +1499,8 @@ func peek_save_data(path: String) -> Dictionary:
 	if save_path.is_empty() or not FileAccess.file_exists(save_path):
 		return {}
 	var data := _read_save_file(save_path)
-	if data.is_empty():
-		return _build_unavailable_save_entry(save_path, "This save file is malformed or unavailable.")
+	if not _is_save_owned_by_current_student(data):
+		return {}
 	return _prepare_save_entry(data, save_path)
 
 
@@ -1495,8 +1508,27 @@ func delete_save(path: String) -> bool:
 	var save_path := _validated_save_path(path)
 	if save_path.is_empty() or not FileAccess.file_exists(save_path):
 		return false
+	if not _is_save_owned_by_current_student(_read_save_file(save_path)):
+		return false
 
 	return DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path)) == OK
+
+
+func delete_all_saves() -> Dictionary:
+	var deleted_count := 0
+	var failed_count := 0
+	for save_data in list_saves():
+		var save_path := String(save_data.get("save_path", ""))
+		if save_path.is_empty():
+			continue
+		if delete_save(save_path):
+			deleted_count += 1
+		else:
+			failed_count += 1
+	return {
+		"deleted_count": deleted_count,
+		"failed_count": failed_count,
+	}
 
 
 func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = true) -> void:
@@ -1635,26 +1667,10 @@ func has_latest_save() -> bool:
 	return not get_latest_save_path().is_empty()
 
 func get_latest_save_path() -> String:
-	var directory := DirAccess.open(ProjectSettings.globalize_path(SAVE_DIRECTORY))
-	if directory == null:
-		return ""
-
-	var latest_save_path := ""
-	var latest_modified_time := -1
-	directory.list_dir_begin()
-
-	var file_name := directory.get_next()
-	while not file_name.is_empty():
-		if not directory.current_is_dir() and file_name.ends_with(".json"):
-			var candidate_path := SAVE_DIRECTORY + "/" + file_name
-			var modified_time := FileAccess.get_modified_time(ProjectSettings.globalize_path(candidate_path))
-			if modified_time > latest_modified_time or (modified_time == latest_modified_time and candidate_path > latest_save_path):
-				latest_modified_time = modified_time
-				latest_save_path = candidate_path
-		file_name = directory.get_next()
-
-	directory.list_dir_end()
-	return latest_save_path
+	for save_data in list_saves():
+		if bool(save_data.get("loadable", false)):
+			return String(save_data.get("save_path", ""))
+	return ""
 
 func load_latest_save() -> Dictionary:
 	var latest_save_path := get_latest_save_path()
@@ -1878,6 +1894,20 @@ func _read_save_file(save_path: String) -> Dictionary:
 		return json.data
 
 	return {}
+
+
+func _get_current_save_owner_id() -> String:
+	var owner_id := student_id.strip_edges()
+	if not is_valid_existing_student_id(owner_id):
+		return ""
+	return owner_id
+
+
+func _is_save_owned_by_current_student(data: Dictionary) -> bool:
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty() or data.is_empty():
+		return false
+	return String(data.get("student_id", "")).strip_edges() == owner_id
 
 
 func _prepare_save_entry(data: Dictionary, save_path: String) -> Dictionary:

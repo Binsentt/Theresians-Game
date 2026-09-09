@@ -39,7 +39,14 @@ func _run() -> void:
 	var save_path := GameState.save_game()
 	_assert(not save_path.is_empty() and FileAccess.file_exists(save_path), "Current-state save is written to isolated user data")
 
-	GameState.apply_save_data({"scene_path": "res://scenes/main_menu.tscn", "current_lives": 1, "max_lives": 3, "current_task_index": 0}, false)
+	GameState.apply_save_data({
+		"student_id": "000123",
+		"parent_id": "654321",
+		"scene_path": "res://scenes/main_menu.tscn",
+		"current_lives": 1,
+		"max_lives": 3,
+		"current_task_index": 0,
+	}, false)
 	var loaded := GameState.load_save(save_path, false)
 	_assert(not loaded.is_empty(), "Isolated save loads successfully")
 	_assert(GameState.current_scene_path == TEST_SCENE, "Load restores the saved scene")

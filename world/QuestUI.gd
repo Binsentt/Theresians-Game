@@ -125,16 +125,27 @@ func show_completed_with_dialogue() -> void:
 		GameState.record_encounter_victory()
 
 	var completed_task_index := GameState.current_task_index
-	var completion_type := "task_completed" if current_task_data.has("next_scene") else "quest_completed"
-	var completion_description := "Battle completed" if current_task_data.has("next_scene") else "Teacher conversation completed"
-	GameState.advance_task_and_save({
-		"type": completion_type,
+	var completion_event := {
+		"type": "task_completed" if current_task_data.has("next_scene") else "quest_completed",
 		"key": "quest:main:task:%d:complete" % completed_task_index,
 		"title": "Task %d Complete" % (completed_task_index + 1),
-		"description": completion_description,
+		"description": "Battle completed" if current_task_data.has("next_scene") else "Teacher conversation completed",
 		"source": "quest_ui",
 		"reason": "battle_victory" if current_task_data.has("next_scene") else "teacher_task_completed",
-	})
+	}
+	# First Bandit starts the multi-bandit Oakleaf objective; it does not
+	# complete that objective. Keep the state advance and save, but present the
+	# authoritative next quest instead of the legacy "Task 3 Complete" notice.
+	if completed_task_index == 2 and current_task_data.has("next_scene"):
+		completion_event = {
+			"type": "quest_updated",
+			"key": "quest:oakleaf:first-bandit:defeated",
+			"title": "Defeat All Bandits",
+			"description": "First Bandit defeated. Continue defeating the Oakleaf Bandits.",
+			"source": "quest_ui",
+			"reason": "first_bandit_victory",
+		}
+	GameState.advance_task_and_save(completion_event)
 
 	# Ordinary NPC greetings still use this shared host after the last quest.
 	update_task_ui()

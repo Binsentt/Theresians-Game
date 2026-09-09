@@ -5,6 +5,11 @@ const MOBILE_CONTROLS_SCENE := preload("res://ui/mobile_controls.tscn")
 const OAKLEAF_BATTLE_ENCOUNTER := preload("res://scripts/oakleaf_battle_encounter.gd")
 const PROGRESSION_BATTLE_ENCOUNTER := preload("res://scripts/progression_battle_encounter.gd")
 const PROGRESSION_OLD_MAN_INTERACTION := preload("res://scripts/progression_old_man_interaction.gd")
+const NON_PHYSICAL_TRIGGER_COLLISIONS := {
+	"res://scenes/oak_leaf_village.tscn": [
+		"Bandits/BanditTaskTrigger/StaticBody2D/CollisionShape2D",
+	],
+}
 
 var _player: Node2D = null
 
@@ -12,6 +17,7 @@ func _ready() -> void:
 	var active_scene_path := scene_file_path
 	GameState.handle_scene_entered(active_scene_path)
 	MusicManager.play_for_scene(active_scene_path)
+	_disable_non_physical_trigger_collisions(active_scene_path)
 
 	_player = _ensure_player_instance()
 	_apply_spawn_state(_player)
@@ -23,6 +29,16 @@ func _ready() -> void:
 	PROGRESSION_OLD_MAN_INTERACTION.install_for_scene(self, PROGRESSION_OLD_MAN_INTERACTION)
 
 	InputManager.unlock_input("door_transition")
+
+func _disable_non_physical_trigger_collisions(active_scene_path: String) -> void:
+	var collision_paths: Array = NON_PHYSICAL_TRIGGER_COLLISIONS.get(active_scene_path, [])
+	for collision_path_value in collision_paths:
+		var collision_path := String(collision_path_value)
+		var collision_shape := get_node_or_null(collision_path) as CollisionShape2D
+		if collision_shape == null:
+			push_warning("Missing non-physical trigger collision: %s" % collision_path)
+			continue
+		collision_shape.set_deferred("disabled", true)
 
 func _ensure_player_instance() -> Node2D:
 	var existing_player := get_tree().get_first_node_in_group("player_character") as Node2D
