@@ -6,13 +6,17 @@ const PARENT_A := "880011"
 const PARENT_B := "880012"
 const SAVE_A := "user://saves/save_identity_gate_a.json"
 const SAVE_B := "user://saves/save_identity_gate_b.json"
+const LEGACY_SAVE := "user://saves/save_identity_gate_legacy.json"
 const LOAD_SCENE := preload("res://load_game_scene.tscn")
 
 var _failures: Array[String] = []
 
 
 class ProfileHttpStub extends Node:
+	var request_count := 0
+
 	func request_get(path: String, params: Dictionary = {}) -> Dictionary:
+		request_count += 1
 		var student_code := path.get_file()
 		var parent_code := String(params.get("parent_id", ""))
 		var valid := (student_code == STUDENT_A and parent_code == PARENT_A) \
@@ -42,9 +46,13 @@ func _ready() -> void:
 func _run() -> void:
 	_promote_to_root()
 	_configure_stubs()
+	GameState.set_script(load("res://tools/load_game_ux_test_state.gd"))
+	var fixture_paths: Array[String] = [SAVE_A, SAVE_B, LEGACY_SAVE]
+	GameState.fixture_paths = fixture_paths
 	_cleanup()
-	_write_save(SAVE_A, STUDENT_A, PARENT_A)
-	_write_save(SAVE_B, STUDENT_B, PARENT_B)
+	_write_save(SAVE_A, STUDENT_A, PARENT_A, 100, "Device Student A")
+	_write_save(SAVE_B, STUDENT_B, PARENT_B, 200, "Device Student B")
+	_write_legacy_save()
 	GameState.student_id = ""
 	GameState.parent_id = ""
 
@@ -54,36 +62,28 @@ func _run() -> void:
 	get_tree().current_scene = scene
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var student_input := scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields/StudentIdInput") as LineEdit
-	var parent_input := scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields/ParentIdInput") as LineEdit
-	var verify_button := scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields/VerifyButton") as Button
-	var status_label := scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityStatusLabel") as Label
-	_assert(student_input != null and parent_input != null and verify_button != null and status_label != null, "Load Game renders the Student/Parent ownership gate")
-	_assert(_rendered_paths(scene).is_empty(), "Cold Load Game exposes no saves before Student ownership is verified")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityPromptLabel") == null, "Load Game has no Verify Student prompt")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields") == null, "Load Game has no Student ID, Parent ID, or Verify controls")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityStatusLabel") == null, "Load Game has no verification instruction/status label")
+	_assert(not scene.has_method("_verify_save_owner"), "Load Game has no backend owner-verification handler")
+	_assert(_rendered_paths(scene) == [SAVE_B, SAVE_A, LEGACY_SAVE], "Cold Load Game immediately lists every device-local save newest first")
+	var http_stub := get_node_or_null("/root/HttpApi")
+	var remote_stub := get_node_or_null("/root/RemoteSync")
+	_assert(http_stub != null and int(http_stub.get("request_count")) == 0, "Listing local saves emits no profile-check request")
+	_assert(remote_stub != null and int(remote_stub.get("learning_cycle_request_count")) == 0, "Listing local saves emits no RemoteSync request")
 
-	if scene.has_method("_verify_save_owner") and student_input != null and parent_input != null:
-		student_input.text = STUDENT_A
-		parent_input.text = PARENT_A
-		await scene.call("_verify_save_owner")
-		await get_tree().process_frame
-		_assert(GameState.student_id == STUDENT_A and GameState.parent_id == PARENT_A, "Correct Student A relationship establishes the canonical owner")
-		_assert(_rendered_paths(scene) == [SAVE_A], "Verified Student A sees only Student A saves")
-
-		student_input.text = STUDENT_B
-		parent_input.text = PARENT_A
-		await scene.call("_verify_save_owner")
-		await get_tree().process_frame
-		_assert(GameState.student_id == STUDENT_A and _rendered_paths(scene) == [SAVE_A], "Wrong Parent cannot switch or expose another Student")
-		_assert(status_label.visible and not status_label.text.is_empty(), "Rejected ownership verification shows a clear validation message")
-
-		student_input.text = STUDENT_B
-		parent_input.text = PARENT_B
-		await scene.call("_verify_save_owner")
-		await get_tree().process_frame
-		_assert(GameState.student_id == STUDENT_B and GameState.parent_id == PARENT_B, "Correct Student B relationship switches the canonical owner")
-		_assert(_rendered_paths(scene) == [SAVE_B], "Verified Student B sees only Student B saves")
-	else:
-		_assert(false, "Load Game exposes read-only Student/Parent verification")
+	var inspected_b := GameState.peek_save_data(SAVE_B)
+	_assert(String(inspected_b.get("student_id", "")) == STUDENT_B, "A local save can be inspected without a pre-existing runtime identity")
+	var loaded_b := GameState.load_save(SAVE_B, false)
+	_assert(not loaded_b.is_empty(), "A selected compatible local save loads without retyping IDs")
+	_assert(GameState.student_id == STUDENT_B and GameState.parent_id == PARENT_B, "Loading restores the Student and linked Parent identity stored in that save")
+	_assert(GameState.player_name == "Device Student B" and GameState.current_task_index == 3, "Loading restores the selected save's profile and quest progression")
+	_assert(FileAccess.file_exists(LEGACY_SAVE), "An ownerless legacy file is preserved rather than deleted by listing")
+	var game_state_source := FileAccess.get_file_as_string("res://scripts/game_state.gd")
+	var remote_sync_source := FileAccess.get_file_as_string("res://scripts/remote_sync.gd")
+	_assert(game_state_source.contains('const SAVE_DIRECTORY := "user://saves"'), "Save files remain in Godot's application-local user storage")
+	_assert(remote_sync_source.contains('game_state.connect("save_created"') and remote_sync_source.contains('request_post("/api/game/progress"'), "RemoteSync still uploads approved monitoring/progress projections")
+	_assert(not remote_sync_source.contains("GameState.list_saves") and not remote_sync_source.contains("GameState.load_save") and not remote_sync_source.contains("user://saves"), "RemoteSync has zero code paths that download, enumerate, or reconstruct local save files")
 
 	scene.queue_free()
 	await get_tree().process_frame
@@ -104,7 +104,7 @@ func _configure_stubs() -> void:
 	get_tree().root.add_child(stub)
 
 
-func _write_save(path: String, owner_id: String, relationship_id: String) -> void:
+func _write_save(path: String, owner_id: String, relationship_id: String, timestamp: int, player_name: String) -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://saves"))
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
@@ -114,11 +114,25 @@ func _write_save(path: String, owner_id: String, relationship_id: String) -> voi
 		"save_version": GameState.SAVE_VERSION,
 		"student_id": owner_id,
 		"parent_id": relationship_id,
-		"player_name": "Identity Gate Fixture",
+		"player_name": player_name,
 		"grade_level": "Grade 3",
 		"gender": "female",
 		"scene_path": "res://interiors/player_house.tscn",
-		"save_timestamp": 100,
+		"current_task_index": 3,
+		"save_timestamp": timestamp,
+	}))
+	file.close()
+
+
+func _write_legacy_save() -> void:
+	var file := FileAccess.open(LEGACY_SAVE, FileAccess.WRITE)
+	if file == null:
+		_failures.append("Could not create %s" % LEGACY_SAVE)
+		return
+	file.store_string(JSON.stringify({
+		"player_name": "Legacy Device Save",
+		"scene_path": "res://interiors/player_house.tscn",
+		"save_timestamp": 50,
 	}))
 	file.close()
 
@@ -134,7 +148,7 @@ func _rendered_paths(scene: Control) -> Array[String]:
 
 
 func _cleanup() -> void:
-	for path in [SAVE_A, SAVE_B]:
+	for path in [SAVE_A, SAVE_B, LEGACY_SAVE]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
@@ -153,16 +167,16 @@ func _assert(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
-	var report := {"passed": 9 - _failures.size(), "failed": _failures.size(), "failures": _failures}
+	var report := {"passed": 15 - _failures.size(), "failed": _failures.size(), "failures": _failures}
 	var file := FileAccess.open("res://tools/load_game_identity_gate_test_result.json", FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(report, "\t"))
 		file.close()
 	if _failures.is_empty():
-		print("LOAD_GAME_IDENTITY_GATE_TEST PASSED")
+		print("LOAD_GAME_DEVICE_LOCAL_TEST PASSED checks=15 failures=0")
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	print("LOAD_GAME_IDENTITY_GATE_TEST FAILED")
+	print("LOAD_GAME_DEVICE_LOCAL_TEST FAILED checks=15 failures=%d" % _failures.size())
 	get_tree().quit(1)

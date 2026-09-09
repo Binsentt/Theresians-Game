@@ -96,9 +96,9 @@ func _assert_legacy_and_malformed_save_handling() -> void:
 	_assert(not legacy_save.is_empty(), "legacy saves remain visible")
 	_assert(bool(legacy_save.get("loadable", false)), "legacy saves with optional fields omitted use safe defaults")
 	_assert(String(legacy_save.get("scene_path", "")) == GameState.START_SCENE_PATH, "legacy saves default a missing scene to the player house")
-	_assert(malformed_save.is_empty(), "malformed saves without provable Student ownership remain hidden")
-	_assert(GameState.peek_save_data(MALFORMED_SAVE_PATH).is_empty(), "malformed saves cannot be accessed by direct path")
-	_assert(not GameState.delete_save(MALFORMED_SAVE_PATH), "malformed saves are preserved rather than assigned to the current Student")
+	_assert(not malformed_save.is_empty(), "malformed saves remain visible so the user can delete them")
+	_assert(not bool(malformed_save.get("loadable", true)), "malformed saves are unavailable for loading")
+	_assert(not String(malformed_save.get("save_error", "")).is_empty(), "malformed saves expose a truthful unavailable message")
 
 
 func _cleanup_fixture_saves() -> void:
@@ -151,7 +151,12 @@ func _assert_delete_ui_contract() -> void:
 	_assert(confirmation.exclusive, "confirmation blocks background actions while a save is pending")
 	_assert(_save_list_contains_path(saves_container, FIRST_SAVE_PATH), "initial Load Game list contains the first save")
 	_assert(_save_list_contains_path(saves_container, SECOND_SAVE_PATH), "initial Load Game list contains the second save")
-	_assert(not _save_list_contains_path(saves_container, MALFORMED_SAVE_PATH), "Load Game does not expose an ownerless malformed save to this Student")
+	_assert(_save_list_contains_path(saves_container, MALFORMED_SAVE_PATH), "Load Game renders malformed saves so users can remove only that file")
+	var malformed_entry := _get_save_entry(saves_container, MALFORMED_SAVE_PATH)
+	_assert(malformed_entry != null, "malformed saves use the normal per-save entry")
+	if malformed_entry != null:
+		_assert((malformed_entry.get_node("MarginContainer/Content/Actions/LoadButton") as Button).disabled, "malformed saves cannot be loaded")
+		_assert((malformed_entry.get_node("MarginContainer/Content/Details/AvailabilityLabel") as Label).visible, "malformed saves show a truthful unavailable message")
 
 	load_scene.call("_on_delete_requested", FIRST_SAVE_PATH)
 	await get_tree().process_frame
@@ -170,8 +175,11 @@ func _assert_delete_ui_contract() -> void:
 	_assert(_save_list_contains_path(saves_container, SECOND_SAVE_PATH), "refreshed Load Game list retains the other save")
 	_assert(not GameState.delete_save(FIRST_SAVE_PATH), "deleting an already deleted save fails safely")
 
-	_assert(FileAccess.file_exists(_absolute_path(MALFORMED_SAVE_PATH)), "ownerless malformed data remains untouched for deliberate recovery")
-	_assert(_save_list_contains_path(saves_container, SECOND_SAVE_PATH), "ownership filtering preserves valid current-Student saves")
+	load_scene.call("_on_delete_requested", MALFORMED_SAVE_PATH)
+	confirmation.confirmed.emit()
+	await get_tree().process_frame
+	_assert(not FileAccess.file_exists(_absolute_path(MALFORMED_SAVE_PATH)), "malformed saves can be deleted individually")
+	_assert(_save_list_contains_path(saves_container, SECOND_SAVE_PATH), "deleting a malformed save preserves valid saves")
 	load_scene.queue_free()
 
 
