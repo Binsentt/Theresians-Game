@@ -1461,6 +1461,8 @@ func build_save_data() -> Dictionary:
 
 func list_saves() -> Array[Dictionary]:
 	var saves: Array[Dictionary] = []
+	if _get_current_save_owner_id().is_empty():
+		return saves
 	var directory := DirAccess.open(ProjectSettings.globalize_path(SAVE_DIRECTORY))
 	if directory == null:
 		return saves
@@ -1471,9 +1473,9 @@ func list_saves() -> Array[Dictionary]:
 		if not directory.current_is_dir() and file_name.ends_with(".json"):
 			var save_path := SAVE_DIRECTORY + "/" + file_name
 			var save_data := _read_save_file(save_path)
-			if save_data.is_empty():
-				saves.append(_build_unavailable_save_entry(save_path, "This save file is malformed or unavailable."))
-			else:
+			# Ownership must be proven from the canonical Student ID saved after
+			# profile validation. Ownerless legacy files remain untouched and hidden.
+			if _is_save_owned_by_current_student(save_data):
 				saves.append(_prepare_save_entry(save_data, save_path))
 		file_name = directory.get_next()
 
@@ -1496,14 +1498,16 @@ func peek_save_data(path: String) -> Dictionary:
 	if save_path.is_empty() or not FileAccess.file_exists(save_path):
 		return {}
 	var data := _read_save_file(save_path)
-	if data.is_empty():
-		return _build_unavailable_save_entry(save_path, "This save file is malformed or unavailable.")
+	if not _is_save_owned_by_current_student(data):
+		return {}
 	return _prepare_save_entry(data, save_path)
 
 
 func delete_save(path: String) -> bool:
 	var save_path := _validated_save_path(path)
 	if save_path.is_empty() or not FileAccess.file_exists(save_path):
+		return false
+	if not _is_save_owned_by_current_student(_read_save_file(save_path)):
 		return false
 
 	return DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path)) == OK
@@ -1896,6 +1900,13 @@ func _get_current_save_owner_id() -> String:
 	if not is_valid_existing_student_id(owner_id):
 		return ""
 	return owner_id
+
+
+func _is_save_owned_by_current_student(data: Dictionary) -> bool:
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty() or data.is_empty():
+		return false
+	return String(data.get("student_id", "")).strip_edges() == owner_id
 
 
 func _prepare_save_entry(data: Dictionary, save_path: String) -> Dictionary:

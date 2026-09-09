@@ -34,6 +34,8 @@ func _run() -> void:
 	await _verify_legacy_six_digit_pair()
 	await _verify_wrong_parent()
 	await _verify_missing_parent()
+	await _verify_archived_parent()
+	await _verify_deleted_family()
 	await _verify_input_validation()
 	_finish()
 
@@ -104,6 +106,39 @@ func _verify_missing_parent() -> void:
 	await _wait_for_transition(wizard)
 	_expect(wizard.get_node("StudentParentId").visible and not wizard.get_node("NameGradeSelect").visible, "missing Parent stays on the ID step")
 	_expect(_validation_text(wizard) == "Parent ID does not exist.", "missing Parent renders the truthful HTTP 404 error")
+
+
+func _verify_archived_parent() -> void:
+	_set_profile_response(403, {
+		"ok": false,
+		"can_play": false,
+		"should_block": true,
+		"error": "Parent account is archived.",
+	})
+	var wizard := await _open_ids_step()
+	if wizard == null:
+		return
+	_set_ids(wizard, _unused_student_id(8), "654321")
+	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
+	await _wait_for_transition(wizard)
+	_expect(wizard.get_node("StudentParentId").visible and not wizard.get_node("NameGradeSelect").visible, "archived Parent stays on the ID step")
+	_expect(_validation_text(wizard) == "Parent account is archived.", "archived Parent rejection remains truthful")
+
+
+func _verify_deleted_family() -> void:
+	_set_profile_response(404, {
+		"ok": false,
+		"can_play": false,
+		"error": "Student or Parent account does not exist.",
+	})
+	var wizard := await _open_ids_step()
+	if wizard == null:
+		return
+	_set_ids(wizard, _unused_student_id(8), "654321")
+	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
+	await _wait_for_transition(wizard)
+	_expect(wizard.get_node("StudentParentId").visible and not wizard.get_node("NameGradeSelect").visible, "deleted family stays on the ID step")
+	_expect(_validation_text(wizard) == "Student or Parent account does not exist.", "deleted relationship rejection remains truthful")
 
 
 func _verify_input_validation() -> void:
@@ -242,6 +277,14 @@ func _expect(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	var file := FileAccess.open("res://tools/new_game_login_contract_test_result.json", FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify({
+			"passed": _checks - _failures.size(),
+			"failed": _failures.size(),
+			"failures": _failures,
+		}, "\t"))
+		file.close()
 	if _failures.is_empty():
 		print("NEW_GAME_LOGIN_CONTRACT_TEST PASS checks=%d failures=0" % _checks)
 		get_tree().quit(0)

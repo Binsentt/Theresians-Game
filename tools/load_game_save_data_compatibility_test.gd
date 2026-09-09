@@ -5,6 +5,7 @@ const LEGACY_SAVE_PATH := SAVE_DIRECTORY + "/save_data_compatibility_legacy.json
 const MALFORMED_SAVE_PATH := SAVE_DIRECTORY + "/save_data_compatibility_malformed.json"
 
 var _failures: Array[String] = []
+var _check_count := 0
 
 
 func _ready() -> void:
@@ -30,21 +31,22 @@ func _run() -> void:
 	var loaded_legacy := GameState.load_save(LEGACY_SAVE_PATH, false)
 	_assert(not loaded_legacy.is_empty(), "loadable legacy saves continue through the normal load path")
 	_assert(GameState.current_scene_path == GameState.START_SCENE_PATH, "legacy load resumes at the safe default scene")
-	_assert(not malformed_save.is_empty(), "malformed saves remain visible for individual cleanup")
-	_assert(not bool(malformed_save.get("loadable", true)), "malformed saves are never loadable")
-	_assert(not String(malformed_save.get("save_error", "")).is_empty(), "malformed saves show an unavailable reason")
+	_assert(malformed_save.is_empty(), "malformed saves with no provable owner remain hidden")
 	_assert(GameState.load_save(MALFORMED_SAVE_PATH, false).is_empty(), "malformed saves are rejected by the normal load path")
-	_assert(GameState.delete_save(MALFORMED_SAVE_PATH), "only the selected malformed local file can be deleted")
-	_assert(FileAccess.file_exists(LEGACY_SAVE_PATH), "deleting malformed data leaves other local saves intact")
+	_assert(not GameState.delete_save(MALFORMED_SAVE_PATH), "malformed saves cannot be deleted through an unrelated Student identity")
+	_assert(FileAccess.file_exists(MALFORMED_SAVE_PATH), "malformed ownerless data is preserved safely")
+	_assert(FileAccess.file_exists(LEGACY_SAVE_PATH), "owner filtering leaves the valid owned legacy save intact")
 
 	_cleanup()
 	if _failures.is_empty():
-		print("LOAD_GAME_SAVE_DATA_COMPATIBILITY_TEST: PASS")
+		_write_report()
+		print("LOAD_GAME_SAVE_DATA_COMPATIBILITY_TEST: PASS checks=%d failures=0" % _check_count)
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	print("LOAD_GAME_SAVE_DATA_COMPATIBILITY_TEST: FAIL")
+	_write_report()
+	print("LOAD_GAME_SAVE_DATA_COMPATIBILITY_TEST: FAIL checks=%d failures=%d" % [_check_count, _failures.size()])
 	get_tree().quit(1)
 
 
@@ -71,9 +73,21 @@ func _cleanup() -> void:
 
 
 func _assert(condition: bool, message: String) -> void:
+	_check_count += 1
 	if not condition:
 		_failures.append(message)
 
 
 func _fail(message: String) -> void:
 	_failures.append(message)
+
+
+func _write_report() -> void:
+	var file := FileAccess.open("res://tools/load_game_save_data_compatibility_test_result.json", FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify({
+			"passed": _check_count - _failures.size(),
+			"failed": _failures.size(),
+			"failures": _failures,
+		}, "\t"))
+		file.close()

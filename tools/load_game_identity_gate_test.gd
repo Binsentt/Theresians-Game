@@ -53,8 +53,8 @@ func _run() -> void:
 	_write_save(SAVE_A, STUDENT_A, PARENT_A, 100, "Device Student A")
 	_write_save(SAVE_B, STUDENT_B, PARENT_B, 200, "Device Student B")
 	_write_legacy_save()
-	GameState.student_id = ""
-	GameState.parent_id = ""
+	GameState.student_id = STUDENT_A
+	GameState.parent_id = PARENT_A
 
 	var scene := LOAD_SCENE.instantiate() as Control
 	get_tree().current_scene = self
@@ -66,19 +66,30 @@ func _run() -> void:
 	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields") == null, "Load Game has no Student ID, Parent ID, or Verify controls")
 	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityStatusLabel") == null, "Load Game has no verification instruction/status label")
 	_assert(not scene.has_method("_verify_save_owner"), "Load Game has no backend owner-verification handler")
-	_assert(_rendered_paths(scene) == [SAVE_B, SAVE_A, LEGACY_SAVE], "Cold Load Game immediately lists every device-local save newest first")
+	_assert(_rendered_paths(scene) == [SAVE_A], "Load Game lists only saves owned by the current Student")
 	var http_stub := get_node_or_null("/root/HttpApi")
 	var remote_stub := get_node_or_null("/root/RemoteSync")
 	_assert(http_stub != null and int(http_stub.get("request_count")) == 0, "Listing local saves emits no profile-check request")
 	_assert(remote_stub != null and int(remote_stub.get("learning_cycle_request_count")) == 0, "Listing local saves emits no RemoteSync request")
 
-	var inspected_b := GameState.peek_save_data(SAVE_B)
-	_assert(String(inspected_b.get("student_id", "")) == STUDENT_B, "A local save can be inspected without a pre-existing runtime identity")
-	var loaded_b := GameState.load_save(SAVE_B, false)
-	_assert(not loaded_b.is_empty(), "A selected compatible local save loads without retyping IDs")
-	_assert(GameState.student_id == STUDENT_B and GameState.parent_id == PARENT_B, "Loading restores the Student and linked Parent identity stored in that save")
-	_assert(GameState.player_name == "Device Student B" and GameState.current_task_index == 3, "Loading restores the selected save's profile and quest progression")
+	_assert(GameState.peek_save_data(SAVE_B).is_empty(), "Student A cannot inspect Student B save by direct path")
+	_assert(GameState.load_save(SAVE_B, false).is_empty(), "Student A cannot load Student B save by direct path")
+	_assert(GameState.student_id == STUDENT_A and GameState.parent_id == PARENT_A, "Rejected cross-Student load preserves the current identity")
 	_assert(FileAccess.file_exists(LEGACY_SAVE), "An ownerless legacy file is preserved rather than deleted by listing")
+
+	GameState.student_id = STUDENT_B
+	GameState.parent_id = PARENT_B
+	scene.call("_refresh_save_list")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_assert(_rendered_paths(scene) == [SAVE_B], "Switching the established session to Student B shows only Student B saves")
+
+	GameState.student_id = ""
+	GameState.parent_id = ""
+	scene.call("_refresh_save_list")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_assert(_rendered_paths(scene).is_empty(), "No established Student identity exposes no local saves")
 	var game_state_source := FileAccess.get_file_as_string("res://scripts/game_state.gd")
 	var remote_sync_source := FileAccess.get_file_as_string("res://scripts/remote_sync.gd")
 	_assert(game_state_source.contains('const SAVE_DIRECTORY := "user://saves"'), "Save files remain in Godot's application-local user storage")
@@ -167,16 +178,16 @@ func _assert(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
-	var report := {"passed": 15 - _failures.size(), "failed": _failures.size(), "failures": _failures}
+	var report := {"passed": 16 - _failures.size(), "failed": _failures.size(), "failures": _failures}
 	var file := FileAccess.open("res://tools/load_game_identity_gate_test_result.json", FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(report, "\t"))
 		file.close()
 	if _failures.is_empty():
-		print("LOAD_GAME_DEVICE_LOCAL_TEST PASSED checks=15 failures=0")
+		print("LOAD_GAME_IDENTITY_GATE_TEST PASSED checks=16 failures=0")
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	print("LOAD_GAME_DEVICE_LOCAL_TEST FAILED checks=15 failures=%d" % _failures.size())
+	print("LOAD_GAME_IDENTITY_GATE_TEST FAILED checks=16 failures=%d" % _failures.size())
 	get_tree().quit(1)

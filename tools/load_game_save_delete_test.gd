@@ -12,6 +12,7 @@ const LOAD_GAME_SCENE_PATH := "res://load_game_scene.tscn"
 const LOAD_GAME_SCRIPT_PATH := "res://scripts/load_game_scene.gd"
 
 var _failures: Array[String] = []
+var _check_count := 0
 var _selected_path := ""
 var _deleted_path := ""
 
@@ -96,9 +97,8 @@ func _assert_legacy_and_malformed_save_handling() -> void:
 	_assert(not legacy_save.is_empty(), "legacy saves remain visible")
 	_assert(bool(legacy_save.get("loadable", false)), "legacy saves with optional fields omitted use safe defaults")
 	_assert(String(legacy_save.get("scene_path", "")) == GameState.START_SCENE_PATH, "legacy saves default a missing scene to the player house")
-	_assert(not malformed_save.is_empty(), "malformed saves remain visible so the user can delete them")
-	_assert(not bool(malformed_save.get("loadable", true)), "malformed saves are unavailable for loading")
-	_assert(not String(malformed_save.get("save_error", "")).is_empty(), "malformed saves expose a truthful unavailable message")
+	_assert(malformed_save.is_empty(), "malformed saves with no provable owner remain hidden")
+	_assert(FileAccess.file_exists(_absolute_path(MALFORMED_SAVE_PATH)), "hidden malformed data is preserved safely")
 
 
 func _cleanup_fixture_saves() -> void:
@@ -151,12 +151,7 @@ func _assert_delete_ui_contract() -> void:
 	_assert(confirmation.exclusive, "confirmation blocks background actions while a save is pending")
 	_assert(_save_list_contains_path(saves_container, FIRST_SAVE_PATH), "initial Load Game list contains the first save")
 	_assert(_save_list_contains_path(saves_container, SECOND_SAVE_PATH), "initial Load Game list contains the second save")
-	_assert(_save_list_contains_path(saves_container, MALFORMED_SAVE_PATH), "Load Game renders malformed saves so users can remove only that file")
-	var malformed_entry := _get_save_entry(saves_container, MALFORMED_SAVE_PATH)
-	_assert(malformed_entry != null, "malformed saves use the normal per-save entry")
-	if malformed_entry != null:
-		_assert((malformed_entry.get_node("MarginContainer/Content/Actions/LoadButton") as Button).disabled, "malformed saves cannot be loaded")
-		_assert((malformed_entry.get_node("MarginContainer/Content/Details/AvailabilityLabel") as Label).visible, "malformed saves show a truthful unavailable message")
+	_assert(not _save_list_contains_path(saves_container, MALFORMED_SAVE_PATH), "Load Game does not expose malformed data with no provable owner")
 
 	load_scene.call("_on_delete_requested", FIRST_SAVE_PATH)
 	await get_tree().process_frame
@@ -178,8 +173,8 @@ func _assert_delete_ui_contract() -> void:
 	load_scene.call("_on_delete_requested", MALFORMED_SAVE_PATH)
 	confirmation.confirmed.emit()
 	await get_tree().process_frame
-	_assert(not FileAccess.file_exists(_absolute_path(MALFORMED_SAVE_PATH)), "malformed saves can be deleted individually")
-	_assert(_save_list_contains_path(saves_container, SECOND_SAVE_PATH), "deleting a malformed save preserves valid saves")
+	_assert(FileAccess.file_exists(_absolute_path(MALFORMED_SAVE_PATH)), "a crafted delete request cannot remove ownerless malformed data")
+	_assert(_save_list_contains_path(saves_container, SECOND_SAVE_PATH), "rejected malformed delete preserves valid saves")
 	load_scene.queue_free()
 
 
@@ -190,15 +185,6 @@ func _save_list_contains_path(saves_container: VBoxContainer, save_path: String)
 		if String(entry.get("save_path")) == save_path:
 			return true
 	return false
-
-
-func _get_save_entry(saves_container: VBoxContainer, save_path: String) -> Control:
-	if saves_container == null:
-		return null
-	for entry in saves_container.get_children():
-		if String(entry.get("save_path")) == save_path:
-			return entry as Control
-	return null
 
 
 func _find_save(saves: Array[Dictionary], save_path: String) -> Dictionary:
@@ -229,6 +215,7 @@ func _absolute_path(path: String) -> String:
 
 
 func _assert(condition: bool, message: String) -> void:
+	_check_count += 1
 	if not condition:
 		_failures.append(message)
 
@@ -238,11 +225,19 @@ func _fail(message: String) -> void:
 
 
 func _finish() -> void:
+	var file := FileAccess.open("res://tools/load_game_save_delete_test_result.json", FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify({
+			"passed": _check_count - _failures.size(),
+			"failed": _failures.size(),
+			"failures": _failures,
+		}, "\t"))
+		file.close()
 	if _failures.is_empty():
-		print("LOAD_GAME_SAVE_DELETE_TEST: PASS")
+		print("LOAD_GAME_SAVE_DELETE_TEST: PASS checks=%d failures=0" % _check_count)
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	print("LOAD_GAME_SAVE_DELETE_TEST: FAIL")
+	print("LOAD_GAME_SAVE_DELETE_TEST: FAIL checks=%d failures=%d" % [_check_count, _failures.size()])
 	get_tree().quit(1)

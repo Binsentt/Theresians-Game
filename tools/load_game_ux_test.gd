@@ -19,8 +19,8 @@ func _run() -> void:
 	get_tree().current_scene = self
 	_configure_live_remote_sync()
 	GameState.set_script(load("res://tools/load_game_ux_test_state.gd"))
-	GameState.student_id = ""
-	GameState.parent_id = ""
+	GameState.student_id = "001234"
+	GameState.parent_id = "123456"
 	GameState.fixture_paths = _fixture_paths.duplicate()
 	_prepare_fixture_saves()
 	var loaded_middle := GameState.load_save(MIDDLE_PATH, false)

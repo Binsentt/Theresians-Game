@@ -34,23 +34,23 @@ func _run() -> void:
 
 	GameState.student_id = ""
 	GameState.parent_id = ""
-	_assert(_paths(GameState.list_saves()) == [OWNERLESS_LEGACY, A_NEW, B_ONLY, A_OLD], "The device list exposes every local save newest first without a current Student")
-	var legacy_entry := _find_path(GameState.list_saves(), OWNERLESS_LEGACY)
-	_assert(not legacy_entry.is_empty(), "An ownerless legacy file remains visible for recovery or deletion")
-	_assert(not bool(legacy_entry.get("loadable", true)), "An incompatible ownerless legacy file is shown truthfully as unavailable")
-	_assert(FileAccess.file_exists(OWNERLESS_LEGACY), "Listing never deletes an ownerless legacy file")
+	_assert(GameState.list_saves().is_empty(), "No current Student identity exposes no device-local saves")
+	_assert(GameState.peek_save_data(A_NEW).is_empty(), "No current Student identity cannot inspect an owned save by direct path")
+	_assert(not GameState.delete_save(A_OLD), "No current Student identity cannot delete an owned save by direct path")
+	_assert(FileAccess.file_exists(OWNERLESS_LEGACY), "Ownerless legacy data is preserved while hidden")
 
-	var inspected_b := GameState.peek_save_data(B_ONLY)
-	_assert(String(inspected_b.get("student_id", "")) == STUDENT_B, "A local save can be inspected without matching the current runtime identity")
-	var loaded_b := GameState.load_save(B_ONLY, false)
-	_assert(not loaded_b.is_empty(), "A compatible local save loads without an identity gate")
-	_assert(GameState.student_id == STUDENT_B and GameState.parent_id == PARENT_B, "Loading restores that save's Student and Parent metadata")
-	_assert(GameState.player_name == "B only" and GameState.current_task_index == 3, "Loading restores that save's profile and progression")
-	_assert(String(GameState.peek_save_data(A_NEW).get("student_id", "")) == STUDENT_A, "Another Student's local save remains selectable after a load")
-
-	_assert(GameState.delete_save(A_OLD), "Individual Delete removes the selected device-local save regardless of active identity")
-	_assert(not FileAccess.file_exists(A_OLD), "Individual Delete removes only its local file")
-	_assert(FileAccess.file_exists(A_NEW) and FileAccess.file_exists(B_ONLY) and FileAccess.file_exists(OWNERLESS_LEGACY), "Individual Delete preserves every other local save")
+	GameState.student_id = STUDENT_A
+	GameState.parent_id = PARENT_A
+	_assert(_paths(GameState.list_saves()) == [A_NEW, A_OLD], "Student A sees only Student A saves, newest first")
+	_assert(GameState.peek_save_data(B_ONLY).is_empty(), "Student A cannot inspect Student B save by direct path")
+	var before_cross_load := GameState.student_id
+	_assert(GameState.load_save(B_ONLY, false).is_empty(), "Student A cannot load Student B save by direct path")
+	_assert(GameState.student_id == before_cross_load, "Rejected cross-Student load cannot replace Student A identity")
+	_assert(not GameState.delete_save(B_ONLY), "Student A cannot delete Student B save by direct path")
+	_assert(FileAccess.file_exists(B_ONLY), "Rejected cross-Student delete preserves Student B save")
+	_assert(_find_path(GameState.list_saves(), OWNERLESS_LEGACY).is_empty(), "Ownerless legacy save is hidden from Student A")
+	_assert(GameState.peek_save_data(OWNERLESS_LEGACY).is_empty(), "Ownerless legacy save cannot be inspected directly")
+	_assert(not GameState.delete_save(OWNERLESS_LEGACY), "Ownerless legacy save cannot be deleted through another Student")
 
 	_assert(GameState.has_method("delete_all_saves"), "GameState retains the local Delete All service")
 	var load_scene := LOAD_SCENE.instantiate() as Control
@@ -62,11 +62,20 @@ func _run() -> void:
 	load_scene.call("_on_delete_all_confirmed")
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_assert(_all_fixture_files_absent(), "Delete All removes all save files on this installation, including other saved identities")
+	_assert(not FileAccess.file_exists(A_OLD) and not FileAccess.file_exists(A_NEW), "Delete All removes every current-Student save")
+	_assert(FileAccess.file_exists(B_ONLY), "Delete All preserves another Student's save")
+	_assert(FileAccess.file_exists(OWNERLESS_LEGACY), "Delete All preserves ownerless legacy data")
 	var empty_label := load_scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/EmptyLabel") as Label
-	_assert(empty_label != null and empty_label.visible and empty_label.text == "No save data found", "Delete All refreshes the actual Load Game screen to its empty state")
+	_assert(empty_label != null and empty_label.visible and empty_label.text == "No save data found", "Delete All refreshes Student A to the empty state")
 	load_scene.queue_free()
 	await get_tree().process_frame
+
+	GameState.student_id = STUDENT_B
+	GameState.parent_id = PARENT_B
+	_assert(_paths(GameState.list_saves()) == [B_ONLY], "Student B sees only Student B save")
+	_assert(GameState.delete_save(B_ONLY), "Student B can delete Student B save")
+	_assert(not FileAccess.file_exists(B_ONLY), "Owned individual delete removes only Student B save")
+	_assert(FileAccess.file_exists(OWNERLESS_LEGACY), "Ownership enforcement leaves ownerless legacy data untouched")
 
 	_cleanup()
 	_finish()
@@ -124,13 +133,6 @@ func _find_path(saves: Array[Dictionary], path: String) -> Dictionary:
 	return {}
 
 
-func _all_fixture_files_absent() -> bool:
-	for path in _fixture_paths:
-		if FileAccess.file_exists(path):
-			return false
-	return true
-
-
 func _remove_live_transport() -> void:
 	var remote_sync := get_node_or_null("/root/RemoteSync")
 	if remote_sync != null:
@@ -172,10 +174,10 @@ func _finish() -> void:
 		file.store_string(JSON.stringify(report, "\t"))
 		file.close()
 	if _failures.is_empty():
-		print("DEVICE_LOCAL_SAVE_MODEL_TEST PASSED checks=%d failures=0" % _check_count)
+		print("PER_STUDENT_SAVE_ISOLATION_TEST PASSED checks=%d failures=0" % _check_count)
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	print("DEVICE_LOCAL_SAVE_MODEL_TEST FAILED checks=%d failures=%d" % [_check_count, _failures.size()])
+	print("PER_STUDENT_SAVE_ISOLATION_TEST FAILED checks=%d failures=%d" % [_check_count, _failures.size()])
 	get_tree().quit(1)
