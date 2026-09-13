@@ -586,10 +586,10 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		return
 	if not GameState.is_valid_existing_student_id(GameState.student_id) or not GameState.is_valid_six_digit_id(GameState.parent_id):
 		return
-	var question_identity := String(question.get("question_id", question.get("id", ""))).strip_edges()
+	var question_identity := str(question.get("question_id", question.get("id", ""))).strip_edges()
 	if question_identity.is_empty():
-		question_identity = "question:%s" % String(question.get("question", question.get("text", ""))).strip_edges().to_lower().hash()
-	var battle_identity := String(question.get("battle_id", question.get("encounter_id", GameState.encounter_context.get("encounter_id", "")))).strip_edges()
+		question_identity = "question:%s" % str(question.get("question", question.get("text", ""))).strip_edges().to_lower().hash()
+	var battle_identity := str(question.get("battle_id", question.get("encounter_id", GameState.encounter_context.get("encounter_id", "")))).strip_edges()
 	if battle_identity.is_empty():
 		battle_identity = "task-%d" % int(GameState.current_task_index)
 
@@ -598,7 +598,7 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		"student_id": GameState.student_id,
 		"student_name": GameState.player_name,
 		"grade_level": GameState.grade_level,
-		"difficulty": String(question.get("difficulty", "Unknown")).strip_edges(),
+		"difficulty": str(question.get("difficulty", "Unknown")).strip_edges(),
 		"score": 1 if is_correct else 0,
 		"total_items": 1,
 		"playtime_session_id": _current_playtime_session_id,
@@ -611,8 +611,8 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		"map_id": GameState.canonical_map_id(),
 		"canonical_quest_id": "main",
 		"canonical_task_id": GameState.get_task_activity_metadata(GameState.current_task_index).get("canonical_task_id", ""),
-		"canonical_battle_id": String(question.get("battle_id", question.get("encounter_id", ""))),
-		"canonical_milestone_id": String(question.get("milestone_id", "")),
+		"canonical_battle_id": str(question.get("battle_id", question.get("encounter_id", ""))),
+		"canonical_milestone_id": str(question.get("milestone_id", "")),
 	}
 	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
 		print("RemoteSync: skipping question result because no active server playtime lease is available.")
