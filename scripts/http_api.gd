@@ -4,6 +4,7 @@ signal request_completed(status_code: int, result: Dictionary)
 signal request_failed(error: String)
 
 const DEFAULT_CONFIG_PATH := "res://Data/api_config.json"
+const QA_LOCAL_PROFILE_PATH := "res://Data/api_config.qa_local.json"
 const PRODUCTION_SMOKE_TEST_ENVIRONMENT := "THERESIANS_PRODUCTION_SMOKE_TEST"
 const QA_LOCAL_ENVIRONMENT_VARIABLE := "THERESIANS_QA_LOCAL"
 const DEFAULT_LOCAL_QA_URL := "http://127.0.0.1:5000"
@@ -11,10 +12,14 @@ var base_url: String = ""
 var default_timeout_ms: int = 10000
 var production_qa_mode := false
 var local_qa_only := false
+var qa_local_profile_active := false
+var config_source_path := DEFAULT_CONFIG_PATH
 
 func _ready() -> void:
 	var cfg: Dictionary = {}
-	var config_file := FileAccess.open(DEFAULT_CONFIG_PATH, FileAccess.READ)
+	qa_local_profile_active = is_local_qa_profile_requested()
+	config_source_path = QA_LOCAL_PROFILE_PATH if qa_local_profile_active else DEFAULT_CONFIG_PATH
+	var config_file := FileAccess.open(config_source_path, FileAccess.READ)
 	if config_file:
 		var text := config_file.get_as_text()
 		config_file.close()
@@ -23,18 +28,18 @@ func _ready() -> void:
 			cfg = parsed_config
 			var debug_build := OS.is_debug_build()
 			var production_smoke_test_enabled := is_production_qa_enabled(cfg, is_production_smoke_test_enabled())
-			var local_qa_requested := is_local_qa_requested()
+			var local_qa_requested := qa_local_profile_active or is_local_qa_requested()
 			production_qa_mode = debug_build and production_smoke_test_enabled and not local_qa_requested
 			var configured_url := resolve_api_base_url(cfg, debug_build, production_smoke_test_enabled, local_qa_requested)
-			var requires_production_url := not debug_build or (production_smoke_test_enabled and not local_qa_requested)
-			if _is_usable_base_url(configured_url, requires_production_url):
+			var requires_production_url := (not debug_build and not local_qa_requested) or (production_smoke_test_enabled and not local_qa_requested)
+			if local_qa_requested and not is_loopback_url(configured_url):
+				base_url = ""
+				local_qa_only = true
+				push_error("QA_LOCAL_REMOTE_BLOCKED")
+			elif _is_usable_base_url(configured_url, requires_production_url):
 				base_url = configured_url.rstrip("/")
 				if local_qa_requested:
-					if not is_loopback_url(base_url):
-						base_url = ""
-						push_error("QA_LOCAL_REMOTE_BLOCKED")
-					else:
-						local_qa_only = true
+					local_qa_only = true
 			else:
 				base_url = ""
 				if local_qa_requested:
@@ -44,6 +49,7 @@ func _ready() -> void:
 			if debug_build:
 				var mode_label := "LOCAL QA ONLY" if local_qa_only else ("PRODUCTION QA" if production_qa_mode else "LOCAL DEVELOPMENT")
 				print("API MODE: " + mode_label + " — " + (base_url if base_url != "" else "disabled (invalid API URL)"))
+				print("API CONFIG SOURCE: " + config_source_path)
 				print("CANONICAL RUNTIME: pid=" + str(OS.get_process_id()) + " project=" + ProjectSettings.globalize_path("res://"))
 			if cfg.has("timeout_ms"):
 				default_timeout_ms = int(cfg.get("timeout_ms"))
@@ -68,8 +74,22 @@ func is_local_qa_mode() -> bool:
 	return local_qa_only
 
 
+func is_local_qa_profile_active() -> bool:
+	return qa_local_profile_active and local_qa_only and not production_qa_mode
+
+
 func is_local_qa_requested() -> bool:
 	return OS.get_environment(QA_LOCAL_ENVIRONMENT_VARIABLE).strip_edges() == "1"
+
+
+func is_local_qa_profile_requested() -> bool:
+	if is_local_qa_requested():
+		return true
+	for argument in OS.get_cmdline_args():
+		var normalized := String(argument).replace("\\", "/").to_lower()
+		if normalized.ends_with("/human_qa_launcher.tscn") or normalized.ends_with("/qa_local_runtime_contract_test.tscn"):
+			return true
+	return false
 
 
 func get_resolved_api_base_url() -> String:
@@ -83,7 +103,7 @@ func resolve_api_base_url(
 	local_qa_requested: bool = false
 ) -> String:
 	if local_qa_requested:
-		return String(config.get("development_url", DEFAULT_LOCAL_QA_URL)).strip_edges()
+		return String(config.get("api_base_url", config.get("development_url", DEFAULT_LOCAL_QA_URL))).strip_edges()
 	return resolve_configured_base_url_for_environment(config, is_debug_build, production_smoke_test_enabled)
 
 
@@ -158,6 +178,13 @@ func _build_url(path: String, params: Dictionary = {}) -> String:
 	return full
 
 
+func _qa_request_allowed() -> bool:
+	if local_qa_only and not is_loopback_url(base_url):
+		push_error("QA_LOCAL_REMOTE_BLOCKED")
+		return false
+	return true
+
+
 func _create_request(timeout_ms: int = -1) -> HTTPRequest:
 	var http := HTTPRequest.new()
 	var resolved_timeout_ms := timeout_ms if timeout_ms > 0 else default_timeout_ms
@@ -166,7 +193,7 @@ func _create_request(timeout_ms: int = -1) -> HTTPRequest:
 	return http
 
 func request_get(path: String, params: Dictionary = {}, timeout_ms: int = -1) -> Dictionary:
-	if local_qa_only and not is_loopback_url(base_url):
+	if not _qa_request_allowed():
 		return {"ok": false, "error": "Local QA boundary rejected a non-loopback API base."}
 	var url := _build_url(path, params)
 	var http := _create_request(timeout_ms)
@@ -212,7 +239,7 @@ func profile_check_diagnostic(result_code: int, response_code: int, response: Di
 	}
 
 func request_post(path: String, payload: Dictionary, timeout_ms: int = -1) -> Dictionary:
-	if local_qa_only and not is_loopback_url(base_url):
+	if not _qa_request_allowed():
 		return {"ok": false, "error": "Local QA boundary rejected a non-loopback API base."}
 	var url := _build_url(path, {})
 	var body := JSON.stringify(payload)

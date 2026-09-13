@@ -13,7 +13,7 @@ func _ready() -> void:
 		return
 
 	var activated := bool(http.call("enable_local_qa_mode", LOCAL_BACKEND_URL))
-	if not activated or not bool(http.get("local_qa_only")):
+	if not activated or not bool(http.get("local_qa_only")) or not bool(http.call("is_local_qa_profile_active")):
 		_block("QA_LOCAL_REMOTE_BLOCKED: API resolver refused the loopback target")
 		return
 	remote.call("enable_local_qa_mode")
@@ -24,9 +24,12 @@ func _ready() -> void:
 		return
 
 	print("QA_LOCAL_ONLY = true")
+	print("CONFIG SOURCE = " + String(http.get("config_source_path")))
 	print("API BASE = " + resolved_base)
+	print("PRODUCTION_QA_ENABLED_EFFECTIVE = false")
 	print("PRODUCTION SYNC = DISABLED")
 	print("PRODUCTION TELEMETRY = IMPOSSIBLE")
+	print("PUBLIC HOSTS = BLOCKED")
 	print("LOCAL BACKEND = " + ("CONNECTED" if _loopback_port_listening() else "OFFLINE-SAFE"))
 	call_deferred("_enter_game")
 

@@ -1,0 +1,6 @@
+{
+  "api_base_url": "http://127.0.0.1:5000",
+  "production_qa_enabled": false,
+  "qa_local_only": true,
+  "timeout_ms": 15000
+}

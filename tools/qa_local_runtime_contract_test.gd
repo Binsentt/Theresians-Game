@@ -2,6 +2,8 @@ extends Node
 
 var _checks: Array[Dictionary] = []
 
+const QA_PROFILE_PATH := "res://Data/api_config.qa_local.json"
+
 
 func _ready() -> void:
 	call_deferred("_run")
@@ -15,6 +17,7 @@ func _run() -> void:
 	var remote_source := FileAccess.get_file_as_string("res://scripts/remote_sync.gd")
 	var state_source := FileAccess.get_file_as_string("res://scripts/game_state.gd")
 	var launcher_source := FileAccess.get_file_as_string("res://tools/human_qa_launcher.gd")
+	var qa_profile: Variant = JSON.parse_string(FileAccess.get_file_as_string(QA_PROFILE_PATH)) if FileAccess.file_exists(QA_PROFILE_PATH) else null
 	_expect(http != null, "HttpApi autoload is available")
 	_expect(remote != null, "RemoteSync autoload is available")
 	_expect(game_state != null, "GameState autoload is available")
@@ -23,6 +26,12 @@ func _run() -> void:
 	_expect(remote_source.contains("LOCAL_QA_PENDING_FILE") and remote_source.contains("environment_scope"), "RemoteSync isolates and tags local QA outbox data")
 	_expect(state_source.contains("LOCAL_QA_SAVE_DIRECTORY") and state_source.contains("enable_local_qa_mode"), "GameState exposes a QA-local save namespace")
 	_expect(launcher_source.contains("enable_local_qa_mode") and launcher_source.contains("loading_screen.tscn"), "The QA launcher enables the boundary before the game flow")
+	_expect(qa_profile is Dictionary, "A dedicated QA-local profile exists before runtime startup")
+	if qa_profile is Dictionary:
+		_expect(String(qa_profile.get("api_base_url", "")) == "http://127.0.0.1:5000", "QA-local profile targets the loopback backend")
+		_expect(qa_profile.get("production_qa_enabled", true) == false, "QA-local profile disables production QA mode")
+		_expect(qa_profile.get("qa_local_only", false) == true, "QA-local profile declares loopback-only operation")
+	_expect(http_source.contains("QA_LOCAL_PROFILE_PATH"), "HttpApi recognizes the dedicated QA-local profile before autoload requests")
 	if http != null and http.has_method("resolve_api_base_url"):
 		var config := JSON.parse_string(FileAccess.get_file_as_string("res://Data/api_config.json")) as Dictionary
 		_expect(String(http.call("resolve_api_base_url", config, true, false, false)) == String(config.get("production_url", "")), "Normal production-QA resolution remains unchanged")
@@ -32,6 +41,7 @@ func _run() -> void:
 		_expect(not bool(http.call("is_loopback_url", "http://localhost.evil")), "QA loopback validation rejects a localhost lookalike host")
 		_expect(not bool(http.call("enable_local_qa_mode", "https://theresiansquest.com")), "Production URL is rejected by the QA boundary")
 		_expect(bool(http.call("enable_local_qa_mode", "http://127.0.0.1:5000")), "Loopback URL is accepted by the QA boundary")
+		_expect(not bool(http.call("is_loopback_url", "http://theresiansquest.com")), "Public hosts remain blocked by the QA resolver")
 		_expect(bool(http.get("local_qa_only")) and not bool(http.get("production_qa_mode")), "HttpApi enters local-only mode")
 	if remote != null and remote.has_method("enable_local_qa_mode"):
 		remote.call("enable_local_qa_mode")
