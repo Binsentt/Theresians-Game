@@ -1,4 +1,4 @@
-extends SceneTree
+extends Node
 
 var _failures: Array[String] = []
 
@@ -17,6 +17,7 @@ func _run() -> void:
 	var projection_block := _function_block(remote_source, "func _sanitize_game_leaderboard_entries")
 	_expect(projection_block.contains("display_name") and projection_block.contains("progress_percentage") and projection_block.contains("accuracy_rate"), "RemoteSync must preserve the approved privacy-safe leaderboard fields.")
 	_expect(not projection_block.contains("student_id") and not projection_block.contains("parent_id") and not projection_block.contains("email"), "RemoteSync must discard sensitive leaderboard fields.")
+	_expect(projection_block.contains("slice(0, 6)"), "Game leaderboard must expose only the top six canonical entries in API order.")
 	_expect(controller_source.contains("request_game_leaderboard"), "Leaderboard controller must request data through RemoteSync.")
 	_expect(not controller_source.contains("/api/leaderboard/top-achievers"), "Leaderboard controller must not call a portal-only route directly.")
 	_expect(controller_source.contains("_refresh_generation"), "Leaderboard controller must ignore older responses after a newer refresh.")
@@ -35,11 +36,11 @@ func _function_block(source: String, signature: String) -> String:
 func _finish() -> void:
 	if _failures.is_empty():
 		print("game_leaderboard_contract_test: PASS")
-		quit(0)
+		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	quit(1)
+	get_tree().quit(1)
 
 
 func _expect(condition: bool, message: String) -> void:

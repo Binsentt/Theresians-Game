@@ -10,7 +10,7 @@ signal task_triggered(event: Dictionary)
 
 @export var required_task_index: int = 0
 @export var event_key: String = "quest:main:task:0:arrival"
-@export var notification_title: String = "Task 1"
+@export var notification_title: String = "Task 2"
 @export var notification_objective: String = "Talk to the Teacher"
 @export_file("*.jpg", "*.jpeg", "*.png", "*.webp") var notification_portrait_path: String = "res://Images/NPC.jpg"
 

@@ -563,7 +563,9 @@ func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
 		if raw_entry.has("grade"):
 			entry["grade"] = String(raw_entry.get("grade", "")).strip_edges()
 		sanitized.append(entry)
-	return sanitized
+	# The game mirrors the canonical website ranking order but only exposes the
+	# approved six public rows. Keep the API order; do not re-rank locally.
+	return sanitized.slice(0, 6)
 
 
 func record_question_attempt(question: Dictionary, is_correct: bool) -> void:

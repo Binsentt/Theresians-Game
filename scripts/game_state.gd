@@ -25,6 +25,9 @@ const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
 const TUTORIAL_QUEST := "Tutorial"
 const SAVE_DIRECTORY := "user://saves"
+const DEVICE_INSTALLATION_ID_PATH := "user://device_installation_id.txt"
+const TERMS_VERSION := "1.0"
+const TERMS_ACCEPTANCE_PATH := "user://terms_acceptance.json"
 const VALID_REGISTRATION_GRADES := ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
 const OAKLEAF_BANDIT_IDS: Array[String] = [
 	"oakleaf_bandits1",
@@ -97,6 +100,7 @@ var gender := "male"
 var grade_level := ""
 var student_id := ""
 var parent_id := ""
+var device_installation_id := ""
 var learning_cycle_version: int = 0
 var learning_cycle_started_at: String = ""
 var _new_game_registration: Dictionary = {}
@@ -425,7 +429,6 @@ func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> D
 				"canonical_task_id": "oakleaf-bandits",
 				"canonical_milestone_id": "oakleaf.bandits.complete",
 			}, OAKLEAF_BANDIT_TASK_INDEX, "task_completed")
-			_record_player_facing_completion("oakleaf-bandits")
 			task_state_changed.emit(previous_index, current_task_index, all_bandits_event)
 		if persist and normalized_id != OAKLEAF_BANDIT_IDS[0]:
 			save_game()
@@ -449,12 +452,14 @@ func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> D
 		var boss_event := build_canonical_activity_event({
 			"type": "task_completed",
 			"key": "quest:oakleaf:boss:complete",
-			"title": "Boss Bandit Defeated",
+			"title": "Task 3 Complete",
 			"description": "Return to the Teacher.",
 			"canonical_task_id": "oakleaf-boss-bandit",
 			"canonical_milestone_id": "oakleaf.boss.complete",
 		}, OAKLEAF_BOSS_TASK_INDEX, "task_completed")
-		_record_player_facing_completion("oakleaf-boss-bandit")
+		# Boss completion closes the combined Oakleaf challenge. Normal Bandits
+		# are internal milestones and must not create a second player-facing task.
+		_record_player_facing_completion("oakleaf-bandits")
 		task_state_changed.emit(previous_index, current_task_index, boss_event)
 		if persist:
 			save_game()
@@ -484,12 +489,12 @@ func complete_oakleaf_teacher_return() -> Dictionary:
 	var event := {
 		"type": "task_completed",
 		"key": "quest:oakleaf:return-teacher:complete",
-		"title": "Oakleaf Quest Complete",
+		"title": "Task 4 Complete",
 		"description": "Go to the City of Knowledge / School.",
 		"source": "teacher_task_interaction",
 		"reason": "oakleaf_boss_return",
 	}
-	_record_player_facing_completion(String(get_task_activity_metadata(previous_index).get("canonical_task_id", "oakleaf-return-to-teacher")))
+	_record_player_facing_completion("oakleaf-return-to-teacher")
 	event = build_canonical_activity_event(event, previous_index, "task_completed")
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_notify_progress(event)
@@ -539,7 +544,6 @@ func mark_city_first_arrival() -> Dictionary:
 		"source": "city_scene_entry",
 		"reason": "city_unlocked_arrival",
 	}
-	_record_player_facing_completion(String(get_task_activity_metadata(previous_index).get("canonical_task_id", "go-to-city-of-knowledge")))
 	event = build_canonical_activity_event(event, previous_index, "task_completed")
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_notify_progress(event)
@@ -977,11 +981,14 @@ func complete_tutorial_activity() -> bool:
 	var completion_event := build_canonical_activity_event({
 		"type": "task_completed",
 		"key": "tutorial:complete",
+		"title": "Task 1 Complete",
+		"description": "Tutorial complete. Go to the Teacher's House.",
 		"previous_index": 0,
 		"current_index": 0,
 		"activity": tutorial_metadata,
 	}, 0, "task_completed")
 	canonical_activity_boundary.emit(completion_event)
+	_notify_progress(completion_event)
 	emit_current_task_activity_started()
 	return true
 
@@ -1573,6 +1580,7 @@ func build_save_data() -> Dictionary:
 		"grade_level": grade_level,
 		"student_id": student_id,
 		"parent_id": parent_id,
+		"device_installation_id": get_device_installation_id(),
 		"learning_cycle_version": learning_cycle_version,
 		"learning_cycle_started_at": learning_cycle_started_at,
 		"current_quest": TUTORIAL_QUEST if is_tutorial_active() else current_quest,
@@ -2068,7 +2076,67 @@ func _is_save_owned_by_current_student(data: Dictionary) -> bool:
 	var owner_id := _get_current_save_owner_id()
 	if owner_id.is_empty() or data.is_empty():
 		return false
-	return String(data.get("student_id", "")).strip_edges() == owner_id
+	if String(data.get("student_id", "")).strip_edges() != owner_id:
+		return false
+	# New saves are device-scoped. A legacy Student-owned save without the new
+	# metadata remains readable for compatibility; ownerless records are still
+	# hidden because they cannot prove either identity.
+	var saved_device_id := String(data.get("device_installation_id", "")).strip_edges()
+	return saved_device_id.is_empty() or saved_device_id == get_device_installation_id()
+
+
+func get_device_installation_id() -> String:
+	if not device_installation_id.is_empty():
+		return device_installation_id
+	if FileAccess.file_exists(DEVICE_INSTALLATION_ID_PATH):
+		var existing := FileAccess.open(DEVICE_INSTALLATION_ID_PATH, FileAccess.READ)
+		if existing != null:
+			device_installation_id = existing.get_as_text().strip_edges()
+			existing.close()
+	if device_installation_id.is_empty():
+		var runtime_identity := OS.get_unique_id().strip_edges()
+		if runtime_identity.is_empty():
+			runtime_identity = "%s-%d-%d" % [OS.get_name().to_lower(), int(Time.get_unix_time_from_system()), Time.get_ticks_usec()]
+		device_installation_id = "device-%s" % runtime_identity
+		var created := FileAccess.open(DEVICE_INSTALLATION_ID_PATH, FileAccess.WRITE)
+		if created != null:
+			created.store_string(device_installation_id)
+			created.close()
+	return device_installation_id
+
+
+func has_current_terms_acceptance(for_student_id: String = "") -> bool:
+	var owner_id := for_student_id.strip_edges() if not for_student_id.strip_edges().is_empty() else student_id.strip_edges()
+	if owner_id.is_empty() or not FileAccess.file_exists(TERMS_ACCEPTANCE_PATH):
+		return false
+	var file := FileAccess.open(TERMS_ACCEPTANCE_PATH, FileAccess.READ)
+	if file == null:
+		return false
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return false
+	return String(parsed.get("student_id", "")).strip_edges() == owner_id \
+			and String(parsed.get("device_installation_id", "")).strip_edges() == get_device_installation_id() \
+			and String(parsed.get("terms_version", "")).strip_edges() == TERMS_VERSION \
+			and not String(parsed.get("accepted_at", "")).strip_edges().is_empty()
+
+
+func record_terms_acceptance(for_student_id: String = "") -> bool:
+	var owner_id := for_student_id.strip_edges() if not for_student_id.strip_edges().is_empty() else student_id.strip_edges()
+	if owner_id.is_empty():
+		return false
+	var file := FileAccess.open(TERMS_ACCEPTANCE_PATH, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify({
+		"student_id": owner_id,
+		"device_installation_id": get_device_installation_id(),
+		"terms_version": TERMS_VERSION,
+		"accepted_at": _utc_timestamp(),
+	}))
+	file.close()
+	return true
 
 
 func _prepare_save_entry(data: Dictionary, save_path: String) -> Dictionary:

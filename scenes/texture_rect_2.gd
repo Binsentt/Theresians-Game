@@ -52,6 +52,8 @@ var _canonical_identity_locked := false
 var _canonical_student_name := ""
 var _canonical_grade := ""
 var _canonical_section := ""
+var _terms_dialog: ConfirmationDialog
+var _terms_checkbox: CheckBox
 
 var male_tween: Tween
 var female_tween: Tween
@@ -520,6 +522,10 @@ func _on_start_pressed() -> void:
 		return
 
 	_hide_validation()
+	var terms_accepted := await _ensure_terms_accepted()
+	if not terms_accepted:
+		_play_transitioning = false
+		return
 	var registration := GameState.get_new_game_registration()
 	if OS.is_debug_build():
 		print("NEW GAME PLAY REQUEST: method=POST route=/api/playtime/start target_base_url=%s" % str(get_node_or_null("/root/HttpApi").get("base_url") if get_node_or_null("/root/HttpApi") != null else "unavailable"))
@@ -577,6 +583,58 @@ func _on_start_pressed() -> void:
 		LoadingScreenController.cancel_pending_request()
 		_play_transitioning = false
 		_show_validation("Unable to start the new game.")
+
+
+func _ensure_terms_accepted() -> bool:
+	var registration := GameState.get_new_game_registration()
+	var current_student_id := String(registration.get("student_id", "")).strip_edges()
+	if current_student_id.is_empty() or not GameState.has_method("has_current_terms_acceptance"):
+		return false
+	if bool(GameState.call("has_current_terms_acceptance", current_student_id)):
+		return true
+
+	_terms_dialog = ConfirmationDialog.new()
+	_terms_dialog.title = "Terms & Conditions"
+	_terms_dialog.dialog_text = "Please review the Terms & Conditions before starting your game. Your acceptance is stored on this device for this Student ID and must be renewed when the terms version changes."
+	_terms_dialog.ok_button_text = "Continue"
+	_terms_dialog.cancel_button_text = "Cancel"
+	_terms_dialog.min_size = Vector2(560, 260)
+	_terms_checkbox = CheckBox.new()
+	_terms_checkbox.text = "I agree to the Terms & Conditions."
+	_terms_checkbox.button_pressed = false
+	_terms_checkbox.focus_mode = Control.FOCUS_ALL
+	_terms_dialog.add_child(_terms_checkbox)
+	get_tree().root.add_child(_terms_dialog)
+	_terms_dialog.get_ok_button().disabled = true
+	_terms_checkbox.toggled.connect(func(checked: bool) -> void:
+		if is_instance_valid(_terms_dialog):
+			_terms_dialog.get_ok_button().disabled = not checked
+	)
+	_terms_dialog.popup_centered()
+
+	var settled := false
+	var accepted := false
+	_terms_dialog.confirmed.connect(func() -> void:
+		accepted = _terms_checkbox != null and _terms_checkbox.button_pressed
+		settled = true
+	)
+	_terms_dialog.canceled.connect(func() -> void:
+		settled = true
+	)
+	_terms_dialog.close_requested.connect(func() -> void:
+		settled = true
+	)
+	while not settled and is_instance_valid(_terms_dialog):
+		await get_tree().process_frame
+	if accepted and GameState.has_method("record_terms_acceptance"):
+		accepted = bool(GameState.call("record_terms_acceptance", current_student_id))
+	if is_instance_valid(_terms_dialog):
+		_terms_dialog.queue_free()
+	_terms_dialog = null
+	_terms_checkbox = null
+	if not accepted:
+		_show_validation("Please accept the Terms & Conditions to continue.")
+	return accepted
 
 func _sync_form_to_registration() -> void:
 	if _canonical_identity_locked:
