@@ -7,6 +7,8 @@ const DEFAULT_CONFIG_PATH := "res://Data/api_config.json"
 const PRODUCTION_SMOKE_TEST_ENVIRONMENT := "THERESIANS_PRODUCTION_SMOKE_TEST"
 var base_url: String = ""
 var default_timeout_ms: int = 10000
+var production_qa_mode := false
+var local_qa_only := false
 
 func _ready() -> void:
 	var config_file := FileAccess.open(DEFAULT_CONFIG_PATH, FileAccess.READ)
@@ -17,7 +19,8 @@ func _ready() -> void:
 		if typeof(parsed_config) == TYPE_DICTIONARY:
 			var cfg: Dictionary = parsed_config
 			var debug_build := OS.is_debug_build()
-			var production_smoke_test_enabled := is_production_smoke_test_enabled()
+			var production_smoke_test_enabled := is_production_qa_enabled(cfg, is_production_smoke_test_enabled())
+			production_qa_mode = debug_build and production_smoke_test_enabled
 			var configured_url := resolve_configured_base_url_for_environment(cfg, debug_build, production_smoke_test_enabled)
 			var requires_production_url := not debug_build or production_smoke_test_enabled
 			if _is_usable_base_url(configured_url, requires_production_url):
@@ -25,11 +28,29 @@ func _ready() -> void:
 			else:
 				base_url = ""
 				push_warning("HttpApi: no usable API URL is configured for this build; remote API requests are disabled.")
-			if debug_build and production_smoke_test_enabled:
-				print("PRODUCTION SMOKE TEST MODE — active backend: " + (base_url if base_url != "" else "disabled (invalid production URL)"))
+			if debug_build:
+				var mode_label := "PRODUCTION QA" if production_qa_mode else "LOCAL DEVELOPMENT"
+				print("API MODE: " + mode_label + " — " + (base_url if base_url != "" else "disabled (invalid API URL)"))
+				print("CANONICAL RUNTIME: pid=" + str(OS.get_process_id()) + " project=" + ProjectSettings.globalize_path("res://"))
 			if cfg.has("timeout_ms"):
 				default_timeout_ms = int(cfg.get("timeout_ms"))
 	# no persistent HTTPRequest node: create per-request nodes to avoid blocking and allow concurrency
+
+
+func enable_local_qa_mode(local_url: String) -> bool:
+	var candidate := local_url.strip_edges().rstrip("/")
+	if not _is_loopback_url(candidate):
+		push_error("HttpApi local QA refused non-loopback API URL.")
+		return false
+	local_qa_only = true
+	production_qa_mode = false
+	base_url = candidate
+	print("API MODE: LOCAL QA ONLY — " + base_url)
+	return true
+
+
+func is_local_qa_mode() -> bool:
+	return local_qa_only
 
 
 func resolve_configured_base_url(config: Dictionary, is_debug_build: bool) -> String:
@@ -37,8 +58,13 @@ func resolve_configured_base_url(config: Dictionary, is_debug_build: bool) -> St
 
 
 func resolve_configured_base_url_for_environment(config: Dictionary, is_debug_build: bool, production_smoke_test_enabled: bool) -> String:
-	var config_key := "production_url" if not is_debug_build or production_smoke_test_enabled else "development_url"
+	var config_key := "production_url" if not is_debug_build or is_production_qa_enabled(config, production_smoke_test_enabled) else "development_url"
 	return String(config.get(config_key, "")).strip_edges()
+
+
+func is_production_qa_enabled(config: Dictionary, environment_override: bool) -> bool:
+	var configured_opt_in: Variant = config.get("production_qa_enabled", false)
+	return environment_override or (configured_opt_in is bool and configured_opt_in)
 
 
 func is_production_smoke_test_enabled() -> bool:
@@ -52,6 +78,11 @@ func _is_usable_base_url(value: String, requires_production_url: bool = false) -
 	if requires_production_url:
 		return url.begins_with("https://") and not url.contains("localhost") and not url.contains("127.0.0.1")
 	return true
+
+
+func _is_loopback_url(value: String) -> bool:
+	var parsed := value.strip_edges().to_lower()
+	return parsed.begins_with("http://localhost") or parsed.begins_with("http://127.0.0.1") or parsed.begins_with("http://[::1]")
 
 func _build_url(path: String, params: Dictionary = {}) -> String:
 	var url := path.strip_edges()
@@ -79,10 +110,17 @@ func _create_request(timeout_ms: int = -1) -> HTTPRequest:
 	return http
 
 func request_get(path: String, params: Dictionary = {}, timeout_ms: int = -1) -> Dictionary:
+	if local_qa_only and not _is_loopback_url(base_url):
+		return {"ok": false, "error": "Local QA boundary rejected a non-loopback API base."}
 	var url := _build_url(path, params)
 	var http := _create_request(timeout_ms)
+	var trace_profile := production_qa_mode and path.trim_prefix("/").begins_with("api/game/profile/check/")
+	if trace_profile:
+		print("PROFILE CHECK REQUEST: pid=" + str(OS.get_process_id()) + " GET " + base_url + "/api/game/profile/check/[STUDENT]?parent_id=[PARENT]")
 	var err := http.request(url, [], HTTPClient.METHOD_GET, "")
 	if err != OK:
+		if trace_profile:
+			print("PROFILE CHECK START ERROR: pid=" + str(OS.get_process_id()) + " error_code=" + str(err))
 		http.queue_free()
 		return {"ok": false, "error": str(err)}
 	var args = await http.request_completed
@@ -100,10 +138,26 @@ func request_get(path: String, params: Dictionary = {}, timeout_ms: int = -1) ->
 		var parsed_body = JSON.parse_string(body_text)
 		if typeof(parsed_body) == TYPE_DICTIONARY:
 			parsed = parsed_body
+	if trace_profile:
+		var request_result := int(args[0]) if not args.is_empty() else -1
+		print("PROFILE CHECK RESPONSE: pid=" + str(OS.get_process_id()) + " " + JSON.stringify(profile_check_diagnostic(request_result, response_code, parsed)))
 	http.queue_free()
 	return {"ok": true, "status": response_code, "body": parsed}
 
+
+func profile_check_diagnostic(result_code: int, response_code: int, response: Dictionary) -> Dictionary:
+	# Deliberately exclude identifiers, canonical profile contents and free-form messages.
+	return {
+		"result": result_code,
+		"http_status": response_code,
+		"canonical_profile_present": response.get("canonical_profile") is Dictionary,
+		"can_play": response.get("can_play", null),
+		"should_block": response.get("should_block", null)
+	}
+
 func request_post(path: String, payload: Dictionary, timeout_ms: int = -1) -> Dictionary:
+	if local_qa_only and not _is_loopback_url(base_url):
+		return {"ok": false, "error": "Local QA boundary rejected a non-loopback API base."}
 	var url := _build_url(path, {})
 	var body := JSON.stringify(payload)
 	var headers := ["Content-Type: application/json"]

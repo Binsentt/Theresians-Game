@@ -8,6 +8,7 @@ var _session_start_in_progress: bool = false
 var _playtime_heartbeat_in_progress: bool = false
 var _playtime_heartbeat_elapsed: float = 0.0
 var _playtime_timeout_handled: bool = false
+var local_qa_only := false
 
 const PLAYTIME_DAILY_LIMIT_MINUTES := 60
 const PLAYTIME_HEARTBEAT_INTERVAL_SECONDS := 15.0
@@ -35,7 +36,15 @@ func _ready() -> void:
 			game_state.canonical_activity_boundary.connect(_on_canonical_activity_boundary)
 	_load_pending()
 
+func enable_local_qa_mode() -> void:
+	local_qa_only = true
+	_activity_requests_in_flight.clear()
+	_acknowledged_activity_keys.clear()
+	print("RemoteSync: LOCAL QA ONLY — all telemetry/progress writes disabled")
+
 func _process(delta: float) -> void:
+	if local_qa_only:
+		return
 	if not GameState:
 		return
 	GameState.consume_playtime_clock(delta)
@@ -47,10 +56,14 @@ func _process(delta: float) -> void:
 		_refresh_playtime_lease.call_deferred()
 
 func _on_save_created(save_data: Dictionary) -> void:
+	if local_qa_only:
+		return
 	# Always allow local save to complete; attempt remote sync but do not block
 	await _async_send_progress(save_data)
 
 func _on_progression_session_reset(source: String) -> void:
+	if local_qa_only:
+		return
 	if source == "new_game":
 		await _create_activity_log("New Game", "New Game profile initialized", {})
 	elif source == "load":
@@ -62,6 +75,8 @@ func _on_progression_session_reset(source: String) -> void:
 			GameState.emit_tutorial_activity_started()
 
 func _on_game_over() -> void:
+	if local_qa_only:
+		return
 	await _end_playtime_session()
 
 func _on_time_limit_reached() -> void:
@@ -111,6 +126,8 @@ func _on_canonical_activity_boundary(event: Dictionary) -> void:
 
 
 func _submit_canonical_task_activity(previous_index: int, current_index: int, event: Dictionary) -> void:
+	if local_qa_only:
+		return
 	if not _has_active_playtime_lease():
 		return
 	var event_type := _canonical_activity_type(String(event.get("activity_type", event.get("type", ""))))
@@ -207,6 +224,8 @@ func _is_learning_cycle_changed(result: Dictionary) -> bool:
 	return body is Dictionary and String(body.get("code", "")) == "LEARNING_CYCLE_CHANGED"
 
 func _async_send_progress(save_data: Dictionary) -> void:
+	if local_qa_only:
+		return
 	# perform non-blocking via thread? We'll do simple call and rely on HttpApi's await behavior
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
@@ -215,12 +234,6 @@ func _async_send_progress(save_data: Dictionary) -> void:
 		return
 	# Build the payload as a real Save Game projection of the authoritative runtime fields.
 	# The backend already normalizes these fields into student_game_progress and activity_logs.
-	var question_identity := String(question.get("question_id", question.get("id", ""))).strip_edges()
-	if question_identity.is_empty():
-		question_identity = "question:%s" % String(question.get("question", question.get("text", ""))).strip_edges().to_lower().hash()
-	var battle_identity := String(question.get("battle_id", question.get("encounter_id", GameState.encounter_context.get("encounter_id", "")))).strip_edges()
-	if battle_identity.is_empty():
-		battle_identity = "task-%d" % int(GameState.current_task_index)
 	var payload := {
 		"parent_id": String(save_data.get("parent_id", "")),
 		"student_id": String(save_data.get("student_id", "")),
@@ -275,6 +288,8 @@ func _build_playtime_start_payload(override_payload: Dictionary = {}) -> Diction
 	return payload
 
 func _send_playtime_start_request(override_payload: Dictionary = {}) -> Dictionary:
+	if local_qa_only:
+		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
@@ -286,6 +301,8 @@ func _send_playtime_start_request(override_payload: Dictionary = {}) -> Dictiona
 	return await http.request_post("/api/playtime/start", payload)
 
 func _send_playtime_end_request() -> Dictionary:
+	if local_qa_only:
+		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
@@ -302,6 +319,8 @@ func _send_playtime_end_request() -> Dictionary:
 
 
 func _send_playtime_heartbeat_request() -> Dictionary:
+	if local_qa_only:
+		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
@@ -343,6 +362,8 @@ func _refresh_playtime_lease() -> void:
 	_playtime_heartbeat_in_progress = false
 
 func _create_activity_log(status: String, description: String, override_payload: Dictionary = {}) -> void:
+	if local_qa_only:
+		return
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return
@@ -546,11 +567,19 @@ func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
 
 
 func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
+	if local_qa_only:
+		return
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return
 	if not GameState.is_valid_existing_student_id(GameState.student_id) or not GameState.is_valid_six_digit_id(GameState.parent_id):
 		return
+	var question_identity := String(question.get("question_id", question.get("id", ""))).strip_edges()
+	if question_identity.is_empty():
+		question_identity = "question:%s" % String(question.get("question", question.get("text", ""))).strip_edges().to_lower().hash()
+	var battle_identity := String(question.get("battle_id", question.get("encounter_id", GameState.encounter_context.get("encounter_id", "")))).strip_edges()
+	if battle_identity.is_empty():
+		battle_identity = "task-%d" % int(GameState.current_task_index)
 
 	var payload := {
 		"parent_id": GameState.parent_id,
@@ -648,6 +677,8 @@ func _is_valid_pending_queue(queue: Array) -> bool:
 	return true
 
 func _flush_pending() -> void:
+	if local_qa_only:
+		return
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return
