@@ -50,11 +50,14 @@ func _run() -> void:
 		var checkbox := terms_gate.get_node_or_null("Panel/Margin/Content/AgreementRow/AgreementCheckBox") as CheckBox
 		var continue_button := terms_gate.get_node_or_null("Panel/Margin/Content/Actions/ContinueButton") as Button
 		var cancel_button := terms_gate.get_node_or_null("Panel/Margin/Content/Actions/CancelButton") as Button
+		var actions := terms_gate.get_node_or_null("Panel/Margin/Content/Actions") as HBoxContainer
 		var scroll := terms_gate.get_node_or_null("Panel/Margin/Content/TermsScroll") as ScrollContainer
 		var panel := terms_gate.get_node_or_null("Panel") as PanelContainer
 		_expect(checkbox != null, "Terms gate has a real checkbox")
 		_expect(continue_button != null and continue_button.disabled, "Continue is disabled while unchecked")
 		_expect(cancel_button != null, "Terms gate has a Cancel action")
+		_expect(actions != null and actions.visible, "Terms footer actions remain visible")
+		_expect(checkbox != null and checkbox.visible, "Terms agreement checkbox remains visible")
 		_expect(scroll != null and scroll.get_node_or_null("TermsBody") != null, "Terms body is wrapped in a scrollable control")
 		_expect(panel != null and panel.size.x <= get_viewport().get_visible_rect().size.x * 0.9 + 2.0, "Terms panel stays within a safe viewport width")
 		if checkbox != null and continue_button != null:
@@ -98,17 +101,8 @@ func _run() -> void:
 	await get_tree().process_frame
 	var accepted_new_game := accepted_menu.get_node_or_null("VBoxContainer/NewGameBtn") as BaseButton
 	var accepted_terms_gate := accepted_menu.get_node_or_null("TermsGate") as Control
-	_expect(accepted_terms_gate != null and accepted_terms_gate.visible, "Terms gate appears again on every Main Menu startup")
-	_expect(accepted_new_game != null and accepted_new_game.disabled, "Existing acceptance does not bypass the new-launch gate")
-	if accepted_terms_gate != null:
-		var accepted_checkbox := accepted_terms_gate.get_node_or_null("Panel/Margin/Content/AgreementRow/AgreementCheckBox") as CheckBox
-		var accepted_continue := accepted_terms_gate.get_node_or_null("Panel/Margin/Content/Actions/ContinueButton") as Button
-		if accepted_checkbox != null and accepted_continue != null:
-			accepted_checkbox.button_pressed = true
-			await get_tree().process_frame
-			accepted_continue.pressed.emit()
-			await get_tree().process_frame
-	_expect(accepted_new_game != null and not accepted_new_game.disabled, "New Game becomes available after re-acceptance")
+	_expect(accepted_terms_gate == null or not accepted_terms_gate.visible, "Existing device acceptance bypasses the Terms gate on later Main Menu startups")
+	_expect(accepted_new_game != null and not accepted_new_game.disabled, "Existing device acceptance leaves New Game available")
 
 	_cleanup_acceptance()
 	_finish()

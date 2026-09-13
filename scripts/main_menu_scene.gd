@@ -30,6 +30,9 @@ func _initialize_terms_gate() -> void:
 	]:
 		if node is BaseButton:
 			_gated_controls.append(node)
+	if GameState.has_current_terms_app_acceptance():
+		_set_gated_controls_enabled(true)
+		return
 	_terms_gate = TERMS_GATE_SCRIPT.new() as Control
 	_terms_gate.name = "TermsGate"
 	_terms_gate.accepted.connect(_on_terms_gate_accepted)
