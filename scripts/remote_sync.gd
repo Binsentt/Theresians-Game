@@ -129,6 +129,7 @@ func _submit_canonical_task_activity(previous_index: int, current_index: int, ev
 	if _is_activity_acknowledged(event_key) or _activity_requests_in_flight.has(event_key):
 		return
 
+	var canonical_event: Dictionary = GameState.build_canonical_activity_event(event, previous_index if event_type in ["task_completed", "quest_completed"] else current_index, event_type)
 	var payload := {
 		"session_id": _current_playtime_session_id,
 		"session_credential": _current_playtime_session_credential,
@@ -136,6 +137,19 @@ func _submit_canonical_task_activity(previous_index: int, current_index: int, ev
 		"event_type": event_type,
 		"event_key": event_key,
 		"task_id": activity_label,
+		"telemetry_contract_version": String(canonical_event.get("telemetry_contract_version", "2.0")),
+		"quest_graph_version": String(canonical_event.get("quest_graph_version", "oakleaf-city-pinehill-v1")),
+		"activity_event_id": event_key,
+		"canonical_activity_id": String(canonical_event.get("canonical_activity_id", metadata.get("activity_id", ""))),
+		"canonical_quest_id": String(canonical_event.get("canonical_quest_id", "main")),
+		"canonical_task_id": String(canonical_event.get("canonical_task_id", metadata.get("canonical_task_id", ""))),
+		"canonical_milestone_id": String(canonical_event.get("canonical_milestone_id", "")),
+		"map_id": String(canonical_event.get("map_id", GameState.canonical_map_id())),
+		"difficulty": String(canonical_event.get("difficulty", GameState.canonical_difficulty_for_map(GameState.canonical_map_id()))),
+		"started_at": String(canonical_event.get("started_at", "")),
+		"completed_at": String(canonical_event.get("completed_at", "")),
+		"duration_seconds": canonical_event.get("duration_seconds", null),
+		"is_player_facing": bool(canonical_event.get("is_player_facing", true)),
 	}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
@@ -201,6 +215,12 @@ func _async_send_progress(save_data: Dictionary) -> void:
 		return
 	# Build the payload as a real Save Game projection of the authoritative runtime fields.
 	# The backend already normalizes these fields into student_game_progress and activity_logs.
+	var question_identity := String(question.get("question_id", question.get("id", ""))).strip_edges()
+	if question_identity.is_empty():
+		question_identity = "question:%s" % String(question.get("question", question.get("text", ""))).strip_edges().to_lower().hash()
+	var battle_identity := String(question.get("battle_id", question.get("encounter_id", GameState.encounter_context.get("encounter_id", "")))).strip_edges()
+	if battle_identity.is_empty():
+		battle_identity = "task-%d" % int(GameState.current_task_index)
 	var payload := {
 		"parent_id": String(save_data.get("parent_id", "")),
 		"student_id": String(save_data.get("student_id", "")),
@@ -543,6 +563,15 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		"playtime_session_id": _current_playtime_session_id,
 		"playtime_session_credential": _current_playtime_session_credential,
 		"learning_cycle_version": GameState.learning_cycle_version,
+		"result_event_id": "cycle:%d:battle:%s:question:%s" % [int(GameState.learning_cycle_version), battle_identity, question_identity],
+		"telemetry_contract_version": GameState.TELEMETRY_CONTRACT_VERSION,
+		"quest_graph_version": GameState.QUEST_GRAPH_VERSION,
+		"session_id": _current_playtime_session_id,
+		"map_id": GameState.canonical_map_id(),
+		"canonical_quest_id": "main",
+		"canonical_task_id": GameState.get_task_activity_metadata(GameState.current_task_index).get("canonical_task_id", ""),
+		"canonical_battle_id": String(question.get("battle_id", question.get("encounter_id", ""))),
+		"canonical_milestone_id": String(question.get("milestone_id", "")),
 	}
 	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
 		print("RemoteSync: skipping question result because no active server playtime lease is available.")

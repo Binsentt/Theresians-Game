@@ -19,6 +19,8 @@ signal playtime_warning(remaining_minutes: int)
 enum GameMode { EXPLORATION, DIALOGUE, CUTSCENE, BATTLE, MENU }
 
 const SAVE_VERSION := 9
+const TELEMETRY_CONTRACT_VERSION := "2.0"
+const QUEST_GRAPH_VERSION := "oakleaf-city-pinehill-v1"
 const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
 const TUTORIAL_QUEST := "Tutorial"
@@ -141,6 +143,8 @@ var oakleaf_return_to_teacher: bool = false
 var _tutorial_activity_started: bool = false
 var _tutorial_activity_completed: bool = false
 var _started_task_activity_ids: Dictionary = {}
+var _activity_started_at: Dictionary = {}
+var _completed_player_facing_tasks: Dictionary = {}
 var tasks = [
 	{
 		"activity_id": "go-to-teachers-house",
@@ -397,17 +401,32 @@ func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> D
 			return {"changed": false, "action": "blocked", "encounter_id": normalized_id}
 		oakleaf_defeated_bandits[normalized_id] = true
 		var previous_index := current_task_index
+		var bandit_number := OAKLEAF_BANDIT_IDS.find(normalized_id) + 1
+		var bandit_event := build_canonical_activity_event({
+			"type": "task_completed",
+			"key": "quest:oakleaf:bandit:%d:complete" % bandit_number,
+			"title": "Oakleaf Bandit Defeated",
+			"description": "Defeat the remaining Oakleaf Bandits.",
+			"canonical_task_id": "oakleaf-bandits",
+			"canonical_milestone_id": "oakleaf.bandits.bandit_%d" % bandit_number,
+			"is_player_facing": false,
+		}, OAKLEAF_BANDIT_TASK_INDEX, "task_completed")
+		canonical_activity_boundary.emit(bandit_event)
 		if normalized_id != OAKLEAF_BANDIT_IDS[0] and are_all_oakleaf_bandits_defeated():
 			current_task_index = OAKLEAF_BOSS_TASK_INDEX
 		current_quest = get_current_quest_text()
 		quest_changed.emit(current_quest)
 		if current_task_index != previous_index:
-			task_state_changed.emit(previous_index, current_task_index, {
-				"type": "quest_updated",
+			var all_bandits_event := build_canonical_activity_event({
+				"type": "task_completed",
 				"key": "quest:oakleaf:normal-bandits:complete",
 				"title": "Oakleaf Bandits Complete",
 				"description": "The Boss Bandit is now available.",
-			})
+				"canonical_task_id": "oakleaf-bandits",
+				"canonical_milestone_id": "oakleaf.bandits.complete",
+			}, OAKLEAF_BANDIT_TASK_INDEX, "task_completed")
+			_record_player_facing_completion("oakleaf-bandits")
+			task_state_changed.emit(previous_index, current_task_index, all_bandits_event)
 		if persist and normalized_id != OAKLEAF_BANDIT_IDS[0]:
 			save_game()
 		return {
@@ -427,12 +446,16 @@ func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> D
 		current_task_index = OAKLEAF_RETURN_TEACHER_TASK_INDEX
 		current_quest = get_current_quest_text()
 		quest_changed.emit(current_quest)
-		task_state_changed.emit(previous_index, current_task_index, {
-			"type": "quest_updated",
+		var boss_event := build_canonical_activity_event({
+			"type": "task_completed",
 			"key": "quest:oakleaf:boss:complete",
 			"title": "Boss Bandit Defeated",
 			"description": "Return to the Teacher.",
-		})
+			"canonical_task_id": "oakleaf-boss-bandit",
+			"canonical_milestone_id": "oakleaf.boss.complete",
+		}, OAKLEAF_BOSS_TASK_INDEX, "task_completed")
+		_record_player_facing_completion("oakleaf-boss-bandit")
+		task_state_changed.emit(previous_index, current_task_index, boss_event)
 		if persist:
 			save_game()
 		return {
@@ -466,6 +489,8 @@ func complete_oakleaf_teacher_return() -> Dictionary:
 		"source": "teacher_task_interaction",
 		"reason": "oakleaf_boss_return",
 	}
+	_record_player_facing_completion(String(get_task_activity_metadata(previous_index).get("canonical_task_id", "oakleaf-return-to-teacher")))
+	event = build_canonical_activity_event(event, previous_index, "task_completed")
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_notify_progress(event)
 	var save_path := save_game()
@@ -514,6 +539,8 @@ func mark_city_first_arrival() -> Dictionary:
 		"source": "city_scene_entry",
 		"reason": "city_unlocked_arrival",
 	}
+	_record_player_facing_completion(String(get_task_activity_metadata(previous_index).get("canonical_task_id", "go-to-city-of-knowledge")))
+	event = build_canonical_activity_event(event, previous_index, "task_completed")
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_notify_progress(event)
 	var save_path := save_game()
@@ -546,6 +573,8 @@ func complete_city_school_teacher() -> Dictionary:
 		"source": "teacher_task_interaction",
 		"reason": "city_school_teacher",
 	}
+	_record_player_facing_completion(String(get_task_activity_metadata(previous_index).get("canonical_task_id", "talk-to-city-school-teacher")))
+	event = build_canonical_activity_event(event, previous_index, "task_completed")
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_notify_progress(event)
 	var save_path := save_game()
@@ -642,12 +671,16 @@ func _advance_progression_checkpoint(previous_index: int, next_index: int, key: 
 	current_task_index = next_index
 	current_quest = get_current_quest_text()
 	quest_changed.emit(current_quest)
-	task_state_changed.emit(previous_index, current_task_index, {
-		"type": "quest_updated",
+	var task_id := String(get_task_activity_metadata(previous_index).get("canonical_task_id", ""))
+	var completion_event := build_canonical_activity_event({
+		"type": "task_completed",
 		"key": key,
 		"title": title,
 		"description": description,
-	})
+		"canonical_task_id": task_id,
+	}, previous_index, "task_completed")
+	_record_player_facing_completion(task_id)
+	task_state_changed.emit(previous_index, current_task_index, completion_event)
 
 
 func record_progression_encounter_victory(encounter_id: String, persist: bool = true) -> Dictionary:
@@ -677,6 +710,20 @@ func record_progression_encounter_victory(encounter_id: String, persist: bool = 
 		city_school_stage = 4
 		current_task_index = tasks.size()
 		action = "journey_complete"
+	var encounter_number := 0
+	if group == "deep_forest":
+		encounter_number = DEEP_FOREST_BANDIT_IDS.find(normalized_id) + 1
+	elif group == "pinehill":
+		encounter_number = PINEHILL_BANDIT_IDS.find(normalized_id) + 1
+	if encounter_number > 0:
+		var internal_event := build_canonical_activity_event({
+			"type": "task_completed",
+			"key": "quest:%s:bandit:%d:complete" % [group, encounter_number],
+			"canonical_task_id": String(get_task_activity_metadata(previous_index).get("canonical_task_id", "")),
+			"canonical_milestone_id": "%s.bandit_%d" % [group, encounter_number],
+			"is_player_facing": false,
+		}, previous_index, "task_completed")
+		canonical_activity_boundary.emit(internal_event)
 	if current_task_index != previous_index:
 		_advance_progression_checkpoint(previous_index, current_task_index,
 			"quest:world:%s" % action, action.replace("_", " ").capitalize(), get_current_quest_text())
@@ -771,6 +818,13 @@ func advance_task_and_save(event: Dictionary) -> Dictionary:
 	var previous_index := current_task_index
 	current_task_index += 1
 	current_quest = get_current_quest_text()
+	var event_type := String(event.get("type", ""))
+	if event_type in ["task_completed", "quest_completed"]:
+		var completion_task_id := String(event.get("canonical_task_id", ""))
+		if completion_task_id.is_empty():
+			completion_task_id = String(get_task_activity_metadata(previous_index).get("canonical_task_id", ""))
+		_record_player_facing_completion(completion_task_id)
+		event = build_canonical_activity_event(event, previous_index, event_type)
 	var save_path := save_game()
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_notify_progress(event)
@@ -795,7 +849,93 @@ func get_task_activity_metadata(task_index: int) -> Dictionary:
 	return {
 		"activity_id": activity_id,
 		"activity_label": activity_label,
+		"canonical_task_id": activity_id,
 	}
+
+
+func canonical_map_id() -> String:
+	var candidate := String(current_map).to_lower()
+	if candidate.contains("pinehill"):
+		return "pinehill_village"
+	if candidate.contains("city"):
+		return "city_of_knowledge"
+	if candidate.contains("oak") or candidate.contains("teacher"):
+		return "oakleaf_village"
+	var scene_candidate := String(current_scene_path).to_lower()
+	if scene_candidate.contains("pinehill"):
+		return "pinehill_village"
+	if scene_candidate.contains("city"):
+		return "city_of_knowledge"
+	return "oakleaf_village"
+
+
+func canonical_difficulty_for_map(map_id: String) -> String:
+	match map_id:
+		"oakleaf_village":
+			return "Easy"
+		"city_of_knowledge":
+			return "Normal"
+		"pinehill_village":
+			return "Difficult"
+		_:
+			return "Unknown"
+
+
+func _utc_timestamp() -> String:
+	return Time.get_datetime_string_from_system(true) + "Z"
+
+
+func _activity_phase(event_type: String) -> String:
+	return "complete" if event_type in ["task_completed", "quest_completed"] else "start"
+
+
+func _activity_started_duration(activity_id: String) -> Dictionary:
+	var started: Variant = _activity_started_at.get(activity_id, {})
+	return started if started is Dictionary else {}
+
+
+func build_canonical_activity_event(event: Dictionary, task_index: int, event_type: String = "") -> Dictionary:
+	var result := event.duplicate(true)
+	var metadata := get_task_activity_metadata(task_index)
+	var activity_id := String(result.get("canonical_activity_id", result.get("activity_id", metadata.get("activity_id", "")))).strip_edges()
+	if activity_id.is_empty():
+		activity_id = String(metadata.get("canonical_task_id", "")).strip_edges()
+	var canonical_task_id := String(result.get("canonical_task_id", metadata.get("canonical_task_id", activity_id))).strip_edges()
+	var resolved_type := String(event_type if not event_type.is_empty() else result.get("type", "")).strip_edges()
+	var phase := _activity_phase(resolved_type)
+	var map_id := String(result.get("map_id", canonical_map_id())).strip_edges()
+	var milestone_id := String(result.get("canonical_milestone_id", "%s.complete" % canonical_task_id)).strip_edges()
+	var stable_event_id := String(result.get("activity_event_id", "")).strip_edges()
+	if stable_event_id.is_empty():
+		stable_event_id = "cycle:%d:activity:%s:%s" % [learning_cycle_version, activity_id, phase]
+	var started := _activity_started_duration(activity_id)
+	var started_at := String(result.get("started_at", started.get("started_at", ""))).strip_edges()
+	var completed_at := String(result.get("completed_at", _utc_timestamp() if phase == "complete" else "")).strip_edges()
+	var duration_seconds := int(result.get("duration_seconds", -1))
+	if duration_seconds < 0 and phase == "complete" and started.has("started_unix"):
+		duration_seconds = maxi(0, int(Time.get_unix_time_from_system() - float(started.get("started_unix", 0.0))))
+	result["telemetry_contract_version"] = TELEMETRY_CONTRACT_VERSION
+	result["quest_graph_version"] = QUEST_GRAPH_VERSION
+	result["activity_event_id"] = stable_event_id
+	result["canonical_activity_id"] = activity_id
+	result["canonical_quest_id"] = String(result.get("canonical_quest_id", "main"))
+	result["canonical_task_id"] = canonical_task_id
+	result["canonical_milestone_id"] = milestone_id
+	result["map_id"] = map_id
+	result["difficulty"] = canonical_difficulty_for_map(map_id)
+	result["started_at"] = started_at
+	result["completed_at"] = completed_at
+	result["duration_seconds"] = duration_seconds if duration_seconds >= 0 else null
+	result["is_player_facing"] = bool(result.get("is_player_facing", true))
+	return result
+
+
+func _record_player_facing_completion(task_id: String) -> void:
+	var normalized := task_id.strip_edges()
+	if normalized.is_empty() or _completed_player_facing_tasks.has(normalized):
+		return
+	_completed_player_facing_tasks[normalized] = true
+	total_quests_completed = _completed_player_facing_tasks.size()
 
 
 func emit_tutorial_activity_started() -> bool:
@@ -805,13 +945,18 @@ func emit_tutorial_activity_started() -> bool:
 	if tutorial_metadata.is_empty():
 		return false
 	_tutorial_activity_started = true
-	canonical_activity_boundary.emit({
+	_activity_started_at["tutorial"] = {
+		"started_at": _utc_timestamp(),
+		"started_unix": Time.get_unix_time_from_system(),
+	}
+	var start_event := build_canonical_activity_event({
 		"type": "task_trigger",
 		"key": "tutorial:start",
 		"previous_index": -1,
 		"current_index": 0,
 		"activity": tutorial_metadata,
-	})
+	}, 0, "task_trigger")
+	canonical_activity_boundary.emit(start_event)
 	return true
 
 
@@ -826,15 +971,17 @@ func complete_tutorial_activity() -> bool:
 	if tutorial_metadata.is_empty():
 		return false
 	_tutorial_activity_completed = true
+	_record_player_facing_completion("tutorial")
 	current_quest = String(tasks[0].get("quest_text", ""))
 	quest_changed.emit(current_quest)
-	canonical_activity_boundary.emit({
+	var completion_event := build_canonical_activity_event({
 		"type": "task_completed",
 		"key": "tutorial:complete",
 		"previous_index": 0,
 		"current_index": 0,
 		"activity": tutorial_metadata,
-	})
+	}, 0, "task_completed")
+	canonical_activity_boundary.emit(completion_event)
 	emit_current_task_activity_started()
 	return true
 
@@ -845,13 +992,18 @@ func emit_current_task_activity_started() -> bool:
 	if activity_id.is_empty() or _started_task_activity_ids.has(activity_id):
 		return false
 	_started_task_activity_ids[activity_id] = true
-	canonical_activity_boundary.emit({
+	_activity_started_at[activity_id] = {
+		"started_at": _utc_timestamp(),
+		"started_unix": Time.get_unix_time_from_system(),
+	}
+	var start_event := build_canonical_activity_event({
 		"type": "task_trigger",
 		"key": "task:%s:start" % activity_id,
 		"previous_index": current_task_index,
 		"current_index": current_task_index,
 		"activity": metadata,
-	})
+	}, current_task_index, "task_trigger")
+	canonical_activity_boundary.emit(start_event)
 	return true
 
 
@@ -977,6 +1129,9 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	_tutorial_activity_started = false
 	_tutorial_activity_completed = false
 	_started_task_activity_ids.clear()
+	_activity_started_at.clear()
+	_completed_player_facing_tasks.clear()
+	total_quests_completed = 0
 	_pending_scene_spawn.clear()
 	_return_context.clear()
 	encounter_context.clear()
@@ -1447,6 +1602,8 @@ func build_save_data() -> Dictionary:
 		"oakleaf_defeated_bandits": oakleaf_defeated_bandits.duplicate(true),
 		"oakleaf_boss_defeated": oakleaf_boss_defeated,
 		"oakleaf_return_to_teacher": oakleaf_return_to_teacher,
+		"activity_started_at": _activity_started_at.duplicate(true),
+		"completed_player_facing_tasks": _completed_player_facing_tasks.duplicate(true),
 		"current_task_index": current_task_index,
 		"score": score,
 		"correct_answers": correct_answers,
@@ -1630,13 +1787,15 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	current_quest = get_current_quest_text()
 	_tutorial_activity_started = false
 	_started_task_activity_ids.clear()
+	_activity_started_at = data.get("activity_started_at", {}).duplicate(true) if data.get("activity_started_at", {}) is Dictionary else {}
+	_completed_player_facing_tasks = data.get("completed_player_facing_tasks", {}).duplicate(true) if data.get("completed_player_facing_tasks", {}) is Dictionary else {}
 	score = int(data.get("score", 0))
 	correct_answers = int(data.get("correct_answers", 0))
 	incorrect_answers = int(data.get("incorrect_answers", 0))
 	total_questions = int(data.get("total_questions", 0))
 	progress_percentage = int(data.get("progress_percentage", 0))
 	lesson_progress = int(data.get("lesson_progress", 0))
-	total_quests_completed = int(data.get("total_quests_completed", 0))
+	total_quests_completed = _completed_player_facing_tasks.size() if not _completed_player_facing_tasks.is_empty() else int(data.get("total_quests_completed", 0))
 	total_play_time = int(data.get("total_play_time", 0))
 	difficulty_level = String(data.get("difficulty_level", "Unknown"))
 	set_mode(GameMode.EXPLORATION)

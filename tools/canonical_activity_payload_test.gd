@@ -64,6 +64,10 @@ func _run() -> void:
 		var first_payload: Dictionary = http_stub.requests[0].get("payload", {})
 		_expect(String(http_stub.requests[0].get("path", "")) == "/api/game/activity", "Canonical activity uses only the approved activity endpoint.")
 		_expect(String(first_payload.get("event_key", "")) == "cycle:4:task:-1:0:task_triggered:tutorial:start", "Tutorial retries must begin with the deterministic event key.")
+		_expect(String(first_payload.get("telemetry_contract_version", "")) == "2.0", "Canonical activity carries the versioned telemetry contract.")
+		_expect(String(first_payload.get("quest_graph_version", "")) == "oakleaf-city-pinehill-v1", "Canonical activity carries the authoritative quest graph version.")
+		_expect(String(first_payload.get("activity_event_id", "")) == "cycle:4:task:-1:0:task_triggered:tutorial:start", "Canonical activity uses a stable activity event identity.")
+		_expect(first_payload.has("map_id") and first_payload.has("duration_seconds"), "Canonical activity carries map and duration fields.")
 		_expect(not first_payload.has("student_id") and not first_payload.has("parent_id") and not first_payload.has("student_name"), "Canonical activity payload does not trust caller identity metadata.")
 
 	await remote_sync._on_canonical_activity_boundary(tutorial_event)
