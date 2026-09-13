@@ -166,4 +166,11 @@ func _format_progress_percentage(progress_value: Variant) -> String:
 		if is_equal_approx(progress_float, roundf(progress_float)):
 			return "%d%%" % int(roundf(progress_float))
 		return "%s%%" % str(progress_float)
+	if progress_value is String:
+		var parsed := GameState.safe_float_value(progress_value, -1.0)
+		if parsed < 0.0:
+			return "--"
+		if is_equal_approx(parsed, roundf(parsed)):
+			return "%d%%" % int(roundf(parsed))
+		return "%s%%" % str(parsed)
 	return "--"

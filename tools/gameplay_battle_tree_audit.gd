@@ -143,7 +143,7 @@ func _actual_provider_encounter(gender: String, victory: bool = true) -> void:
 	_expect(completion_count[0] == 1 and results.answers.size() == answers_before + 3, gender + ": one terminal completion and one result per actual answer")
 	if victory:
 		_expect(state.fixture_save_count == saves_before + 1, gender + ": victory saves progression exactly once")
-		_expect(state.current_task_index == state.tasks.size() and state.current_quest == state.DEFAULT_QUEST, gender + ": victory retains completed task checkpoint without Teacher House regression")
+		_expect(state.current_task_index == state.OAKLEAF_BANDIT_TASK_INDEX and state.current_quest == "Defeat All Bandits", gender + ": first Bandit victory retains the canonical Oakleaf Bandits checkpoint")
 	else:
 		_expect(state.fixture_save_count == saves_before, "Defeat does not save a false task completion")
 		_expect(state.current_task_index == 2 and state.encounter_context.retry_count == 1, "Defeat preserves the first Bandit checkpoint and retry contract")

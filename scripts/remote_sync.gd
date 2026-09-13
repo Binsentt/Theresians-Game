@@ -566,11 +566,11 @@ func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
 		var entry := {
 			"rank": rank,
 			"display_name": display_name,
-			"progress_percentage": raw_entry.get("progress_percentage", null),
-			"accuracy_rate": raw_entry.get("accuracy_rate", null),
-			"correct_answers": raw_entry.get("correct_answers", null),
-			"total_questions": raw_entry.get("total_questions", null),
-			"quests_completed": raw_entry.get("quests_completed", null),
+			"progress_percentage": _normalize_leaderboard_number(raw_entry.get("progress_percentage", null)),
+			"accuracy_rate": _normalize_leaderboard_number(raw_entry.get("accuracy_rate", null)),
+			"correct_answers": _normalize_leaderboard_number(raw_entry.get("correct_answers", null)),
+			"total_questions": _normalize_leaderboard_number(raw_entry.get("total_questions", null)),
+			"quests_completed": _normalize_leaderboard_number(raw_entry.get("quests_completed", null)),
 		}
 		if raw_entry.has("grade"):
 			entry["grade"] = GameState.safe_text_value(raw_entry.get("grade", ""))
@@ -578,6 +578,17 @@ func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
 	# The game mirrors the canonical website ranking order but only exposes the
 	# approved six public rows. Keep the API order; do not re-rank locally.
 	return sanitized.slice(0, 6)
+
+
+func _normalize_leaderboard_number(value: Variant) -> Variant:
+	if value is int:
+		return value
+	if value is float:
+		return value if is_finite(value) else null
+	if value is String:
+		var parsed := GameState.safe_float_value(value, -1.0)
+		return parsed if parsed >= 0.0 else null
+	return null
 
 
 func record_question_attempt(question: Dictionary, is_correct: bool) -> void:

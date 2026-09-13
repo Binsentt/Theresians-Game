@@ -122,7 +122,7 @@ func _quest_checkpoints() -> void:
 	stale.current_task_index = 3
 	stale.current_quest = "Go to the Teacher's House"
 	var source := FileAccess.get_file_as_string("res://scripts/game_state.gd")
-	var reconciliation := "\t# Older saves can carry a completed checkpoint with an obsolete quest title.\n\t# The checkpoint is authoritative; reconcile presentation without replaying tasks.\n\tcurrent_quest = TUTORIAL_QUEST if is_tutorial_active() else (\n\t\tString(tasks[current_task_index].get(\"quest_text\", \"\")) if current_task_index < tasks.size() else DEFAULT_QUEST\n\t)\n"
+	var reconciliation := "\t# Older saves can carry a completed checkpoint with an obsolete quest title.\n\t# The checkpoint is authoritative; reconcile presentation without replaying tasks.\n\tcurrent_quest = get_current_quest_text()\n"
 	_expect(source.contains(reconciliation), "Existing focused stale-title restoration is present")
 	var head_script := GDScript.new()
 	head_script.source_code = source.replace(reconciliation, "")
@@ -139,7 +139,8 @@ func _quest_checkpoints() -> void:
 		var expected: String = state.tasks[checkpoint].quest_text if checkpoint < state.tasks.size() else state.DEFAULT_QUEST
 		_expect(state.current_task_index == checkpoint and state.current_quest == expected, "Stale title is reconciled to authoritative checkpoint " + str(checkpoint))
 		await _roundtrip("stale title at checkpoint " + str(checkpoint), checkpoint, OAK)
-	_expect(not state.advance_task_and_save({}).advanced and state.current_task_index == 3, "Completed source-proven chain cannot duplicate or restart advancement")
+	var duplicate_first_bandit: Dictionary = state.record_oakleaf_encounter_victory("oakleaf_bandits1")
+	_expect(not duplicate_first_bandit.changed and state.current_task_index == 3, "Duplicate First Bandit victory cannot reset or advance the canonical Oakleaf checkpoint")
 
 func _roundtrip(label: String, checkpoint: int, scene_path: String) -> void:
 	var expected: String = state.current_quest
@@ -158,7 +159,7 @@ func _roundtrip(label: String, checkpoint: int, scene_path: String) -> void:
 	var rebuilt_keys := rebuilt.keys()
 	saved_keys.sort()
 	rebuilt_keys.sort()
-	_expect(saved_keys == rebuilt_keys and saved.save_version == 8, label + ": existing save schema remains version 8 with identical keys")
+	_expect(saved_keys == rebuilt_keys and saved.save_version == 9, label + ": current save schema remains version 9 with identical keys")
 	quest_observations.append({"case":label, "index":state.current_task_index, "quest":state.current_quest, "hud":hud._get_active_quest_text()})
 
 func _install_head_dialogue(world: Node) -> void:
@@ -317,8 +318,8 @@ func _actual_provider_encounter(gender: String, victory: bool = true) -> void:
 	_expect(completion_count[0] == 1 and results.answers.size() == answers_before + 3, gender + ": one terminal completion and one result per actual answer")
 	if victory:
 		_expect(state.fixture_save_count == saves_before + 1, gender + ": victory saves progression exactly once")
-		_expect(state.current_task_index == state.tasks.size() and state.current_quest == state.DEFAULT_QUEST, gender + ": victory retains completed task checkpoint without Teacher House regression")
-		_expect(world.has_node("CanvasLayer/Panel") != counterfactual, "HEAD counterfactual removes shared greeting host" if counterfactual else "Completed quest retains shared greeting host")
+		_expect(state.current_task_index == state.OAKLEAF_BANDIT_TASK_INDEX and state.current_quest == "Defeat All Bandits", gender + ": first Bandit victory retains the canonical Oakleaf Bandits checkpoint")
+		_expect(world.has_node("CanvasLayer/Panel"), "Multi-bandit checkpoint retains the shared greeting host" if not counterfactual else "Counterfactual male-route fixture retains the shared greeting host at the multi-bandit checkpoint")
 		if not counterfactual:
 			await _completed_greeting(world)
 	else:

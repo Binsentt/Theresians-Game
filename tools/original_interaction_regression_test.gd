@@ -183,10 +183,10 @@ func _actual_bandit(selected_gender: String) -> void:
 		await get_tree().process_frame
 	await _frames(4)
 	_expect(outcomes == [true] and signal_count[0] == 1, selected_gender + ": real correct answers and duplicate click complete once after terminal effect")
-	_expect(state.current_task_index == state.tasks.size() and state.current_quest == state.DEFAULT_QUEST, selected_gender + ": battle victory preserves authoritative terminal quest state")
+	_expect(state.current_task_index == state.OAKLEAF_BANDIT_TASK_INDEX and state.current_quest == "Defeat All Bandits", selected_gender + ": first Bandit victory preserves the authoritative Oakleaf Bandits checkpoint")
 	_expect(state.get_mode() == state.GameMode.EXPLORATION and not state.battle_active, selected_gender + ": victory restores exploration mode")
 	_expect(scene.get_node("MobileControls").visible and _button(scene, "up").is_visible_in_tree(), selected_gender + ": victory restores original controller")
-	_expect(scene.get_node("GameHUD")._get_active_quest_text().is_empty(), selected_gender + ": victory does not redisplay Teacher House")
+	_expect(scene.get_node("GameHUD")._get_active_quest_text() == "Defeat All Bandits", selected_gender + ": victory presents the remaining Oakleaf Bandits objective")
 
 
 func _await_actual_battle_finished(battle: Node, outcomes: Array[bool]) -> void:

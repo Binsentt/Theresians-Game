@@ -132,7 +132,7 @@ func _tutorial() -> void:
 	_expect(scene.get_node("GameHUD")._get_active_quest_text() == "Go to the Teacher's House", "Tutorial HUD after completion")
 	path = state.save_game()
 	var keys_after: Array = state.build_save_data().keys()
-	_expect(keys_before == keys_after and state.SAVE_VERSION == 8, "Save schema keys and version unchanged")
+	_expect(keys_before == keys_after and state.SAVE_VERSION == 9, "Save schema keys and current version remain unchanged")
 	state.start_new_game(PROFILE, false)
 	state.load_save(path, false)
 	scene = await _load(HOUSE)
@@ -275,8 +275,8 @@ func _npc_and_bandit() -> void:
 	if is_instance_valid(battle):
 		battle.battle_finished.emit(true)
 		await _frames(8)
-	_expect(state.current_task_index == state.tasks.size(), "First Bandit victory completes the existing task sequence")
-	_expect(scene.get_node("GameHUD")._get_active_quest_text().is_empty(), "Completed task sequence does not redisplay obsolete Teacher House quest")
+	_expect(state.current_task_index == state.OAKLEAF_BANDIT_TASK_INDEX and state.current_quest == "Defeat All Bandits", "First Bandit victory advances to the canonical Oakleaf Bandits checkpoint without completing the full challenge")
+	_expect(scene.get_node("GameHUD")._get_active_quest_text() == "Defeat All Bandits", "First Bandit victory presents the remaining Oakleaf Bandits objective")
 	state.set_mode(state.GameMode.EXPLORATION)
 
 func _city_and_maps() -> void:

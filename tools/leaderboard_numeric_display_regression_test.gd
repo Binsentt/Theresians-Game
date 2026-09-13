@@ -22,6 +22,16 @@ func _ready() -> void:
 func _run() -> void:
 	var real_remote_sync := get_tree().root.get_node_or_null("RemoteSync")
 	if real_remote_sync != null:
+		var provider_shaped := real_remote_sync.call("_sanitize_game_leaderboard_entries", [{
+			"rank": "1",
+			"display_name": "Player String",
+			"progress_percentage": "98.00",
+			"accuracy_rate": "90.00",
+			"correct_answers": "9",
+			"total_questions": "10",
+			"quests_completed": "7",
+		}]) as Array
+		_expect(provider_shaped.size() == 1 and provider_shaped[0].get("progress_percentage") is float and is_equal_approx(provider_shaped[0].get("progress_percentage"), 98.0), "Provider-shaped decimal strings normalize to numeric leaderboard progress before UI rendering.")
 		real_remote_sync.name = "LeaderboardNumericOriginalRemoteSync"
 
 	var stub := LocalLeaderboardStub.new()
@@ -53,6 +63,7 @@ func _assert_numeric_progress_cases(leaderboard: Control, stub: LocalLeaderboard
 		{"value": 50, "expected": "50%"},
 		{"value": 50.0, "expected": "50%"},
 		{"value": 87.5, "expected": "87.5%"},
+		{"value": "98.00", "expected": "98%"},
 	]
 	for case_data in cases:
 		stub.entries = [_entry("Player Numeric", case_data["value"])]
@@ -138,6 +149,11 @@ func _expect(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	var evidence := {"passed": 13 - _failures.size(), "failed": _failures.size(), "failures": _failures}
+	var output := FileAccess.open("res://docs/qa/leaderboard_numeric_display_regression_test.json", FileAccess.WRITE)
+	if output != null:
+		output.store_string(JSON.stringify(evidence, "\t"))
+		output.close()
 	if _failures.is_empty():
 		print("leaderboard_numeric_display_regression_test: PASS")
 		get_tree().quit(0)
