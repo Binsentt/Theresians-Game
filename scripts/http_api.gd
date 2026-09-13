@@ -5,31 +5,44 @@ signal request_failed(error: String)
 
 const DEFAULT_CONFIG_PATH := "res://Data/api_config.json"
 const PRODUCTION_SMOKE_TEST_ENVIRONMENT := "THERESIANS_PRODUCTION_SMOKE_TEST"
+const QA_LOCAL_ENVIRONMENT_VARIABLE := "THERESIANS_QA_LOCAL"
+const DEFAULT_LOCAL_QA_URL := "http://127.0.0.1:5000"
 var base_url: String = ""
 var default_timeout_ms: int = 10000
 var production_qa_mode := false
 var local_qa_only := false
 
 func _ready() -> void:
+	var cfg: Dictionary = {}
 	var config_file := FileAccess.open(DEFAULT_CONFIG_PATH, FileAccess.READ)
 	if config_file:
 		var text := config_file.get_as_text()
 		config_file.close()
 		var parsed_config = JSON.parse_string(text)
 		if typeof(parsed_config) == TYPE_DICTIONARY:
-			var cfg: Dictionary = parsed_config
+			cfg = parsed_config
 			var debug_build := OS.is_debug_build()
 			var production_smoke_test_enabled := is_production_qa_enabled(cfg, is_production_smoke_test_enabled())
-			production_qa_mode = debug_build and production_smoke_test_enabled
-			var configured_url := resolve_configured_base_url_for_environment(cfg, debug_build, production_smoke_test_enabled)
-			var requires_production_url := not debug_build or production_smoke_test_enabled
+			var local_qa_requested := is_local_qa_requested()
+			production_qa_mode = debug_build and production_smoke_test_enabled and not local_qa_requested
+			var configured_url := resolve_api_base_url(cfg, debug_build, production_smoke_test_enabled, local_qa_requested)
+			var requires_production_url := not debug_build or (production_smoke_test_enabled and not local_qa_requested)
 			if _is_usable_base_url(configured_url, requires_production_url):
 				base_url = configured_url.rstrip("/")
+				if local_qa_requested:
+					if not is_loopback_url(base_url):
+						base_url = ""
+						push_error("QA_LOCAL_REMOTE_BLOCKED")
+					else:
+						local_qa_only = true
 			else:
 				base_url = ""
-				push_warning("HttpApi: no usable API URL is configured for this build; remote API requests are disabled.")
+				if local_qa_requested:
+					push_error("QA_LOCAL_REMOTE_BLOCKED")
+				else:
+					push_warning("HttpApi: no usable API URL is configured for this build; remote API requests are disabled.")
 			if debug_build:
-				var mode_label := "PRODUCTION QA" if production_qa_mode else "LOCAL DEVELOPMENT"
+				var mode_label := "LOCAL QA ONLY" if local_qa_only else ("PRODUCTION QA" if production_qa_mode else "LOCAL DEVELOPMENT")
 				print("API MODE: " + mode_label + " — " + (base_url if base_url != "" else "disabled (invalid API URL)"))
 				print("CANONICAL RUNTIME: pid=" + str(OS.get_process_id()) + " project=" + ProjectSettings.globalize_path("res://"))
 			if cfg.has("timeout_ms"):
@@ -37,10 +50,12 @@ func _ready() -> void:
 	# no persistent HTTPRequest node: create per-request nodes to avoid blocking and allow concurrency
 
 
-func enable_local_qa_mode(local_url: String) -> bool:
+func enable_local_qa_mode(local_url: String = DEFAULT_LOCAL_QA_URL) -> bool:
 	var candidate := local_url.strip_edges().rstrip("/")
-	if not _is_loopback_url(candidate):
-		push_error("HttpApi local QA refused non-loopback API URL.")
+	if candidate.is_empty():
+		candidate = DEFAULT_LOCAL_QA_URL
+	if not is_loopback_url(candidate):
+		push_error("QA_LOCAL_REMOTE_BLOCKED")
 		return false
 	local_qa_only = true
 	production_qa_mode = false
@@ -51,6 +66,25 @@ func enable_local_qa_mode(local_url: String) -> bool:
 
 func is_local_qa_mode() -> bool:
 	return local_qa_only
+
+
+func is_local_qa_requested() -> bool:
+	return OS.get_environment(QA_LOCAL_ENVIRONMENT_VARIABLE).strip_edges() == "1"
+
+
+func get_resolved_api_base_url() -> String:
+	return base_url
+
+
+func resolve_api_base_url(
+	config: Dictionary,
+	is_debug_build: bool,
+	production_smoke_test_enabled: bool,
+	local_qa_requested: bool = false
+) -> String:
+	if local_qa_requested:
+		return String(config.get("development_url", DEFAULT_LOCAL_QA_URL)).strip_edges()
+	return resolve_configured_base_url_for_environment(config, is_debug_build, production_smoke_test_enabled)
 
 
 func resolve_configured_base_url(config: Dictionary, is_debug_build: bool) -> String:
@@ -80,15 +114,37 @@ func _is_usable_base_url(value: String, requires_production_url: bool = false) -
 	return true
 
 
-func _is_loopback_url(value: String) -> bool:
+func is_loopback_url(value: String) -> bool:
 	var parsed := value.strip_edges().to_lower()
-	return parsed.begins_with("http://localhost") or parsed.begins_with("http://127.0.0.1") or parsed.begins_with("http://[::1]")
+	const SCHEME := "http://"
+	if not parsed.begins_with(SCHEME):
+		return false
+	var authority := parsed.substr(SCHEME.length())
+	var path_start := authority.find("/")
+	if path_start >= 0:
+		authority = authority.substr(0, path_start)
+	var query_start := authority.find("?")
+	if query_start >= 0:
+		authority = authority.substr(0, query_start)
+	if authority.is_empty() or authority.contains("@"): # no user-info in a QA endpoint
+		return false
+	var host := authority
+	if host.begins_with("["):
+		var closing_bracket := host.find("]")
+		if closing_bracket < 0:
+			return false
+		host = host.substr(1, closing_bracket - 1)
+	else:
+		var port_separator := host.find(":")
+		if port_separator >= 0:
+			host = host.substr(0, port_separator)
+	return host == "localhost" or host == "127.0.0.1" or host == "::1"
 
 func _build_url(path: String, params: Dictionary = {}) -> String:
 	var url := path.strip_edges()
 	if url.begins_with("/"):
 		url = url.substr(1, url.length())
-	var full := base_url.rstrip("/") + "/" + url
+	var full := get_resolved_api_base_url().rstrip("/") + "/" + url
 	if not params.is_empty():
 		var query := ""
 		var keys := params.keys()
@@ -110,7 +166,7 @@ func _create_request(timeout_ms: int = -1) -> HTTPRequest:
 	return http
 
 func request_get(path: String, params: Dictionary = {}, timeout_ms: int = -1) -> Dictionary:
-	if local_qa_only and not _is_loopback_url(base_url):
+	if local_qa_only and not is_loopback_url(base_url):
 		return {"ok": false, "error": "Local QA boundary rejected a non-loopback API base."}
 	var url := _build_url(path, params)
 	var http := _create_request(timeout_ms)
@@ -156,7 +212,7 @@ func profile_check_diagnostic(result_code: int, response_code: int, response: Di
 	}
 
 func request_post(path: String, payload: Dictionary, timeout_ms: int = -1) -> Dictionary:
-	if local_qa_only and not _is_loopback_url(base_url):
+	if local_qa_only and not is_loopback_url(base_url):
 		return {"ok": false, "error": "Local QA boundary rejected a non-loopback API base."}
 	var url := _build_url(path, {})
 	var body := JSON.stringify(payload)

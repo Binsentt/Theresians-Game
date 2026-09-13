@@ -25,6 +25,7 @@ const START_SCENE_PATH := "res://interiors/player_house.tscn"
 const DEFAULT_QUEST := "No active quest"
 const TUTORIAL_QUEST := "Tutorial"
 const SAVE_DIRECTORY := "user://saves"
+const LOCAL_QA_SAVE_DIRECTORY := "user://qa_local_saves"
 const DEVICE_INSTALLATION_ID_PATH := "user://device_installation_id.txt"
 const TERMS_VERSION := "1.0"
 const TERMS_ACCEPTANCE_PATH := "user://terms_acceptance.json"
@@ -101,6 +102,7 @@ var grade_level := ""
 var student_id := ""
 var parent_id := ""
 var device_installation_id := ""
+var _save_directory := SAVE_DIRECTORY
 var learning_cycle_version: int = 0
 var learning_cycle_started_at: String = ""
 var _new_game_registration: Dictionary = {}
@@ -1284,7 +1286,7 @@ func has_existing_game_profile_for_student_id(student_id: String) -> bool:
 	if not is_valid_existing_student_id(normalized_id):
 		return false
 
-	var directory := DirAccess.open(ProjectSettings.globalize_path(SAVE_DIRECTORY))
+	var directory := DirAccess.open(ProjectSettings.globalize_path(get_save_directory()))
 	if directory == null:
 		return false
 
@@ -1292,7 +1294,7 @@ func has_existing_game_profile_for_student_id(student_id: String) -> bool:
 	var file_name := directory.get_next()
 	while not file_name.is_empty():
 		if not directory.current_is_dir() and file_name.ends_with(".json"):
-			var save_path := SAVE_DIRECTORY + "/" + file_name
+			var save_path := get_save_directory() + "/" + file_name
 			var save_data := _read_save_file(save_path)
 			if not save_data.is_empty():
 				var saved_student_id := String(save_data.get("student_id", ""))
@@ -1530,7 +1532,7 @@ func save_game() -> String:
 
 	var now: Dictionary = Time.get_datetime_dict_from_system()
 	var save_stem: String = "%s/save_%s_%04d%02d%02d_%02d%02d%02d" % [
-		SAVE_DIRECTORY,
+		get_save_directory(),
 		owner_id,
 		int(now.get("year", 0)),
 		int(now.get("month", 0)),
@@ -1631,7 +1633,7 @@ func list_saves() -> Array[Dictionary]:
 	var saves: Array[Dictionary] = []
 	if _get_current_save_owner_id().is_empty():
 		return saves
-	var directory := DirAccess.open(ProjectSettings.globalize_path(SAVE_DIRECTORY))
+	var directory := DirAccess.open(ProjectSettings.globalize_path(get_save_directory()))
 	if directory == null:
 		return saves
 
@@ -1639,7 +1641,7 @@ func list_saves() -> Array[Dictionary]:
 	var file_name := directory.get_next()
 	while not file_name.is_empty():
 		if not directory.current_is_dir() and file_name.ends_with(".json"):
-			var save_path := SAVE_DIRECTORY + "/" + file_name
+			var save_path := get_save_directory() + "/" + file_name
 			var save_data := _read_save_file(save_path)
 			# Ownership must be proven from the canonical Student ID saved after
 			# profile validation. Ownerless legacy files remain untouched and hidden.
@@ -1936,7 +1938,17 @@ func _normalize_scene_path(scene_path: String) -> String:
 
 
 func _ensure_save_directory() -> void:
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SAVE_DIRECTORY))
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(get_save_directory()))
+
+
+func enable_local_qa_mode() -> void:
+	_save_directory = LOCAL_QA_SAVE_DIRECTORY
+	_ensure_save_directory()
+	print("GameState: LOCAL QA save namespace — " + _save_directory)
+
+
+func get_save_directory() -> String:
+	return _save_directory
 
 func lose_life(amount: int = 1) -> void:
 	current_lives = max(0, current_lives - amount)
@@ -2224,7 +2236,7 @@ func _get_save_load_error(data: Dictionary) -> String:
 
 func _validated_save_path(path: String) -> String:
 	var requested_path := path.strip_edges()
-	var save_prefix := SAVE_DIRECTORY + "/"
+	var save_prefix := get_save_directory() + "/"
 	if not requested_path.begins_with(save_prefix):
 		return ""
 

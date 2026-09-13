@@ -1,6 +1,8 @@
 ﻿extends Node
 
-var _pending_file := "user://pending_syncs.json"
+const PRODUCTION_PENDING_FILE := "user://pending_syncs.json"
+const LOCAL_QA_PENDING_FILE := "user://pending_syncs_local_qa.json"
+var _pending_file := PRODUCTION_PENDING_FILE
 
 var _current_playtime_session_id: int = 0
 var _current_playtime_session_credential: String = ""
@@ -23,6 +25,9 @@ var _acknowledged_activity_keys: Dictionary = {}
 var _activity_requests_in_flight: Dictionary = {}
 
 func _ready() -> void:
+	var http := get_node_or_null("/root/HttpApi")
+	if http != null and http.has_method("is_local_qa_mode") and bool(http.call("is_local_qa_mode")):
+		enable_local_qa_mode()
 	var game_state := get_node_or_null("/root/GameState")
 	if game_state:
 		game_state.connect("save_created", Callable(self, "_on_save_created"))
@@ -38,6 +43,11 @@ func _ready() -> void:
 
 func enable_local_qa_mode() -> void:
 	local_qa_only = true
+	_pending_file = LOCAL_QA_PENDING_FILE
+	_current_playtime_session_id = 0
+	_current_playtime_session_credential = ""
+	_session_start_in_progress = false
+	_playtime_heartbeat_in_progress = false
 	_activity_requests_in_flight.clear()
 	_acknowledged_activity_keys.clear()
 	print("RemoteSync: LOCAL QA ONLY — all telemetry/progress writes disabled")
@@ -621,7 +631,10 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 
 func _enqueue_pending(save_data: Dictionary) -> void:
 	var pending := _load_pending()
-	pending.append(save_data)
+	var queued_save := save_data.duplicate(true)
+	if local_qa_only:
+		queued_save["environment_scope"] = "local_qa"
+	pending.append(queued_save)
 	var file := FileAccess.open(_pending_file, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(pending))
@@ -635,13 +648,17 @@ func _enqueue_pending_activity(payload: Dictionary) -> void:
 	var pending := _load_pending()
 	for item in pending:
 		if item is Dictionary and String(item.get("kind", "")) == "activity":
-			var queued_payload: Variant = item.get("payload", {})
-			if queued_payload is Dictionary and String(queued_payload.get("event_key", "")) == event_key:
+			var existing_payload: Variant = item.get("payload", {})
+			if existing_payload is Dictionary and String(existing_payload.get("event_key", "")) == event_key:
 				return
+	var queued_payload := payload.duplicate(true)
+	var environment_scope := "local_qa" if local_qa_only else "production"
+	queued_payload["environment_scope"] = environment_scope
 	pending.append({
 		"kind": "activity",
 		"path": CANONICAL_ACTIVITY_ENDPOINT,
-		"payload": payload.duplicate(true),
+		"environment_scope": environment_scope,
+		"payload": queued_payload,
 	})
 	var file := FileAccess.open(_pending_file, FileAccess.WRITE)
 	if file:
@@ -691,6 +708,8 @@ func _flush_pending() -> void:
 	for item in pending:
 		if not (item is Dictionary):
 			continue
+		if String(item.get("environment_scope", "production")) != "production":
+			continue
 		var path := "/api/game/progress"
 		var payload: Dictionary = item
 		var is_activity := false
@@ -700,6 +719,8 @@ func _flush_pending() -> void:
 			if not (queued_payload is Dictionary):
 				continue
 			payload = queued_payload
+			if String(payload.get("environment_scope", "production")) != "production":
+				continue
 			is_activity = true
 		var result: Dictionary = await http.request_post(path, payload)
 		if _is_learning_cycle_changed(result):
