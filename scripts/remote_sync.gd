@@ -24,6 +24,17 @@ const CANONICAL_ACTIVITY_TYPES := {
 var _acknowledged_activity_keys: Dictionary = {}
 var _activity_requests_in_flight: Dictionary = {}
 
+func _ensure_playtime_session() -> Dictionary:
+	if _has_active_playtime_lease():
+		return {"ok": true, "session_id": _current_playtime_session_id, "can_play": true}
+	var waited_frames := 0
+	while _session_start_in_progress and waited_frames < 120:
+		await get_tree().process_frame
+		waited_frames += 1
+	if _has_active_playtime_lease():
+		return {"ok": true, "session_id": _current_playtime_session_id, "can_play": true}
+	return await _start_playtime_session()
+
 func _ready() -> void:
 	var http := get_node_or_null("/root/HttpApi")
 	if http != null and http.has_method("is_local_qa_mode") and bool(http.call("is_local_qa_mode")):
@@ -531,7 +542,12 @@ func request_end_playtime_session() -> Dictionary:
 
 func request_game_leaderboard() -> Dictionary:
 	if not _has_active_playtime_lease():
-		return {"ok": false, "status": 0, "error": "An active playtime lease is required.", "entries": []}
+		if GameState.is_valid_existing_student_id(GameState.student_id) and GameState.is_valid_six_digit_id(GameState.parent_id):
+			var session_result: Dictionary = await _ensure_playtime_session()
+			if not bool(session_result.get("ok", false)):
+				return {"ok": false, "status": 0, "error": "An active playtime lease is required.", "entries": []}
+		else:
+			return {"ok": false, "status": 0, "error": "An active playtime lease is required.", "entries": []}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return {"ok": false, "status": 0, "error": "Leaderboard service unavailable.", "entries": []}
@@ -599,6 +615,14 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		return
 	if not GameState.is_valid_existing_student_id(GameState.student_id) or not GameState.is_valid_six_digit_id(GameState.parent_id):
 		return
+	# Battle scenes can answer the first question while the asynchronous
+	# playtime-start request is still completing. Recover the current lease here
+	# instead of silently dropping that graded answer from website analytics.
+	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
+		var session_result: Dictionary = await _ensure_playtime_session()
+		if not bool(session_result.get("ok", false)):
+			print("RemoteSync: unable to establish a playtime lease for question result; local gameplay continues.")
+			return
 	var question_identity := str(question.get("question_id", question.get("id", ""))).strip_edges()
 	if question_identity.is_empty():
 		question_identity = "question:%s" % str(question.get("question", question.get("text", ""))).strip_edges().to_lower().hash()
@@ -627,9 +651,6 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		"canonical_battle_id": str(question.get("battle_id", question.get("encounter_id", ""))),
 		"canonical_milestone_id": str(question.get("milestone_id", "")),
 	}
-	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
-		print("RemoteSync: skipping question result because no active server playtime lease is available.")
-		return
 	var question_set_id: Variant = question.get("question_set_id", null)
 	if question_set_id is int and question_set_id > 0:
 		payload["question_set_id"] = question_set_id

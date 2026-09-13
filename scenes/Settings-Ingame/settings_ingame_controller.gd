@@ -1,5 +1,7 @@
 extends Control
 
+const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
+
 const EXIT_PROMPT_TEXT := "Are you sure you want to exit the game?"
 const SAVE_PROMPT_TEXT := "Do you want to save this game?"
 const EXIT_DIALOG_SIZE := Vector2i(460, 170)
@@ -280,7 +282,10 @@ func _on_exit_pressed() -> void:
 	_exit_dialog.popup_centered(EXIT_DIALOG_SIZE)
 
 func _on_exit_confirmed() -> void:
-	get_tree().quit()
+	settings_popup.visible = false
+	InputManager.unlock_input("settings_pause")
+	get_tree().paused = false
+	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 func _on_save_confirmed() -> void:
 	var player := get_tree().get_first_node_in_group("player_character") as Node2D
