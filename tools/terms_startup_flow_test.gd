@@ -97,11 +97,18 @@ func _run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var accepted_new_game := accepted_menu.get_node_or_null("VBoxContainer/NewGameBtn") as BaseButton
-	_expect(accepted_menu.get_node_or_null("TermsGate") == null, "Existing accepted version does not block startup again")
-	if is_instance_valid(accepted_new_game):
-		accepted_new_game.pressed.emit()
-		await get_tree().create_timer(0.8).timeout
-		_expect(get_tree().current_scene != null and get_tree().current_scene.scene_file_path == "res://scenes/new_game_scene.tscn", "New Game starts normally after Terms acceptance")
+	var accepted_terms_gate := accepted_menu.get_node_or_null("TermsGate") as Control
+	_expect(accepted_terms_gate != null and accepted_terms_gate.visible, "Terms gate appears again on every Main Menu startup")
+	_expect(accepted_new_game != null and accepted_new_game.disabled, "Existing acceptance does not bypass the new-launch gate")
+	if accepted_terms_gate != null:
+		var accepted_checkbox := accepted_terms_gate.get_node_or_null("Panel/Margin/Content/AgreementRow/AgreementCheckBox") as CheckBox
+		var accepted_continue := accepted_terms_gate.get_node_or_null("Panel/Margin/Content/Actions/ContinueButton") as Button
+		if accepted_checkbox != null and accepted_continue != null:
+			accepted_checkbox.button_pressed = true
+			await get_tree().process_frame
+			accepted_continue.pressed.emit()
+			await get_tree().process_frame
+	_expect(accepted_new_game != null and not accepted_new_game.disabled, "New Game becomes available after re-acceptance")
 
 	_cleanup_acceptance()
 	_finish()
@@ -129,4 +136,5 @@ func _finish() -> void:
 		if not bool(check.get("passed", false)):
 			failed += 1
 	print("TERMS_STARTUP_FLOW_TEST " + JSON.stringify({"passed": _checks.size() - failed, "failed": failed, "checks": _checks}))
+	await get_tree().create_timer(1.0).timeout
 	get_tree().quit(0 if failed == 0 else 1)

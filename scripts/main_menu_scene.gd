@@ -24,12 +24,12 @@ func _initialize_terms_gate() -> void:
 	for node in [
 		get_node_or_null("VBoxContainer/NewGameBtn"),
 		get_node_or_null("VBoxContainer/LoadGameBtn"),
+		get_node_or_null("VBoxContainer/OptionBtn"),
+		get_node_or_null("VBoxContainer/QuitBtn"),
 		leaderboard_button,
 	]:
 		if node is BaseButton:
 			_gated_controls.append(node)
-	if GameState.has_current_terms_app_acceptance():
-		return
 	_terms_gate = TERMS_GATE_SCRIPT.new() as Control
 	_terms_gate.name = "TermsGate"
 	_terms_gate.accepted.connect(_on_terms_gate_accepted)

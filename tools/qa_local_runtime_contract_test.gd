@@ -50,7 +50,62 @@ func _run() -> void:
 	if game_state != null and game_state.has_method("enable_local_qa_mode"):
 		game_state.call("enable_local_qa_mode")
 		_expect(String(game_state.call("get_save_directory")).contains("qa_local"), "GameState selects the local QA save namespace")
+	await _run_terms_startup_checks()
 	_finish()
+
+
+func _run_terms_startup_checks() -> void:
+	const TERMS_APP_ACCEPTANCE_PATH := "user://terms_app_acceptance.json"
+	const MAIN_MENU_SCENE := preload("res://scenes/main_menu.tscn")
+	if FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TERMS_APP_ACCEPTANCE_PATH))
+	var fade_stub := ColorRect.new()
+	fade_stub.name = "Fade"
+	add_child(fade_stub)
+	var menu_stub := VBoxContainer.new()
+	menu_stub.name = "VBoxContainer"
+	add_child(menu_stub)
+	var menu := MAIN_MENU_SCENE.instantiate() as Control
+	get_tree().root.add_child(menu)
+	get_tree().current_scene = menu
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var first_gate := menu.get_node_or_null("TermsGate") as Control
+	var first_new_game := menu.get_node_or_null("VBoxContainer/NewGameBtn") as BaseButton
+	var first_load_game := menu.get_node_or_null("VBoxContainer/LoadGameBtn") as BaseButton
+	var first_options := menu.get_node_or_null("VBoxContainer/OptionBtn") as BaseButton
+	var first_quit := menu.get_node_or_null("VBoxContainer/QuitBtn") as BaseButton
+	var first_leaderboard := menu.get_node_or_null("LeaderboardButton") as BaseButton
+	_expect(first_gate != null and first_gate.visible, "Terms gate blocks the first Main Menu startup")
+	_expect(first_new_game != null and first_new_game.disabled, "New Game is disabled before first-launch acceptance")
+	_expect(first_load_game != null and first_load_game.disabled, "Load Game is disabled before first-launch acceptance")
+	_expect(first_options != null and first_options.disabled, "Options is disabled before first-launch acceptance")
+	_expect(first_quit != null and first_quit.disabled, "Quit is disabled before first-launch acceptance")
+	_expect(first_leaderboard != null and first_leaderboard.disabled, "Leaderboard is disabled before first-launch acceptance")
+	var first_checkbox := first_gate.get_node_or_null("Panel/Margin/Content/AgreementRow/AgreementCheckBox") as CheckBox if first_gate != null else null
+	var first_continue := first_gate.get_node_or_null("Panel/Margin/Content/Actions/ContinueButton") as Button if first_gate != null else null
+	if first_checkbox != null and first_continue != null:
+		first_checkbox.button_pressed = true
+		await get_tree().process_frame
+		first_continue.pressed.emit()
+		await get_tree().process_frame
+	var second_menu := MAIN_MENU_SCENE.instantiate() as Control
+	get_tree().root.add_child(second_menu)
+	get_tree().current_scene = second_menu
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var second_gate := second_menu.get_node_or_null("TermsGate") as Control
+	var second_new_game := second_menu.get_node_or_null("VBoxContainer/NewGameBtn") as BaseButton
+	var second_options := second_menu.get_node_or_null("VBoxContainer/OptionBtn") as BaseButton
+	var second_quit := second_menu.get_node_or_null("VBoxContainer/QuitBtn") as BaseButton
+	_expect(second_gate != null and second_gate.visible, "Terms gate appears on every Main Menu startup")
+	_expect(second_new_game != null and second_new_game.disabled, "Persisted acceptance does not bypass a new-launch gate")
+	_expect(second_options != null and second_options.disabled, "Options remains gated on every Main Menu startup")
+	_expect(second_quit != null and second_quit.disabled, "Quit remains gated on every Main Menu startup")
+	menu.queue_free()
+	second_menu.queue_free()
+	if FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TERMS_APP_ACCEPTANCE_PATH))
 
 
 func _expect(condition: bool, label: String) -> void:
