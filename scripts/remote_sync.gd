@@ -129,8 +129,8 @@ func _on_task_state_changed(previous_index: int, current_index: int, event: Dict
 
 func _on_canonical_activity_boundary(event: Dictionary) -> void:
 	await _submit_canonical_task_activity(
-		int(event.get("previous_index", GameState.current_task_index)),
-		int(event.get("current_index", GameState.current_task_index)),
+		GameState.safe_int_value(event.get("previous_index", GameState.current_task_index), GameState.current_task_index),
+		GameState.safe_int_value(event.get("current_index", GameState.current_task_index), GameState.current_task_index),
 		event
 	)
 
@@ -140,14 +140,14 @@ func _submit_canonical_task_activity(previous_index: int, current_index: int, ev
 		return
 	if not _has_active_playtime_lease():
 		return
-	var event_type := _canonical_activity_type(String(event.get("activity_type", event.get("type", ""))))
+	var event_type := _canonical_activity_type(GameState.safe_text_value(event.get("activity_type", event.get("type", ""))))
 	if event_type.is_empty():
 		return
 	var metadata := _activity_metadata_for_event(previous_index, current_index, event, event_type)
-	var activity_label := String(metadata.get("activity_label", "")).strip_edges()
+	var activity_label := GameState.safe_text_value(metadata.get("activity_label", ""))
 	if activity_label.is_empty():
 		return
-	var stable_event_key := String(event.get("key", "")).strip_edges()
+	var stable_event_key := GameState.safe_text_value(event.get("key", ""))
 	if stable_event_key.is_empty():
 		return
 	var event_key := "cycle:%d:task:%d:%d:%s:%s" % [
@@ -164,17 +164,17 @@ func _submit_canonical_task_activity(previous_index: int, current_index: int, ev
 		"event_type": event_type,
 		"event_key": event_key,
 		"task_id": activity_label,
-		"telemetry_contract_version": String(canonical_event.get("telemetry_contract_version", "2.0")),
-		"quest_graph_version": String(canonical_event.get("quest_graph_version", "oakleaf-city-pinehill-v1")),
+		"telemetry_contract_version": GameState.safe_text_value(canonical_event.get("telemetry_contract_version", "2.0"), "2.0"),
+		"quest_graph_version": GameState.safe_text_value(canonical_event.get("quest_graph_version", "oakleaf-city-pinehill-v1"), "oakleaf-city-pinehill-v1"),
 		"activity_event_id": event_key,
-		"canonical_activity_id": String(canonical_event.get("canonical_activity_id", metadata.get("activity_id", ""))),
-		"canonical_quest_id": String(canonical_event.get("canonical_quest_id", "main")),
-		"canonical_task_id": String(canonical_event.get("canonical_task_id", metadata.get("canonical_task_id", ""))),
-		"canonical_milestone_id": String(canonical_event.get("canonical_milestone_id", "")),
-		"map_id": String(canonical_event.get("map_id", GameState.canonical_map_id())),
-		"difficulty": String(canonical_event.get("difficulty", GameState.canonical_difficulty_for_map(GameState.canonical_map_id()))),
-		"started_at": String(canonical_event.get("started_at", "")),
-		"completed_at": String(canonical_event.get("completed_at", "")),
+		"canonical_activity_id": GameState.safe_text_value(canonical_event.get("canonical_activity_id", metadata.get("activity_id", ""))),
+		"canonical_quest_id": GameState.safe_text_value(canonical_event.get("canonical_quest_id", "main"), "main"),
+		"canonical_task_id": GameState.safe_text_value(canonical_event.get("canonical_task_id", metadata.get("canonical_task_id", ""))),
+		"canonical_milestone_id": GameState.safe_text_value(canonical_event.get("canonical_milestone_id", "")),
+		"map_id": GameState.safe_text_value(canonical_event.get("map_id", GameState.canonical_map_id()), GameState.canonical_map_id()),
+		"difficulty": GameState.safe_text_value(canonical_event.get("difficulty", GameState.canonical_difficulty_for_map(GameState.canonical_map_id())), GameState.canonical_difficulty_for_map(GameState.canonical_map_id())),
+		"started_at": GameState.safe_text_value(canonical_event.get("started_at", "")),
+		"completed_at": GameState.safe_text_value(canonical_event.get("completed_at", "")),
 		"duration_seconds": canonical_event.get("duration_seconds", null),
 		"is_player_facing": bool(canonical_event.get("is_player_facing", true)),
 	}
@@ -188,7 +188,7 @@ func _submit_canonical_task_activity(previous_index: int, current_index: int, ev
 	_activity_requests_in_flight.erase(event_key)
 	if _is_learning_cycle_changed(result) or _is_activity_lease_rejected(result):
 		return
-	if bool(result.get("ok", false)) and int(result.get("status", 0)) >= 200 and int(result.get("status", 0)) < 300:
+	if bool(result.get("ok", false)) and GameState.safe_int_value(result.get("status", 0), 0) >= 200 and GameState.safe_int_value(result.get("status", 0), 0) < 300:
 		_acknowledged_activity_keys[event_key] = true
 		await _flush_pending()
 		return
@@ -196,7 +196,7 @@ func _submit_canonical_task_activity(previous_index: int, current_index: int, ev
 
 
 func _canonical_activity_type(candidate: String) -> String:
-	return String(CANONICAL_ACTIVITY_TYPES.get(candidate, ""))
+	return GameState.safe_text_value(CANONICAL_ACTIVITY_TYPES.get(candidate, ""))
 
 
 func _activity_metadata_for_event(previous_index: int, current_index: int, event: Dictionary, event_type: String) -> Dictionary:
@@ -216,7 +216,7 @@ func _is_activity_acknowledged(event_key: String) -> bool:
 
 
 func _is_activity_lease_rejected(result: Dictionary) -> bool:
-	var status := int(result.get("status", 0))
+	var status := GameState.safe_int_value(result.get("status", 0), 0)
 	return status == 401 or status == 403
 func _apply_learning_cycle(response_body: Variant) -> Dictionary:
 	if not (response_body is Dictionary):
@@ -228,10 +228,10 @@ func _apply_learning_cycle(response_body: Variant) -> Dictionary:
 
 
 func _is_learning_cycle_changed(result: Dictionary) -> bool:
-	if int(result.get("status", 0)) != 409:
+	if GameState.safe_int_value(result.get("status", 0), 0) != 409:
 		return false
 	var body: Variant = result.get("body", {})
-	return body is Dictionary and String(body.get("code", "")) == "LEARNING_CYCLE_CHANGED"
+	return body is Dictionary and GameState.safe_text_value(body.get("code", "")) == "LEARNING_CYCLE_CHANGED"
 
 func _async_send_progress(save_data: Dictionary) -> void:
 	if local_qa_only:
@@ -245,28 +245,28 @@ func _async_send_progress(save_data: Dictionary) -> void:
 	# Build the payload as a real Save Game projection of the authoritative runtime fields.
 	# The backend already normalizes these fields into student_game_progress and activity_logs.
 	var payload := {
-		"parent_id": String(save_data.get("parent_id", "")),
-		"student_id": String(save_data.get("student_id", "")),
-		"student_name": String(save_data.get("player_name", save_data.get("student_name", ""))),
-		"grade_level": String(save_data.get("grade_level", "")),
-		"gender": String(save_data.get("gender", "")),
-		"current_quest": String(save_data.get("current_quest", "")),
-		"quest_progress": int(save_data.get("current_task_index", 0)),
-		"lesson_progress": int(save_data.get("lesson_progress", save_data.get("lesson_progress", 0))),
-		"progress_percentage": int(save_data.get("progress_percentage", save_data.get("completion_percentage", 0))),
-		"current_scene": String(save_data.get("scene_path", save_data.get("current_scene", ""))),
-		"current_map": String(save_data.get("current_map", save_data.get("scene_path", ""))),
-		"save_timestamp": int(save_data.get("save_timestamp", 0)),
-		"save_time": String(save_data.get("save_time", "")),
-		"save_date": String(save_data.get("save_date", "")),
-		"score": int(save_data.get("score", 0)),
-		"correct_answers": int(save_data.get("correct_answers", 0)),
-		"incorrect_answers": int(save_data.get("incorrect_answers", 0)),
-		"total_questions": int(save_data.get("total_questions", 0)),
-		"total_play_time": int(save_data.get("total_play_time", 0)),
-		"total_quests_completed": int(save_data.get("total_quests_completed", 0)),
-		"difficulty_level": String(save_data.get("difficulty_level", "Unknown")),
-		"learning_cycle_version": int(save_data.get("learning_cycle_version", GameState.learning_cycle_version)),
+		"parent_id": GameState.safe_text_value(save_data.get("parent_id", "")),
+		"student_id": GameState.safe_text_value(save_data.get("student_id", "")),
+		"student_name": GameState.safe_text_value(save_data.get("player_name", save_data.get("student_name", ""))),
+		"grade_level": GameState.safe_text_value(save_data.get("grade_level", "")),
+		"gender": GameState.safe_text_value(save_data.get("gender", "")),
+		"current_quest": GameState.safe_text_value(save_data.get("current_quest", "")),
+		"quest_progress": GameState.safe_int_value(save_data.get("current_task_index", 0), 0),
+		"lesson_progress": GameState.safe_int_value(save_data.get("lesson_progress", 0), 0),
+		"progress_percentage": GameState.safe_int_value(save_data.get("progress_percentage", save_data.get("completion_percentage", 0)), 0),
+		"current_scene": GameState.safe_text_value(save_data.get("scene_path", save_data.get("current_scene", ""))),
+		"current_map": GameState.safe_text_value(save_data.get("current_map", save_data.get("scene_path", ""))),
+		"save_timestamp": GameState.safe_int_value(save_data.get("save_timestamp", 0), 0),
+		"save_time": GameState.safe_text_value(save_data.get("save_time", "")),
+		"save_date": GameState.safe_text_value(save_data.get("save_date", "")),
+		"score": GameState.safe_int_value(save_data.get("score", 0), 0),
+		"correct_answers": GameState.safe_int_value(save_data.get("correct_answers", 0), 0),
+		"incorrect_answers": GameState.safe_int_value(save_data.get("incorrect_answers", 0), 0),
+		"total_questions": GameState.safe_int_value(save_data.get("total_questions", 0), 0),
+		"total_play_time": GameState.safe_int_value(save_data.get("total_play_time", 0), 0),
+		"total_quests_completed": GameState.safe_int_value(save_data.get("total_quests_completed", 0), 0),
+		"difficulty_level": GameState.safe_text_value(save_data.get("difficulty_level", "Unknown"), "Unknown"),
+		"learning_cycle_version": GameState.safe_int_value(save_data.get("learning_cycle_version", GameState.learning_cycle_version), GameState.learning_cycle_version),
 		"playtime_session_id": _current_playtime_session_id,
 		"playtime_session_credential": _current_playtime_session_credential,
 		"save_status": "saved"
@@ -289,11 +289,11 @@ func _async_send_progress(save_data: Dictionary) -> void:
 
 func _build_playtime_start_payload(override_payload: Dictionary = {}) -> Dictionary:
 	var payload := {
-		"student_id": String(override_payload.get("student_id", GameState.student_id)),
-		"parent_id": String(override_payload.get("parent_id", GameState.parent_id)),
-		"student_name": String(override_payload.get("student_name", GameState.player_name)),
-		"grade_level": String(override_payload.get("grade_level", GameState.grade_level)),
-		"section": String(override_payload.get("section", ""))
+		"student_id": GameState.safe_text_value(override_payload.get("student_id", GameState.student_id)),
+		"parent_id": GameState.safe_text_value(override_payload.get("parent_id", GameState.parent_id)),
+		"student_name": GameState.safe_text_value(override_payload.get("student_name", GameState.player_name)),
+		"grade_level": GameState.safe_text_value(override_payload.get("grade_level", GameState.grade_level)),
+		"section": GameState.safe_text_value(override_payload.get("section", ""))
 	}
 	return payload
 
@@ -378,19 +378,19 @@ func _create_activity_log(status: String, description: String, override_payload:
 	if http == null:
 		return
 
-	var student_id := String(override_payload.get("student_id", GameState.student_id))
+	var student_id := GameState.safe_text_value(override_payload.get("student_id", GameState.student_id))
 	if not GameState.is_valid_existing_student_id(student_id):
 		return
 
 	var payload := {
 		"student_id": student_id,
-		"student_name": String(override_payload.get("student_name", GameState.player_name)),
-		"grade_level": String(override_payload.get("grade_level", GameState.grade_level)),
-		"section": String(override_payload.get("section", "")),
-		"current_quest": String(override_payload.get("current_quest", GameState.current_quest)),
+		"student_name": GameState.safe_text_value(override_payload.get("student_name", GameState.player_name)),
+		"grade_level": GameState.safe_text_value(override_payload.get("grade_level", GameState.grade_level)),
+		"section": GameState.safe_text_value(override_payload.get("section", "")),
+		"current_quest": GameState.safe_text_value(override_payload.get("current_quest", GameState.current_quest)),
 		"save_status": "playing" if status == "Playing" else "saved",
 		"total_play_time": 0,
-		"quest_progress": int(override_payload.get("quest_progress", GameState.current_task_index)),
+		"quest_progress": GameState.safe_int_value(override_payload.get("quest_progress", GameState.current_task_index), GameState.current_task_index),
 		"role": "Student",
 		"status": status,
 		"activity_description": description
@@ -425,8 +425,8 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 				"message": String(result.body.get("message", "Daily playtime limit reached.")),
 				"should_block": true,
 				"can_play": false,
-				"remaining_minutes": int(result.body.get("remaining_minutes", 0)),
-				"daily_limit_minutes": int(result.body.get("daily_limit_minutes", 60)),
+				"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", 0), 0),
+				"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", 60), 60),
 			}
 		elif is_new_registration:
 			# New student registration: allow without creating session yet
@@ -437,17 +437,17 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 				"ok": true,
 				"session_id": 0,
 				"is_new_registration": true,
-				"remaining_minutes": int(result.body.get("remaining_minutes", PLAYTIME_DAILY_LIMIT_MINUTES)),
-				"daily_limit_minutes": int(result.body.get("daily_limit_minutes", PLAYTIME_DAILY_LIMIT_MINUTES)),
-				"total_playtime_today": int(result.body.get("total_playtime_today", 0)),
+				"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
+				"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
+				"total_playtime_today": GameState.safe_int_value(result.body.get("total_playtime_today", 0), 0),
 				"can_play": true,
 				"learning_cycle": learning_cycle,
 				"message": String(result.body.get("message", "New student registration ready.")),
 			}
 		else:
 			GameState.configure_playtime_allowance(result.body, true)
-			_current_playtime_session_id = int(result.body.get("session_id", 0))
-			_current_playtime_session_credential = String(result.body.get("session_credential", "")).strip_edges()
+			_current_playtime_session_id = GameState.safe_int_value(result.body.get("session_id", 0), 0)
+			_current_playtime_session_credential = GameState.safe_text_value(result.body.get("session_credential", ""))
 			_playtime_heartbeat_elapsed = 0.0
 			_playtime_timeout_handled = false
 			if _current_playtime_session_id != 0 and not _current_playtime_session_credential.is_empty():
@@ -455,10 +455,10 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 				final_result = {
 					"ok": true,
 					"session_id": _current_playtime_session_id,
-					"remaining_minutes": int(result.body.get("remaining_minutes", 60)),
-					"remaining_seconds": int(result.body.get("remaining_seconds", 60 * 60)),
-					"daily_limit_minutes": int(result.body.get("daily_limit_minutes", 60)),
-					"total_playtime_today": int(result.body.get("total_playtime_today", 0)),
+					"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", 60), 60),
+					"remaining_seconds": GameState.safe_int_value(result.body.get("remaining_seconds", 60 * 60), 60 * 60),
+					"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", 60), 60),
+					"total_playtime_today": GameState.safe_int_value(result.body.get("total_playtime_today", 0), 0),
 					"can_play": true,
 					"learning_cycle": learning_cycle,
 					"message": String(result.body.get("message", "Playtime session started.")),
@@ -516,12 +516,13 @@ func request_learning_cycle(student_code: String, parent_code: String) -> Dictio
 		return {"ok": false, "error": "This save is missing a valid Parent or Student ID."}
 	var result: Dictionary = await http.request_get("/api/game/learning-cycle/" + student_code, {"parent_id": parent_code})
 	var body: Variant = result.get("body", {})
-	if not result.get("ok", false) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
-		return {"ok": false, "status": int(result.get("status", 0)), "error": "Unable to verify Learning Cycle. Connect to continue."}
+	var status := GameState.safe_int_value(result.get("status", 0), 0)
+	if not result.get("ok", false) or status < 200 or status >= 300:
+		return {"ok": false, "status": status, "error": "Unable to verify Learning Cycle. Connect to continue."}
 	var descriptor := _apply_learning_cycle(body)
 	if descriptor.is_empty():
-		return {"ok": false, "status": int(result.get("status", 0)), "error": "Unable to verify Learning Cycle. Connect to continue."}
-	return {"ok": true, "status": int(result.get("status", 0)), "learning_cycle": descriptor}
+		return {"ok": false, "status": status, "error": "Unable to verify Learning Cycle. Connect to continue."}
+	return {"ok": true, "status": status, "learning_cycle": descriptor}
 
 func request_end_playtime_session() -> Dictionary:
 	# Public wrapper for UI or scene lifecycle code to cleanly end the current playtime session.
@@ -539,17 +540,18 @@ func request_game_leaderboard() -> Dictionary:
 		"session_credential": _current_playtime_session_credential,
 		"learning_cycle_version": int(GameState.learning_cycle_version),
 	})
+	var status := GameState.safe_int_value(result.get("status", 0), 0)
 	if _is_learning_cycle_changed(result):
-		return {"ok": false, "status": int(result.get("status", 0)), "error": "Leaderboard belongs to a previous learning cycle.", "entries": []}
-	if not bool(result.get("ok", false)) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
-		return {"ok": false, "status": int(result.get("status", 0)), "error": "Leaderboard unavailable.", "entries": []}
+		return {"ok": false, "status": status, "error": "Leaderboard belongs to a previous learning cycle.", "entries": []}
+	if not bool(result.get("ok", false)) or status < 200 or status >= 300:
+		return {"ok": false, "status": status, "error": "Leaderboard unavailable.", "entries": []}
 	var body: Variant = result.get("body", {})
 	var entries: Array = []
 	if body is Dictionary:
 		var raw_entries: Variant = body.get("entries", [])
 		if raw_entries is Array:
 			entries = _sanitize_game_leaderboard_entries(raw_entries)
-	return {"ok": true, "status": int(result.get("status", 0)), "entries": entries}
+	return {"ok": true, "status": status, "entries": entries}
 
 
 func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
@@ -557,8 +559,8 @@ func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
 	for raw_entry in raw_entries:
 		if not (raw_entry is Dictionary):
 			continue
-		var rank := int(raw_entry.get("rank", 0))
-		var display_name := String(raw_entry.get("display_name", "")).strip_edges()
+		var rank := GameState.safe_int_value(raw_entry.get("rank", 0), 0)
+		var display_name := GameState.safe_text_value(raw_entry.get("display_name", ""))
 		if rank <= 0 or display_name.is_empty():
 			continue
 		var entry := {
@@ -571,7 +573,7 @@ func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
 			"quests_completed": raw_entry.get("quests_completed", null),
 		}
 		if raw_entry.has("grade"):
-			entry["grade"] = String(raw_entry.get("grade", "")).strip_edges()
+			entry["grade"] = GameState.safe_text_value(raw_entry.get("grade", ""))
 		sanitized.append(entry)
 	# The game mirrors the canonical website ranking order but only exposes the
 	# approved six public rows. Keep the API order; do not re-rank locally.
@@ -625,7 +627,8 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 	if _is_learning_cycle_changed(result):
 		print("RemoteSync: discarded a previous-learning-cycle question result.")
 		return
-	if not result.get("ok", false) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
+	var status := GameState.safe_int_value(result.get("status", 0), 0)
+	if not result.get("ok", false) or status < 200 or status >= 300:
 		print("RemoteSync: question result sync failed; local gameplay continues: %s" % str(result))
 
 

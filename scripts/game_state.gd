@@ -901,38 +901,83 @@ func _activity_started_duration(activity_id: String) -> Dictionary:
 	return started if started is Dictionary else {}
 
 
+func safe_int_value(value: Variant, fallback: int = -1) -> int:
+	if value is int:
+		return value
+	if value is float:
+		if not is_finite(value):
+			return fallback
+		return int(value)
+	if value is String:
+		var text: String = value.strip_edges()
+		if text.is_empty():
+			return fallback
+		if text.is_valid_int():
+			return text.to_int()
+		if text.is_valid_float():
+			var parsed: float = text.to_float()
+			return int(parsed) if is_finite(parsed) else fallback
+	return fallback
+
+
+func safe_float_value(value: Variant, fallback: float = -1.0) -> float:
+	if value is int or value is float:
+		var numeric: float = float(value)
+		return numeric if is_finite(numeric) else fallback
+	if value is String:
+		var text: String = value.strip_edges()
+		if text.is_empty() or not text.is_valid_float():
+			return fallback
+		var parsed: float = text.to_float()
+		return parsed if is_finite(parsed) else fallback
+	return fallback
+
+
+func safe_text_value(value: Variant, fallback: String = "") -> String:
+	if value is String:
+		return value.strip_edges()
+	if value is StringName or value is int or value is float:
+		return str(value).strip_edges()
+	return fallback
+
+
 func build_canonical_activity_event(event: Dictionary, task_index: int, event_type: String = "") -> Dictionary:
 	var result := event.duplicate(true)
 	var metadata := get_task_activity_metadata(task_index)
-	var activity_id := String(result.get("canonical_activity_id", result.get("activity_id", metadata.get("activity_id", "")))).strip_edges()
+	var activity_id := safe_text_value(result.get("canonical_activity_id", result.get("activity_id", metadata.get("activity_id", ""))))
 	if activity_id.is_empty():
-		activity_id = String(metadata.get("canonical_task_id", "")).strip_edges()
-	var canonical_task_id := String(result.get("canonical_task_id", metadata.get("canonical_task_id", activity_id))).strip_edges()
-	var resolved_type := String(event_type if not event_type.is_empty() else result.get("type", "")).strip_edges()
+		activity_id = safe_text_value(metadata.get("canonical_task_id", ""))
+	var canonical_task_id := safe_text_value(result.get("canonical_task_id", metadata.get("canonical_task_id", activity_id)))
+	var resolved_type := safe_text_value(event_type if not event_type.is_empty() else result.get("type", ""))
 	var phase := _activity_phase(resolved_type)
-	var map_id := String(result.get("map_id", canonical_map_id())).strip_edges()
-	var milestone_id := String(result.get("canonical_milestone_id", "%s.complete" % canonical_task_id)).strip_edges()
-	var stable_event_id := String(result.get("activity_event_id", "")).strip_edges()
+	var map_id := safe_text_value(result.get("map_id", canonical_map_id()), canonical_map_id())
+	var milestone_id := safe_text_value(result.get("canonical_milestone_id", "%s.complete" % canonical_task_id))
+	var stable_event_id := safe_text_value(result.get("activity_event_id", ""))
 	if stable_event_id.is_empty():
 		stable_event_id = "cycle:%d:activity:%s:%s" % [learning_cycle_version, activity_id, phase]
 	var started := _activity_started_duration(activity_id)
-	var started_at := String(result.get("started_at", started.get("started_at", ""))).strip_edges()
-	var completed_at := String(result.get("completed_at", _utc_timestamp() if phase == "complete" else "")).strip_edges()
-	var duration_seconds := int(result.get("duration_seconds", -1))
+	var started_at := safe_text_value(result.get("started_at", started.get("started_at", "")))
+	var completed_at := safe_text_value(result.get("completed_at", _utc_timestamp() if phase == "complete" else ""))
+	var duration_seconds := safe_int_value(result.get("duration_seconds", -1), -1)
 	if duration_seconds < 0 and phase == "complete" and started.has("started_unix"):
-		duration_seconds = maxi(0, int(Time.get_unix_time_from_system() - float(started.get("started_unix", 0.0))))
+		var started_unix := safe_float_value(started.get("started_unix", -1.0), -1.0)
+		if started_unix >= 0.0:
+			duration_seconds = maxi(0, int(Time.get_unix_time_from_system() - started_unix))
 	result["telemetry_contract_version"] = TELEMETRY_CONTRACT_VERSION
 	result["quest_graph_version"] = QUEST_GRAPH_VERSION
 	result["activity_event_id"] = stable_event_id
 	result["canonical_activity_id"] = activity_id
-	result["canonical_quest_id"] = String(result.get("canonical_quest_id", "main"))
+	result["canonical_quest_id"] = safe_text_value(result.get("canonical_quest_id", "main"), "main")
 	result["canonical_task_id"] = canonical_task_id
 	result["canonical_milestone_id"] = milestone_id
 	result["map_id"] = map_id
 	result["difficulty"] = canonical_difficulty_for_map(map_id)
 	result["started_at"] = started_at
 	result["completed_at"] = completed_at
-	result["duration_seconds"] = duration_seconds if duration_seconds >= 0 else null
+	if duration_seconds >= 0:
+		result["duration_seconds"] = duration_seconds
+	else:
+		result["duration_seconds"] = null
 	result["is_player_facing"] = bool(result.get("is_player_facing", true))
 	return result
 
@@ -1206,12 +1251,12 @@ func configure_playtime_allowance(response_body: Dictionary, reset_warning_state
 		_playtime_warning_notified.clear()
 		return
 
-	var daily_limit := int(response_body.get("daily_limit_minutes", DEFAULT_PLAYTIME_LIMIT_MINUTES))
+	var daily_limit := safe_int_value(response_body.get("daily_limit_minutes", DEFAULT_PLAYTIME_LIMIT_MINUTES), DEFAULT_PLAYTIME_LIMIT_MINUTES)
 	if daily_limit <= 0:
 		daily_limit = DEFAULT_PLAYTIME_LIMIT_MINUTES
 
-	var remaining_minutes := int(response_body.get("remaining_minutes", daily_limit))
-	var response_remaining_seconds := float(response_body.get("remaining_seconds", remaining_minutes * 60))
+	var remaining_minutes := safe_int_value(response_body.get("remaining_minutes", daily_limit), daily_limit)
+	var response_remaining_seconds := safe_float_value(response_body.get("remaining_seconds", remaining_minutes * 60), float(remaining_minutes * 60))
 	var api_authorized := bool(response_body.get("can_play", true))
 	if response_body.has("should_block"):
 		api_authorized = api_authorized and not bool(response_body.get("should_block", false))
