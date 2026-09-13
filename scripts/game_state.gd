@@ -29,6 +29,7 @@ const LOCAL_QA_SAVE_DIRECTORY := "user://qa_local_saves"
 const DEVICE_INSTALLATION_ID_PATH := "user://device_installation_id.txt"
 const TERMS_VERSION := "1.0"
 const TERMS_ACCEPTANCE_PATH := "user://terms_acceptance.json"
+const TERMS_APP_ACCEPTANCE_PATH := "user://terms_app_acceptance.json"
 const VALID_REGISTRATION_GRADES := ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
 const OAKLEAF_BANDIT_IDS: Array[String] = [
 	"oakleaf_bandits1",
@@ -2132,6 +2133,39 @@ func has_current_terms_acceptance(for_student_id: String = "") -> bool:
 			and String(parsed.get("device_installation_id", "")).strip_edges() == get_device_installation_id() \
 			and String(parsed.get("terms_version", "")).strip_edges() == TERMS_VERSION \
 			and not String(parsed.get("accepted_at", "")).strip_edges().is_empty()
+
+
+func has_current_terms_app_acceptance() -> bool:
+	if not FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
+		return false
+	var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.READ)
+	if file == null:
+		return false
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not (parsed is Dictionary):
+		return false
+	return String(parsed.get("device_installation_id", "")).strip_edges() == get_device_installation_id() and String(parsed.get("terms_version", "")).strip_edges() == TERMS_VERSION and not String(parsed.get("accepted_at", "")).strip_edges().is_empty()
+
+
+func record_terms_app_acceptance() -> bool:
+	var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify({
+		"device_installation_id": get_device_installation_id(),
+		"terms_version": TERMS_VERSION,
+		"accepted_at": _utc_timestamp(),
+	}))
+	file.close()
+	return true
+
+
+func bind_current_terms_acceptance_to_student(for_student_id: String) -> bool:
+	var owner_id := for_student_id.strip_edges()
+	if owner_id.is_empty() or not has_current_terms_app_acceptance():
+		return false
+	return record_terms_acceptance(owner_id)
 
 
 func record_terms_acceptance(for_student_id: String = "") -> bool:
