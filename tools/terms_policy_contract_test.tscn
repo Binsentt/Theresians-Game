@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/terms_policy_contract_test.gd" id="1_terms_policy"]
+
+[node name="TermsPolicyContractTest" type="Node"]
+script = ExtResource("1_terms_policy")

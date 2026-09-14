@@ -178,21 +178,18 @@ horizontal_alignment = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1259421099]
 layout_mode = 1
-anchors_preset = 8
+anchors_preset = 0
 anchor_left = 0.5
-anchor_top = 0.5
 anchor_right = 0.5
-anchor_bottom = 0.5
 offset_left = -538.5
-offset_top = -114.5
+offset_top = 140.0
 offset_right = -224.5
-offset_bottom = 167.5
+offset_bottom = 500.0
 grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 22
+theme_override_constants/separation = 12
 
 [node name="NewGameBtn" type="Button" parent="VBoxContainer" unique_id=1849078420]
-custom_minimum_size = Vector2(314, 54)
+custom_minimum_size = Vector2(314, 55)
 layout_mode = 2
 focus_mode = 0
 theme_override_colors/font_color = Color(1, 0.88, 0.48, 1)
@@ -245,6 +242,23 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_menu_button_hover")
 text = "OPTIONS"
 script = ExtResource("5_rtw2f")
 
+[node name="TermsPrivacyButton" type="Button" parent="VBoxContainer" unique_id=1278532159]
+custom_minimum_size = Vector2(314, 44)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(1, 0.88, 0.48, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.96, 0.72, 1)
+theme_override_colors/font_hover_color = Color(1, 0.96, 0.72, 1)
+theme_override_colors/font_outline_color = Color(0.0156863, 0.0196078, 0.0705882, 1)
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("2_8ln24")
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_menu_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_menu_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_menu_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_menu_button_hover")
+text = "TERMS & PRIVACY"
+
 [node name="QuitBtn" type="Button" parent="VBoxContainer" unique_id=200371754]
 custom_minimum_size = Vector2(314, 54)
 layout_mode = 2
@@ -261,6 +275,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_menu_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_menu_button_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_menu_button_hover")
 text = "QUIT"
+expand_icon = true
 script = ExtResource("5_8ln24")
 
 [node name="LeaderboardButton" type="Button" parent="." unique_id=1877699982]

@@ -71,8 +71,8 @@ func _verify_successful_registration_with_a_real_lease_parser() -> void:
 	_assert(not String(remote_sync.get("_current_playtime_session_credential")).is_empty(), "RemoteSync retains the server-issued lease credential")
 	_assert(String(game_state.get("student_id")) == "001234", "GameState finalizes the validated Student ID")
 	_assert(String(game_state.get("parent_id")) == "654321", "GameState finalizes the validated Parent ID")
-	_assert(int(game_state.get("learning_cycle_version")) == 0, "RemoteSync accepts the backend's JSON float cycle version 0.0")
-	_assert(String(game_state.get("learning_cycle_started_at")) == "", "RemoteSync accepts a nullable backend cycle boundary without a runtime error")
+	_assert(int(game_state.get("learning_cycle_version")) == 2, "New Game retains the newer playtime-start learning-cycle version instead of the earlier profile-check version")
+	_assert(String(game_state.get("learning_cycle_started_at")) == "2030-01-01T00:00:00.000Z", "New Game retains the playtime-start learning-cycle boundary through finalization")
 
 
 func _verify_failed_lease_stays_on_the_form() -> void:

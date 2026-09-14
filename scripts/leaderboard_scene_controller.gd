@@ -178,18 +178,14 @@ func _format_progress_percentage(progress_value: Variant) -> String:
 
 func _format_game_score(score_value: Variant) -> String:
 	if score_value is int:
-		return str(score_value)
+		return str(score_value) if score_value >= 0 else "--"
 	if score_value is float:
-		if not is_finite(score_value):
+		if not is_finite(score_value) or score_value < 0.0 or not is_equal_approx(score_value, roundf(score_value)):
 			return "--"
-		if is_equal_approx(score_value, roundf(score_value)):
-			return str(int(roundf(score_value)))
-		return str(score_value)
+		return str(int(roundf(score_value)))
 	if score_value is String:
 		var parsed := GameState.safe_float_value(score_value, -1.0)
-		if parsed < 0.0:
+		if parsed < 0.0 or not is_equal_approx(parsed, roundf(parsed)):
 			return "--"
-		if is_equal_approx(parsed, roundf(parsed)):
-			return str(int(roundf(parsed)))
-		return str(parsed)
+		return str(int(roundf(parsed)))
 	return "--"

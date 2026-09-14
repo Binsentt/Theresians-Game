@@ -34,8 +34,8 @@ func request_post(path: String, payload: Dictionary, _timeout_ms: int = -1) -> D
 				"daily_limit_minutes": 60,
 				"expires_at": "2030-01-01T01:00:00.000Z",
 				"learning_cycle": {
-					"version": 0.0,
-					"started_at": null,
+					"version": 2.0,
+					"started_at": "2030-01-01T00:00:00.000Z",
 				},
 			},
 		}
@@ -63,6 +63,7 @@ func request_get(path: String, _params: Dictionary = {}, _timeout_ms: int = -1) 
 					"grade_level": "Grade 3",
 					"section": null,
 				},
+				"learning_cycle": {"version": 1.0, "started_at": "2029-01-01T00:00:00.000Z"},
 			},
 		}
 	return {"ok": false, "status": 404, "body": {"error": "Unexpected test request."}}

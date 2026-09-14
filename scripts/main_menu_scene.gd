@@ -4,6 +4,7 @@ const LEADERBOARD_SCENE_PATH := "res://leaderboard_scene.tscn"
 const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
 
 @onready var leaderboard_button: Button = $LeaderboardButton
+@onready var terms_privacy_button: Button = get_node_or_null("VBoxContainer/TermsPrivacyButton") as Button
 @onready var fade: ColorRect = $Fade
 @onready var menu: Control = $VBoxContainer
 
@@ -16,6 +17,8 @@ func _ready() -> void:
 
 	if not leaderboard_button.pressed.is_connected(_on_leaderboard_pressed):
 		leaderboard_button.pressed.connect(_on_leaderboard_pressed)
+	if terms_privacy_button != null and not terms_privacy_button.pressed.is_connected(_on_terms_privacy_pressed):
+		terms_privacy_button.pressed.connect(_on_terms_privacy_pressed)
 	call_deferred("_initialize_terms_gate")
 
 
@@ -27,10 +30,13 @@ func _initialize_terms_gate() -> void:
 		get_node_or_null("VBoxContainer/OptionBtn"),
 		get_node_or_null("VBoxContainer/QuitBtn"),
 		leaderboard_button,
+		terms_privacy_button,
 	]:
 		if node is BaseButton:
 			_gated_controls.append(node)
-	if GameState.has_current_terms_app_acceptance():
+	var debug_session_accepted := GameState.has_method("has_terms_session_acceptance") and bool(GameState.call("has_terms_session_acceptance"))
+	var production_acceptance := not GameState.is_debug_terms_run() and GameState.has_current_terms_app_acceptance()
+	if debug_session_accepted or production_acceptance:
 		_set_gated_controls_enabled(true)
 		return
 	_terms_gate = TERMS_GATE_SCRIPT.new() as Control
@@ -57,6 +63,21 @@ func _on_terms_gate_accepted() -> void:
 
 func _on_terms_gate_cancelled() -> void:
 	_set_gated_controls_enabled(false)
+
+
+func _on_terms_privacy_pressed() -> void:
+	if terms_privacy_button == null or terms_privacy_button.disabled:
+		return
+	var review_gate := TERMS_GATE_SCRIPT.new() as Control
+	review_gate.name = "TermsPrivacyReview"
+	add_child(review_gate)
+	review_gate.set_review_mode(true)
+	review_gate.cancelled.connect(_on_terms_review_closed.bind(review_gate))
+
+
+func _on_terms_review_closed(review_gate: Control) -> void:
+	if is_instance_valid(review_gate):
+		review_gate.queue_free()
 
 func _on_leaderboard_pressed() -> void:
 	if _transitioning or leaderboard_button.disabled:

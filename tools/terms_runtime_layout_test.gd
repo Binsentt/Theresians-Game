@@ -1,11 +1,14 @@
 extends Node
 
 const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
+const MAIN_MENU_SCENE := preload("res://scenes/main_menu.tscn")
 const VIEWPORTS := [Vector2i(1134, 509), Vector2i(1215, 545), Vector2i(1280, 720), Vector2i(1920, 1080)]
 const RESULT_PATH := "res://tools/terms_runtime_layout_test_result.json"
 
 var _results: Array[Dictionary] = []
 var _failures: Array[String] = []
+var _had_original_acceptance := false
+var _original_acceptance := ""
 
 
 func _ready() -> void:
@@ -13,6 +16,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	_capture_acceptance()
 	for requested_size: Vector2i in VIEWPORTS:
 		var test_viewport := SubViewport.new()
 		test_viewport.size = requested_size
@@ -26,6 +30,15 @@ func _run() -> void:
 		await get_tree().process_frame
 		await _check_gate(requested_size, test_viewport.size, gate)
 		gate.queue_free()
+		var menu := MAIN_MENU_SCENE.instantiate() as Control
+		menu.set_script(null)
+		for child in menu.find_children("*", "", true, false):
+			child.set_script(null)
+		test_viewport.add_child(menu)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_check_main_menu(requested_size, test_viewport.size, menu)
+		menu.queue_free()
 		test_viewport.queue_free()
 		await get_tree().process_frame
 
@@ -34,6 +47,7 @@ func _run() -> void:
 		"failures": _failures,
 		"results": _results,
 	}
+	_restore_acceptance()
 	var file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(output))
@@ -119,10 +133,39 @@ func _require(condition: bool, label: String, requested_size: Vector2i) -> void:
 		_failures.append("%s @ %sx%s" % [label, requested_size.x, requested_size.y])
 
 
+func _check_main_menu(requested_size: Vector2i, actual_size: Vector2, menu: Control) -> void:
+	var title := menu.get_node_or_null("Label") as Control
+	var buttons := menu.get_node_or_null("VBoxContainer") as Control
+	_require(title != null and buttons != null, "main menu title and button stack exist", requested_size)
+	if title == null or buttons == null:
+		return
+	var title_rect := title.get_global_rect()
+	var buttons_rect := buttons.get_global_rect()
+	var viewport_rect := Rect2(Vector2.ZERO, actual_size)
+	_require(buttons_rect.position.y >= title_rect.end.y + 4.0, "main menu buttons do not overlap the title", requested_size)
+	_require(buttons_rect.end.y <= viewport_rect.end.y + 1.0, "main menu buttons fit inside the viewport", requested_size)
+
+
 func _clear_acceptance() -> void:
 	var path := ProjectSettings.globalize_path("user://terms_app_acceptance.json")
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
+
+
+func _capture_acceptance() -> void:
+	var path := "user://terms_app_acceptance.json"
+	_had_original_acceptance = FileAccess.file_exists(path)
+	_original_acceptance = FileAccess.get_file_as_string(path) if _had_original_acceptance else ""
+
+
+func _restore_acceptance() -> void:
+	_clear_acceptance()
+	if not _had_original_acceptance:
+		return
+	var file := FileAccess.open("user://terms_app_acceptance.json", FileAccess.WRITE)
+	if file != null:
+		file.store_string(_original_acceptance)
+		file.close()
 
 
 func _rect_dict(rect: Rect2) -> Dictionary:

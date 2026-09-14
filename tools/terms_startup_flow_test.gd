@@ -2,6 +2,7 @@ extends Node
 
 const TERMS_APP_ACCEPTANCE_PATH := "user://terms_app_acceptance.json"
 const MAIN_MENU_SCENE := preload("res://scenes/main_menu.tscn")
+const RESULT_PATH := "user://terms_startup_flow_test_result.json"
 
 var _checks: Array[Dictionary] = []
 var _original_acceptance := ""
@@ -94,6 +95,8 @@ func _run() -> void:
 		current_file.store_string(saved_app_acceptance)
 		current_file.close()
 
+	if game_state != null and game_state.has_method("reset_terms_session_acceptance"):
+		game_state.call("reset_terms_session_acceptance")
 	var accepted_menu := MAIN_MENU_SCENE.instantiate() as Control
 	get_tree().root.add_child(accepted_menu)
 	get_tree().current_scene = accepted_menu
@@ -101,8 +104,8 @@ func _run() -> void:
 	await get_tree().process_frame
 	var accepted_new_game := accepted_menu.get_node_or_null("VBoxContainer/NewGameBtn") as BaseButton
 	var accepted_terms_gate := accepted_menu.get_node_or_null("TermsGate") as Control
-	_expect(accepted_terms_gate == null or not accepted_terms_gate.visible, "Existing device acceptance bypasses the Terms gate on later Main Menu startups")
-	_expect(accepted_new_game != null and not accepted_new_game.disabled, "Existing device acceptance leaves New Game available")
+	_expect(accepted_terms_gate != null and accepted_terms_gate.visible, "A fresh debug run shows Terms even when persisted device acceptance exists")
+	_expect(accepted_new_game != null and accepted_new_game.disabled, "Persisted production acceptance never bypasses a fresh debug run")
 
 	_cleanup_acceptance()
 	_finish()
@@ -129,6 +132,10 @@ func _finish() -> void:
 	for check in _checks:
 		if not bool(check.get("passed", false)):
 			failed += 1
-	print("TERMS_STARTUP_FLOW_TEST " + JSON.stringify({"passed": _checks.size() - failed, "failed": failed, "checks": _checks}))
+	var result := {"passed": _checks.size() - failed, "failed": failed, "checks": _checks}
+	var result_file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
+	if result_file != null:
+		result_file.store_string(JSON.stringify(result))
+	print("TERMS_STARTUP_FLOW_TEST " + JSON.stringify(result))
 	await get_tree().create_timer(1.0).timeout
 	get_tree().quit(0 if failed == 0 else 1)

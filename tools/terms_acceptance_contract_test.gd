@@ -1,6 +1,7 @@
 extends Node
 
 const GameStateScript = preload("res://scripts/game_state.gd")
+const RESULT_PATH := "user://terms_acceptance_contract_test_result.json"
 var _checks: Array[Dictionary] = []
 
 func _ready() -> void:
@@ -19,6 +20,9 @@ func _run() -> void:
 	_expect(gate_source.contains("AgreementCheckBox") and gate_source.contains("ContinueButton"), "Terms gate uses a checkbox and Continue action")
 	_expect(gate_source.contains("disabled = true") and gate_source.contains("_on_checkbox_toggled"), "Continue starts disabled and follows checkbox state")
 	_expect(login_source.contains("bind_current_terms_acceptance_to_student"), "New Game binds app acceptance to the known Student ID")
+	_expect(not login_source.contains("func() -> void: accepted = true"), "Student-specific Terms acceptance does not rely on a captured primitive flag")
+	_expect(not login_source.contains("func() -> void: cancelled = true"), "Student-specific Terms cancellation does not rely on a captured primitive flag")
+	_expect(login_source.contains("completion_state"), "Student-specific Terms gate shares completion state with its signal callbacks")
 	_expect(login_source.contains("request_playtime_session") and login_source.find("_ensure_terms_accepted") < login_source.find("request_playtime_session"), "Terms gate runs before playtime/game start")
 	var state := GameStateScript.new()
 	add_child(state)
@@ -36,6 +40,10 @@ func _finish() -> void:
 	for check in _checks:
 		if not bool(check.get("passed", false)):
 			failed += 1
-	print("TERMS_ACCEPTANCE_CONTRACT_TEST " + JSON.stringify({"passed": _checks.size() - failed, "failed": failed, "checks": _checks}))
+	var result := {"passed": _checks.size() - failed, "failed": failed, "checks": _checks}
+	var result_file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
+	if result_file != null:
+		result_file.store_string(JSON.stringify(result))
+	print("TERMS_ACCEPTANCE_CONTRACT_TEST " + JSON.stringify(result))
 	await get_tree().create_timer(1.0).timeout
 	get_tree().quit(0 if failed == 0 else 1)

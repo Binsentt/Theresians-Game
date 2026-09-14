@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/terms_runtime_layout_test.gd" id="1_terms_layout"]
+
+[node name="TermsRuntimeLayoutTest" type="Node"]
+script = ExtResource("1_terms_layout")

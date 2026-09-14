@@ -1,5 +1,6 @@
 extends Node
 
+const RESULT_PATH := "user://game_leaderboard_contract_test_result.json"
 var _failures: Array[String] = []
 
 
@@ -10,6 +11,7 @@ func _init() -> void:
 func _run() -> void:
 	var remote_source := FileAccess.get_file_as_string("res://scripts/remote_sync.gd")
 	var controller_source := FileAccess.get_file_as_string("res://scripts/leaderboard_scene_controller.gd")
+	var scene_source := FileAccess.get_file_as_string("res://leaderboard_scene.tscn")
 	_expect(remote_source.contains("func request_game_leaderboard"), "RemoteSync must provide the game leaderboard request owned by the active lease.")
 	var leaderboard_block := _function_block(remote_source, "func request_game_leaderboard")
 	_expect(leaderboard_block.contains("/api/game/leaderboard"), "Game leaderboard must use the game endpoint rather than a portal route.")
@@ -22,6 +24,7 @@ func _run() -> void:
 	_expect(not controller_source.contains("/api/leaderboard/top-achievers"), "Leaderboard controller must not call a portal-only route directly.")
 	_expect(controller_source.contains("_refresh_generation"), "Leaderboard controller must ignore older responses after a newer refresh.")
 	_expect(controller_source.contains("No rankings yet"), "An empty current-cycle leaderboard must use a truthful no-ranking state.")
+	_expect(scene_source.contains('text = "GAME SCORE"'), "Leaderboard labels the canonical integer Game Score without percentage formatting.")
 	_finish()
 
 
@@ -34,6 +37,10 @@ func _function_block(source: String, signature: String) -> String:
 
 
 func _finish() -> void:
+	var result := {"passed": _failures.is_empty(), "failures": _failures}
+	var result_file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
+	if result_file != null:
+		result_file.store_string(JSON.stringify(result))
 	if _failures.is_empty():
 		print("game_leaderboard_contract_test: PASS")
 		get_tree().quit(0)

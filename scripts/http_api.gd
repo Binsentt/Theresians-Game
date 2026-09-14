@@ -87,7 +87,14 @@ func is_local_qa_profile_requested() -> bool:
 		return true
 	for argument in OS.get_cmdline_args():
 		var normalized := String(argument).replace("\\", "/").to_lower()
-		if normalized.ends_with("/human_qa_launcher.tscn") or normalized.ends_with("/qa_local_runtime_contract_test.tscn"):
+		if (
+			normalized.ends_with("/human_qa_launcher.tscn")
+			or normalized.ends_with("/qa_local_runtime_contract_test.tscn")
+			or normalized.ends_with("/leaderboard_numeric_display_regression_test.tscn")
+			or normalized.ends_with("/game_leaderboard_contract_test.tscn")
+			or normalized.ends_with("/leaderboard_multi_row_regression_test.tscn")
+			or normalized.ends_with("/original_flow_ingestion_test.tscn")
+		):
 			return true
 	return false
 

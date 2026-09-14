@@ -128,9 +128,23 @@ func answer_selected(index:int):
 
 
 func _record_question_attempt(question: Dictionary, is_correct: bool) -> void:
+	# Keep battle damage and progression untouched; this only projects the result into Save Game analytics.
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state != null:
+		game_state.total_questions += 1
+		if is_correct:
+			game_state.correct_answers += 1
+		else:
+			game_state.incorrect_answers += 1
+		var question_difficulty := String(question.get("difficulty", game_state.difficulty_level)).strip_edges()
+		if not question_difficulty.is_empty():
+			game_state.difficulty_level = question_difficulty
+
 	var remote_sync := get_node_or_null("/root/RemoteSync")
 	if remote_sync != null and remote_sync.has_method("record_question_attempt"):
-		remote_sync.call_deferred("record_question_attempt", question.duplicate(true), is_correct)
+		# RemoteSync durably appends the answer before its first await. Invoke it
+		# immediately so a scene change or crash cannot cancel the enqueue.
+		remote_sync.call("record_question_attempt", question.duplicate(true), is_correct)
 
 
 func disable_buttons():

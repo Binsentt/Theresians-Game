@@ -28,6 +28,7 @@ enum RegistrationStep { GENDER, IDS, NAME_GRADE }
 	$NameGradeSelect/Grade6
 ]
 
+const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
 const MAIN_MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
 const PLAYER_HOUSE_SCENE_PATH := "res://interiors/player_house.tscn"
 const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
@@ -52,6 +53,7 @@ var _canonical_identity_locked := false
 var _canonical_student_name := ""
 var _canonical_grade := ""
 var _canonical_section := ""
+var _student_terms_gate: Control
 
 var male_tween: Tween
 var female_tween: Tween
@@ -528,6 +530,7 @@ func _on_start_pressed() -> void:
 	if OS.is_debug_build():
 		print("NEW GAME PLAY REQUEST: method=POST route=/api/playtime/start target_base_url=%s" % str(get_node_or_null("/root/HttpApi").get("base_url") if get_node_or_null("/root/HttpApi") != null else "unavailable"))
 	var playtimeResult := await RemoteSync.request_playtime_session({
+		"_force_refresh": true,
 		"student_id": String(registration.get("student_id", "")),
 		"parent_id": String(registration.get("parent_id", "")),
 		"student_name": String(registration.get("student_name", "")),
@@ -548,6 +551,10 @@ func _on_start_pressed() -> void:
 		_show_validation(errorText)
 		_play_transitioning = false
 		return
+	var authoritative_start_cycle: Variant = playtimeResult.get("learning_cycle", {})
+	if not GameState.set_learning_cycle_descriptor_is_valid(authoritative_start_cycle):
+		authoritative_start_cycle = GameState.get_learning_cycle_descriptor()
+	GameState.update_new_game_registration({"learning_cycle": authoritative_start_cycle})
 
 	if OS.is_debug_build():
 		print("NEW GAME PLAY FINALIZE: registration_valid=%s local_save_present=%s server_authorized=true" % [
@@ -590,9 +597,34 @@ func _ensure_terms_accepted() -> bool:
 		return false
 	if bool(GameState.call("has_current_terms_acceptance", current_student_id)):
 		return true
-	if GameState.has_method("has_current_terms_app_acceptance") and bool(GameState.call("has_current_terms_app_acceptance")) and GameState.has_method("bind_current_terms_acceptance_to_student"):
+	var app_acceptance := GameState.has_method("has_current_terms_app_acceptance") and bool(GameState.call("has_current_terms_app_acceptance"))
+	var app_student_id := String(GameState.call("get_terms_app_acceptance_student_id")) if GameState.has_method("get_terms_app_acceptance_student_id") else ""
+	if app_acceptance and (app_student_id.is_empty() or app_student_id == current_student_id) and GameState.has_method("bind_current_terms_acceptance_to_student"):
 		return bool(GameState.call("bind_current_terms_acceptance_to_student", current_student_id))
+	if app_acceptance and not app_student_id.is_empty() and app_student_id != current_student_id:
+		return await _request_student_terms_acceptance(current_student_id)
 	_show_validation("Please return to the Main Menu and accept the Terms & Conditions before starting.")
+	return false
+
+
+func _request_student_terms_acceptance(for_student_id: String) -> bool:
+	if is_instance_valid(_student_terms_gate):
+		return false
+	_student_terms_gate = TERMS_GATE_SCRIPT.new() as Control
+	_student_terms_gate.name = "StudentTermsGate"
+	add_child(_student_terms_gate)
+	_student_terms_gate.set_student_context(for_student_id)
+	var completion_state := {"accepted": false, "cancelled": false}
+	_student_terms_gate.accepted.connect(func() -> void: completion_state["accepted"] = true)
+	_student_terms_gate.cancelled.connect(func() -> void: completion_state["cancelled"] = true)
+	while is_instance_valid(_student_terms_gate) and not bool(completion_state["accepted"]) and not bool(completion_state["cancelled"]):
+		await get_tree().process_frame
+	if is_instance_valid(_student_terms_gate):
+		_student_terms_gate.queue_free()
+	_student_terms_gate = null
+	if bool(completion_state["accepted"]) and GameState.has_method("has_current_terms_acceptance"):
+		return bool(GameState.call("has_current_terms_acceptance", for_student_id))
+	_show_validation("Please accept the Terms & Conditions before starting.")
 	return false
 
 func _sync_form_to_registration() -> void:

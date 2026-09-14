@@ -15,6 +15,9 @@ var _checkbox: CheckBox
 var _continue_button: Button
 var _cancel_button: Button
 var _error_label: Label
+var _agreement_row: HBoxContainer
+var _review_mode := false
+var _student_id_context := ""
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -24,6 +27,28 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_on_viewport_size_changed()
 	_checkbox.grab_focus.call_deferred()
+	_apply_review_mode()
+
+
+func set_student_context(for_student_id: String) -> void:
+	_student_id_context = for_student_id.strip_edges()
+
+
+func set_review_mode(enabled: bool) -> void:
+	_review_mode = enabled
+	_apply_review_mode()
+
+
+func _apply_review_mode() -> void:
+	if not is_instance_valid(_agreement_row) or not is_instance_valid(_continue_button) or not is_instance_valid(_cancel_button):
+		return
+	_agreement_row.visible = not _review_mode
+	_checkbox.visible = not _review_mode
+	_continue_button.visible = not _review_mode
+	_cancel_button.text = "CLOSE" if _review_mode else "CANCEL"
+	if _review_mode:
+		_continue_button.disabled = true
+		_cancel_button.grab_focus.call_deferred()
 
 func _build_ui() -> void:
 	var dim := ColorRect.new()
@@ -96,16 +121,16 @@ func _build_ui() -> void:
 	body.text = "[font_size=16][color=#f2c14e]Terms of Use[/color][/font_size]\n\nUse Theresian's Quest only for authorized educational or school activities and only with your assigned Student ID. Keep your account and ID private; do not share, cheat, tamper with, or exploit the game.\n\nGameplay progress, quiz and battle answers, quest completion, screen time, and activity timing may be recorded. Online features depend on network and service availability. Local save files are scoped to the logged-in Student and device.\n\n[color=#f2c14e]Privacy Notice[/color]\n\nThe connected school system may use this information for learning support. Authorized teachers, administrators, and a linked parent or guardian may view relevant educational progress. AI-supported questions and insights may be used by the connected system. Information is handled according to the school's applicable privacy policy and is not sold.\n\nYour acceptance is recorded on this device for the current terms version. After you identify your Student account, that acceptance is also associated with that Student ID."
 	scroll.add_child(body)
 
-	var agreement_row := HBoxContainer.new()
-	agreement_row.name = "AgreementRow"
-	agreement_row.add_theme_constant_override("separation", 10)
-	content.add_child(agreement_row)
+	_agreement_row = HBoxContainer.new()
+	_agreement_row.name = "AgreementRow"
+	_agreement_row.add_theme_constant_override("separation", 10)
+	content.add_child(_agreement_row)
 
 	_checkbox = CheckBox.new()
 	_checkbox.name = "AgreementCheckBox"
 	_checkbox.focus_mode = Control.FOCUS_ALL
 	_checkbox.toggled.connect(_on_checkbox_toggled)
-	agreement_row.add_child(_checkbox)
+	_agreement_row.add_child(_checkbox)
 
 	var agreement_label := Label.new()
 	agreement_label.name = "AgreementLabel"
@@ -115,7 +140,7 @@ func _build_ui() -> void:
 	agreement_label.add_theme_color_override("font_color", BODY)
 	agreement_label.add_theme_font_size_override("font_size", 12)
 	_apply_font(agreement_label)
-	agreement_row.add_child(agreement_label)
+	_agreement_row.add_child(agreement_label)
 
 	_error_label = Label.new()
 	_error_label.name = "ErrorLabel"
@@ -178,9 +203,12 @@ func _on_checkbox_toggled(checked: bool) -> void:
 			_error_label.visible = false
 
 func _on_continue_pressed() -> void:
+	if _review_mode:
+		return
 	if not _checkbox.button_pressed:
 		return
-	if not GameState.record_terms_app_acceptance():
+	var recorded := GameState.record_terms_acceptance(_student_id_context) if not _student_id_context.is_empty() else GameState.record_terms_app_acceptance()
+	if not recorded:
 		_error_label.text = "Unable to save acceptance on this device. Please try again."
 		_error_label.visible = true
 		return
@@ -189,6 +217,11 @@ func _on_continue_pressed() -> void:
 	accepted.emit()
 
 func _on_cancel_pressed() -> void:
+	if _review_mode:
+		visible = false
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cancelled.emit()
+		return
 	_checkbox.button_pressed = false
 	_continue_button.disabled = true
 	cancelled.emit()

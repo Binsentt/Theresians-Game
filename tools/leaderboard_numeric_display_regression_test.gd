@@ -63,7 +63,7 @@ func _assert_numeric_progress_cases(leaderboard: Control, stub: LocalLeaderboard
 		{"value": 1, "expected": "1"},
 		{"value": 50, "expected": "50"},
 		{"value": 50.0, "expected": "50"},
-		{"value": 87.5, "expected": "87.5"},
+		{"value": 87.5, "expected": "--"},
 		{"value": "98.00", "expected": "98"},
 	]
 	for case_data in cases:
@@ -80,11 +80,11 @@ func _assert_refresh_replaces_visible_entry(leaderboard: Control, stub: LocalLea
 	stub.entries = [_entry("Player A", 50)]
 	await leaderboard.refresh_leaderboard()
 	await get_tree().process_frame
-	stub.entries = [_entry("Player B", 87.5)]
+	stub.entries = [_entry("Player B", 87)]
 	await leaderboard.refresh_leaderboard()
 	await get_tree().process_frame
 	_expect(_row_label(_rows(leaderboard), 0, "DisplayName") == "Player B", "Refresh replaces the prior visible entry with the new response.")
-	_expect(_row_label(_rows(leaderboard), 0, "GameScore") == "87.5", "Refresh renders the new numeric game score value.")
+	_expect(_row_label(_rows(leaderboard), 0, "GameScore") == "87", "Refresh renders the new canonical integer Game Score value.")
 	_expect(stub.request_count >= 8, "Every numeric case and explicit refresh uses one local leaderboard request.")
 
 

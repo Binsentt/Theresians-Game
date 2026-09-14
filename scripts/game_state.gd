@@ -104,6 +104,7 @@ var student_id := ""
 var parent_id := ""
 var device_installation_id := ""
 var _save_directory := SAVE_DIRECTORY
+var _terms_session_accepted := false
 var learning_cycle_version: int = 0
 var learning_cycle_started_at: String = ""
 var _new_game_registration: Dictionary = {}
@@ -943,7 +944,12 @@ func safe_text_value(value: Variant, fallback: String = "") -> String:
 
 func build_canonical_activity_event(event: Dictionary, task_index: int, event_type: String = "") -> Dictionary:
 	var result := event.duplicate(true)
-	var metadata := get_task_activity_metadata(task_index)
+	var explicit_metadata: Variant = result.get("activity", {})
+	var metadata: Dictionary = {}
+	if explicit_metadata is Dictionary and not explicit_metadata.is_empty():
+		metadata = explicit_metadata
+	else:
+		metadata = get_task_activity_metadata(task_index)
 	var activity_id := safe_text_value(result.get("canonical_activity_id", result.get("activity_id", metadata.get("activity_id", ""))))
 	if activity_id.is_empty():
 		activity_id = safe_text_value(metadata.get("canonical_task_id", ""))
@@ -1163,6 +1169,17 @@ func is_valid_new_game_registration(values: Dictionary) -> bool:
 
 
 func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = true) -> void:
+	# A New Game is a new per-Student progression session. Never let the
+	# previous profile's answer/progress counters leak into this profile's save
+	# or remote progress projection.
+	score = 0
+	correct_answers = 0
+	incorrect_answers = 0
+	total_questions = 0
+	progress_percentage = 0
+	lesson_progress = 0
+	total_play_time = 0
+	difficulty_level = "Unknown"
 	player_name = String(profile.get("player_name", "")).strip_edges()
 	gender = String(profile.get("gender", "male")).to_lower()
 	grade_level = String(profile.get("grade_level", "")).strip_edges()
@@ -2165,13 +2182,12 @@ func get_device_installation_id() -> String:
 
 func has_current_terms_acceptance(for_student_id: String = "") -> bool:
 	var owner_id := for_student_id.strip_edges() if not for_student_id.strip_edges().is_empty() else student_id.strip_edges()
-	if owner_id.is_empty() or not FileAccess.file_exists(TERMS_ACCEPTANCE_PATH):
+	if is_debug_terms_run() and not _terms_session_accepted:
 		return false
-	var file := FileAccess.open(TERMS_ACCEPTANCE_PATH, FileAccess.READ)
-	if file == null:
+	if owner_id.is_empty():
 		return false
-	var parsed: Variant = JSON.parse_string(file.get_as_text())
-	file.close()
+	var records := _read_terms_acceptance_records()
+	var parsed: Variant = records.get(owner_id, {})
 	if not (parsed is Dictionary):
 		return false
 	return String(parsed.get("student_id", "")).strip_edges() == owner_id \
@@ -2180,20 +2196,62 @@ func has_current_terms_acceptance(for_student_id: String = "") -> bool:
 			and not String(parsed.get("accepted_at", "")).strip_edges().is_empty()
 
 
-func has_current_terms_app_acceptance() -> bool:
-	if not FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
-		return false
-	var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.READ)
+func _read_terms_acceptance_records() -> Dictionary:
+	if not FileAccess.file_exists(TERMS_ACCEPTANCE_PATH):
+		return {}
+	var file := FileAccess.open(TERMS_ACCEPTANCE_PATH, FileAccess.READ)
 	if file == null:
-		return false
+		return {}
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	file.close()
 	if not (parsed is Dictionary):
+		return {}
+	if parsed.get("records", null) is Dictionary:
+		return parsed.get("records", {})
+	var legacy_student_id := String(parsed.get("student_id", "")).strip_edges()
+	if legacy_student_id.is_empty():
+		return {}
+	return {legacy_student_id: parsed}
+
+
+func is_debug_terms_run() -> bool:
+	return OS.is_debug_build()
+
+
+func has_terms_session_acceptance() -> bool:
+	return _terms_session_accepted
+
+
+func reset_terms_session_acceptance() -> void:
+	_terms_session_accepted = false
+
+
+func _read_terms_app_acceptance() -> Dictionary:
+	if not FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
+		return {}
+	var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	return parsed if parsed is Dictionary else {}
+
+
+func get_terms_app_acceptance_student_id() -> String:
+	var parsed := _read_terms_app_acceptance()
+	return String(parsed.get("student_id", "")).strip_edges()
+
+
+func has_current_terms_app_acceptance() -> bool:
+	var parsed := _read_terms_app_acceptance()
+	if parsed.is_empty():
 		return false
 	return String(parsed.get("device_installation_id", "")).strip_edges() == get_device_installation_id() and String(parsed.get("terms_version", "")).strip_edges() == TERMS_VERSION and not String(parsed.get("accepted_at", "")).strip_edges().is_empty()
 
 
 func record_terms_app_acceptance() -> bool:
+	var existing := _read_terms_app_acceptance()
+	var existing_owner := String(existing.get("student_id", "")).strip_edges()
 	var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
 	if file == null:
 		return false
@@ -2201,8 +2259,10 @@ func record_terms_app_acceptance() -> bool:
 		"device_installation_id": get_device_installation_id(),
 		"terms_version": TERMS_VERSION,
 		"accepted_at": _utc_timestamp(),
+		"student_id": existing_owner,
 	}))
 	file.close()
+	_terms_session_accepted = true
 	return true
 
 
@@ -2210,6 +2270,18 @@ func bind_current_terms_acceptance_to_student(for_student_id: String) -> bool:
 	var owner_id := for_student_id.strip_edges()
 	if owner_id.is_empty() or not has_current_terms_app_acceptance():
 		return false
+	var existing := _read_terms_app_acceptance()
+	var existing_owner := String(existing.get("student_id", "")).strip_edges()
+	if not existing_owner.is_empty() and existing_owner != owner_id:
+		return false
+	if existing_owner.is_empty():
+		var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
+		if file == null:
+			return false
+		existing["student_id"] = owner_id
+		file.store_string(JSON.stringify(existing))
+		file.close()
+	_terms_session_accepted = true
 	return record_terms_acceptance(owner_id)
 
 
@@ -2217,15 +2289,17 @@ func record_terms_acceptance(for_student_id: String = "") -> bool:
 	var owner_id := for_student_id.strip_edges() if not for_student_id.strip_edges().is_empty() else student_id.strip_edges()
 	if owner_id.is_empty():
 		return false
-	var file := FileAccess.open(TERMS_ACCEPTANCE_PATH, FileAccess.WRITE)
-	if file == null:
-		return false
-	file.store_string(JSON.stringify({
+	var records := _read_terms_acceptance_records()
+	records[owner_id] = {
 		"student_id": owner_id,
 		"device_installation_id": get_device_installation_id(),
 		"terms_version": TERMS_VERSION,
 		"accepted_at": _utc_timestamp(),
-	}))
+	}
+	var file := FileAccess.open(TERMS_ACCEPTANCE_PATH, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify({"records": records}))
 	file.close()
 	return true
 

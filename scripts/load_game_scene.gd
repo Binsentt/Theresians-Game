@@ -3,6 +3,7 @@
 const SAVE_ENTRY_SCENE := preload("res://ui/save_entry.tscn")
 const LoadingScreenController := preload("res://scripts/loading_screen.gd")
 const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
+const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
 
 @onready var saves_container: VBoxContainer = $TextureRect/SavePanel/MarginContainer/Content/ScrollContainer/SavesContainer
 @onready var empty_label: Label = $TextureRect/SavePanel/MarginContainer/Content/EmptyLabel
@@ -13,6 +14,7 @@ const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
 var _save_transitioning: bool = false
 var _pending_delete_path: String = ""
 var _delete_all_pending: bool = false
+var _student_terms_gate: Control
 
 func _ready() -> void:
 	MusicManager.play_for_scene(scene_file_path)
@@ -107,6 +109,12 @@ func _on_save_selected(save_path: String) -> void:
 		empty_label.visible = true
 		_save_transitioning = false
 		return
+	var selected_student_id := String(save_data.get("student_id", "")).strip_edges()
+	if not await _ensure_terms_accepted_for_student(selected_student_id):
+		empty_label.text = "Please accept the Terms & Conditions before loading this save."
+		empty_label.visible = true
+		_save_transitioning = false
+		return
 
 	var cycle_result: Dictionary = await RemoteSync.request_learning_cycle(
 		String(save_data.get("student_id", "")),
@@ -126,6 +134,7 @@ func _on_save_selected(save_path: String) -> void:
 		return
 
 	var playtime_result: Dictionary = await RemoteSync.request_playtime_session({
+		"_force_refresh": true,
 		"student_id": String(save_data.get("student_id", "")),
 		"parent_id": String(save_data.get("parent_id", "")),
 		"student_name": String(save_data.get("player_name", "")),
@@ -140,6 +149,15 @@ func _on_save_selected(save_path: String) -> void:
 		empty_label.visible = true
 		_save_transitioning = false
 		return
+	var authoritative_start_cycle: Variant = playtime_result.get("learning_cycle", {})
+	if GameState.set_learning_cycle_descriptor_is_valid(authoritative_start_cycle):
+		save_data = GameState.annotate_save_learning_cycle(save_data, authoritative_start_cycle)
+		if not bool(save_data.get("loadable", false)):
+			await RemoteSync.request_end_playtime_session()
+			empty_label.text = String(save_data.get("save_error", "Previous Learning Cycle"))
+			empty_label.visible = true
+			_save_transitioning = false
+			return
 
 	var applied_save: Dictionary = GameState.load_save(save_path, false)
 	if applied_save.is_empty():
@@ -147,9 +165,37 @@ func _on_save_selected(save_path: String) -> void:
 		empty_label.visible = true
 		_save_transitioning = false
 		return
+	if GameState.set_learning_cycle_descriptor_is_valid(authoritative_start_cycle):
+		GameState.set_learning_cycle(authoritative_start_cycle)
 
 	LoadingScreenController.prepare_load_game(scene_path)
 	var result: int = get_tree().change_scene_to_file(LOADING_SCENE_PATH)
 	if result != OK:
 		LoadingScreenController.cancel_pending_request()
 		_save_transitioning = false
+
+
+func _ensure_terms_accepted_for_student(for_student_id: String) -> bool:
+	if for_student_id.is_empty():
+		return false
+	if GameState.has_current_terms_acceptance(for_student_id):
+		return true
+	var app_acceptance := GameState.has_current_terms_app_acceptance()
+	var app_student_id := GameState.get_terms_app_acceptance_student_id()
+	if app_acceptance and (app_student_id.is_empty() or app_student_id == for_student_id):
+		return GameState.bind_current_terms_acceptance_to_student(for_student_id)
+	if is_instance_valid(_student_terms_gate):
+		return false
+	_student_terms_gate = TERMS_GATE_SCRIPT.new() as Control
+	_student_terms_gate.name = "LoadStudentTermsGate"
+	add_child(_student_terms_gate)
+	_student_terms_gate.set_student_context(for_student_id)
+	var completion_state := {"accepted": false, "cancelled": false}
+	_student_terms_gate.accepted.connect(func() -> void: completion_state["accepted"] = true)
+	_student_terms_gate.cancelled.connect(func() -> void: completion_state["cancelled"] = true)
+	while is_instance_valid(_student_terms_gate) and not bool(completion_state["accepted"]) and not bool(completion_state["cancelled"]):
+		await get_tree().process_frame
+	if is_instance_valid(_student_terms_gate):
+		_student_terms_gate.queue_free()
+	_student_terms_gate = null
+	return bool(completion_state["accepted"]) and GameState.has_current_terms_acceptance(for_student_id)
