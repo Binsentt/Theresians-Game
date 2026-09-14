@@ -15,6 +15,7 @@ var local_qa_only := false
 const PLAYTIME_DAILY_LIMIT_MINUTES := 60
 const PLAYTIME_HEARTBEAT_INTERVAL_SECONDS := 15.0
 const CANONICAL_ACTIVITY_ENDPOINT := "/api/game/activity"
+const CANONICAL_RESULT_ENDPOINT := "/api/game/result"
 const CANONICAL_ACTIVITY_TYPES := {
 	"task_trigger": "task_triggered",
 	"task_completed": "task_completed",
@@ -582,6 +583,7 @@ func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
 		var entry := {
 			"rank": rank,
 			"display_name": display_name,
+			"game_score": _normalize_leaderboard_number(raw_entry.get("game_score", null)),
 			"progress_percentage": _normalize_leaderboard_number(raw_entry.get("progress_percentage", null)),
 			"accuracy_rate": _normalize_leaderboard_number(raw_entry.get("accuracy_rate", null)),
 			"correct_answers": _normalize_leaderboard_number(raw_entry.get("correct_answers", null)),
@@ -611,25 +613,42 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 	if local_qa_only:
 		return
 	var http := get_node_or_null("/root/HttpApi")
-	if http == null:
-		return
 	if not GameState.is_valid_existing_student_id(GameState.student_id) or not GameState.is_valid_six_digit_id(GameState.parent_id):
 		return
+	var payload := _build_question_result_payload(question, is_correct)
 	# Battle scenes can answer the first question while the asynchronous
 	# playtime-start request is still completing. Recover the current lease here
 	# instead of silently dropping that graded answer from website analytics.
 	if _current_playtime_session_id == 0 or _current_playtime_session_credential.is_empty():
 		var session_result: Dictionary = await _ensure_playtime_session()
 		if not bool(session_result.get("ok", false)):
-			print("RemoteSync: unable to establish a playtime lease for question result; local gameplay continues.")
+			_enqueue_pending_result(payload)
+			print("RemoteSync: unable to establish a playtime lease for question result; keeping it in the outbox.")
 			return
+	if http == null:
+		_enqueue_pending_result(payload)
+		return
+	_update_result_lease_fields(payload)
+
+	var result: Dictionary = await http.request_post(CANONICAL_RESULT_ENDPOINT, payload)
+	if _is_learning_cycle_changed(result):
+		print("RemoteSync: discarded a previous-learning-cycle question result.")
+		return
+	var status := GameState.safe_int_value(result.get("status", 0), 0)
+	if not result.get("ok", false) or status < 200 or status >= 300:
+		_enqueue_pending_result(payload)
+		print("RemoteSync: question result sync failed; keeping it in the outbox: %s" % str(result))
+	else:
+		await _flush_pending()
+
+
+func _build_question_result_payload(question: Dictionary, is_correct: bool) -> Dictionary:
 	var question_identity := str(question.get("question_id", question.get("id", ""))).strip_edges()
 	if question_identity.is_empty():
 		question_identity = "question:%s" % str(question.get("question", question.get("text", ""))).strip_edges().to_lower().hash()
 	var battle_identity := str(question.get("battle_id", question.get("encounter_id", GameState.encounter_context.get("encounter_id", "")))).strip_edges()
 	if battle_identity.is_empty():
 		battle_identity = "task-%d" % int(GameState.current_task_index)
-
 	var payload := {
 		"parent_id": GameState.parent_id,
 		"student_id": GameState.student_id,
@@ -654,14 +673,37 @@ func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 	var question_set_id: Variant = question.get("question_set_id", null)
 	if question_set_id is int and question_set_id > 0:
 		payload["question_set_id"] = question_set_id
+	return payload
 
-	var result: Dictionary = await http.request_post("/api/game/result", payload)
-	if _is_learning_cycle_changed(result):
-		print("RemoteSync: discarded a previous-learning-cycle question result.")
+
+func _update_result_lease_fields(payload: Dictionary) -> void:
+	payload["playtime_session_id"] = _current_playtime_session_id
+	payload["playtime_session_credential"] = _current_playtime_session_credential
+	payload["session_id"] = _current_playtime_session_id
+
+
+func _enqueue_pending_result(payload: Dictionary) -> void:
+	var event_id := String(payload.get("result_event_id", "")).strip_edges()
+	if event_id.is_empty():
 		return
-	var status := GameState.safe_int_value(result.get("status", 0), 0)
-	if not result.get("ok", false) or status < 200 or status >= 300:
-		print("RemoteSync: question result sync failed; local gameplay continues: %s" % str(result))
+	var pending := _load_pending()
+	for item in pending:
+		if item is Dictionary and String(item.get("kind", "")) == "result":
+			var existing_payload: Variant = item.get("payload", item)
+			if existing_payload is Dictionary and String(existing_payload.get("result_event_id", "")) == event_id:
+				return
+	var queued_payload := payload.duplicate(true)
+	queued_payload["environment_scope"] = "local_qa" if local_qa_only else "production"
+	pending.append({
+		"kind": "result",
+		"path": CANONICAL_RESULT_ENDPOINT,
+		"environment_scope": "local_qa" if local_qa_only else "production",
+		"payload": queued_payload,
+	})
+	var file := FileAccess.open(_pending_file, FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(pending))
+		file.close()
 
 
 func _enqueue_pending(save_data: Dictionary) -> void:
@@ -757,6 +799,20 @@ func _flush_pending() -> void:
 			if String(payload.get("environment_scope", "production")) != "production":
 				continue
 			is_activity = true
+		elif String(item.get("kind", "")) == "result":
+			path = String(item.get("path", CANONICAL_RESULT_ENDPOINT))
+			var queued_result: Variant = item.get("payload", {})
+			if not (queued_result is Dictionary):
+				continue
+			payload = queued_result.duplicate(true)
+			if String(payload.get("environment_scope", "production")) != "production":
+				continue
+			if not _has_active_playtime_lease():
+				var lease_result: Dictionary = await _ensure_playtime_session()
+				if not bool(lease_result.get("ok", false)):
+					remaining.append(item)
+					continue
+			_update_result_lease_fields(payload)
 		var result: Dictionary = await http.request_post(path, payload)
 		if _is_learning_cycle_changed(result):
 			print("RemoteSync: removed a stale pending item from the queue.")

@@ -76,7 +76,7 @@ func _normalized_row_data(entry: Variant) -> Dictionary:
 		"rank": "#%d" % rank,
 		"display_name": display_name,
 		"grade": grade if not grade.is_empty() else "--",
-		"progress": _format_progress_percentage(entry.get("progress_percentage", null)),
+		"game_score": _format_game_score(entry.get("game_score", null)),
 	}
 
 
@@ -90,7 +90,7 @@ func _create_row(row_data: Dictionary) -> HBoxContainer:
 	row.add_child(_create_row_label("Rank", str(row_data["rank"]), 110.0))
 	row.add_child(_create_row_label("DisplayName", str(row_data["display_name"]), 325.0))
 	row.add_child(_create_row_label("Grade", str(row_data["grade"]), 195.0))
-	row.add_child(_create_row_label("Progress", str(row_data["progress"]), 190.0))
+	row.add_child(_create_row_label("GameScore", str(row_data["game_score"]), 190.0))
 	return row
 
 
@@ -173,4 +173,23 @@ func _format_progress_percentage(progress_value: Variant) -> String:
 		if is_equal_approx(parsed, roundf(parsed)):
 			return "%d%%" % int(roundf(parsed))
 		return "%s%%" % str(parsed)
+	return "--"
+
+
+func _format_game_score(score_value: Variant) -> String:
+	if score_value is int:
+		return str(score_value)
+	if score_value is float:
+		if not is_finite(score_value):
+			return "--"
+		if is_equal_approx(score_value, roundf(score_value)):
+			return str(int(roundf(score_value)))
+		return str(score_value)
+	if score_value is String:
+		var parsed := GameState.safe_float_value(score_value, -1.0)
+		if parsed < 0.0:
+			return "--"
+		if is_equal_approx(parsed, roundf(parsed)):
+			return str(int(roundf(parsed)))
+		return str(parsed)
 	return "--"

@@ -15,7 +15,7 @@ func _run() -> void:
 	_expect(leaderboard_block.contains("/api/game/leaderboard"), "Game leaderboard must use the game endpoint rather than a portal route.")
 	_expect(leaderboard_block.contains("session_id") and leaderboard_block.contains("session_credential") and leaderboard_block.contains("learning_cycle_version"), "Game leaderboard requests must carry only the current playtime lease and cycle.")
 	var projection_block := _function_block(remote_source, "func _sanitize_game_leaderboard_entries")
-	_expect(projection_block.contains("display_name") and projection_block.contains("progress_percentage") and projection_block.contains("accuracy_rate"), "RemoteSync must preserve the approved privacy-safe leaderboard fields.")
+	_expect(projection_block.contains("display_name") and projection_block.contains("grade") and projection_block.contains("game_score"), "RemoteSync must preserve the canonical student name, grade, and game score fields.")
 	_expect(not projection_block.contains("student_id") and not projection_block.contains("parent_id") and not projection_block.contains("email"), "RemoteSync must discard sensitive leaderboard fields.")
 	_expect(projection_block.contains("slice(0, 6)"), "Game leaderboard must expose only the top six canonical entries in API order.")
 	_expect(controller_source.contains("request_game_leaderboard"), "Leaderboard controller must request data through RemoteSync.")

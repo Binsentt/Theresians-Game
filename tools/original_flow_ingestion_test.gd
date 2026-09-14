@@ -142,8 +142,17 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 	sync.set("_current_playtime_session_id", 0)
 	var before_unleased := http.requests.size()
 	await sync.record_question_attempt(question, true)
-	_expect(http.requests.size() == before_unleased, "Actual answer serialization sends nothing without a playtime lease")
+	_expect(http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result").size() == 2, "A graded answer is not sent before a playtime lease is available")
+	var pending_results: Array = []
+	for pending_item in sync._load_pending():
+		if pending_item is Dictionary and String(pending_item.get("kind", "")) == "result":
+			pending_results.append(pending_item)
+	_expect(pending_results.size() == 1, "A graded answer remains in the durable result outbox when the lease is unavailable")
 	sync.set("_current_playtime_session_id", 123)
+	sync.set("_current_playtime_session_credential", "local-test-lease")
+	state.playtime_authorized = true
+	await sync._flush_pending()
+	_expect(http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result").size() == 3, "Save/lease recovery flushes the pending graded answer exactly once")
 
 	# Representative local counters exercise projection only. Overall progress
 	# semantics remain the backend's responsibility; no client percentage is made
