@@ -10,7 +10,7 @@ const GOLD := Color("#f2c14e")
 const MUTED_GOLD := Color("#8c7442")
 const BODY := Color("#e8edf7")
 
-var _panel: PanelContainer
+var _panel: Panel
 var _checkbox: CheckBox
 var _continue_button: Button
 var _cancel_button: Button
@@ -33,13 +33,15 @@ func _build_ui() -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
 
-	_panel = PanelContainer.new()
+	_panel = Panel.new()
 	_panel.name = "Panel"
+	_panel.custom_minimum_size = Vector2.ZERO
 	_panel.add_theme_stylebox_override("panel", _panel_style())
 	add_child(_panel)
 
 	var margin := MarginContainer.new()
 	margin.name = "Margin"
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 28)
 	margin.add_theme_constant_override("margin_top", 24)
 	margin.add_theme_constant_override("margin_right", 28)
@@ -48,6 +50,8 @@ func _build_ui() -> void:
 
 	var content := VBoxContainer.new()
 	content.name = "Content"
+	content.custom_minimum_size = Vector2.ZERO
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 12)
 	margin.add_child(content)
 
@@ -72,6 +76,7 @@ func _build_ui() -> void:
 
 	var scroll := ScrollContainer.new()
 	scroll.name = "TermsScroll"
+	scroll.custom_minimum_size = Vector2.ZERO
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content.add_child(scroll)
@@ -82,7 +87,8 @@ func _build_ui() -> void:
 	body.fit_content = true
 	body.scroll_active = false
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.custom_minimum_size = Vector2(0, 180)
+	body.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	body.custom_minimum_size = Vector2.ZERO
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_theme_color_override("default_color", BODY)
 	body.add_theme_font_size_override("normal_font_size", 14)

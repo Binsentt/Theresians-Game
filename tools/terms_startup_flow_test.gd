@@ -52,7 +52,7 @@ func _run() -> void:
 		var cancel_button := terms_gate.get_node_or_null("Panel/Margin/Content/Actions/CancelButton") as Button
 		var actions := terms_gate.get_node_or_null("Panel/Margin/Content/Actions") as HBoxContainer
 		var scroll := terms_gate.get_node_or_null("Panel/Margin/Content/TermsScroll") as ScrollContainer
-		var panel := terms_gate.get_node_or_null("Panel") as PanelContainer
+		var panel := terms_gate.get_node_or_null("Panel") as Control
 		_expect(checkbox != null, "Terms gate has a real checkbox")
 		_expect(continue_button != null and continue_button.disabled, "Continue is disabled while unchecked")
 		_expect(cancel_button != null, "Terms gate has a Cancel action")
