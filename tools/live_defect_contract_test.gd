@@ -24,6 +24,16 @@ func _run() -> void:
 	_expect(not remote_source.contains("skipping question result because no active server playtime lease is available"), "Question results must not be silently discarded solely because the initial lease request raced the battle.")
 	_expect(settings_source.contains("const MAIN_MENU_SCENE := \"res://scenes/main_menu.tscn\""), "In-game Settings must target the canonical Main Menu scene.")
 	_expect(settings_source.contains("get_tree().change_scene_to_file(MAIN_MENU_SCENE)"), "In-game Settings Quit must return to Main Menu instead of quitting the process.")
+	_expect(settings_source.contains("Return to Main Menu?") and settings_source.contains("Your current progress will be saved before leaving."), "In-game Settings uses the approved Return-to-Main-Menu confirmation copy.")
+	_expect(settings_source.contains("GameState.save_game()") and settings_source.contains("await RemoteSync.request_end_playtime_session()"), "Confirmed gameplay exit saves locally and closes the active server session before returning.")
+	_expect(settings_source.find("GameState.save_game()") < settings_source.find("await RemoteSync.request_end_playtime_session()") and settings_source.find("await RemoteSync.request_end_playtime_session()") < settings_source.find("get_tree().change_scene_to_file(MAIN_MENU_SCENE)"), "Confirmed exit preserves save -> session end -> Main Menu ordering.")
+	var hud_source := FileAccess.get_file_as_string("res://scripts/game_hud.gd")
+	var timeout_start := remote_source.find("func _on_time_limit_reached()")
+	var timeout_end := remote_source.find("\nfunc _on_playtime_warning", timeout_start)
+	var timeout_source := remote_source.substr(timeout_start, timeout_end - timeout_start)
+	_expect(not hud_source.contains("GameState.time_limit_reached.connect(_on_time_limit_reached)"), "Daily-limit modal is not exposed before the session-close workflow completes.")
+	_expect(timeout_source.find("var auto_save_path: String = GameState.save_game()") < timeout_source.find("await _end_playtime_session()") and timeout_source.find("await _end_playtime_session()") < timeout_source.find("hud.call(\"show_time_limit_reached\")"), "Daily limit preserves save -> session end -> modal ordering.")
+	_expect(timeout_source.contains("if local_qa_only:") and timeout_source.contains("_invalidate_playtime_lease()"), "Daily limit keeps local QA save/modal behavior without remote writes.")
 	_expect(remote_source.contains("var session_result: Dictionary = await _ensure_playtime_session()"), "Leaderboard requests must recover a missing lease after a login/session race.")
 	_expect(leaderboard_source.contains("request_game_leaderboard"), "Leaderboard remains owned by the canonical RemoteSync request path.")
 	_expect(menu_source.contains("has_terms_session_acceptance") and menu_source.contains("production_acceptance"), "Main Menu Terms gate distinguishes debug sessions from production device acceptance.")
@@ -55,8 +65,10 @@ func _finish() -> void:
 		result_file.store_string(JSON.stringify(result))
 	if _failures.is_empty():
 		print("live_defect_contract_test: PASS")
+		await get_tree().create_timer(1.0).timeout
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
+	await get_tree().create_timer(1.0).timeout
 	get_tree().quit(1)

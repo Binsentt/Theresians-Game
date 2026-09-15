@@ -2,7 +2,7 @@ extends Control
 
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
 
-const EXIT_PROMPT_TEXT := "Are you sure you want to exit the game?"
+const EXIT_PROMPT_TEXT := "Your current progress will be saved before leaving."
 const SAVE_PROMPT_TEXT := "Do you want to save this game?"
 const EXIT_DIALOG_SIZE := Vector2i(460, 170)
 const SAVE_DIALOG_SIZE := Vector2i(460, 170)
@@ -134,11 +134,12 @@ func _build_exit_dialog() -> void:
 	_exit_dialog.name = "ExitConfirmationDialog"
 	_exit_dialog.process_mode = Node.PROCESS_MODE_ALWAYS
 	_exit_dialog.dialog_text = EXIT_PROMPT_TEXT
-	_exit_dialog.title = "Exit Game"
-	_exit_dialog.ok_button_text = "Yes"
-	_exit_dialog.cancel_button_text = "Cancel"
+	_exit_dialog.title = "Return to Main Menu?"
+	_exit_dialog.ok_button_text = "YES / RETURN"
+	_exit_dialog.cancel_button_text = "NO / CANCEL"
 	_exit_dialog.exclusive = true
 	add_child(_exit_dialog)
+	_apply_confirmation_theme(_exit_dialog)
 
 func _build_save_dialog() -> void:
 	_save_dialog = ConfirmationDialog.new()
@@ -170,6 +171,8 @@ func _connect_controls() -> void:
 		sfx_slider.value_changed.connect(_on_sfx_volume_changed)
 	if not _exit_dialog.confirmed.is_connected(_on_exit_confirmed):
 		_exit_dialog.confirmed.connect(_on_exit_confirmed)
+	if not _exit_dialog.canceled.is_connected(_on_exit_canceled):
+		_exit_dialog.canceled.connect(_on_exit_canceled)
 	if not _save_dialog.confirmed.is_connected(_on_save_confirmed):
 		_save_dialog.confirmed.connect(_on_save_confirmed)
 	if not _save_dialog.canceled.is_connected(_on_save_canceled):
@@ -282,10 +285,42 @@ func _on_exit_pressed() -> void:
 	_exit_dialog.popup_centered(EXIT_DIALOG_SIZE)
 
 func _on_exit_confirmed() -> void:
+	var player := get_tree().get_first_node_in_group("player_character") as Node2D
+	var current_scene := get_tree().current_scene
+	if player != null and current_scene != null:
+		GameState.capture_runtime(current_scene.scene_file_path, player.global_position)
+		GameState.save_game()
+		# Give the existing save_created sync observer one frame to begin its
+		# best-effort progress flush before the session close request.
+		await get_tree().process_frame
+	if RemoteSync != null and RemoteSync.has_method("request_end_playtime_session"):
+		await RemoteSync.request_end_playtime_session()
 	settings_popup.visible = false
 	InputManager.unlock_input("settings_pause")
 	get_tree().paused = false
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+
+func _on_exit_canceled() -> void:
+	if _exit_dialog != null:
+		_exit_dialog.hide()
+	settings_popup.visible = true
+
+func _apply_confirmation_theme(dialog: ConfirmationDialog) -> void:
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.04, 0.08, 0.18, 0.98)
+	panel_style.border_color = Color(0.95, 0.76, 0.28, 1.0)
+	panel_style.set_border_width_all(3)
+	panel_style.set_corner_radius_all(8)
+	panel_style.content_margin_left = 22.0
+	panel_style.content_margin_right = 22.0
+	panel_style.content_margin_top = 18.0
+	panel_style.content_margin_bottom = 18.0
+	dialog.add_theme_stylebox_override("panel", panel_style)
+	dialog.add_theme_color_override("font_color", Color(0.90, 0.92, 1.0, 1.0))
+	dialog.add_theme_font_size_override("font_size", 14)
+	for button in [dialog.get_ok_button(), dialog.get_cancel_button()]:
+		button.add_theme_color_override("font_color", Color(0.95, 0.82, 0.44, 1.0))
+		button.add_theme_font_size_override("font_size", 12)
 
 func _on_save_confirmed() -> void:
 	var player := get_tree().get_first_node_in_group("player_character") as Node2D

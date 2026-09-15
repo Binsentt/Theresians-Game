@@ -121,9 +121,14 @@ func _on_time_limit_reached() -> void:
 	if current_scene != null:
 		GameState.capture_runtime(current_scene.scene_file_path, get_tree().get_first_node_in_group("player_character").global_position if get_tree().get_first_node_in_group("player_character") != null else Vector2.ZERO)
 	var auto_save_path: String = GameState.save_game()
-	await _end_playtime_session()
-	await _create_activity_log("Auto Save", "Auto-save due to daily playtime limit reached", {})
-	await _create_activity_log("Timeout", "Gameplay session timed out after daily limit reached", {})
+	if local_qa_only:
+		# Local human QA keeps the same local-save/modal behavior without making
+		# any telemetry or progress request outside the isolated runtime.
+		_invalidate_playtime_lease()
+	else:
+		await _end_playtime_session()
+		await _create_activity_log("Auto Save", "Auto-save due to daily playtime limit reached", {})
+		await _create_activity_log("Timeout", "Gameplay session timed out after daily limit reached", {})
 	var hud := get_node_or_null("/root/GameHUD")
 	if hud != null and hud.has_method("show_time_limit_reached"):
 		hud.call("show_time_limit_reached")

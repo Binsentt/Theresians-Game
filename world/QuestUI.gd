@@ -19,8 +19,8 @@ var _final_close_consumed := false
 func _ready() -> void:
 	if dialogue_panel != null:
 		var panel_height := snappedf(dialogue_panel.size.y * 0.9, 2.0)
-		dialogue_panel.offset_left -= 20.0
-		dialogue_panel.offset_right += 20.0
+		dialogue_panel.offset_left -= 32.0
+		dialogue_panel.offset_right += 32.0
 		dialogue_panel.anchor_top = 1.0
 		dialogue_panel.anchor_bottom = 1.0
 		# Longer wrapped text grows upward from the same bottom margin.

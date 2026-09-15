@@ -1,7 +1,7 @@
 extends "res://tools/gameplay_battle_tree_audit.gd"
 
 var observed: Array[Dictionary] = []
-const VIEWPORTS := [Vector2i(1215, 545), Vector2i(844, 390), Vector2i(1280, 800)]
+const VIEWPORTS := [Vector2i(1134, 509), Vector2i(1215, 545), Vector2i(1280, 720), Vector2i(1920, 1080)]
 
 func _run() -> void:
 	for autoload_name in ["RemoteSync", "HttpApi", "QuestionProvider"]:
@@ -120,8 +120,8 @@ func _timeout_presentation() -> void:
 		var rect := panel.get_global_rect()
 		_expect(rect.size.is_equal_approx(Vector2(420, 228)), "Timeout modest panel size at " + str(dimensions))
 		_expect(rect.get_center().is_equal_approx(viewport * 0.5), "Timeout preserves center at " + str(dimensions))
-		_expect(heading.get_theme_font_size("font_size") == 22 and description.get_theme_font_size("font_size") == 11 and button.get_theme_font_size("font_size") == 13, "Timeout modest font sizes at " + str(dimensions))
-		_expect(heading.text == "TIME LIMIT REACHED" and description.text == "Daily playtime allowance is complete." and button.text == "RETURN TO MAIN MENU", "Timeout exact wording preserved")
+		_expect(heading.get_theme_font_size("font_size") == 16 and description.get_theme_font_size("font_size") == 11 and button.get_theme_font_size("font_size") == 13, "Timeout modest font sizes at " + str(dimensions))
+		_expect(heading.text == "DAILY PLAYTIME COMPLETE" and description.text == "You have reached today's playtime limit.\nYour progress has been saved." and button.text == "RETURN TO MAIN MENU", "Daily-limit modal uses the approved saved-progress wording")
 		_expect(panel.get_theme_stylebox("panel") == old_style and state.playtime_limit_minutes == old_minutes, "Timeout original style and time duration preserved")
 		_expect(rect.get_area() < viewport.x * viewport.y * 0.28, "Timeout occupies a modest viewport area")
 		observed.append({"role":"Timeout", "requested_window":str(dimensions), "actual_window":str(get_window().size), "viewport":str(viewport), "panel":str(rect), "heading_font":heading.get_theme_font_size("font_size")})

@@ -47,13 +47,20 @@ func _run() -> void:
     GameState.set_mode(original_mode)
     GameState.current_task_index = original_task_index
 
+    var result_file := FileAccess.open("user://quest_presentation_dialogue_regression_test_result.json", FileAccess.WRITE)
+    if result_file != null:
+        result_file.store_string(JSON.stringify({"passed": _failures.is_empty(), "failures": _failures}))
+        result_file.close()
+
     if _failures.is_empty():
         print("quest_presentation_dialogue_regression_test: PASS")
+        await get_tree().create_timer(1.0).timeout
         get_tree().quit(0)
         return
 
     for failure in _failures:
         push_error(failure)
+    await get_tree().create_timer(1.0).timeout
     get_tree().quit(1)
 
 
@@ -210,8 +217,8 @@ func _exercise_compact_trigger_layout(trigger_panel: Control) -> void:
         var viewport_size := get_viewport().get_visible_rect().size
         _expect(
             is_equal_approx(panel_rect.get_center().x, viewport_size.x * 0.5)
-                and is_equal_approx(panel_rect.get_center().y, viewport_size.y * 0.5),
-            "Task Trigger must remain centered in the middle of the viewport."
+                and is_equal_approx(viewport_size.y - panel_rect.end.y, 28.0),
+            "Teacher portrait task trigger must sit bottom-center with a safe viewport margin."
         )
     _expect(
         headline != null and body != null

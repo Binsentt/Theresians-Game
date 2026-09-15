@@ -24,8 +24,6 @@ func _ready() -> void:
 		GameState.task_state_changed.connect(_on_task_state_changed)
 	if not GameState.game_over.is_connected(_on_game_over):
 		GameState.game_over.connect(_on_game_over)
-	if not GameState.time_limit_reached.is_connected(_on_time_limit_reached):
-		GameState.time_limit_reached.connect(_on_time_limit_reached)
 	if not return_button.pressed.is_connected(_on_return_button_pressed):
 		return_button.pressed.connect(_on_return_button_pressed)
 
@@ -52,19 +50,20 @@ func _on_game_over() -> void:
 
 
 func _on_time_limit_reached() -> void:
+	InputManager.lock_input("daily_time_limit")
 	var label := get_node_or_null("GameOverOverlay/PanelContainer/VBoxContainer/Label") as Label
 	var description := get_node_or_null("GameOverOverlay/PanelContainer/VBoxContainer/Description") as Label
 	if label != null:
-		label.text = "TIME LIMIT REACHED"
-		label.add_theme_font_size_override("font_size", 22)
+		label.text = "DAILY PLAYTIME COMPLETE"
+		label.add_theme_font_size_override("font_size", 16)
 	if description != null:
-		description.text = "Daily playtime allowance is complete."
+		description.text = "You have reached today's playtime limit.\nYour progress has been saved."
 		description.add_theme_font_size_override("font_size", 11)
 	if game_over_overlay != null:
 		var panel := game_over_overlay.get_node("PanelContainer") as Control
-		panel.offset_left = -210.0
+		panel.offset_left = -220.0
 		panel.offset_top = -114.0
-		panel.offset_right = 210.0
+		panel.offset_right = 220.0
 		panel.offset_bottom = 114.0
 		game_over_overlay.visible = true
 	if return_button != null:
@@ -78,6 +77,7 @@ func show_time_limit_reached() -> void:
 
 func _on_return_button_pressed() -> void:
 	get_tree().paused = false
+	InputManager.unlock_input("daily_time_limit")
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
