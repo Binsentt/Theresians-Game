@@ -11,6 +11,7 @@ const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
 var _transitioning := false
 var _terms_gate: Control
 var _gated_controls: Array[BaseButton] = []
+var _terms_required := false
 
 func _ready() -> void:
 	MusicManager.play_for_scene(scene_file_path)
@@ -30,21 +31,30 @@ func _initialize_terms_gate() -> void:
 		get_node_or_null("VBoxContainer/OptionBtn"),
 		get_node_or_null("VBoxContainer/QuitBtn"),
 		leaderboard_button,
-		terms_privacy_button,
 	]:
 		if node is BaseButton:
 			_gated_controls.append(node)
 	var debug_session_accepted := GameState.has_method("has_terms_session_acceptance") and bool(GameState.call("has_terms_session_acceptance"))
 	var production_acceptance := not GameState.is_debug_terms_run() and GameState.has_current_terms_app_acceptance()
 	if debug_session_accepted or production_acceptance:
+		_terms_required = false
 		_set_gated_controls_enabled(true)
 		return
-	_terms_gate = TERMS_GATE_SCRIPT.new() as Control
-	_terms_gate.name = "TermsGate"
-	_terms_gate.accepted.connect(_on_terms_gate_accepted)
-	_terms_gate.cancelled.connect(_on_terms_gate_cancelled)
-	add_child(_terms_gate)
+	_terms_required = true
 	_set_gated_controls_enabled(false)
+	_show_required_terms_gate()
+
+
+func _show_required_terms_gate() -> void:
+	if not is_instance_valid(_terms_gate):
+		_terms_gate = TERMS_GATE_SCRIPT.new() as Control
+		_terms_gate.name = "TermsGate"
+		_terms_gate.accepted.connect(_on_terms_gate_accepted)
+		_terms_gate.cancelled.connect(_on_terms_gate_cancelled)
+		add_child(_terms_gate)
+	_terms_gate.set_review_mode(false)
+	_terms_gate.visible = true
+	_terms_gate.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _set_gated_controls_enabled(enabled: bool) -> void:
@@ -55,6 +65,7 @@ func _set_gated_controls_enabled(enabled: bool) -> void:
 
 
 func _on_terms_gate_accepted() -> void:
+	_terms_required = false
 	_set_gated_controls_enabled(true)
 	if is_instance_valid(_terms_gate):
 		_terms_gate.visible = false
@@ -62,11 +73,18 @@ func _on_terms_gate_accepted() -> void:
 
 
 func _on_terms_gate_cancelled() -> void:
+	_terms_required = true
 	_set_gated_controls_enabled(false)
+	if is_instance_valid(_terms_gate):
+		_terms_gate.visible = false
+		_terms_gate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _on_terms_privacy_pressed() -> void:
 	if terms_privacy_button == null or terms_privacy_button.disabled:
+		return
+	if _terms_required:
+		_show_required_terms_gate()
 		return
 	var review_gate := TERMS_GATE_SCRIPT.new() as Control
 	review_gate.name = "TermsPrivacyReview"

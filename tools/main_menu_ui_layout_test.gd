@@ -18,6 +18,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	_assert_menu_button_contract()
+	_assert_title_spacing_contract()
 	_assert_options_slider_contract()
 	_finish()
 
@@ -68,6 +69,35 @@ func _assert_options_slider_contract() -> void:
 			_fail("%s must reserve enough height for its compact grabber" % slider_name)
 		if not node_block.contains("theme_override_styles/slider = SubResource(\"StyleBoxTexture_lgwnu\")"):
 			_fail("%s must retain the blue/gold decorative slider track" % slider_name)
+
+
+func _assert_title_spacing_contract() -> void:
+	var scene_source := _read_source(MAIN_MENU_SCENE_PATH)
+	var title_block := _node_block(scene_source, "Label")
+	var menu_block := _node_block(scene_source, "VBoxContainer")
+	var title_bottom := _float_property(title_block, "offset_bottom")
+	var menu_top := _float_property(menu_block, "offset_top")
+	if menu_top - title_bottom < 20.0:
+		_fail("Main Menu controls must sit at least 20px below the Theresian's Quest title")
+	var authored_menu_height := 309.0
+	for viewport_size in [Vector2(1134, 509), Vector2(1215, 545), Vector2(1280, 720), Vector2(1920, 1080)]:
+		if menu_top + authored_menu_height > viewport_size.y:
+			_fail("Main Menu controls do not fit the %dx%d validation viewport" % [viewport_size.x, viewport_size.y])
+
+
+func _node_block(source: String, node_name: String) -> String:
+	var node_start := source.find("[node name=\"%s\"" % node_name)
+	if node_start < 0:
+		return ""
+	var node_end := source.find("[node name=", node_start + 1)
+	return source.substr(node_start, node_end - node_start if node_end >= 0 else -1)
+
+
+func _float_property(block: String, property_name: String) -> float:
+	var expression := RegEx.new()
+	expression.compile("(?m)^%s = (-?[0-9]+(?:\\.[0-9]+)?)$" % property_name)
+	var match := expression.search(block)
+	return float(match.get_string(1)) if match != null else -1.0
 
 
 func _read_source(path: String) -> String:

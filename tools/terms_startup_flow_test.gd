@@ -42,10 +42,18 @@ func _run() -> void:
 	var new_game := menu.get_node_or_null("VBoxContainer/NewGameBtn") as BaseButton
 	var load_game := menu.get_node_or_null("VBoxContainer/LoadGameBtn") as BaseButton
 	var leaderboard := menu.get_node_or_null("LeaderboardButton") as BaseButton
+	var terms_privacy := menu.get_node_or_null("VBoxContainer/TermsPrivacyButton") as BaseButton
+	var title := menu.get_node_or_null("Label") as Control
+	var menu_controls := menu.get_node_or_null("VBoxContainer") as Control
 	_expect(terms_gate != null and terms_gate.visible, "Terms gate appears automatically at Main Menu startup")
 	_expect(new_game != null and new_game.disabled, "New Game is gated before Terms acceptance")
 	_expect(load_game != null and load_game.disabled, "Load Game is gated before Terms acceptance")
 	_expect(leaderboard != null and leaderboard.disabled, "Leaderboard is gated before Terms acceptance")
+	_expect(terms_privacy != null and not terms_privacy.disabled, "Terms & Privacy remains available while gameplay actions are gated")
+	_expect(title != null and menu_controls != null and menu_controls.position.y - (title.position.y + title.size.y) >= 20.0, "Main Menu controls sit clearly below the title")
+	if menu_controls != null:
+		for validation_size in [Vector2(1134, 509), Vector2(1215, 545), Vector2(1280, 720), Vector2(1920, 1080)]:
+			_expect(menu_controls.position.y + menu_controls.get_combined_minimum_size().y <= validation_size.y, "Main Menu controls fit %dx%d" % [validation_size.x, validation_size.y])
 
 	if terms_gate != null:
 		var checkbox := terms_gate.get_node_or_null("Panel/Margin/Content/AgreementRow/AgreementCheckBox") as CheckBox
@@ -70,7 +78,11 @@ func _run() -> void:
 			_expect(continue_button.disabled, "Continue disables again when unchecked")
 			cancel_button.pressed.emit()
 			await get_tree().process_frame
-			_expect(terms_gate.visible and new_game.disabled, "Cancel leaves the player at a gated Main Menu")
+			_expect(not terms_gate.visible and new_game.disabled and load_game.disabled and leaderboard.disabled, "Cancel closes Terms while leaving Main Menu actions gated")
+			terms_privacy.pressed.emit()
+			await get_tree().process_frame
+			_expect(terms_gate.visible, "Terms & Privacy reopens the required Terms gate after Cancel")
+			_expect(checkbox.visible and not checkbox.button_pressed, "Reopened Terms keeps the agreement checkbox available and unchecked")
 			checkbox.button_pressed = true
 			await get_tree().process_frame
 			continue_button.pressed.emit()
