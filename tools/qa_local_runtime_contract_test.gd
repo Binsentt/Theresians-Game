@@ -96,7 +96,7 @@ func _run_terms_startup_checks() -> void:
 	_expect(first_load_game != null and first_load_game.disabled, "Load Game is disabled before first-launch acceptance")
 	_expect(first_options != null and first_options.disabled, "Options is disabled before first-launch acceptance")
 	_expect(first_quit != null and first_quit.disabled, "Quit is disabled before first-launch acceptance")
-	_expect(first_terms_privacy != null and first_terms_privacy.disabled, "Terms and Privacy review stays behind the initial acceptance gate")
+	_expect(first_terms_privacy != null and not first_terms_privacy.disabled, "Terms and Privacy remains available so the agreement can be reviewed before acceptance")
 	_expect(first_leaderboard != null and first_leaderboard.disabled, "Leaderboard is disabled before first-launch acceptance")
 	var first_checkbox := first_gate.get_node_or_null("Panel/Margin/Content/AgreementRow/AgreementCheckBox") as CheckBox if first_gate != null else null
 	var first_continue := first_gate.get_node_or_null("Panel/Margin/Content/Actions/ContinueButton") as Button if first_gate != null else null
