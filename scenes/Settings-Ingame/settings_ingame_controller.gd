@@ -301,9 +301,7 @@ func _on_exit_confirmed() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 func _on_exit_canceled() -> void:
-	if _exit_dialog != null:
-		_exit_dialog.hide()
-	settings_popup.visible = true
+	_resume_game()
 
 func _apply_confirmation_theme(dialog: ConfirmationDialog) -> void:
 	var panel_style := StyleBoxFlat.new()

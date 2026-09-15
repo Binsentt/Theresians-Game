@@ -82,7 +82,11 @@ func _run() -> void:
 		_expect(exit_dialog.dialog_text.contains("progress will be saved"), "Return confirmation explains save behavior at %s" % dimensions)
 		_expect(exit_dialog.get_ok_button().text == "YES / RETURN" and exit_dialog.get_cancel_button().text == "NO / CANCEL", "Return confirmation exposes both actions at %s" % dimensions)
 		_expect(exit_dialog.get_theme_stylebox("panel") is StyleBoxFlat, "Return confirmation uses the game-styled panel at %s" % dimensions)
-		exit_dialog.hide()
+		settings.get_node("SettingsPopup").visible = true
+		InputManager.lock_input("settings_pause")
+		get_tree().paused = true
+		settings.call("_on_exit_canceled")
+		_expect(not exit_dialog.visible and not settings.get_node("SettingsPopup").visible and not get_tree().paused and not InputManager.is_input_locked(), "Cancel closes Settings and resumes gameplay without exiting at %s" % dimensions)
 
 	var failed := _checks.filter(func(check: Dictionary) -> bool: return not bool(check.get("passed", false))).size()
 	var result_file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
