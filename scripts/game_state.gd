@@ -434,6 +434,7 @@ func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> D
 				"canonical_milestone_id": "oakleaf.bandits.complete",
 			}, OAKLEAF_BANDIT_TASK_INDEX, "task_completed")
 			task_state_changed.emit(previous_index, current_task_index, all_bandits_event)
+			_start_current_task_activity_after_transition(previous_index)
 		if persist and normalized_id != OAKLEAF_BANDIT_IDS[0]:
 			save_game()
 		return {
@@ -465,6 +466,7 @@ func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> D
 		# are internal milestones and must not create a second player-facing task.
 		_record_player_facing_completion("oakleaf-bandits")
 		task_state_changed.emit(previous_index, current_task_index, boss_event)
+		_start_current_task_activity_after_transition(previous_index)
 		if persist:
 			save_game()
 		return {
@@ -501,6 +503,7 @@ func complete_oakleaf_teacher_return() -> Dictionary:
 	_record_player_facing_completion("oakleaf-return-to-teacher")
 	event = build_canonical_activity_event(event, previous_index, "task_completed")
 	task_state_changed.emit(previous_index, current_task_index, event)
+	_start_current_task_activity_after_transition(previous_index)
 	_notify_progress(event)
 	var save_path := save_game()
 	return {
@@ -550,6 +553,7 @@ func mark_city_first_arrival() -> Dictionary:
 	}
 	event = build_canonical_activity_event(event, previous_index, "task_completed")
 	task_state_changed.emit(previous_index, current_task_index, event)
+	_start_current_task_activity_after_transition(previous_index)
 	_notify_progress(event)
 	var save_path := save_game()
 	return {
@@ -584,6 +588,7 @@ func complete_city_school_teacher() -> Dictionary:
 	_record_player_facing_completion(String(get_task_activity_metadata(previous_index).get("canonical_task_id", "talk-to-city-school-teacher")))
 	event = build_canonical_activity_event(event, previous_index, "task_completed")
 	task_state_changed.emit(previous_index, current_task_index, event)
+	_start_current_task_activity_after_transition(previous_index)
 	_notify_progress(event)
 	var save_path := save_game()
 	return {
@@ -689,6 +694,7 @@ func _advance_progression_checkpoint(previous_index: int, next_index: int, key: 
 	}, previous_index, "task_completed")
 	_record_player_facing_completion(task_id)
 	task_state_changed.emit(previous_index, current_task_index, completion_event)
+	_start_current_task_activity_after_transition(previous_index)
 
 
 func record_progression_encounter_victory(encounter_id: String, persist: bool = true) -> Dictionary:
@@ -835,6 +841,7 @@ func advance_task_and_save(event: Dictionary) -> Dictionary:
 		event = build_canonical_activity_event(event, previous_index, event_type)
 	var save_path := save_game()
 	task_state_changed.emit(previous_index, current_task_index, event)
+	_start_current_task_activity_after_transition(previous_index)
 	_notify_progress(event)
 	return {
 		"advanced": true,
@@ -1066,6 +1073,14 @@ func emit_current_task_activity_started() -> bool:
 	}, current_task_index, "task_trigger")
 	canonical_activity_boundary.emit(start_event)
 	return true
+
+
+func _start_current_task_activity_after_transition(previous_index: int) -> void:
+	# Telemetry is best-effort and never controls quest progression. Each task ID
+	# is guarded by _started_task_activity_ids, so repeated scene entry is safe.
+	if current_task_index == previous_index or current_task_index < 0 or current_task_index >= tasks.size():
+		return
+	emit_current_task_activity_started()
 
 
 func _get_tutorial_activity_metadata() -> Dictionary:
@@ -1392,17 +1407,20 @@ func finalize_new_game_registration(server_authorized: bool = false) -> bool:
 
 func handle_scene_entered(scene_path: String) -> void:
 	current_scene_path = _normalize_scene_path(scene_path)
+	var previous_scene_task_index := current_task_index
 	if current_scene_path == "res://scenes/city_of_knowledge.tscn":
 		if return_to_city_stage >= 2 and current_task_index == RETURN_CITY_TASK_INDEX:
 			current_task_index = FINAL_SCHOOL_TASK_INDEX
 			current_quest = get_current_quest_text()
 			quest_changed.emit(current_quest)
 			save_game()
+			_start_current_task_activity_after_transition(previous_scene_task_index)
 		elif city_school_stage_complete and current_task_index == CITY_NEXT_PATH_TASK_INDEX:
 			current_task_index = DEEP_FOREST_BANDIT_TASK_INDEX
 			current_quest = get_current_quest_text()
 			quest_changed.emit(current_quest)
 			save_game()
+			_start_current_task_activity_after_transition(previous_scene_task_index)
 		else:
 			mark_city_first_arrival()
 	elif current_scene_path == "res://interiors/school.tscn":
@@ -1411,17 +1429,20 @@ func handle_scene_entered(scene_path: String) -> void:
 			current_quest = get_current_quest_text()
 			quest_changed.emit(current_quest)
 			save_game()
+			_start_current_task_activity_after_transition(previous_scene_task_index)
 		elif current_task_index == FINAL_SCHOOL_TASK_INDEX and return_to_city_stage >= 2:
 			current_task_index = FINAL_TEACHER_TASK_INDEX
 			current_quest = get_current_quest_text()
 			quest_changed.emit(current_quest)
 			save_game()
+			_start_current_task_activity_after_transition(previous_scene_task_index)
 	elif current_scene_path == "res://scenes/2nd Village/Pinehill Village.tscn" \
 			and pinehill_unlocked and current_task_index == PINEHILL_ARRIVAL_TASK_INDEX:
 		current_task_index = PINEHILL_OLD_MAN_TASK_INDEX
 		current_quest = get_current_quest_text()
 		quest_changed.emit(current_quest)
 		save_game()
+		_start_current_task_activity_after_transition(previous_scene_task_index)
 
 func get_player_scene_path() -> String:
 	return PLAYER_SCENES.get(gender, PLAYER_SCENES["male"])

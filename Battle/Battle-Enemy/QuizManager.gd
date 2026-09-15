@@ -32,6 +32,8 @@ var _provider: Node = null
 var _current_question_data: Dictionary = {}
 var _provider_load_completed := false
 var _battle_finished_emitted := false
+var _current_question_presented_at := ""
+var _current_question_presented_unix := -1.0
 
 func _ready():
 	_provider = get_node_or_null("/root/QuestionProvider")
@@ -76,7 +78,7 @@ func load_question():
 		var q: Dictionary = _provider.call("get_question")
 		if q.is_empty():
 			return
-		_current_question_data = q
+		_set_presented_question(q)
 		question_label.text = String(q.get("question", ""))
 		var choices: Array = q.get("choices", ["", "", "", ""])
 		for i in range(buttons.size()):
@@ -89,7 +91,7 @@ func load_question():
 		questions.shuffle()
 
 	var q: Dictionary = questions[current_question]
-	_current_question_data = q
+	_set_presented_question(q)
 	question_label.text = String(q.get("question", ""))
 	var choices: Array = q.get("choices", ["", "", "", ""])
 	for i in range(buttons.size()):
@@ -99,10 +101,15 @@ func load_question():
 func answer_selected(index:int):
 	if _battle_finished_emitted:
 		return
-	var q: Dictionary = _current_question_data
+	var q: Dictionary = _current_question_data.duplicate(true)
 	if q.is_empty() and current_question < questions.size():
 		q = questions[current_question]
 	if q is Dictionary:
+		var answer_submitted_unix := Time.get_unix_time_from_system()
+		q["question_presented_at"] = _current_question_presented_at
+		q["answer_submitted_at"] = Time.get_datetime_string_from_system(true) + "Z"
+		if _current_question_presented_unix >= 0.0:
+			q["response_time_seconds"] = maxi(0, int(answer_submitted_unix - _current_question_presented_unix))
 		var is_correct := index == int(q.get("correct", -1))
 		_record_question_attempt(q, is_correct)
 		if is_correct:
@@ -125,6 +132,12 @@ func answer_selected(index:int):
 		return
 
 	load_question()
+
+
+func _set_presented_question(question: Dictionary) -> void:
+	_current_question_data = question.duplicate(true)
+	_current_question_presented_unix = Time.get_unix_time_from_system()
+	_current_question_presented_at = Time.get_datetime_string_from_system(true) + "Z"
 
 
 func _record_question_attempt(question: Dictionary, is_correct: bool) -> void:

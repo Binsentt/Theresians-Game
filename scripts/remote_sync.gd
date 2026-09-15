@@ -822,6 +822,15 @@ func _build_question_result_payload(question: Dictionary, is_correct: bool) -> D
 	var question_set_id: Variant = question.get("question_set_id", null)
 	if question_set_id is int and question_set_id > 0:
 		payload["question_set_id"] = question_set_id
+	var question_presented_at := str(question.get("question_presented_at", "")).strip_edges()
+	var answer_submitted_at := str(question.get("answer_submitted_at", "")).strip_edges()
+	var response_time_seconds := GameState.safe_int_value(question.get("response_time_seconds", -1), -1)
+	if not question_presented_at.is_empty():
+		payload["question_presented_at"] = question_presented_at
+	if not answer_submitted_at.is_empty():
+		payload["answer_submitted_at"] = answer_submitted_at
+	if response_time_seconds >= 0:
+		payload["response_time_seconds"] = response_time_seconds
 	return payload
 
 
