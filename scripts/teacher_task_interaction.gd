@@ -6,7 +6,47 @@ extends Node
 
 @export var quest_ui_path: NodePath = NodePath("../CanvasLayer/Panel")
 
+const COMPONENT_NAME := "TeacherTaskInteraction"
+const TARGET_SENSOR_WORLD_SIZE := Vector2(42.0, 36.0)
+
 var _active: bool = false
+
+
+static func install_for_scene(world: Node2D, component_script: Script) -> void:
+	if world == null or component_script == null:
+		return
+	var teacher := world.get_node_or_null("Teacher") as Node2D
+	var sensor := world.get_node_or_null("Teacher/Area2D2") as Area2D
+	if teacher == null or sensor == null:
+		return
+
+	if not teacher.has_method("interact") or not teacher.has_method("can_interact"):
+		var target := teacher.get_node_or_null(COMPONENT_NAME)
+		if target == null:
+			target = component_script.new() as Node
+			if target == null:
+				return
+			target.name = COMPONENT_NAME
+			target.set("quest_ui_path", NodePath("../../CanvasLayer/Panel"))
+			teacher.add_child(target)
+		sensor.set("interaction_target_path", NodePath("../" + COMPONENT_NAME))
+	else:
+		sensor.set("interaction_target_path", NodePath(".."))
+
+	# Resize only the proximity sensor. The Teacher sprite, position, movement,
+	# and physical foot collision remain unchanged.
+	var collision := sensor.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	var rectangle := collision.shape as RectangleShape2D if collision != null else null
+	if rectangle == null:
+		return
+	var teacher_world_scale := teacher.global_scale.abs()
+	if teacher_world_scale.x <= 0.0 or teacher_world_scale.y <= 0.0 \
+			or rectangle.size.x <= 0.0 or rectangle.size.y <= 0.0:
+		return
+	sensor.scale = Vector2(
+		TARGET_SENSOR_WORLD_SIZE.x / (rectangle.size.x * teacher_world_scale.x),
+		TARGET_SENSOR_WORLD_SIZE.y / (rectangle.size.y * teacher_world_scale.y)
+	)
 
 
 func _exit_tree() -> void:

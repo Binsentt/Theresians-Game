@@ -792,7 +792,9 @@ func _build_question_result_payload(question: Dictionary, is_correct: bool) -> D
 	var question_identity := str(question.get("question_id", question.get("id", ""))).strip_edges()
 	if question_identity.is_empty():
 		question_identity = "question:%s" % str(question.get("question", question.get("text", ""))).strip_edges().to_lower().hash()
-	var battle_identity := str(question.get("battle_id", question.get("encounter_id", GameState.encounter_context.get("encounter_id", "")))).strip_edges()
+	var battle_identity := str(GameState.encounter_context.get("encounter_id", "")).strip_edges()
+	if battle_identity.is_empty():
+		battle_identity = str(question.get("battle_id", question.get("encounter_id", ""))).strip_edges()
 	if battle_identity.is_empty():
 		battle_identity = "task-%d" % int(GameState.current_task_index)
 	# Every submitted answer is its own canonical event, even when a player sees
@@ -821,7 +823,7 @@ func _build_question_result_payload(question: Dictionary, is_correct: bool) -> D
 		"map_id": GameState.canonical_map_id(),
 		"canonical_quest_id": "main",
 		"canonical_task_id": GameState.get_task_activity_metadata(GameState.current_task_index).get("canonical_task_id", ""),
-		"canonical_battle_id": str(question.get("battle_id", question.get("encounter_id", ""))),
+		"canonical_battle_id": battle_identity,
 		"canonical_milestone_id": str(question.get("milestone_id", "")),
 	}
 	var question_set_id: Variant = question.get("question_set_id", null)

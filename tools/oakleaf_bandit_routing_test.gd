@@ -184,8 +184,27 @@ func _verify_original_presentation(battle: Node, label: String) -> void:
 
 
 func _win_and_verify_state(battle: Node, actor: Node2D, other_actor: Node2D, task_before: int, label: String) -> void:
+	var active_encounter_id := String(GameState.get_active_encounter_context().get("encounter_id", ""))
+	var is_boss := active_encounter_id == "oakleaf_boss_bandit"
 	battle.call("answer_selected", 2)
 	battle.call("answer_selected", 2)
+	if is_boss:
+		var quest_ui := get_tree().current_scene.get_node_or_null("CanvasLayer/Panel") if get_tree().current_scene != null else null
+		var dialogue_deadline := Time.get_ticks_msec() + 3500
+		while is_instance_valid(actor) and Time.get_ticks_msec() < dialogue_deadline:
+			if quest_ui != null and quest_ui.has_method("is_dialogue_active") and bool(quest_ui.call("is_dialogue_active")):
+				break
+			await get_tree().process_frame
+		var dialogue_open := quest_ui != null and quest_ui.has_method("is_dialogue_active") and bool(quest_ui.call("is_dialogue_active"))
+		var dialogue_label := get_tree().current_scene.get_node_or_null("CanvasLayer/DialoguePanel/DialogueLabel") as Label if get_tree().current_scene != null else null
+		_expect(dialogue_open and GameState.get_mode() == GameState.GameMode.DIALOGUE, label + ": Boss victory opens the shared bottom dialogue before progression completes")
+		_expect(dialogue_label != null and dialogue_label.text.to_lower().contains("defeat") and dialogue_label.text.to_lower().contains("road"), label + ": Boss defeat dialogue closes the road-blocking story beat")
+		if dialogue_open:
+			InputManager.set_mobile_interact_pressed(false)
+			await _frames(2)
+			InputManager.set_mobile_interact_pressed(true)
+			await _frames(2)
+			InputManager.set_mobile_interact_pressed(false)
 	var deadline := Time.get_ticks_msec() + 3500
 	while is_instance_valid(actor) and Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame

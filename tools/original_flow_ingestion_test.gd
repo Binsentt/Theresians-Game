@@ -131,6 +131,7 @@ func _run() -> void:
 	file.store_string(JSON.stringify(result, "\t"))
 	file.close()
 	print("ORIGINAL_FLOW_INGESTION_TEST " + JSON.stringify({"passed": checks.size() - failed, "failed": failed}))
+	await get_tree().create_timer(1.0).timeout
 	get_tree().quit(0 if failed == 0 else 1)
 
 
@@ -141,9 +142,20 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 	state.current_scene_path = "res://scenes/oak_leaf_village.tscn"
 	state.current_map = "Oakleaf"
 	state.difficulty_level = "Easy"
-	var scope: Dictionary = state.tasks[2].question_scope
+	state.encounter_context = {
+		"encounter_id": "oakleaf_bandits3",
+		"source_scene_path": "res://scenes/oak_leaf_village.tscn",
+		"source_position": {"x": 320.0, "y": 410.0},
+		"quest_checkpoint": 3,
+		"retry_count": 0,
+		"question_scope": {"grade": state.grade_level, "difficulty": "Easy"},
+	}
+	var scope: Dictionary = state.get_encounter_question_scope()
 	var question := {
 		"id": "isolated-serialization-question",
+		# A stale/question-level label must never collapse every Oakleaf result to
+		# Bandit 1 when an authoritative encounter context is active.
+		"battle_id": "oakleaf_bandits1",
 		"question_set_id": 901,
 		"grade": scope.grade,
 		"difficulty": scope.difficulty,
@@ -165,9 +177,10 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 		_expect(request.path == "/api/game/result", label + " uses the original result endpoint")
 		_expect(int(payload.get("score", -1)) == (1 if answer_index == 0 else 0) and int(payload.get("total_items", 0)) == 1, label + " preserves answered-item and correct/wrong values")
 		_expect(String(payload.get("student_id", "")) == state.student_id and String(payload.get("parent_id", "")) == state.parent_id and String(payload.get("student_name", "")) == state.player_name, label + " preserves current profile trace references")
-		_expect(String(payload.get("grade_level", "")) == "Grade 1" and String(payload.get("difficulty", "")) == "Easy", label + " carries the actual First Bandit Grade and Difficulty")
+		_expect(String(payload.get("grade_level", "")) == "Grade 1" and String(payload.get("difficulty", "")) == "Easy", label + " carries the active Oakleaf encounter Grade and Difficulty")
 		_expect(int(payload.get("playtime_session_id", 0)) == 123 and String(payload.get("playtime_session_credential", "")) == "local-test-lease" and int(payload.get("learning_cycle_version", 0)) == 7, label + " carries active server lease and learning cycle")
 		_expect(int(payload.get("question_set_id", 0)) == 901, label + " retains question_set_id through JSON encoding")
+		_expect(String(payload.get("canonical_battle_id", "")) == "oakleaf_bandits3", label + " attributes a backend-shaped question to the active Bandit encounter")
 		_expect(not payload.has("topic_id") and not payload.has("math_topic"), label + " does not require optional Topic metadata")
 		emitted_result_event_ids.append(String(payload.get("result_event_id", "")))
 	_expect(emitted_result_event_ids.size() == 2 and not emitted_result_event_ids[0].is_empty() and emitted_result_event_ids[0] != emitted_result_event_ids[1], "Separate answers to the same question receive separate stable result event IDs")

@@ -36,6 +36,10 @@ var _current_question_presented_at := ""
 var _current_question_presented_unix := -1.0
 
 func _ready():
+	question_label.text = "Preparing your math challenge..."
+	for button in buttons:
+		button.text = ""
+	disable_buttons()
 	_provider = get_node_or_null("/root/QuestionProvider")
 	if _provider == null:
 		_provider = QuestionProviderScript.new()
@@ -75,14 +79,15 @@ func _on_questions_loaded(_count: int) -> void:
 
 func load_question():
 	if _provider != null and _provider.has_method("get_question"):
-		var q: Dictionary = _provider.call("get_question")
-		if q.is_empty():
+		var provider_question: Dictionary = _provider.call("get_question")
+		if provider_question.is_empty():
 			return
-		_set_presented_question(q)
-		question_label.text = String(q.get("question", ""))
-		var choices: Array = q.get("choices", ["", "", "", ""])
+		_set_presented_question(provider_question)
+		question_label.text = String(provider_question.get("question", ""))
+		var provider_choices: Array = provider_question.get("choices", ["", "", "", ""])
 		for i in range(buttons.size()):
-			buttons[i].text = String(choices[i] if i < choices.size() else "")
+			buttons[i].text = String(provider_choices[i] if i < provider_choices.size() else "")
+		enable_buttons()
 		return
 
 	current_question += 1
@@ -96,6 +101,7 @@ func load_question():
 	var choices: Array = q.get("choices", ["", "", "", ""])
 	for i in range(buttons.size()):
 		buttons[i].text = String(choices[i] if i < choices.size() else "")
+	enable_buttons()
 
 
 func answer_selected(index:int):
@@ -161,9 +167,13 @@ func _record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 
 
 func disable_buttons():
-
 	for button in buttons:
 		button.disabled = true
+
+
+func enable_buttons() -> void:
+	for button in buttons:
+		button.disabled = false
 
 
 func _finish_battle(success: bool) -> void:

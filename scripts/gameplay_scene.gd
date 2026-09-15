@@ -3,6 +3,7 @@ extends Node2D
 const GAME_HUD_SCENE := preload("res://ui/game_hud.tscn")
 const MOBILE_CONTROLS_SCENE := preload("res://ui/mobile_controls.tscn")
 const OAKLEAF_BATTLE_ENCOUNTER := preload("res://scripts/oakleaf_battle_encounter.gd")
+const TEACHER_TASK_INTERACTION := preload("res://scripts/teacher_task_interaction.gd")
 const PROGRESSION_BATTLE_ENCOUNTER := preload("res://scripts/progression_battle_encounter.gd")
 const PROGRESSION_OLD_MAN_INTERACTION := preload("res://scripts/progression_old_man_interaction.gd")
 const NON_PHYSICAL_TRIGGER_COLLISIONS := {
@@ -12,6 +13,7 @@ const NON_PHYSICAL_TRIGGER_COLLISIONS := {
 }
 
 var _player: Node2D = null
+var _oakleaf_prefetch_queued := false
 
 func _ready() -> void:
 	var active_scene_path := scene_file_path
@@ -25,10 +27,63 @@ func _ready() -> void:
 	_ensure_mobile_controls()
 	NpcCollisionManager.ensure_scene_collisions(self)
 	OAKLEAF_BATTLE_ENCOUNTER.install_for_scene(self, OAKLEAF_BATTLE_ENCOUNTER)
+	if active_scene_path == "res://interiors/teacher_house.tscn":
+		TEACHER_TASK_INTERACTION.install_for_scene(self, TEACHER_TASK_INTERACTION)
 	PROGRESSION_BATTLE_ENCOUNTER.install_for_scene(self, PROGRESSION_BATTLE_ENCOUNTER)
 	PROGRESSION_OLD_MAN_INTERACTION.install_for_scene(self, PROGRESSION_OLD_MAN_INTERACTION)
+	_connect_oakleaf_prefetch(active_scene_path)
 
 	InputManager.unlock_input("door_transition")
+
+
+func _connect_oakleaf_prefetch(active_scene_path: String) -> void:
+	if active_scene_path != OAKLEAF_BATTLE_ENCOUNTER.OAKLEAF_SCENE_PATH:
+		return
+	var lifecycle_callback := Callable(self, "_on_oakleaf_prefetch_state_changed")
+	if not GameState.encounter_lifecycle_changed.is_connected(lifecycle_callback):
+		GameState.encounter_lifecycle_changed.connect(lifecycle_callback)
+	var task_callback := Callable(self, "_on_oakleaf_task_state_changed")
+	if not GameState.task_state_changed.is_connected(task_callback):
+		GameState.task_state_changed.connect(task_callback)
+	_queue_oakleaf_prefetch()
+
+
+func _on_oakleaf_prefetch_state_changed(_context: Dictionary) -> void:
+	_queue_oakleaf_prefetch()
+
+
+func _on_oakleaf_task_state_changed(_previous_index: int, _current_index: int, _event: Dictionary) -> void:
+	_queue_oakleaf_prefetch()
+
+
+func _queue_oakleaf_prefetch() -> void:
+	if _oakleaf_prefetch_queued:
+		return
+	_oakleaf_prefetch_queued = true
+	_prefetch_oakleaf_questions.call_deferred()
+
+
+func _prefetch_oakleaf_questions() -> void:
+	_oakleaf_prefetch_queued = false
+	if not is_inside_tree() or scene_file_path != OAKLEAF_BATTLE_ENCOUNTER.OAKLEAF_SCENE_PATH:
+		return
+	if GameState.battle_active or GameState.get_mode() != GameState.GameMode.EXPLORATION \
+			or not GameState.playtime_authorized:
+		return
+	var encounter_available := false
+	for encounter_id in GameState.OAKLEAF_BANDIT_IDS + [GameState.OAKLEAF_BOSS_ID]:
+		if GameState.can_start_oakleaf_encounter(encounter_id):
+			encounter_available = true
+			break
+	if not encounter_available:
+		return
+	var provider := get_node_or_null("/root/QuestionProvider")
+	if provider == null or not provider.has_method("prefetch_questions"):
+		return
+	provider.call("prefetch_questions", {
+		"grade": GameState.grade_level,
+		"difficulty": "Easy",
+	})
 
 func _disable_non_physical_trigger_collisions(active_scene_path: String) -> void:
 	var collision_paths: Array = NON_PHYSICAL_TRIGGER_COLLISIONS.get(active_scene_path, [])

@@ -18,8 +18,9 @@ func _run() -> void:
 
 	if _failures.is_empty():
 		state.current_task_index = 2
+		state.grade_level = "Grade 6"
 		var first_bandit_scope: Dictionary = state.tasks[2].get("question_scope", {})
-		_expect(String(first_bandit_scope.get("grade", "")) == "Grade 1", "First Bandit must explicitly configure Grade 1.")
+		_expect(not first_bandit_scope.has("grade") and not first_bandit_scope.has("grade_level"), "First Bandit must derive Grade from the authenticated Student.")
 		_expect(String(first_bandit_scope.get("difficulty", "")) == "Easy", "First Bandit must explicitly configure Easy difficulty.")
 		_expect(not first_bandit_scope.has("topic_id") and not first_bandit_scope.has("topic"), "First Bandit must use Grade and Difficulty without a Topic requirement.")
 		state.capture_runtime("res://scenes/oak_leaf_village.tscn", Vector2(321.0, 654.0))
@@ -27,17 +28,18 @@ func _run() -> void:
 			"encounter_id": "oakleaf_bandit",
 			"question_scope": first_bandit_scope,
 		})
+		var resolved_first_bandit_scope := {"grade": "Grade 6", "difficulty": "Easy"}
 		_expect(String(context.get("encounter_id", "")) == "oakleaf_bandit", "Encounter ID should persist in GameState.")
 		_expect(int(context.get("quest_checkpoint", -1)) == 2, "Encounter should preserve the active task checkpoint.")
 		_expect(context.get("source_position", {}) is Dictionary, "Encounter should serialize the exact return position.")
-		_expect(state.get_encounter_question_scope() == first_bandit_scope, "Explicit Grade and Difficulty scope should be preserved.")
+		_expect(state.get_encounter_question_scope() == resolved_first_bandit_scope, "Current Student Grade and explicit Easy difficulty should be preserved.")
 		var first_loss: Dictionary = state.record_encounter_loss()
 		var resumed_context: Dictionary = state.begin_encounter({"encounter_id": "oakleaf_bandit"})
 		var second_loss: Dictionary = state.record_encounter_loss()
 		var final_loss: Dictionary = state.record_encounter_loss()
 		_expect(int(first_loss.get("retry_count", 0)) == 1 and not bool(first_loss.get("game_over", true)), "First loss should allow a retry.")
 		_expect(int(resumed_context.get("retry_count", 0)) == 1, "Returning to the same saved encounter must preserve its retry count.")
-		_expect(resumed_context.get("question_scope", {}) == first_bandit_scope, "Retrying an encounter must preserve its exact question scope.")
+		_expect(resumed_context.get("question_scope", {}) == resolved_first_bandit_scope, "Retrying an encounter must preserve its exact question scope.")
 		_expect(int(second_loss.get("retry_count", 0)) == 2 and not bool(second_loss.get("game_over", true)), "Second loss should allow a retry.")
 		_expect(bool(final_loss.get("game_over", false)), "Third loss should produce game over.")
 		_expect(state.current_task_index == 2, "Game over must reset only to the encounter checkpoint, not the whole story.")

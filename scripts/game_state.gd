@@ -180,7 +180,6 @@ var tasks = [
 		"next_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn",
 		"complete_after_battle": true,
 		"question_scope": {
-			"grade": "Grade 1",
 			"difficulty": "Easy",
 		}
 	},
@@ -1551,6 +1550,11 @@ func record_encounter_victory() -> Dictionary:
 	if encounter_context.is_empty():
 		return {"success": true, "action": "none"}
 	var completed_context := encounter_context.duplicate(true)
+	# Persist the exact world return point captured when the encounter began.
+	# Victory autosaves happen below, after the context is cleared, so copy the
+	# source state first instead of allowing a stale runtime position into Save.
+	current_scene_path = _normalize_scene_path(String(completed_context.get("source_scene_path", current_scene_path)))
+	player_position = _dictionary_to_vector2(completed_context.get("source_position", _vector2_to_dictionary(player_position)))
 	encounter_context.clear()
 	_clear_battle_state()
 	if get_mode() == GameMode.BATTLE:

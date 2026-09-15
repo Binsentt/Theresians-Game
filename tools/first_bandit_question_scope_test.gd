@@ -1,4 +1,4 @@
-extends SceneTree
+extends Node
 
 const QuestionProviderScript = preload("res://scripts/question_provider.gd")
 
@@ -21,7 +21,7 @@ class HttpApiStub extends Node:
 				"options": ["1", "2", "3", "4"],
 				"correct_answer": "2",
 				"learning_file_id": 13,
-				"grade_level": "Grade 1",
+				"grade_level": "Grade 6",
 				"difficulty": "Easy",
 				}],
 			},
@@ -34,11 +34,11 @@ func _init() -> void:
 
 func _run() -> void:
 	var failed := false
-	var root_window: Window = root
+	var root_window: Window = get_tree().root
 	var game_state: Node = root_window.get_node_or_null("GameState")
 	if game_state == null:
 		printerr("[First Bandit Scope Test] GameState autoload must be available.")
-		quit(1)
+		get_tree().quit(1)
 		return
 
 	var original_grade: Variant = game_state.get("grade_level")
@@ -46,7 +46,9 @@ func _run() -> void:
 	var original_context: Variant = game_state.get("encounter_context")
 	var original_task_index: Variant = game_state.get("current_task_index")
 
-	game_state.set("grade_level", "Grade 1")
+	# Grade 6 intentionally exercises the live defect where the task metadata
+	# used to override the authenticated Student's actual grade with Grade 1.
+	game_state.set("grade_level", "Grade 6")
 	game_state.set("current_scene_path", "res://scenes/oak_leaf_village.tscn")
 	game_state.set("current_task_index", 2)
 	var tasks: Array = game_state.get("tasks")
@@ -54,6 +56,7 @@ func _run() -> void:
 	var declared_scope: Variant = first_bandit_task.get("question_scope", {})
 	failed = not _assert(declared_scope is Dictionary, "The first Bandit task must declare a controlled question scope.") or failed
 	if declared_scope is Dictionary:
+		failed = not _assert(not declared_scope.has("grade") and not declared_scope.has("grade_level"), "The first Bandit task must derive Grade from the authenticated Student.") or failed
 		failed = not _assert(not declared_scope.has("topic") and not declared_scope.has("topic_id"), "The first Bandit must not require a Topic scope.") or failed
 
 	var encounter: Dictionary = game_state.call("begin_encounter", {
@@ -61,7 +64,7 @@ func _run() -> void:
 		"question_scope": declared_scope if declared_scope is Dictionary else {},
 	})
 	var resolved_scope: Dictionary = encounter.get("question_scope", {})
-	failed = not _assert_equal(String(resolved_scope.get("grade", "")), "Grade 1", "The first Bandit must use the canonical student grade.") or failed
+	failed = not _assert_equal(String(resolved_scope.get("grade", "")), "Grade 6", "The first Bandit must use the canonical student grade.") or failed
 	failed = not _assert_equal(String(resolved_scope.get("difficulty", "")), "Easy", "Oakleaf must retain the Easy difficulty mapping.") or failed
 	failed = not _assert(not resolved_scope.has("topic") and not resolved_scope.has("topic_id"), "The resolved First Bandit scope must remain Grade and Difficulty only.") or failed
 
@@ -78,7 +81,7 @@ func _run() -> void:
 	root_window.add_child(provider)
 	var params: Dictionary = provider.call("_get_encounter_question_params")
 	failed = not _assert_equal(params, {
-		"grade": "Grade 1",
+		"grade": "Grade 6",
 		"difficulty": "Easy",
 	}, "QuestionProvider must construct the Grade and Difficulty First Bandit request.") or failed
 	await provider.questions_loaded
@@ -100,10 +103,12 @@ func _run() -> void:
 	game_state.set("encounter_context", original_context)
 	game_state.set("current_task_index", original_task_index)
 	if failed:
-		quit(1)
+		await get_tree().create_timer(1.0).timeout
+		get_tree().quit(1)
 		return
 	print("first_bandit_question_scope_test: PASS")
-	quit(0)
+	await get_tree().create_timer(1.0).timeout
+	get_tree().quit(0)
 
 
 func _assert(condition: bool, message: String) -> bool:

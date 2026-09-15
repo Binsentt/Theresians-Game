@@ -1,6 +1,7 @@
 ﻿extends Node
 
 signal questions_loaded(count: int)
+signal questions_prefetched(scope: Dictionary, count: int, successful: bool)
 signal question_requested(question: Dictionary)
 signal question_pool_exhausted(scope_descriptor: Dictionary)
 
@@ -11,6 +12,8 @@ var _questions: Array[Dictionary] = []
 var _history_by_scope: Dictionary = {}
 var _fallback_history_by_filter: Dictionary = {}
 var _last_requested_id: String = ""
+var _prepared_results_by_scope: Dictionary = {}
+var _prefetch_in_flight_by_scope: Dictionary = {}
 
 
 func _ready() -> void:
@@ -36,6 +39,8 @@ func set_source_path(path: String) -> void:
 	_source_path = path.strip_edges()
 	if _source_path.is_empty():
 		_source_path = DEFAULT_SOURCE_PATH
+	_prepared_results_by_scope.clear()
+	_prefetch_in_flight_by_scope.clear()
 	load_questions.call_deferred(_source_path)
 
 
@@ -63,18 +68,17 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 			push_error("Remote question loading requires an explicit Grade and Difficulty encounter scope.")
 			questions_loaded.emit(0)
 			return []
-		var result: Dictionary = await http.request_get("/api/game/questions", params)
-		if result.get("ok", false) and int(result.get("status", 0)) >= 200 and int(result.get("status", 0)) < 300:
-			var body: Variant = result.get("body", {})
-			if typeof(body) == TYPE_DICTIONARY and body.has("questions"):
-				var question_entries: Array = body.get("questions", [])
-				for entry in question_entries:
-					if entry is Dictionary:
-						var normalized := _normalize_question(entry)
-						if not normalized.is_empty() and _question_matches_scope(normalized, params):
-							_questions.append(normalized)
-						elif not normalized.is_empty():
-							push_error("Rejected a remote question outside the active Grade and Difficulty scope.")
+		var request_key := _request_scope_key(params)
+		while _prefetch_in_flight_by_scope.has(request_key):
+			await get_tree().process_frame
+		var prepared: Dictionary = {}
+		if _prepared_results_by_scope.has(request_key):
+			prepared = Dictionary(_prepared_results_by_scope.get(request_key, {})).duplicate(true)
+			_prepared_results_by_scope.erase(request_key)
+		if not bool(prepared.get("successful", false)):
+			prepared = await _fetch_remote_questions(http, params)
+		if bool(prepared.get("successful", false)):
+			_activate_questions(prepared.get("questions", []))
 			questions_loaded.emit(_questions.size())
 			return _questions
 		# A failed exact-scope request must never widen into a local or unrelated pool.
@@ -107,6 +111,100 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 		push_error("Question source %s did not resolve to an array" % resolved_path)
 	questions_loaded.emit(_questions.size())
 	return _questions
+
+
+func prefetch_questions(scope: Dictionary, refresh: bool = false) -> Dictionary:
+	var params := _normalize_request_scope(scope)
+	if not _has_exact_scope(params):
+		var invalid_result := {
+			"successful": false,
+			"count": 0,
+			"questions": [],
+			"scope": params,
+			"error": "exact_scope_required",
+		}
+		questions_prefetched.emit(params.duplicate(true), 0, false)
+		return invalid_result
+	var request_key := _request_scope_key(params)
+	while _prefetch_in_flight_by_scope.has(request_key):
+		await get_tree().process_frame
+		if _prepared_results_by_scope.has(request_key):
+			return Dictionary(_prepared_results_by_scope.get(request_key, {})).duplicate(true)
+	if not refresh and _prepared_results_by_scope.has(request_key):
+		return Dictionary(_prepared_results_by_scope.get(request_key, {})).duplicate(true)
+	if refresh:
+		_prepared_results_by_scope.erase(request_key)
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		var unavailable_result := {
+			"successful": false,
+			"count": 0,
+			"questions": [],
+			"scope": params,
+			"error": "http_api_unavailable",
+		}
+		questions_prefetched.emit(params.duplicate(true), 0, false)
+		return unavailable_result
+	_prefetch_in_flight_by_scope[request_key] = true
+	var result: Dictionary = await _fetch_remote_questions(http, params)
+	_prefetch_in_flight_by_scope.erase(request_key)
+	if bool(result.get("successful", false)) and int(result.get("count", 0)) > 0:
+		_prepared_results_by_scope[request_key] = result.duplicate(true)
+	else:
+		_prepared_results_by_scope.erase(request_key)
+	questions_prefetched.emit(params.duplicate(true), int(result.get("count", 0)), bool(result.get("successful", false)))
+	return result
+
+
+func _fetch_remote_questions(http: Node, params: Dictionary) -> Dictionary:
+	var result: Dictionary = await http.request_get("/api/game/questions", params)
+	var status := int(result.get("status", 0))
+	var successful := bool(result.get("ok", false)) and status >= 200 and status < 300
+	var validated_questions: Array[Dictionary] = []
+	if successful:
+		var body: Variant = result.get("body", {})
+		if not (body is Dictionary) or not body.has("questions") or not body.get("questions") is Array:
+			successful = false
+		else:
+			for entry in body.get("questions", []):
+				if not (entry is Dictionary):
+					continue
+				var normalized := _normalize_question(entry)
+				if not normalized.is_empty() and _question_matches_scope(normalized, params):
+					validated_questions.append(normalized)
+				elif not normalized.is_empty():
+					push_error("Rejected a remote question outside the active Grade and Difficulty scope.")
+	return {
+		"successful": successful,
+		"count": validated_questions.size(),
+		"questions": validated_questions,
+		"scope": params.duplicate(true),
+		"status": status,
+	}
+
+
+func _activate_questions(value: Variant) -> void:
+	_questions.clear()
+	if not (value is Array):
+		return
+	for question in value:
+		if question is Dictionary:
+			_questions.append(Dictionary(question).duplicate(true))
+
+
+func _normalize_request_scope(scope: Dictionary) -> Dictionary:
+	var grade := String(scope.get("grade", scope.get("grade_level", ""))).strip_edges()
+	var difficulty := _canonical_difficulty(scope.get("difficulty", ""))
+	if grade.is_empty() or difficulty.is_empty():
+		return {}
+	return {"grade": grade, "difficulty": difficulty}
+
+
+func _request_scope_key(scope: Dictionary) -> String:
+	return "%s|%s" % [
+		String(scope.get("grade", "")).strip_edges(),
+		_canonical_difficulty(scope.get("difficulty", "")),
+	]
 
 
 func get_questions() -> Array[Dictionary]:

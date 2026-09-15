@@ -90,6 +90,11 @@ func is_local_qa_profile_requested() -> bool:
 		if (
 			normalized.ends_with("/human_qa_launcher.tscn")
 			or normalized.ends_with("/qa_local_runtime_contract_test.tscn")
+			or normalized.ends_with("/question_pool_randomization_test.tscn")
+			or normalized.ends_with("/question_provider_startup_context_test.tscn")
+			or normalized.ends_with("/terms_startup_flow_test.tscn")
+			or normalized.ends_with("/terms_policy_contract_test.tscn")
+			or normalized.ends_with("/terms_runtime_layout_test.tscn")
 			or normalized.ends_with("/leaderboard_numeric_display_regression_test.tscn")
 			or normalized.ends_with("/game_leaderboard_contract_test.tscn")
 			or normalized.ends_with("/leaderboard_multi_row_regression_test.tscn")
@@ -101,6 +106,16 @@ func is_local_qa_profile_requested() -> bool:
 			or normalized.ends_with("/map_ui_presentation_test.tscn")
 			or normalized.ends_with("/live_defect_contract_test.tscn")
 			or normalized.ends_with("/session_ux_layout_test.tscn")
+			or normalized.ends_with("/first_bandit_question_scope_test.tscn")
+			or normalized.ends_with("/original_interaction_regression_test.tscn")
+			or normalized.ends_with("/oakleaf_same_scene_availability_test.tscn")
+			or normalized.ends_with("/oakleaf_bandit_routing_test.tscn")
+			or normalized.ends_with("/oakleaf_progression_test.tscn")
+			or normalized.ends_with("/oakleaf_encounter_data_integrity_test.tscn")
+			or normalized.ends_with("/question_provider_prefetch_test.tscn")
+			or normalized.ends_with("/teacher_interaction_range_test.tscn")
+			or normalized.ends_with("/oakleaf_story_runtime_test.tscn")
+			or normalized.ends_with("/quiz_manager_loading_state_test.tscn")
 		):
 			return true
 	return false

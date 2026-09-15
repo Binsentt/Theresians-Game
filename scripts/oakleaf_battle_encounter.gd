@@ -8,6 +8,9 @@ const OAKLEAF_SCENE_PATH := "res://scenes/oak_leaf_village.tscn"
 const COMPONENT_NAME := "OakleafBattleEncounter"
 const INTERACTION_RANGE := 32.0
 const INTERACTION_PRIORITY := 10
+const BOSS_DEFEAT_DIALOGUE := [
+	"Boss Bandit: You defeated all of us. Your knowledge is stronger than I expected, so we will no longer block the road.",
+]
 const ROUTES := {
 	"Bandits2": {
 		"encounter_id": "oakleaf_bandits2",
@@ -40,6 +43,7 @@ var _actor: Node2D
 var _route: Dictionary = {}
 var _starting := false
 var _defeated := false
+var _boss_dialogue_active := false
 
 
 static func install_for_scene(world: Node2D, component_script: Script) -> void:
@@ -83,18 +87,20 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	InteractionManager.unregister(self)
+	if _boss_dialogue_active and GameState.get_mode() == GameState.GameMode.DIALOGUE:
+		GameState.pop_mode()
+	_boss_dialogue_active = false
 
 
 func is_registration_valid() -> bool:
 	return not _defeated \
 			and _actor != null \
 			and is_instance_valid(_actor) \
-			and _actor.is_inside_tree() \
-			and _can_start_encounter()
+			and _actor.is_inside_tree()
 
 
 func can_interact() -> bool:
-	if _starting or not is_registration_valid() or not GameState.playtime_authorized:
+	if _starting or not is_registration_valid() or not _can_start_encounter() or not GameState.playtime_authorized:
 		return false
 	if GameState.get_mode() != GameState.GameMode.EXPLORATION:
 		return false
@@ -176,9 +182,25 @@ func _present_original_battle(world: Node2D, battle_scene_path: String) -> void:
 		world.visible = world_was_visible
 	_starting = false
 	if battle_won:
+		if String(_route.get("encounter_id", "")) == GameState.OAKLEAF_BOSS_ID:
+			await _show_boss_defeat_dialogue(world)
 		_defeated = true
 		GameState.record_encounter_victory()
 		if _actor != null and is_instance_valid(_actor):
 			_actor.queue_free()
 		return
 	GameState.record_encounter_loss()
+
+
+func _show_boss_defeat_dialogue(world: Node2D) -> void:
+	if not is_instance_valid(world):
+		return
+	var quest_ui := world.get_node_or_null("CanvasLayer/Panel")
+	if quest_ui == null or not quest_ui.has_method("begin_dialogue"):
+		return
+	_boss_dialogue_active = true
+	GameState.push_mode(GameState.GameMode.DIALOGUE)
+	await quest_ui.call("begin_dialogue", BOSS_DEFEAT_DIALOGUE)
+	if _boss_dialogue_active and GameState.get_mode() == GameState.GameMode.DIALOGUE:
+		GameState.pop_mode()
+	_boss_dialogue_active = false
