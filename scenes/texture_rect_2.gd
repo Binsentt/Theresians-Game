@@ -266,7 +266,7 @@ func _on_gender_continue_pressed() -> void:
 func _on_student_id_changed(new_text: String) -> void:
 	_sanitize_student_id_field(new_text)
 	GameState.update_new_game_registration({"student_id": student_id_input.text})
-	if GameState.is_valid_existing_student_id(student_id_input.text):
+	if GameState.is_valid_new_student_id(student_id_input.text):
 		_hide_validation()
 
 func _on_parent_id_changed(new_text: String) -> void:
@@ -309,9 +309,17 @@ func _on_ids_next_pressed() -> void:
 		"student_id": student_id_input.text,
 		"parent_id": parent_id_input.text
 	})
-	if not GameState.is_valid_existing_student_id(student_id_input.text):
-		_show_validation("Student ID: enter 8 digits. Existing 6-digit Student IDs are supported.")
+	if student_id_input.text.is_empty():
+		_show_validation("Student ID is required.")
 		student_id_input.grab_focus()
+		return
+	if not GameState.is_valid_new_student_id(student_id_input.text):
+		_show_validation("Student ID must contain exactly 8 digits.")
+		student_id_input.grab_focus()
+		return
+	if parent_id_input.text.is_empty():
+		_show_validation("Parent ID is required.")
+		parent_id_input.grab_focus()
 		return
 	if not GameState.is_valid_six_digit_id(parent_id_input.text):
 		_show_validation("Parent ID must contain exactly 6 digits.")
@@ -651,8 +659,12 @@ func _first_registration_error() -> String:
 	var values := GameState.get_new_game_registration()
 	if String(values.get("gender", "")).to_lower() not in ["male", "female"]:
 		return "Please select your gender."
-	if not GameState.is_valid_existing_student_id(String(values.get("student_id", ""))):
-		return "Student ID: enter 8 digits. Existing 6-digit Student IDs are supported."
+	if String(values.get("student_id", "")).strip_edges().is_empty():
+		return "Student ID is required."
+	if not GameState.is_valid_new_student_id(String(values.get("student_id", ""))):
+		return "Student ID must contain exactly 8 digits."
+	if String(values.get("parent_id", "")).strip_edges().is_empty():
+		return "Parent ID is required."
 	if not GameState.is_valid_six_digit_id(String(values.get("parent_id", ""))):
 		return "Parent ID must contain exactly 6 digits."
 	if String(values.get("student_name", "")).strip_edges().is_empty():
