@@ -309,6 +309,10 @@ func _on_ids_next_pressed() -> void:
 		"student_id": student_id_input.text,
 		"parent_id": parent_id_input.text
 	})
+	if student_id_input.text.is_empty() and parent_id_input.text.is_empty():
+		_show_validation("Both Fields are Empty")
+		student_id_input.grab_focus()
+		return
 	if student_id_input.text.is_empty():
 		_show_validation("Student ID is required.")
 		student_id_input.grab_focus()
