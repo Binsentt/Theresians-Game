@@ -7,6 +7,23 @@ const COMPONENT_NAME := "ProgressionBattleEncounter"
 const INTERACTION_RANGE := 32.0
 const INTERACTION_PRIORITY := 10
 const DIALOGUE_OVERLAY := preload("res://ui/progression_dialogue_overlay.tscn")
+const DEEP_FOREST_COMPLETE_DIALOGUE: Array[String] = [
+	"The path to Pinehill Village is now clear.",
+]
+const PINEHILL_GUARDS_COMPLETE_DIALOGUE: Array[String] = [
+	"The Wizard Tower is now accessible.",
+]
+const WIZARD_INTRO_DIALOGUE: Array[String] = [
+	"Wizard: So you defeated all of my guards.",
+	"Wizard: You have come far, but knowledge alone will not be enough.",
+	"Wizard: Show me what you have learned.",
+]
+const WIZARD_REVELATION_DIALOGUE: Array[String] = [
+	"Wizard: You are stronger than I expected.",
+	"Wizard: But I am not the one behind your greatest challenge.",
+	"Wizard: The true Math Master has been guiding you from the beginning.",
+	"Wizard: Your Teacher is waiting for you in the City of Knowledge. Return to the School.",
+]
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
 const DEEPEST_FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL_PATH := "res://scenes/2nd Village/Pinehill Village.tscn"
@@ -169,6 +186,8 @@ func _present_original_battle(world: Node2D, battle_scene_path: String) -> void:
 		GameState.record_encounter_loss()
 		push_error("Unable to instantiate original progression battle scene: %s" % battle_scene_path)
 		return
+	if String(_route.get("encounter_id", "")) == "pinehill_wizard":
+		await _show_progression_dialogue(WIZARD_INTRO_DIALOGUE)
 	var battle_scene: Node = packed_scene.instantiate()
 	var battle_layer := CanvasLayer.new()
 	battle_layer.name = "OriginalBattlePresentation"
@@ -189,9 +208,14 @@ func _present_original_battle(world: Node2D, battle_scene_path: String) -> void:
 	_starting = false
 	if battle_won:
 		_defeated = true
-		GameState.record_encounter_victory()
-		if String(_route.get("encounter_id", "")) == "pinehill_wizard":
-			await _show_wizard_revelation()
+		var victory_result: Dictionary = GameState.record_encounter_victory()
+		match String(victory_result.get("action", "")):
+			"deep_forest_complete":
+				await _show_progression_dialogue(DEEP_FOREST_COMPLETE_DIALOGUE)
+			"pinehill_bandits_complete":
+				await _show_progression_dialogue(PINEHILL_GUARDS_COMPLETE_DIALOGUE)
+			"wizard_complete":
+				await _show_wizard_revelation()
 		if _actor != null and is_instance_valid(_actor):
 			_actor.queue_free()
 	else:
@@ -199,16 +223,17 @@ func _present_original_battle(world: Node2D, battle_scene_path: String) -> void:
 
 
 func _show_wizard_revelation() -> void:
+	await _show_progression_dialogue(WIZARD_REVELATION_DIALOGUE)
+
+
+func _show_progression_dialogue(lines: Array[String]) -> void:
 	var world := get_tree().current_scene
 	if world == null:
 		return
 	GameState.push_mode(GameState.GameMode.DIALOGUE)
 	var overlay: CanvasLayer = DIALOGUE_OVERLAY.instantiate()
 	world.add_child(overlay)
-	await overlay.show_lines([
-		"Wizard: The secret Math Master is your Teacher.",
-		"Wizard: Return to the City of Knowledge and face the final challenge.",
-	])
+	await overlay.show_lines(lines)
 	overlay.queue_free()
 	if GameState.get_mode() == GameState.GameMode.DIALOGUE:
 		GameState.pop_mode()

@@ -208,67 +208,91 @@ var tasks = [
 	{
 		"activity_id": "go-to-city-of-knowledge",
 		"activity_label": "Go to the City of Knowledge",
-		"quest_text": "Go to the City of Knowledge / School",
+		"quest_text": "Go to the City of Knowledge School.",
 	},
 	{
 		"activity_id": "go-to-school",
 		"activity_label": "Go to the School",
-		"quest_text": "Go to the School",
-		"dialogue": ["To continue, you must pass a greater challenge."],
+		"quest_text": "Go to the School.",
+		"dialogue": [
+			"Teacher: You made it to the City of Knowledge.",
+			"Teacher: But your journey is not over yet.",
+			"Teacher: Beyond the city is the Deepest Forest Path.",
+			"Teacher: Continue your journey and overcome the challenges ahead.",
+		],
 	},
 	{
 		"activity_id": "talk-to-city-school-teacher",
 		"activity_label": "Talk to the Math Teacher",
-		"quest_text": "Talk to the Math Teacher",
-		"dialogue": ["Teacher: To continue, you must pass a greater challenge."]
+		"quest_text": "Talk to the Math Teacher.",
+		"dialogue": [
+			"Teacher: You made it to the City of Knowledge.",
+			"Teacher: But your journey is not over yet.",
+			"Teacher: Beyond the city is the Deepest Forest Path.",
+			"Teacher: Continue your journey and overcome the challenges ahead.",
+		]
 	},
 	{
 		"activity_id": "go-to-pinehill-village",
-		"activity_label": "Go to Pinehill Village",
-		"quest_text": "Go to Pinehill Village",
+		"activity_label": "Go to the Deepest Forest Path",
+		"quest_text": "Go to the Deepest Forest Path.",
 	},
 	{
 		"activity_id": "deep-forest-bandits",
 		"activity_label": "Defeat the Deep Forest Bandits",
-		"quest_text": "Defeat All Bandits",
+		"quest_text": "Defeat the Bandits in the Deepest Forest.",
 	},
 	{
 		"activity_id": "pinehill-arrival",
 		"activity_label": "Reach Pinehill Village",
-		"quest_text": "Go to Pinehill Village",
+		"quest_text": "Continue to Pinehill Village.",
 	},
 	{
 		"activity_id": "talk-to-old-man",
 		"activity_label": "Talk to the Old Lady",
-		"quest_text": "Talk to the Old Lady",
-		"dialogue": ["Old Lady: A powerful Wizard is ahead.", "Old Lady: The guards protect the tower. Defeat them first."]
+		"quest_text": "Find someone who knows about the Wizard.",
+		"dialogue": [
+			"Old Lady: You must be the young traveler from the City of Knowledge.",
+			"Old Lady: A powerful Wizard lives inside the tower ahead.",
+			"Old Lady: But four guards protect the path to him.",
+			"Old Lady: Defeat them first, and the Wizard Tower will open.",
+		]
 	},
 	{
 		"activity_id": "pinehill-bandits",
-		"activity_label": "Defeat the Pinehill Bandits",
-		"quest_text": "Defeat All Bandits",
+		"activity_label": "Defeat the Wizard's Guards",
+		"quest_text": "Defeat the Wizard's 4 Guards.",
 	},
 	{
 		"activity_id": "defeat-the-wizard",
-		"activity_label": "Defeat the Wizard",
-		"quest_text": "Defeat the Wizard",
-		"dialogue": ["Wizard: Your final challenge awaits in the City of Knowledge.", "Wizard: Return to the School and face the Teacher."]
+		"activity_label": "Enter the Wizard Tower",
+		"quest_text": "Enter the Wizard Tower.",
+		"dialogue": [
+			"Wizard: So you defeated all of my guards.",
+			"Wizard: You have come far, but knowledge alone will not be enough.",
+			"Wizard: Show me what you have learned.",
+		]
 	},
 	{
 		"activity_id": "return-to-city-of-knowledge",
 		"activity_label": "Return to the City of Knowledge",
-		"quest_text": "Return to the City of Knowledge",
+		"quest_text": "Return to the City of Knowledge.",
 	},
 	{
 		"activity_id": "return-to-city-school",
 		"activity_label": "Go to the School",
-		"quest_text": "Go to the School",
+		"quest_text": "Return to the School.",
 	},
 	{
 		"activity_id": "final-teacher",
-		"activity_label": "Talk to the Master Teacher",
-		"quest_text": "Talk to the Master Teacher",
-		"dialogue": ["Teacher: Welcome back. This is your final Math challenge."]
+		"activity_label": "Face the Teacher's Final Challenge",
+		"quest_text": "Face the Teacher's Final Challenge.",
+		"dialogue": [
+			"Teacher: You finally discovered the truth.",
+			"Teacher: Every challenge you faced was meant to test how much you have learned.",
+			"Teacher: There is only one challenge left.",
+			"Teacher: Show me everything you have learned.",
+		]
 	},
 ]
 
@@ -498,7 +522,7 @@ func complete_oakleaf_teacher_return() -> Dictionary:
 		"type": "task_completed",
 		"key": "quest:oakleaf:return-teacher:complete",
 		"title": "Task 4 Complete",
-		"description": "Go to the City of Knowledge / School.",
+		"description": "Go to the City of Knowledge School.",
 		"source": "teacher_task_interaction",
 		"reason": "oakleaf_boss_return",
 	}
@@ -583,7 +607,7 @@ func complete_city_school_teacher() -> Dictionary:
 		"type": "task_completed",
 		"key": "quest:city:school-teacher:complete",
 		"title": "School Complete",
-		"description": "Defeat All Bandits on the forest path.",
+		"description": "Go to the Deepest Forest Path.",
 		"source": "teacher_task_interaction",
 		"reason": "city_school_teacher",
 	}
@@ -764,7 +788,7 @@ func complete_pinehill_old_man() -> Dictionary:
 	pinehill_old_man_completed = true
 	var previous_index := current_task_index
 	_advance_progression_checkpoint(previous_index, PINEHILL_BANDIT_TASK_INDEX,
-		"quest:pinehill:old-man", "Old Man", "Defeat All Bandits.")
+		"quest:pinehill:old-man", "Old Lady", "Defeat the Wizard's 4 Guards.")
 	var save_path := save_game()
 	return {"changed": true, "action": "old_man_complete", "current_index": current_task_index, "save_path": save_path}
 
@@ -779,22 +803,24 @@ func get_current_quest_text() -> String:
 		return TUTORIAL_QUEST
 	if journey_complete:
 		return "Math Champion"
-	if current_task_index == DEEP_FOREST_BANDIT_TASK_INDEX or current_task_index == PINEHILL_BANDIT_TASK_INDEX:
-		return "Defeat All Bandits"
+	if current_task_index == CITY_NEXT_PATH_TASK_INDEX:
+		return "Go to the Deepest Forest Path."
+	if current_task_index == DEEP_FOREST_BANDIT_TASK_INDEX:
+		return "Defeat the Bandits in the Deepest Forest."
+	if current_task_index == PINEHILL_BANDIT_TASK_INDEX:
+		return "Defeat the Wizard's 4 Guards."
 	if current_task_index == WIZARD_TASK_INDEX:
-		return "Defeat the Wizard"
+		return "Enter the Wizard Tower."
 	if current_task_index == FINAL_TEACHER_TASK_INDEX:
-		return "Talk to the Master Teacher"
+		return "Face the Teacher's Final Challenge."
 	if current_task_index >= PINEHILL_OLD_MAN_TASK_INDEX and current_task_index < PINEHILL_BANDIT_TASK_INDEX:
-		return "Talk to the Old Lady"
-	if current_task_index == CITY_NEXT_PATH_TASK_INDEX or (city_next_path_unlocked and current_task_index < DEEP_FOREST_BANDIT_TASK_INDEX):
-		return "Go to Pinehill Village"
+		return "Find someone who knows about the Wizard."
 	if current_task_index == PINEHILL_ARRIVAL_TASK_INDEX:
-		return "Go to Pinehill Village"
+		return "Continue to Pinehill Village."
 	if current_task_index == RETURN_CITY_TASK_INDEX:
-		return "Return to the City of Knowledge"
+		return "Return to the City of Knowledge."
 	if current_task_index == FINAL_SCHOOL_TASK_INDEX:
-		return "Go to the School"
+		return "Return to the School."
 	if city_first_arrival_seen:
 		if current_task_index == CITY_SCHOOL_TEACHER_TASK_INDEX:
 			return "Talk to the Math Teacher"

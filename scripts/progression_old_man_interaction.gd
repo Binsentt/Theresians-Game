@@ -7,6 +7,12 @@ extends Node
 const INTERACTION_RANGE := 32.0
 const INTERACTION_PRIORITY := 20
 const DIALOGUE_OVERLAY := preload("res://ui/progression_dialogue_overlay.tscn")
+const DIALOGUE_LINES: Array[String] = [
+	"Old Lady: You must be the young traveler from the City of Knowledge.",
+	"Old Lady: A powerful Wizard lives inside the tower ahead.",
+	"Old Lady: But four guards protect the path to him.",
+	"Old Lady: Defeat them first, and the Wizard Tower will open.",
+]
 var _actor: Node2D
 var _active := false
 
@@ -79,10 +85,7 @@ func interact() -> bool:
 	GameState.push_mode(GameState.GameMode.DIALOGUE)
 	var overlay: CanvasLayer = DIALOGUE_OVERLAY.instantiate()
 	get_tree().current_scene.add_child(overlay)
-	await overlay.show_lines([
-		"Old Lady: A powerful Wizard is ahead.",
-		"Old Lady: The guards protect the tower. Defeat them first.",
-	])
+	await overlay.show_lines(DIALOGUE_LINES)
 	overlay.queue_free()
 	if GameState.has_method("complete_pinehill_old_lady"):
 		GameState.call("complete_pinehill_old_lady")

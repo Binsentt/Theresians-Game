@@ -211,8 +211,12 @@ func play_teacher_dialogue() -> void:
 			# Keep the existing battle and quest systems intact, then provide a
 			# short completion epilogue through the established dialogue overlay.
 			await begin_dialogue([
-				"Teacher: You have completed the final Mathematics challenge.",
-				"Teacher: You are now a Math Champion. Congratulations!",
+				"Teacher: Excellent work.",
+				"Teacher: You overcame every challenge and continued even when the problems became difficult.",
+				"Teacher: Your journey through Theresian's Quest is complete.",
+				"Teacher: You are now a Math Champion.",
+				"THERESIAN'S QUEST COMPLETE",
+				"Congratulations! You completed your Mathematics Adventure.",
 			])
 		else:
 			GameState.record_encounter_loss()
