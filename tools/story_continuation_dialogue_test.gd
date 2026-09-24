@@ -46,7 +46,7 @@ func _run() -> void:
 
 	_expect(OLD_LADY.DIALOGUE_LINES.size() == 4, "Old Lady uses the four-line conversation")
 	_expect(ROUTER.WIZARD_INTRO_DIALOGUE.size() == 3, "Wizard intro uses the short three-line conversation")
-	_expect(ROUTER.WIZARD_REVELATION_DIALOGUE.size() == 4, "Wizard revelation uses the four-line conversation")
+	_expect(ROUTER.WIZARD_REVELATION_DIALOGUE.size() == 5, "Wizard revelation uses the five-line conversation")
 	_expect(ROUTER.DEEP_FOREST_COMPLETE_DIALOGUE.size() == 1, "Deep Forest completion has a short notification")
 	_expect(ROUTER.PINEHILL_GUARDS_COMPLETE_DIALOGUE.size() == 1, "Pinehill guard completion has a short notification")
 	_expect(String(state.tasks[state.CITY_SCHOOL_TASK_INDEX].dialogue[0]) == "Teacher: You made it to the City of Knowledge.", "City Teacher opening line is canonical")

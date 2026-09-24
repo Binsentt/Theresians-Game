@@ -22,7 +22,8 @@ const WIZARD_REVELATION_DIALOGUE: Array[String] = [
 	"Wizard: You are stronger than I expected.",
 	"Wizard: But I am not the one behind your greatest challenge.",
 	"Wizard: The true Math Master has been guiding you from the beginning.",
-	"Wizard: Your Teacher is waiting for you in the City of Knowledge. Return to the School.",
+	"Wizard: Your Teacher is waiting for you in the City of Knowledge.",
+	"Wizard: Return to the School.",
 ]
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
 const DEEPEST_FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
