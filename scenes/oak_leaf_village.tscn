@@ -622,7 +622,7 @@ shape = SubResource("RectangleShape2D_teacher_house_task_trigger")
 
 [node name="Go-to-City-of-Knowledge" parent="." unique_id=1204046067 instance=ExtResource("24_eu74i")]
 position = Vector2(9, 509)
-destination_scene_path = "uid://bfj3wh4uokop8"
+destination_scene_path = "res://scenes/city_of_knowledge.tscn"
 
 [node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=685642583]
 

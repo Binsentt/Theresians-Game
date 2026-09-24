@@ -13,7 +13,10 @@ func _ready() -> void:
 	position_smoothing_speed = camera_smoothing_speed
 	zoom = camera_zoom
 	make_current()
-	_apply_map_limits()
+	# Gameplay cameras follow their Player all the way to map exits.  World
+	# bounds are useful for static overview cameras, but clamping this camera
+	# pushes the active Player toward the edge of the viewport near a doorway.
+	_disable_map_limits()
 
 func _neutralize_parent_scale() -> void:
 	var parent_node := get_parent() as Node2D
@@ -27,12 +30,8 @@ func _neutralize_parent_scale() -> void:
 	# camera to keep the view at a normal zoom while remaining parented.
 	scale = Vector2(1.0 / parent_node.scale.x, 1.0 / parent_node.scale.y)
 
-func _apply_map_limits() -> void:
-	var bounds: MapCameraBounds = get_tree().get_first_node_in_group("map_camera_bounds") as MapCameraBounds
-	if bounds == null:
-		return
-
-	limit_left = bounds.limit_left
-	limit_right = bounds.limit_right
-	limit_top = bounds.limit_top
-	limit_bottom = bounds.limit_bottom
+func _disable_map_limits() -> void:
+	limit_left = -10000000
+	limit_right = 10000000
+	limit_top = -10000000
+	limit_bottom = 10000000

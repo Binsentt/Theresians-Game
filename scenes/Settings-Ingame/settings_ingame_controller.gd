@@ -39,6 +39,7 @@ const GRABBER_TEXTURE: Texture2D = preload("res://Images/grabber.png")
 
 var _exit_dialog: ConfirmationDialog
 var _save_dialog: ConfirmationDialog
+var _exit_in_progress := false
 var _button_tweens: Dictionary = {}
 var _button_hover_states: Dictionary = {}
 var _save_toast_tween: Tween
@@ -280,11 +281,23 @@ func _on_load_pressed() -> void:
 	get_tree().change_scene_to_file(scene_path)
 
 func _on_exit_pressed() -> void:
-	if _exit_dialog == null:
+	if _exit_dialog == null or _exit_in_progress:
 		return
 	_exit_dialog.popup_centered(EXIT_DIALOG_SIZE)
 
 func _on_exit_confirmed() -> void:
+	if _exit_in_progress:
+		return
+	_exit_in_progress = true
+	# ConfirmationDialog can receive a second release while the first async
+	# cleanup is still pending (especially with touch-to-mouse emulation).
+	# Lock every exit control before the first await so the lifecycle is one-shot.
+	exit_button.disabled = true
+	if _exit_dialog != null:
+		_exit_dialog.get_ok_button().disabled = true
+		_exit_dialog.get_cancel_button().disabled = true
+		_exit_dialog.hide()
+	print("Settings: exit confirmed; saving once and closing playtime once")
 	var player := get_tree().get_first_node_in_group("player_character") as Node2D
 	var current_scene := get_tree().current_scene
 	if player != null and current_scene != null:
@@ -301,6 +314,8 @@ func _on_exit_confirmed() -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 func _on_exit_canceled() -> void:
+	if _exit_in_progress:
+		return
 	_resume_game()
 
 func _apply_confirmation_theme(dialog: ConfirmationDialog) -> void:
