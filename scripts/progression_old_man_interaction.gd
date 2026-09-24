@@ -16,10 +16,12 @@ static func install_for_scene(world: Node2D, component_script: Script) -> void:
 		return
 	if world.scene_file_path not in ["res://scenes/2nd Village/Pinehill Village.tscn", "res://scenes/pinehill_village.tscn"]:
 		return
-	var actor := world.get_node_or_null("old_npc") as Node2D
+	# Keep the legacy component/function name for save compatibility, but bind
+	# the authored quest NPC to the Old Lady asset.
+	var actor := world.get_node_or_null("old_adult_women") as Node2D
 	if actor == null or actor.get_node_or_null("ProgressionOldManInteraction") != null:
 		return
-	# The Old Man is quest-critical in Pinehill. Keep the existing actor and
+	# The Old Lady is quest-critical in Pinehill. Keep the existing actor and
 	# collision exactly as authored, but stop its generic civilian wander loop so
 	# the interaction point cannot walk away while the player approaches it.
 	actor.set_physics_process(false)
@@ -78,11 +80,14 @@ func interact() -> bool:
 	var overlay: CanvasLayer = DIALOGUE_OVERLAY.instantiate()
 	get_tree().current_scene.add_child(overlay)
 	await overlay.show_lines([
-		"Old Man: A powerful Wizard is ahead.",
-		"Old Man: The Bandits guard the way. Defeat them first.",
+		"Old Lady: A powerful Wizard is ahead.",
+		"Old Lady: The guards protect the tower. Defeat them first.",
 	])
 	overlay.queue_free()
-	GameState.call("complete_pinehill_old_man")
+	if GameState.has_method("complete_pinehill_old_lady"):
+		GameState.call("complete_pinehill_old_lady")
+	else:
+		GameState.call("complete_pinehill_old_man")
 	if GameState.get_mode() == GameState.GameMode.DIALOGUE:
 		GameState.pop_mode()
 	_active = false

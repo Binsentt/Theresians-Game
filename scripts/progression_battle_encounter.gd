@@ -8,6 +8,7 @@ const INTERACTION_RANGE := 32.0
 const INTERACTION_PRIORITY := 10
 const DIALOGUE_OVERLAY := preload("res://ui/progression_dialogue_overlay.tscn")
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
+const DEEPEST_FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL_PATH := "res://scenes/2nd Village/Pinehill Village.tscn"
 const PINEHILL_WRAPPER_PATH := "res://scenes/pinehill_village.tscn"
 
@@ -19,19 +20,26 @@ const ROUTES := {
 		"Bandits4": {"encounter_id": "deep_forest_bandits4", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits5": {"encounter_id": "deep_forest_bandits5", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 	},
+	DEEPEST_FOREST_PATH: {
+		"Bandits": {"node_path": "ForestBackdrop/Bandits", "encounter_id": "deep_forest_bandits1", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
+		"Bandits2": {"node_path": "ForestBackdrop/Bandits2", "encounter_id": "deep_forest_bandits2", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
+		"Bandits3": {"node_path": "ForestBackdrop/Bandits3", "encounter_id": "deep_forest_bandits3", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
+		"Bandits4": {"node_path": "ForestBackdrop/Bandits4", "encounter_id": "deep_forest_bandits4", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
+		"Bandits5": {"node_path": "ForestBackdrop/Bandits5", "encounter_id": "deep_forest_bandits5", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
+	},
 	PINEHILL_PATH: {
 		"Bandits": {"encounter_id": "pinehill_bandits1", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits2": {"encounter_id": "pinehill_bandits2", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits3": {"encounter_id": "pinehill_bandits3", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits4": {"encounter_id": "pinehill_bandits4", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
-		"Boss-Wizard": {"encounter_id": "pinehill_wizard", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_wizard.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_wizard1.tscn"},
+		"WizardTower": {"node_path": "display-kase yung wizard sa labas lang", "encounter_id": "pinehill_wizard", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_wizard.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_wizard1.tscn"},
 	},
 	PINEHILL_WRAPPER_PATH: {
 		"Bandits": {"encounter_id": "pinehill_bandits1", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits2": {"encounter_id": "pinehill_bandits2", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits3": {"encounter_id": "pinehill_bandits3", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits4": {"encounter_id": "pinehill_bandits4", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
-		"Boss-Wizard": {"encounter_id": "pinehill_wizard", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_wizard.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_wizard1.tscn"},
+		"WizardTower": {"node_path": "display-kase yung wizard sa labas lang", "encounter_id": "pinehill_wizard", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_wizard.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_wizard1.tscn"},
 	},
 }
 
@@ -47,11 +55,16 @@ static func install_for_scene(world: Node2D, component_script: Script) -> void:
 	var scene_path := world.scene_file_path
 	if not ROUTES.has(scene_path):
 		return
+	if scene_path == CITY_PATH:
+		# City is now the hub; the five authored actors are mounted in the
+		# dedicated forest wrapper instead of being encounter points here.
+		return
 	for actor_name in ROUTES[scene_path]:
-		var actor := world.get_node_or_null(String(actor_name)) as Node2D
+		var route: Dictionary = ROUTES[scene_path][actor_name]
+		var actor_path := String(route.get("node_path", actor_name))
+		var actor := world.get_node_or_null(actor_path) as Node2D
 		if actor == null or actor.get_node_or_null(COMPONENT_NAME) != null:
 			continue
-		var route: Dictionary = ROUTES[scene_path][actor_name]
 		var encounter_id := String(route.get("encounter_id", ""))
 		if GameState.has_method("is_progression_encounter_defeated") \
 				and bool(GameState.call("is_progression_encounter_defeated", encounter_id)):
@@ -63,6 +76,14 @@ static func install_for_scene(world: Node2D, component_script: Script) -> void:
 		encounter.name = COMPONENT_NAME
 		encounter.call("configure", actor, route)
 		actor.add_child(encounter)
+	if scene_path in [PINEHILL_PATH, PINEHILL_WRAPPER_PATH]:
+		# Preserve the authored scene node for compatibility, but prevent the
+		# legacy outside Wizard instance from becoming a second trigger.
+		var legacy_wizard := world.get_node_or_null("Boss-Wizard")
+		if legacy_wizard != null:
+			legacy_wizard.visible = false
+			legacy_wizard.process_mode = Node.PROCESS_MODE_DISABLED
+			legacy_wizard.queue_free()
 
 
 func configure(actor: Node2D, route: Dictionary) -> void:

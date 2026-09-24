@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/deepest_forest_path.gd" id="1_path"]
+[ext_resource type="PackedScene" path="res://scenes/city_of_knowledge.tscn" id="2_city"]
+[ext_resource type="PackedScene" path="res://Door-Navigations-Scene2Scene/deepest_forest_to_pinehill.tscn" id="3_door"]
+
+[node name="Deepest Forest Path" type="Node2D"]
+script = ExtResource("1_path")
+
+[node name="ForestBackdrop" parent="." instance=ExtResource("2_city")]
+script = null
+
+[node name="spawn_from_city" type="Marker2D" parent="."]
+position = Vector2(80, 500)
+
+[node name="DeepestForestToPinehill" parent="." instance=ExtResource("3_door")]
+position = Vector2(1210, 530)

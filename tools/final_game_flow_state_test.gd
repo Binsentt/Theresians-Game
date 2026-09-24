@@ -9,6 +9,7 @@ const REQUIRED_ORIGINAL_VS_SCENES := [
 	"res://Battle/Battle-Enemy/male_vs_teacher.tscn",
 	"res://Battle/Battle-Enemy/female_vs_teacher.tscn",
 ]
+const RESULT_PATH := "res://tools/final_game_flow_state_test_result.json"
 var checks: Array[Dictionary] = []
 
 func _ready() -> void:
@@ -39,7 +40,7 @@ func _run() -> void:
 	_expect(state.current_task_index == state.CITY_SCHOOL_TEACHER_TASK_INDEX, "School teacher stage")
 	state.complete_city_school_teacher()
 	_expect(state.current_task_index == state.CITY_NEXT_PATH_TASK_INDEX and state.get_current_quest_text() == "Go to Pinehill Village", "City School path checkpoint")
-	state.handle_scene_entered("res://scenes/city_of_knowledge.tscn")
+	state.handle_scene_entered("res://scenes/deepest_forest_path.tscn")
 	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX and state.get_current_quest_text() == "Defeat All Bandits", "Deep Forest stage")
 	_roundtrip(state, "Deep Forest Save/Load", state.DEEP_FOREST_BANDIT_TASK_INDEX)
 	for encounter_id in state.DEEP_FOREST_BANDIT_IDS:
@@ -51,8 +52,8 @@ func _run() -> void:
 	_roundtrip(state, "Pinehill-unlocked Save/Load", state.PINEHILL_ARRIVAL_TASK_INDEX)
 	state.handle_scene_entered("res://scenes/pinehill_village.tscn")
 	_expect(state.current_task_index == state.PINEHILL_OLD_MAN_TASK_INDEX, "Pinehill arrival")
-	_expect(bool(state.complete_pinehill_old_man().get("changed", false)), "Old Man advances exactly once")
-	_expect(not bool(state.complete_pinehill_old_man().get("changed", false)), "Old Man duplicate blocked")
+	_expect(bool(state.complete_pinehill_old_lady().get("changed", false)), "Old Lady advances exactly once")
+	_expect(not bool(state.complete_pinehill_old_lady().get("changed", false)), "Old Lady duplicate blocked")
 	for encounter_id in state.PINEHILL_BANDIT_IDS:
 		_expect(state.can_start_progression_encounter(encounter_id), encounter_id + " available")
 		_expect(bool(state.record_progression_encounter_victory(encounter_id, false).get("changed", false)), encounter_id + " records")
@@ -83,7 +84,12 @@ func _run() -> void:
 	for check in checks:
 		if not check.passed:
 			failed += 1
-	print("FINAL_GAME_FLOW_STATE_TEST " + JSON.stringify({"passed": checks.size() - failed, "failed": failed, "checks": checks}))
+	var evidence := {"passed": checks.size() - failed, "failed": failed, "checks": checks, "live_network_calls": 0}
+	var file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify(evidence, "\t"))
+		file.close()
+	print("FINAL_GAME_FLOW_STATE_TEST " + JSON.stringify(evidence))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(state.fixture_path))
 	state.queue_free()
 	await get_tree().create_timer(1.0).timeout

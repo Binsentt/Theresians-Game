@@ -7,7 +7,7 @@ size = Vector2(36, 32)
 
 [node name="City-of-Knowledge-to-PineHill" type="Area2D"]
 script = ExtResource("1_door")
-destination_scene_path = "res://scenes/pinehill_village.tscn"
+destination_scene_path = "res://scenes/deepest_forest_path.tscn"
 destination_spawn_position = Vector2(80, 64)
 destination_spawn_marker_name = "spawn_from_city"
 destination_facing_direction = "down"

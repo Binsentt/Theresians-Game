@@ -54,6 +54,7 @@ const WIZARD_TASK_INDEX := 14
 const RETURN_CITY_TASK_INDEX := 15
 const FINAL_SCHOOL_TASK_INDEX := 16
 const FINAL_TEACHER_TASK_INDEX := 17
+const DEEPEST_FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 
 const DEEP_FOREST_BANDIT_IDS: Array[String] = [
 	"deep_forest_bandits1",
@@ -79,6 +80,7 @@ const PLAYER_SCENES := {
 const LARGE_HEART_SCENES := {
 	"res://scenes/oak_leaf_village.tscn": true,
 	"res://scenes/city_of_knowledge.tscn": true,
+	DEEPEST_FOREST_PATH: true,
 	"res://scenes/2nd Village/Pinehill Village.tscn": true
 }
 
@@ -94,6 +96,7 @@ const SCENE_FALLBACK_SPAWNS := {
 	"res://interiors/player_house.tscn": Vector2(297, 45),
 	"res://scenes/oak_leaf_village.tscn": Vector2(682, 286),
 	"res://scenes/city_of_knowledge.tscn": Vector2(608, 272),
+	DEEPEST_FOREST_PATH: Vector2(80, 500),
 	"res://scenes/2nd Village/Pinehill Village.tscn": Vector2(176, 368)
 }
 
@@ -236,9 +239,9 @@ var tasks = [
 	},
 	{
 		"activity_id": "talk-to-old-man",
-		"activity_label": "Talk to the Old Man",
-		"quest_text": "Talk to the Old Man",
-		"dialogue": ["Old Man: A powerful Wizard is ahead.", "Old Man: The Bandits guard the way. Defeat them first."]
+		"activity_label": "Talk to the Old Lady",
+		"quest_text": "Talk to the Old Lady",
+		"dialogue": ["Old Lady: A powerful Wizard is ahead.", "Old Lady: The guards protect the tower. Defeat them first."]
 	},
 	{
 		"activity_id": "pinehill-bandits",
@@ -766,6 +769,11 @@ func complete_pinehill_old_man() -> Dictionary:
 	return {"changed": true, "action": "old_man_complete", "current_index": current_task_index, "save_path": save_path}
 
 
+## Player-facing alias. The legacy function/key remains for save compatibility.
+func complete_pinehill_old_lady() -> Dictionary:
+	return complete_pinehill_old_man()
+
+
 func get_current_quest_text() -> String:
 	if is_tutorial_active():
 		return TUTORIAL_QUEST
@@ -778,7 +786,7 @@ func get_current_quest_text() -> String:
 	if current_task_index == FINAL_TEACHER_TASK_INDEX:
 		return "Talk to the Master Teacher"
 	if current_task_index >= PINEHILL_OLD_MAN_TASK_INDEX and current_task_index < PINEHILL_BANDIT_TASK_INDEX:
-		return "Talk to the Old Man"
+		return "Talk to the Old Lady"
 	if current_task_index == CITY_NEXT_PATH_TASK_INDEX or (city_next_path_unlocked and current_task_index < DEEP_FOREST_BANDIT_TASK_INDEX):
 		return "Go to Pinehill Village"
 	if current_task_index == PINEHILL_ARRIVAL_TASK_INDEX:
@@ -873,6 +881,8 @@ func canonical_map_id() -> String:
 		return "pinehill_village"
 	if candidate.contains("city"):
 		return "city_of_knowledge"
+	if candidate.contains("forest") or candidate.contains("path"):
+		return "deepest_forest_path"
 	if candidate.contains("oak") or candidate.contains("teacher"):
 		return "oakleaf_village"
 	var scene_candidate := String(current_scene_path).to_lower()
@@ -880,6 +890,8 @@ func canonical_map_id() -> String:
 		return "pinehill_village"
 	if scene_candidate.contains("city"):
 		return "city_of_knowledge"
+	if scene_candidate.contains("forest") or scene_candidate.contains("path"):
+		return "deepest_forest_path"
 	return "oakleaf_village"
 
 
@@ -891,6 +903,8 @@ func canonical_difficulty_for_map(map_id: String) -> String:
 			return "Normal"
 		"pinehill_village":
 			return "Difficult"
+		"deepest_forest_path":
+			return "Normal"
 		_:
 			return "Unknown"
 
@@ -1438,6 +1452,13 @@ func handle_scene_entered(scene_path: String) -> void:
 	elif current_scene_path == "res://scenes/2nd Village/Pinehill Village.tscn" \
 			and pinehill_unlocked and current_task_index == PINEHILL_ARRIVAL_TASK_INDEX:
 		current_task_index = PINEHILL_OLD_MAN_TASK_INDEX
+		current_quest = get_current_quest_text()
+		quest_changed.emit(current_quest)
+		save_game()
+		_start_current_task_activity_after_transition(previous_scene_task_index)
+	elif current_scene_path == DEEPEST_FOREST_PATH \
+			and city_school_stage_complete and current_task_index == CITY_NEXT_PATH_TASK_INDEX:
+		current_task_index = DEEP_FOREST_BANDIT_TASK_INDEX
 		current_quest = get_current_quest_text()
 		quest_changed.emit(current_quest)
 		save_game()

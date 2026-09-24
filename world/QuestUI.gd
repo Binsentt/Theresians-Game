@@ -208,6 +208,12 @@ func play_teacher_dialogue() -> void:
 		visible = true
 		if battle_won:
 			GameState.record_encounter_victory()
+			# Keep the existing battle and quest systems intact, then provide a
+			# short completion epilogue through the established dialogue overlay.
+			await begin_dialogue([
+				"Teacher: You have completed the final Mathematics challenge.",
+				"Teacher: You are now a Math Champion. Congratulations!",
+			])
 		else:
 			GameState.record_encounter_loss()
 		update_task_ui()

@@ -20,6 +20,7 @@ func _ready() -> void:
 	GameState.handle_scene_entered(active_scene_path)
 	MusicManager.play_for_scene(active_scene_path)
 	_disable_non_physical_trigger_collisions(active_scene_path)
+	_hide_city_deep_forest_actors(active_scene_path)
 
 	_player = _ensure_player_instance()
 	_apply_spawn_state(_player)
@@ -34,6 +35,21 @@ func _ready() -> void:
 	_connect_oakleaf_prefetch(active_scene_path)
 
 	InputManager.unlock_input("door_transition")
+
+
+func _hide_city_deep_forest_actors(active_scene_path: String) -> void:
+	# These authored actors now belong to the dedicated Deepest Forest stage.
+	# The forest wrapper reuses the map as a backdrop and therefore does not
+	# call this helper for its nested City instance.
+	if active_scene_path != "res://scenes/city_of_knowledge.tscn":
+		return
+	for actor_name in ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5"]:
+		var actor := get_node_or_null(actor_name)
+		if actor != null:
+			actor.visible = false
+			if actor is CollisionObject2D:
+				(actor as CollisionObject2D).set_deferred("collision_layer", 0)
+				(actor as CollisionObject2D).set_deferred("collision_mask", 0)
 
 
 func _connect_oakleaf_prefetch(active_scene_path: String) -> void:
