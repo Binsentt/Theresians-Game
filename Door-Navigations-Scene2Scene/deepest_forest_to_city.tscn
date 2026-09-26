@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="1_door"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_forest_to_city"]
+size = Vector2(36, 32)
+
+[node name="Deepest-Forest-to-City" type="Area2D"]
+script = ExtResource("1_door")
+destination_scene_path = "res://scenes/city_of_knowledge.tscn"
+destination_spawn_position = Vector2(128, 508)
+destination_spawn_marker_name = "spawn_from_deepest_forest"
+destination_facing_direction = "left"
+play_fade_transition = true
+fade_duration = 2.0
+requires_city_of_knowledge_unlock = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_forest_to_city")

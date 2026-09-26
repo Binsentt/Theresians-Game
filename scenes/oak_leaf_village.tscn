@@ -517,6 +517,7 @@ position = Vector2(1174, 176)
 animation = &"walk_down"
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
+greeting_message = "Hi! The teacher's house is nearby if you need help."
 
 [node name="Area2D" type="Area2D" parent="girl_npc" unique_id=1965730284]
 
@@ -539,6 +540,7 @@ position = Vector2(906, 276)
 scale = Vector2(0.1, 0.1)
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
+greeting_message = "Be careful on the forest road. Bandits have been seen nearby."
 
 [node name="FootCollision" parent="NPC" index="1"]
 position = Vector2(0, 7.788)
@@ -566,6 +568,7 @@ position = Vector2(976.99994, 468.99997)
 scale = Vector2(0.09, 0.09)
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
+greeting_message = "Welcome to Oakleaf. Everyone here is cheering for you."
 
 [node name="Area2D" type="Area2D" parent="villager-female" unique_id=458782454]
 
@@ -593,6 +596,7 @@ position = Vector2(964, 173)
 [node name="Visual" parent="NPC1" index="0" groups=["Player"]]
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
+greeting_message = "Take your time, young traveler. Think carefully and keep going."
 
 [node name="FootCollision" parent="NPC1" index="1"]
 position = Vector2(0, 5.0622)

@@ -27,6 +27,11 @@
 [ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="26_door"]
 [ext_resource type="PackedScene" path="res://NPC/Enemy/wandering_bandit.tscn" id="26_gdmg8"]
 [ext_resource type="PackedScene" path="res://Door-Navigations-Scene2Scene/city_of_knowledge_to_pine_hill.tscn" id="27_053uc"]
+[ext_resource type="Script" path="res://scripts/interactable_area.gd" id="28_interactable"]
+[ext_resource type="Script" path="res://scripts/npc_greeting_dialogue.gd" id="29_greeting"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_city_greeting"]
+size = Vector2(36, 28)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_0mc4d"]
 texture = ExtResource("9_c5cpt")
@@ -1053,6 +1058,19 @@ tile_set = SubResource("TileSet_y4dbu")
 z_index = 1
 position = Vector2(1094, 417)
 
+[node name="Visual" parent="adult-male_npc" index="0"]
+greeting_message = "Welcome to the City of Knowledge. The school is just ahead."
+
+[node name="Area2D" type="Area2D" parent="adult-male_npc"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="adult-male_npc/Area2D"]
+shape = SubResource("RectangleShape2D_city_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="adult-male_npc"]
+script = ExtResource("28_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
+
 [node name="FootCollision" parent="adult-male_npc" index="1"]
 position = Vector2(0, 5.86124)
 scale = Vector2(0.433125, 0.26642)
@@ -1060,8 +1078,36 @@ scale = Vector2(0.433125, 0.26642)
 [node name="city_npc" parent="." unique_id=822584812 instance=ExtResource("18_fnfvr")]
 position = Vector2(936, 306)
 
+[node name="Area2D" type="Area2D" parent="city_npc"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="city_npc/Area2D"]
+shape = SubResource("RectangleShape2D_city_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="city_npc"]
+script = ExtResource("28_interactable")
+interaction_target_path = NodePath("../CityNpc")
+interaction_priority = 20
+
+[node name="CityNpc" parent="city_npc" index="0"]
+greeting_message = "The city is busy today. Good luck with your studies!"
+
 [node name="old_adult_women" parent="." unique_id=292343504 instance=ExtResource("19_emfti")]
 position = Vector2(983, 420)
+
+[node name="Visual" parent="old_adult_women" index="0"]
+script = ExtResource("29_greeting")
+quest_ui_path = NodePath("../../CanvasLayer/Panel")
+greeting_message = "Every challenge teaches you something new."
+
+[node name="Area2D" type="Area2D" parent="old_adult_women"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="old_adult_women/Area2D"]
+shape = SubResource("RectangleShape2D_city_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="old_adult_women"]
+script = ExtResource("28_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
 
 [node name="FootCollision" parent="old_adult_women" index="1"]
 position = Vector2(0, 5.0622)
@@ -1072,20 +1118,42 @@ position = Vector2(809, 206)
 
 [node name="Visual" parent="old_npc" index="0"]
 animation = &"walk_down"
+greeting_message = "The path beyond the city leads to the Deepest Forest."
 
 [node name="FootCollision" parent="old_npc" index="1"]
 position = Vector2(0, 4.9588)
 scale = Vector2(0.40005, 0.2254)
+
+[node name="Area2D" type="Area2D" parent="old_npc"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="old_npc/Area2D"]
+shape = SubResource("RectangleShape2D_city_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="old_npc"]
+script = ExtResource("28_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
 
 [node name="girl_npc" parent="." unique_id=244227400 instance=ExtResource("21_gdmg8")]
 position = Vector2(958, 456)
 
 [node name="Visual" parent="girl_npc" index="0"]
 animation = &"walk_right"
+greeting_message = "I heard Pinehill Village is past the forest."
 
 [node name="FootCollision" parent="girl_npc" index="1"]
 position = Vector2(0, 5.3768)
 scale = Vector2(0.4563, 0.26)
+
+[node name="Area2D" type="Area2D" parent="girl_npc"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="girl_npc/Area2D"]
+shape = SubResource("RectangleShape2D_city_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="girl_npc"]
+script = ExtResource("28_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
 
 [node name="object" type="TileMapLayer" parent="." unique_id=1920289294]
 tile_map_data = PackedByteArray("AABBAAoAAAAbABYAAABEAAsAAAAcABcAAABEAAgAAAAeABUAAABLAAgAAAAeABUAAABDABQAAAAcABYAAABCABQAAAAdABYAAAA0ABQAAAAdABYAAAAxAAsAAAAdABYAAAA2AA4AAAASAB0AAAA8AA4AAAAPAB0AAABBAB4AAAASAB8AAAA2AB0AAAAPAB8AAAA=")
@@ -1099,6 +1167,9 @@ tile_set = SubResource("TileSet_dtp6b")
 position = Vector2(1213, 84)
 
 [node name="spawn_from_pinehill" type="Marker2D" parent="." unique_id=670549938]
+position = Vector2(128, 508)
+
+[node name="spawn_from_deepest_forest" type="Marker2D" parent="."]
 position = Vector2(128, 508)
 
 [node name="Bandits" parent="." unique_id=8116170 instance=ExtResource("26_gdmg8")]
@@ -1130,6 +1201,17 @@ position = Vector2(327, 237)
 
 [node name="City-of-knowlwedge-to-PineHill" parent="." unique_id=1162980262 instance=ExtResource("27_053uc")]
 position = Vector2(128, 530)
+
+[connection signal="body_entered" from="adult-male_npc/Area2D" to="adult-male_npc/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="adult-male_npc/Area2D" to="adult-male_npc/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="city_npc/Area2D" to="city_npc/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="city_npc/Area2D" to="city_npc/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="old_adult_women/Area2D" to="old_adult_women/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="old_adult_women/Area2D" to="old_adult_women/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="old_npc/Area2D" to="old_npc/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="old_npc/Area2D" to="old_npc/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="girl_npc/Area2D" to="girl_npc/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="girl_npc/Area2D" to="girl_npc/InteractableArea" method="_on_body_exited"]
 [editable path="adult-male_npc"]
 [editable path="old_adult_women"]
 [editable path="old_npc"]

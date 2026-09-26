@@ -27,7 +27,11 @@
 [ext_resource type="PackedScene" path="res://NPC/Npc/wandering_villager_female.tscn" id="26_splfx"]
 [ext_resource type="Script" uid="uid://cv4g5p3cow42t" path="res://scripts/gameplay_scene.gd" id="27_gameplay"]
 [ext_resource type="PackedScene" uid="uid://cy6pff6v087ra" path="res://NPC/Enemy/boss_wizard.tscn" id="27_p8vfn"]
-[ext_resource type="PackedScene" uid="uid://dv4x0airjeepq" path="res://Door-Navigations-Scene2Scene/pinehill_to_city_of_knowledge.tscn" id="28_ej7ce"]
+[ext_resource type="PackedScene" path="res://Door-Navigations-Scene2Scene/pinehill_to_deepest_forest.tscn" id="28_ej7ce"]
+[ext_resource type="Script" path="res://scripts/interactable_area.gd" id="29_interactable"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pinehill_greeting"]
+size = Vector2(36, 28)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fcbjw"]
 texture = ExtResource("2_rkdt3")
@@ -653,30 +657,96 @@ scale = Vector2(0.468, 0.2301)
 position = Vector2(178, 284)
 animation = &"walk_down"
 
+[node name="Visual" parent="old_npc" index="0"]
+greeting_message = "Pinehill is quiet, but the Wizard's tower worries everyone."
+
+[node name="Area2D" type="Area2D" parent="old_npc"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="old_npc/Area2D"]
+shape = SubResource("RectangleShape2D_pinehill_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="old_npc"]
+script = ExtResource("29_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
+
 [node name="male-npc" parent="." unique_id=736401141 instance=ExtResource("21_fcbjw")]
 position = Vector2(246, 106)
+
+[node name="Visual" parent="male-npc" index="0"]
+greeting_message = "Those guards near the tower are tough. Be ready."
 
 [node name="FootCollision" parent="male-npc" index="1"]
 position = Vector2(0, 7.3986)
 scale = Vector2(0.45315, 0.3363)
 
+[node name="Area2D" type="Area2D" parent="male-npc"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="male-npc/Area2D"]
+shape = SubResource("RectangleShape2D_pinehill_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="male-npc"]
+script = ExtResource("29_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
+
 [node name="girl_npc" parent="." unique_id=244227400 instance=ExtResource("22_splfx")]
 position = Vector2(428, 333)
+
+[node name="Visual" parent="girl_npc" index="0"]
+greeting_message = "At night, strange lights shine from the Wizard's tower."
 
 [node name="FootCollision" parent="girl_npc" index="1"]
 position = Vector2(0, 5.3768)
 scale = Vector2(0.41535, 0.26)
 
+[node name="Area2D" type="Area2D" parent="girl_npc"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="girl_npc/Area2D"]
+shape = SubResource("RectangleShape2D_pinehill_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="girl_npc"]
+script = ExtResource("29_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
+
 [node name="villager-male" parent="." unique_id=1399149183 instance=ExtResource("25_fcbjw")]
 position = Vector2(235, 328)
 scale = Vector2(0.12, 0.12)
 
+[node name="Visual" parent="villager-male" index=0]
+scale = Vector2(1, 1)
+greeting_message = "If you're heading to the tower, prepare before you go."
+
+[node name="Area2D" type="Area2D" parent="villager-male"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="villager-male/Area2D"]
+shape = SubResource("RectangleShape2D_pinehill_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="villager-male"]
+script = ExtResource("29_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
+
 [node name="villager-female" parent="." unique_id=1540680081 instance=ExtResource("26_splfx")]
 position = Vector2(386, 412)
+
+[node name="Visual" parent="villager-female" index="0"]
+greeting_message = "The Old Lady knows more about the Wizard than anyone here."
 
 [node name="FootCollision" parent="villager-female" index="1"]
 position = Vector2(0, 5.3482)
 scale = Vector2(0.348075, 0.2431)
+
+[node name="Area2D" type="Area2D" parent="villager-female"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="villager-female/Area2D"]
+shape = SubResource("RectangleShape2D_pinehill_greeting")
+
+[node name="InteractableArea" type="Area2D" parent="villager-female"]
+script = ExtResource("29_interactable")
+interaction_target_path = NodePath("../Visual")
+interaction_priority = 20
 
 [node name="Bandits" parent="." unique_id=8116170 instance=ExtResource("26_ej7ce")]
 position = Vector2(1180, 78)
@@ -700,8 +770,21 @@ scale = Vector2(0.5, 0.5)
 [node name="spawn_from_city" type="Marker2D" parent="." unique_id=311429567]
 position = Vector2(47, 19)
 
-[node name="Pinehill-to-City-of-Knowledge" parent="." unique_id=1911235964 instance=ExtResource("28_ej7ce")]
+[node name="spawn_from_deepest_forest" type="Marker2D" parent="."]
+position = Vector2(47, 19)
+
+[node name="Pinehill-to-Deepest-Forest" parent="." instance=ExtResource("28_ej7ce")]
 position = Vector2(48, 2)
+[connection signal="body_entered" from="old_npc/Area2D" to="old_npc/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="old_npc/Area2D" to="old_npc/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="male-npc/Area2D" to="male-npc/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="male-npc/Area2D" to="male-npc/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="girl_npc/Area2D" to="girl_npc/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="girl_npc/Area2D" to="girl_npc/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="villager-male/Area2D" to="villager-male/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="villager-male/Area2D" to="villager-male/InteractableArea" method="_on_body_exited"]
+[connection signal="body_entered" from="villager-female/Area2D" to="villager-female/InteractableArea" method="_on_body_entered"]
+[connection signal="body_exited" from="villager-female/Area2D" to="villager-female/InteractableArea" method="_on_body_exited"]
 [editable path="old_adult_women"]
 [editable path="male-npc"]
 [editable path="girl_npc"]
