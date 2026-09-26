@@ -38,7 +38,9 @@ const CITY := "res://scenes/city_of_knowledge.tscn"
 const FOREST := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL := "res://scenes/2nd Village/Pinehill Village.tscn"
 const SCHOOL := "res://interiors/school.tscn"
-const RESULT_PATH := "res://docs/qa/final-story-continuation-qa-test-result.json"
+const COMPLETION_SCREEN_PATH := "res://ui/journey_completion_screen.tscn"
+const POST_COMPLETION_TEACHER_LINE := "Teacher: Congratulations, Math Champion. Keep practicing and keep learning."
+const RESULT_PATH := "user://qa/final_story_continuation_qa_test_result.json"
 
 
 class QuestionTransport extends Node:
@@ -111,6 +113,7 @@ func _run() -> void:
 	_state.set_script(STATE_FIXTURE)
 	_state.fixture_path = "user://saves/final_story_continuation_%d.json" % Time.get_ticks_usec()
 	_state.start_new_game(PROFILE, false)
+	await _test_completion_screen_contract()
 	_test_final_teacher_contract()
 	await _test_deliberate_dialogue(EXPECTED_REVEAL, "revelation")
 	await _test_deliberate_dialogue(EXPECTED_EPILOGUE, "epilogue")
@@ -120,6 +123,7 @@ func _run() -> void:
 
 	var failed := _checks.filter(func(row: Dictionary) -> bool: return not bool(row.get("passed", false))).size()
 	var evidence := {"passed": _checks.size() - failed, "failed": failed, "checks": _checks, "live_network_calls": 0}
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa"))
 	var report := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
 	if report != null:
 		report.store_string(JSON.stringify(evidence, "\t"))
@@ -133,6 +137,101 @@ func _run() -> void:
 		get_tree().current_scene = self
 		await get_tree().process_frame
 	get_tree().quit(1 if failed else 0)
+
+
+func _test_completion_screen_contract() -> void:
+	var original_values := {
+		"player_name": _state.player_name,
+		"grade_level": _state.grade_level,
+		"student_id": _state.student_id,
+		"parent_id": _state.parent_id,
+		"correct_answers": _state.correct_answers,
+		"total_questions": _state.total_questions,
+		"progress_percentage": _state.progress_percentage,
+	}
+	_state.player_name = "Synthetic Champion"
+	_state.grade_level = "Grade 3"
+	_state.student_id = "87654321"
+	_state.parent_id = "123456"
+	_state.correct_answers = 3
+	_state.total_questions = 5
+	_state.progress_percentage = 72
+	var packed := load(COMPLETION_SCREEN_PATH) as PackedScene if ResourceLoader.exists(COMPLETION_SCREEN_PATH) else null
+	_expect(packed != null, "A dedicated journey completion presentation scene exists")
+	if packed == null:
+		_restore_completion_test_state(original_values)
+		return
+	var screen := packed.instantiate() as CanvasLayer
+	_expect(screen != null, "Journey completion presentation instantiates as a CanvasLayer")
+	if screen == null:
+		_restore_completion_test_state(original_values)
+		return
+	add_child(screen)
+	await get_tree().process_frame
+	_expect(screen.visible, "Completion presentation is visible when explicitly instantiated")
+	_expect(screen.has_method("build_summary_rows"), "Completion summary uses a testable authoritative GameState projection")
+	_expect(screen.has_method("get_panel_rect_for_viewport"), "Completion layout exposes the same responsive geometry used at runtime")
+	var panel_control := screen.find_child("CompletionPanel", true, false) as Control
+	_expect(panel_control != null, "Completion presentation has one bounded game-themed panel")
+	if panel_control != null:
+		var content_minimum := panel_control.get_combined_minimum_size()
+		_expect(content_minimum.x <= 760.0 and content_minimum.y <= 460.0, "All completion content fits within the responsive panel bounds")
+	var labels: Array[String] = []
+	if screen.has_method("build_summary_rows"):
+		var rows: Array = screen.call("build_summary_rows")
+		for row_value in rows:
+			if row_value is Dictionary:
+				labels.append(String(row_value.get("label", "")))
+		_expect(labels.has("Student") and labels.has("Grade"), "Completion summary includes the existing student name and Grade")
+	_expect(labels.has("Correct Answers") and labels.has("Questions Answered") and labels.has("Progress"), "Completion summary includes only the supplied authoritative result fields")
+	var rendered_copy := ""
+	for label_value in screen.find_children("*", "Label", true, false):
+		rendered_copy += (label_value as Label).text + "\n"
+	_expect(not rendered_copy.contains("87654321") and not rendered_copy.contains("123456"), "Completion screen never displays Student or Parent IDs")
+	if screen.has_method("get_panel_rect_for_viewport"):
+		for viewport_size in [Vector2(844, 509), Vector2(1215, 545), Vector2(1280, 720), Vector2(1920, 1080)]:
+			var rect: Rect2 = screen.call("get_panel_rect_for_viewport", viewport_size)
+			var in_bounds: bool = rect.position.x >= 0.0 and rect.position.y >= 0.0 \
+					and rect.end.x <= viewport_size.x and rect.end.y <= viewport_size.y
+			var centered: bool = absf((rect.position.x * 2.0 + rect.size.x) - viewport_size.x) < 1.0 \
+					and absf((rect.position.y * 2.0 + rect.size.y) - viewport_size.y) < 1.0
+			_expect(in_bounds and centered, "Completion panel stays centered and within %dx%d" % [int(viewport_size.x), int(viewport_size.y)])
+	var buttons := screen.find_children("*", "Button", true, false)
+	_expect(buttons.size() == 2, "Completion presentation exposes only Continue and Main Menu actions")
+	var continue_button := screen.find_child("ContinueButton", true, false) as Button
+	var main_menu_button := screen.find_child("MainMenuButton", true, false) as Button
+	_expect(continue_button != null and main_menu_button != null, "Both explicit completion actions are available")
+	var sfx := screen.find_child("CompletionSound", true, false) as AudioStreamPlayer
+	_expect(sfx != null and sfx.bus == AudioSettingsManager.SFX_BUS_NAME and sfx.stream != null \
+			and sfx.stream.resource_path == "res://audio/completed.mp3", "Completion sting reuses the existing completion sound on the SFX bus")
+	if sfx != null:
+		var sound_deadline := Time.get_ticks_msec() + 1500
+		while not sfx.playing and Time.get_ticks_msec() < sound_deadline:
+			await get_tree().process_frame
+		_expect(sfx.playing, "Completion sting plays once through the existing SFX bus")
+	if continue_button != null:
+		continue_button.pressed.emit()
+		continue_button.pressed.emit()
+		_expect(String(screen.get("selected_action")) == "continue", "Continue selection is stable against a duplicate button press")
+	var zero_result_rows: Array = []
+	_state.correct_answers = 0
+	_state.total_questions = 0
+	_state.progress_percentage = 0
+	if screen.has_method("build_summary_rows"):
+		zero_result_rows = screen.call("build_summary_rows")
+	var zero_labels: Array[String] = []
+	for row_value in zero_result_rows:
+		if row_value is Dictionary:
+			zero_labels.append(String(row_value.get("label", "")))
+	_expect(not zero_labels.has("Correct Answers") and not zero_labels.has("Questions Answered") and not zero_labels.has("Progress"), "Untracked zero metrics are omitted rather than fabricated")
+	screen.queue_free()
+	_restore_completion_test_state(original_values)
+	await get_tree().process_frame
+
+
+func _restore_completion_test_state(values: Dictionary) -> void:
+	for key in values:
+		_state.set(String(key), values[key])
 
 
 func _test_final_teacher_contract() -> void:
@@ -307,6 +406,7 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 	_expect(not male_loss and not _state.journey_complete and not _state.final_teacher_defeated, "Actual male final battle loss leaves the journey incomplete")
 	_expect(_state.current_task_index == _state.FINAL_TEACHER_TASK_INDEX and _state.current_scene_path == SCHOOL, "Actual male loss returns to the School final-task checkpoint")
 	_expect(not _state.battle_active and quest_ui.visible, "Actual male loss clears battle state and restores the world UI")
+	_expect(world.get_node_or_null("JourneyCompletionScreen") == null, "A final Teacher loss never opens the completion presentation")
 	_state.save_game()
 	var loss_save: Dictionary = _state._read_save_file(_state.fixture_path)
 	_state.start_new_game(PROFILE, false)
@@ -317,19 +417,83 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 	if retry_battle == null:
 		return
 	_expect(int(_state.get_active_encounter_context().get("retry_count", 0)) == 1, "Actual Teacher retry preserves the single encounter identity and retry count")
+	var male_completion_events: Array[Dictionary] = []
+	var male_completion_callback := func(_previous: int, _next: int, event: Dictionary) -> void:
+		if String(event.get("key", "")) == "quest:world:journey_complete":
+			male_completion_events.append(event)
+	_state.task_state_changed.connect(male_completion_callback)
+	var saves_before_male_victory: int = _state.fixture_save_count
 	var male_win := await _finish_synthetic_battle(retry_battle, true, "Male final Teacher retry")
 	_expect(male_win, "Actual male final Teacher retry can be won")
 	await _advance_dialogue_lines(world, quest_ui, EXPECTED_EPILOGUE, "Male final Teacher epilogue")
+	var male_completion_screen := await _wait_for_completion_screen(world)
+	_expect(male_completion_screen != null, "First male Final Teacher victory opens completion only after the full epilogue closes")
 	_expect(_state.journey_complete and _state.final_teacher_defeated and _state.get_current_quest_text() == "Math Champion", "Actual male victory reaches Math Champion after the full epilogue")
-	_expect(not teacher.call("can_interact") and not teacher.call("interact"), "Completed actual Teacher interaction cannot start another battle")
-	var completed_path: String = _state.save_game()
-	var completed_data: Dictionary = _state._read_save_file(completed_path)
+	_expect(_state.fixture_save_count == saves_before_male_victory + 1, "The authoritative Final Teacher victory remains the only completion save")
+	_expect(male_completion_events.size() == 1, "First Final Teacher victory emits one completion event")
+	if male_completion_screen != null:
+		_expect(_state.get_mode() == _state.GameMode.CUTSCENE, "Completion presentation blocks gameplay with CUTSCENE mode")
+		var game_hud := world.get_node_or_null("GameHUD")
+		var mobile_controls := world.get_node_or_null("MobileControls")
+		var time_panel := game_hud.get_node_or_null("TimeMargin") as CanvasItem if game_hud != null else null
+		var quest_panel := game_hud.get_node_or_null("QuestGuide") as CanvasItem if game_hud != null else null
+		var controls_root := mobile_controls.get_node_or_null("Root") as CanvasItem if mobile_controls != null else null
+		_expect(time_panel != null and not time_panel.visible and quest_panel != null and not quest_panel.visible, "Time and quest HUD are hidden during the completion presentation")
+		_expect(controls_root != null and not controls_root.visible, "ACT and movement controls are hidden during the completion presentation")
+		var ending_music_ready := await _wait_for_music_track("ending")
+		_expect(ending_music_ready, "The existing MusicManager transitions to the ending track")
+		var background_players := get_node("/root/MusicManager").find_children("*", "AudioStreamPlayer", true, false)
+		_expect(background_players.size() == 1 and String(get_node("/root/MusicManager").get("_current_track_key")) == "ending", "Ending music replaces rather than stacks the existing background player")
+		var close_count := [0]
+		male_completion_screen.closed.connect(func() -> void: close_count[0] += 1)
+		quest_ui.call("_show_journey_completion")
+		_expect(world.get_node_or_null("JourneyCompletionScreen") == male_completion_screen, "A repeated presentation request cannot open a duplicate overlay")
+		var continue_button := male_completion_screen.find_child("ContinueButton", true, false) as Button
+		_expect(continue_button != null, "Continue action exists on the completion screen")
+		if continue_button != null:
+			continue_button.pressed.emit()
+			continue_button.pressed.emit()
+		for frame in 60:
+			if world.get_node_or_null("JourneyCompletionScreen") == null and _state.get_mode() == _state.GameMode.EXPLORATION:
+				break
+			await get_tree().process_frame
+		_expect(close_count[0] == 1 and world.get_node_or_null("JourneyCompletionScreen") == null, "Continue closes the overlay once despite a duplicate press")
+		_expect(time_panel != null and time_panel.visible and quest_panel != null and quest_panel.visible and controls_root != null and controls_root.visible, "Continue restores the existing HUD and controls")
+		_expect(_state.get_mode() == _state.GameMode.EXPLORATION and _state.journey_complete and _state.get_current_quest_text() == "Math Champion", "Continue returns to exploration with Math Champion intact")
+		var school_music_ready := await _wait_for_music_track("school_or_house")
+		_expect(school_music_ready, "Continue restores the School background track")
+	_expect(_state.fixture_save_count == saves_before_male_victory + 1 and male_completion_events.size() == 1, "Opening and continuing the ending creates no duplicate save or completion event")
+	_state.task_state_changed.disconnect(male_completion_callback)
+	var completed_data: Dictionary = _state._read_save_file(_state.fixture_path)
+	_expect(bool(completed_data.get("journey_complete", false)) and bool(completed_data.get("final_teacher_defeated", false)), "The first-victory autosave already contains completed state")
+	var completed_save_listed := false
+	for save_entry in _state.list_saves():
+		if String(save_entry.get("save_path", "")) == _state.fixture_path:
+			completed_save_listed = true
+	_expect(completed_save_listed, "The completed save remains available to the existing Load Game save listing")
 	_state.start_new_game(PROFILE, false)
 	_state.apply_save_data(completed_data, false)
 	_expect(_state.journey_complete and _state.final_teacher_defeated and not _state.is_final_teacher_active(), "Actual completed game save/load retains the no-replay Math Champion state")
+	_expect(world.get_node_or_null("JourneyCompletionScreen") == null, "Loading a completed save never auto-replays the completion presentation")
 	_expect(_state.wizard_defeated and _state.is_progression_encounter_defeated("pinehill_wizard"), "Actual final save keeps Wizard defeated")
 	for encounter_id in _state.DEEP_FOREST_BANDIT_IDS + _state.PINEHILL_BANDIT_IDS:
 		_expect(_state.is_progression_encounter_defeated(encounter_id), "Actual final save keeps prior encounter defeated: " + encounter_id)
+	_expect(bool(teacher.call("can_interact")), "Teacher remains available for one post-completion greeting")
+	if bool(teacher.call("can_interact")):
+		_expect(bool(teacher.call("interact")), "Completed-state Teacher starts a greeting, not a battle")
+		for frame in 30:
+			if bool(quest_ui.call("is_dialogue_active")):
+				break
+			await get_tree().process_frame
+		var post_completion_label := world.get_node("CanvasLayer/DialoguePanel/DialogueLabel") as Label
+		_expect(bool(quest_ui.call("is_dialogue_active")) and post_completion_label.text == POST_COMPLETION_TEACHER_LINE, "Teacher uses the single approved Math Champion line after completion")
+		_expect(not _state.battle_active and world.get_node_or_null("JourneyCompletionScreen") == null, "Post-completion Teacher greeting starts no battle or second ending")
+		quest_ui.call("_advance_dialogue_once")
+		for frame in 30:
+			if not bool(teacher.get("_active")):
+				break
+			await get_tree().process_frame
+		_expect(not bool(teacher.get("_active")) and _state.journey_complete, "Post-completion Teacher greeting closes without changing completed progress")
 	_expect(result_capture.attempts.size() == 6, "Actual male loss and retry record exactly three local synthetic attempts each")
 	_expect(transport.requests.size() == 2, "Male loss and retry each load one isolated question batch")
 	for request in transport.requests:
@@ -346,11 +510,26 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 	var female_win := await _finish_synthetic_battle(female_battle, true, "Female final Teacher challenge")
 	_expect(female_win, "Actual female final Teacher battle can be won")
 	await _advance_dialogue_lines(world, quest_ui, EXPECTED_EPILOGUE, "Female final Teacher epilogue")
+	var female_completion_screen := await _wait_for_completion_screen(world)
+	_expect(female_completion_screen != null, "First female Final Teacher victory opens the same completion presentation after its epilogue")
 	_expect(_state.journey_complete and _state.final_teacher_defeated, "Actual female victory completes the same canonical journey")
 	_expect(result_capture.attempts.size() == 9, "Actual three final battles record exactly nine local synthetic attempts")
 	_expect(transport.requests.size() == 3, "Female route makes one additional local fixture question request")
 	_expect(transport.requests.back().params == {"grade": "Grade 1", "difficulty": "Difficult"}, "Female final battle keeps the same exact question scope")
 	await _test_post_completion_civilian_greeting()
+	if female_completion_screen != null:
+		var saves_before_menu: int = int(_state.fixture_save_count)
+		var menu_button := female_completion_screen.find_child("MainMenuButton", true, false) as Button
+		_expect(menu_button != null, "Main Menu action exists on the completion screen")
+		if menu_button != null:
+			menu_button.pressed.emit()
+			var menu_opened := await _wait_for_scene_path("res://scenes/main_menu.tscn")
+			_expect(menu_opened, "Main Menu action returns cleanly to the existing main menu scene")
+			_expect(_state.player_name == PROFILE.player_name and _state.student_id == PROFILE.student_id, "Main Menu preserves the current Student identity in runtime")
+			_expect(_state.journey_complete and FileAccess.file_exists(_state.fixture_path), "Main Menu preserves the authoritative completed save without writing another save")
+			_expect(_state.fixture_save_count == saves_before_menu, "Main Menu adds no duplicate completion save")
+			var menu_music_ready := await _wait_for_music_track("menu")
+			_expect(menu_music_ready, "Main Menu transition returns to the menu music")
 	transport.free()
 	result_capture.free()
 	get_tree().current_scene = self
@@ -388,8 +567,66 @@ func _prepare_school(gender: String) -> void:
 	get_tree().current_scene = school_instance
 	for frame in 8:
 		await get_tree().process_frame
+	# The harness remains current_scene during the School instance's _ready().
+	# Ensure this fixture owns the same production UI scenes the real runtime
+	# attaches to the active world.
+	if school_instance.get_node_or_null("GameHUD") == null:
+		var hud_scene := load("res://ui/game_hud.tscn") as PackedScene
+		if hud_scene != null:
+			var hud := hud_scene.instantiate()
+			hud.name = "GameHUD"
+			school_instance.add_child(hud)
+	if school_instance.get_node_or_null("MobileControls") == null:
+		var controls_scene := load("res://ui/mobile_controls.tscn") as PackedScene
+		if controls_scene != null:
+			var controls := controls_scene.instantiate()
+			controls.name = "MobileControls"
+			school_instance.add_child(controls)
+	var qa_hud := school_instance.get_node_or_null("GameHUD")
+	var qa_mobile_controls := school_instance.get_node_or_null("MobileControls")
+	if qa_hud != null:
+		var time_panel := qa_hud.get_node_or_null("TimeMargin") as CanvasItem
+		var quest_panel := qa_hud.get_node_or_null("QuestGuide") as CanvasItem
+		if time_panel != null:
+			time_panel.visible = true
+		if quest_panel != null:
+			quest_panel.visible = true
+	if qa_mobile_controls != null:
+		var controls_root := qa_mobile_controls.get_node_or_null("Root") as CanvasItem
+		if controls_root != null:
+			controls_root.visible = true
 	_expect(get_tree().current_scene != null and get_tree().current_scene.scene_file_path == SCHOOL, gender + " QA uses the canonical School scene")
 	_expect(get_tree().root.find_children("*", "HTTPRequest", true, false).is_empty(), gender + " QA has no real HTTP transport")
+
+
+func _wait_for_completion_screen(world: Node) -> Node:
+	var deadline := Time.get_ticks_msec() + 5000
+	while Time.get_ticks_msec() < deadline:
+		var screen := world.get_node_or_null("JourneyCompletionScreen")
+		if screen != null:
+			return screen
+		await get_tree().process_frame
+	return null
+
+
+func _wait_for_music_track(track_key: String) -> bool:
+	var deadline := Time.get_ticks_msec() + 5000
+	while Time.get_ticks_msec() < deadline:
+		var manager := get_node_or_null("/root/MusicManager")
+		if manager != null and String(manager.get("_current_track_key")) == track_key:
+			return true
+		await get_tree().process_frame
+	return false
+
+
+func _wait_for_scene_path(scene_path: String) -> bool:
+	var deadline := Time.get_ticks_msec() + 5000
+	while Time.get_ticks_msec() < deadline:
+		var current_scene := get_tree().current_scene
+		if current_scene != null and current_scene.scene_file_path == scene_path:
+			return true
+		await get_tree().process_frame
+	return false
 
 
 func _start_final_teacher_interaction(world: Node, teacher: Node, quest_ui: Node, label: String) -> Node:

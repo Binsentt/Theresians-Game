@@ -5,6 +5,10 @@ extends Panel
 
 signal dialogue_closed
 
+const JOURNEY_COMPLETION_SCENE := preload("res://ui/journey_completion_screen.tscn")
+const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
+const POST_COMPLETION_TEACHER_LINE := "Teacher: Congratulations, Math Champion. Keep practicing and keep learning."
+
 @onready var quest_text: Label = get_node_or_null("QuestText") as Label
 @onready var dialogue_panel: Control = get_node_or_null("../DialoguePanel") as Control
 @onready var dialogue_label: Label = get_node_or_null("../DialoguePanel/DialogueLabel") as Label
@@ -14,6 +18,10 @@ var _dialogue_line_index := 0
 var _dialogue_active := false
 var _await_release_after_open := false
 var _final_close_consumed := false
+var _completion_presentation_shown := false
+var _completion_returned_to_world := false
+var _completion_hud_visibility: Array[Dictionary] = []
+var _completion_mobile_visibility: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -212,11 +220,90 @@ func play_teacher_dialogue() -> void:
 			if bool(progression.get("changed", false)):
 				# Only the first authoritative final-teacher victory receives the epilogue.
 				await begin_dialogue(final_task.get("victory_dialogue", []))
+				var returned_to_world: bool = await _show_journey_completion()
+				if not returned_to_world:
+					return
 		else:
 			GameState.record_encounter_loss()
 		update_task_ui()
 		return
+	if GameState.journey_complete and _is_school_scene():
+		await begin_dialogue([POST_COMPLETION_TEACHER_LINE])
+		update_task_ui()
+		return
 	await show_completed_with_dialogue()
+
+
+func _show_journey_completion() -> bool:
+	if _completion_presentation_shown:
+		return _completion_returned_to_world
+	if not GameState.journey_complete or not GameState.final_teacher_defeated:
+		return true
+	_completion_presentation_shown = true
+	_completion_returned_to_world = false
+	var world := get_tree().current_scene
+	if world == null:
+		return true
+	var game_hud := world.get_node_or_null("GameHUD")
+	var mobile_controls := world.get_node_or_null("MobileControls")
+	_completion_hud_visibility = _set_canvas_layer_children_visible(game_hud, false)
+	_completion_mobile_visibility = _set_canvas_layer_children_visible(mobile_controls, false)
+	GameState.push_mode(GameState.GameMode.CUTSCENE)
+	MusicManager.play_track(MusicManager.TRACK_ENDING)
+	var completion_screen := JOURNEY_COMPLETION_SCENE.instantiate() as CanvasLayer
+	if completion_screen == null:
+		_restore_canvas_layer_children(_completion_hud_visibility)
+		_restore_canvas_layer_children(_completion_mobile_visibility)
+		GameState.pop_mode()
+		MusicManager.play_for_scene(world.scene_file_path)
+		_completion_returned_to_world = true
+		return true
+	completion_screen.name = "JourneyCompletionScreen"
+	world.add_child(completion_screen)
+	await completion_screen.closed
+	var selected_action := String(completion_screen.get("selected_action"))
+	completion_screen.queue_free()
+	if selected_action == "main_menu":
+		GameState.set_mode(GameState.GameMode.MENU)
+		var scene_change_error := get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+		if scene_change_error == OK:
+			return false
+		GameState.set_mode(GameState.GameMode.EXPLORATION)
+		_restore_canvas_layer_children(_completion_hud_visibility)
+		_restore_canvas_layer_children(_completion_mobile_visibility)
+		MusicManager.play_for_scene(world.scene_file_path)
+		_completion_returned_to_world = true
+		return true
+	_restore_canvas_layer_children(_completion_hud_visibility)
+	_restore_canvas_layer_children(_completion_mobile_visibility)
+	GameState.pop_mode()
+	MusicManager.play_for_scene(world.scene_file_path)
+	_completion_returned_to_world = true
+	return true
+
+
+func _set_canvas_layer_children_visible(canvas_layer: Node, should_be_visible: bool) -> Array[Dictionary]:
+	var previous_visibility: Array[Dictionary] = []
+	if canvas_layer == null:
+		return previous_visibility
+	for child in canvas_layer.get_children():
+		if child is CanvasItem:
+			previous_visibility.append({"node": child, "visible": (child as CanvasItem).visible})
+			(child as CanvasItem).visible = should_be_visible
+	return previous_visibility
+
+
+func _restore_canvas_layer_children(previous_visibility: Array[Dictionary]) -> void:
+	for entry in previous_visibility:
+		var node := entry.get("node") as CanvasItem
+		if node != null and is_instance_valid(node):
+			node.visible = bool(entry.get("visible", true))
+	previous_visibility.clear()
+
+
+func _is_school_scene() -> bool:
+	var current_scene := get_tree().current_scene
+	return current_scene != null and current_scene.scene_file_path == "res://interiors/school.tscn"
 
 
 func is_dialogue_active() -> bool:
