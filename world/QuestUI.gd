@@ -180,13 +180,13 @@ func play_teacher_dialogue() -> void:
 			return
 		var source_position := player.global_position if player != null else GameState.player_position
 		GameState.begin_encounter({
-			"encounter_id": "final_teacher",
+			"encounter_id": String(final_task.get("encounter_id", "final_teacher")),
 			"source_scene_path": source_scene.scene_file_path,
 			"source_position": source_position,
 			"quest_checkpoint": GameState.current_task_index,
-			"question_scope": {"difficulty": "Difficult"},
+			"question_scope": Dictionary(final_task.get("question_scope", {"difficulty": "Difficult"})),
 		})
-		var battle_scene_path := "res://Battle/Battle-Enemy/female_vs_teacher.tscn" if GameState.gender == "female" else "res://Battle/Battle-Enemy/male_vs_teacher.tscn"
+		var battle_scene_path := String(final_task.get("female_battle_scene", "")) if GameState.gender == "female" else String(final_task.get("male_battle_scene", ""))
 		var battle_scene: Node = load(battle_scene_path).instantiate()
 		var battle_layer := CanvasLayer.new()
 		battle_layer.name = "OriginalBattlePresentation"
@@ -207,17 +207,11 @@ func play_teacher_dialogue() -> void:
 			source_scene.visible = world_was_visible
 		visible = true
 		if battle_won:
-			GameState.record_encounter_victory()
-			# Keep the existing battle and quest systems intact, then provide a
-			# short completion epilogue through the established dialogue overlay.
-			await begin_dialogue([
-				"Teacher: Excellent work.",
-				"Teacher: You overcame every challenge and continued even when the problems became difficult.",
-				"Teacher: Your journey through Theresian's Quest is complete.",
-				"Teacher: You are now a Math Champion.",
-				"THERESIAN'S QUEST COMPLETE",
-				"Congratulations! You completed your Mathematics Adventure.",
-			])
+			var victory: Dictionary = GameState.record_encounter_victory()
+			var progression: Dictionary = victory.get("progression", {})
+			if bool(progression.get("changed", false)):
+				# Only the first authoritative final-teacher victory receives the epilogue.
+				await begin_dialogue(final_task.get("victory_dialogue", []))
 		else:
 			GameState.record_encounter_loss()
 		update_task_ui()

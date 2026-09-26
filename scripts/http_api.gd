@@ -101,6 +101,7 @@ func is_local_qa_profile_requested() -> bool:
 			or normalized.ends_with("/original_flow_ingestion_test.tscn")
 			or normalized.ends_with("/quest_telemetry_contract_test.tscn")
 			or normalized.ends_with("/final_game_flow_state_test.tscn")
+			or normalized.ends_with("/final_story_continuation_qa_test.tscn")
 			or normalized.ends_with("/remote_sync_pending_queue_test.tscn")
 			or normalized.ends_with("/quest_presentation_dialogue_regression_test.tscn")
 			or normalized.ends_with("/map_ui_presentation_test.tscn")
