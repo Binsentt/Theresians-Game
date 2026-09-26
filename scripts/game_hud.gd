@@ -3,17 +3,13 @@ extends CanvasLayer
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
 const GAME_OVER_SCENE := "res://scenes/game_over_scene.tscn"
 const SETTINGS_INGAME_SCENE := preload("res://scenes/Settings-Ingame/settings_ingame.tscn")
-const TIME_PANEL_RECT := Rect2(Vector2(14.0, 12.0), Vector2(190.0, 74.0))
-const QUEST_MAX_WIDTH := 460.0
-const QUEST_EDGE_MARGIN := 14.0
-const QUEST_TIME_GAP := 12.0
-const QUEST_VERTICAL_GAP := 10.0
-const QUEST_NARROW_BREAKPOINT := 784.0
+const TIME_PANEL_RECT := Rect2(Vector2(14.0, 12.0), Vector2(164.0, 54.0))
+const QUEST_MAX_WIDTH := 440.0
+const QUEST_EDGE_MARGIN := 16.0
 
 @onready var time_panel: PanelContainer = $TimeMargin/TimePanel
 @onready var time_header: Label = $TimeMargin/TimePanel/TimeContent/TimeHeader
 @onready var time_label: Label = $TimeMargin/TimePanel/TimeContent/TimeLabel
-@onready var time_progress: ProgressBar = $TimeMargin/TimePanel/TimeContent/TimeProgress
 @onready var quest_guide: PanelContainer = $QuestGuide
 @onready var quest_label: Label = $QuestGuide/QuestContent/QuestLabel
 @onready var quest_heading: Label = $QuestGuide/QuestContent/HeadingRow/Heading
@@ -22,7 +18,6 @@ const QUEST_NARROW_BREAKPOINT := 784.0
 
 var _last_time_visual_state := ""
 var _time_panel_styles: Dictionary = {}
-var _time_fill_styles: Dictionary = {}
 var _quest_normal_style: StyleBoxFlat
 var _quest_achievement_style: StyleBoxFlat
 var _last_quest_text := ""
@@ -56,7 +51,7 @@ func _process(_delta: float) -> void:
 
 
 func _update_playtime_label() -> void:
-	if time_label == null or time_progress == null:
+	if time_label == null:
 		return
 	var limit_minutes := maxi(0, int(GameState.playtime_limit_minutes))
 	var remaining_seconds := maxf(0.0, float(GameState.get_playtime_remaining_seconds()))
@@ -65,14 +60,6 @@ func _update_playtime_label() -> void:
 	var display_text := "--:--" if visual_state == "DISABLED" else _format_remaining_time(remaining_seconds)
 	if time_label.text != display_text:
 		time_label.text = display_text
-	if visual_state == "DISABLED":
-		if not is_equal_approx(time_progress.value, 0.0):
-			time_progress.value = 0.0
-		return
-	var configured_seconds := float(limit_minutes) * 60.0
-	var progress_value := clampf((remaining_seconds / configured_seconds) * 100.0, 0.0, 100.0)
-	if not is_equal_approx(time_progress.value, progress_value):
-		time_progress.value = progress_value
 
 
 func _format_remaining_time(remaining_seconds: float) -> String:
@@ -96,8 +83,7 @@ func _time_visual_state(limit_minutes: int, remaining_seconds: float) -> String:
 
 func _build_hud_styles() -> void:
 	var base_panel := time_panel.get_theme_stylebox("panel") as StyleBoxFlat
-	var base_fill := time_progress.get_theme_stylebox("fill") as StyleBoxFlat
-	if base_panel != null and base_fill != null:
+	if base_panel != null:
 		var palette := {
 			"NORMAL": Color(0.94902, 0.823529, 0.443137, 1.0),
 			"WARNING_15": Color(1.0, 0.901961, 0.34902, 1.0),
@@ -107,13 +93,10 @@ func _build_hud_styles() -> void:
 		}
 		for state in palette:
 			var panel_style := base_panel.duplicate() as StyleBoxFlat
-			var fill_style := base_fill.duplicate() as StyleBoxFlat
 			panel_style.border_color = palette[state]
-			fill_style.bg_color = palette[state]
 			if state == "DISABLED":
 				panel_style.bg_color = Color(0.066667, 0.07451, 0.113725, 0.94)
 			_time_panel_styles[state] = panel_style
-			_time_fill_styles[state] = fill_style
 
 	var base_quest := quest_guide.get_theme_stylebox("panel") as StyleBoxFlat
 	if base_quest != null:
@@ -129,14 +112,6 @@ func _apply_time_visual_state(state: String) -> void:
 	_last_time_visual_state = state
 	if _time_panel_styles.has(state):
 		time_panel.add_theme_stylebox_override("panel", _time_panel_styles[state])
-	if _time_fill_styles.has(state):
-		time_progress.add_theme_stylebox_override("fill", _time_fill_styles[state])
-	var bar_height := 6.0
-	if state == "WARNING_15":
-		bar_height = 7.0
-	elif state in ["WARNING_5", "CRITICAL_1"]:
-		bar_height = 8.0
-	time_progress.custom_minimum_size.y = bar_height
 
 
 func _on_game_over() -> void:
@@ -252,18 +227,13 @@ func _layout_hud() -> void:
 
 
 func _quest_layout_for_viewport(viewport_size: Vector2, objective: String) -> Dictionary:
-	var available_width := viewport_size.x - 2.0 * (QUEST_EDGE_MARGIN + TIME_PANEL_RECT.size.x + QUEST_TIME_GAP)
-	var panel_width := minf(QUEST_MAX_WIDTH, available_width)
-	var top := QUEST_EDGE_MARGIN - 2.0
-	if viewport_size.x < QUEST_NARROW_BREAKPOINT or panel_width < 340.0:
-		panel_width = minf(QUEST_MAX_WIDTH, maxf(0.0, viewport_size.x - 32.0))
-		top = TIME_PANEL_RECT.end.y + QUEST_VERTICAL_GAP
-	var line_count := _estimate_quest_lines(objective, maxf(1.0, panel_width - 28.0))
-	var panel_height := 48.0 + float(line_count) * 15.0
+	var panel_width := minf(QUEST_MAX_WIDTH, maxf(0.0, viewport_size.x - 2.0 * QUEST_EDGE_MARGIN))
+	var line_count := _estimate_quest_lines(objective, maxf(1.0, panel_width - 24.0))
+	var panel_height := 40.0 + float(line_count) * 15.0
 	panel_height = minf(panel_height, maxf(1.0, viewport_size.y - 24.0))
 	var left := maxf(12.0, (viewport_size.x - panel_width) * 0.5)
 	return {
-		"position": Vector2(left, top),
+		"position": Vector2(left, 12.0),
 		"size": Vector2(panel_width, panel_height),
 		"line_count": line_count,
 	}

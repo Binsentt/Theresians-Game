@@ -26,7 +26,8 @@ func _run() -> void:
 	if playtime_label != null:
 		passed = _assert(playtime_label.visible, "Game HUD keeps the Time Left label visible") and passed
 		passed = _assert(playtime_label.text == "60:00" or playtime_label.text == "--:--", "Game HUD displays the remaining time in MM:SS format") and passed
-		passed = _assert(playtime_label.get_theme_font_size("font_size") == 14, "Game HUD renders the exact MM:SS value at the updated readable size") and passed
+		var timer_font_size := playtime_label.get_theme_font_size("font_size")
+		passed = _assert(timer_font_size >= 14 and timer_font_size <= 16, "Game HUD renders the exact MM:SS value at the requested 14–16 px size") and passed
 
 	hud.queue_free()
 	if passed:

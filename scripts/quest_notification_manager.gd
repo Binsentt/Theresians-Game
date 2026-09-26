@@ -272,7 +272,7 @@ func _show_event_panel(event: Dictionary) -> void:
 	var kind := String(event.get("kind", ""))
 	var is_trigger := kind == "task_trigger"
 	var is_completion := String(event.get("kind", "")) in ["task_completed", "quest_completed"]
-	var placement := "bottom" if is_trigger else ("below_quest" if is_completion else "top")
+	var placement := "bottom" if is_trigger else "top"
 	_root_layer.layer = 2 if is_completion else 1
 	var target_panel: PanelContainer
 	var target_height: float
@@ -378,15 +378,6 @@ func _position_panel(panel: Control, height: float, placement: String) -> void:
 	var y := maxf(12.0, viewport_size.y - height - 28.0)
 	if placement == "top":
 		y = 12.0
-	elif placement == "below_quest":
-		y = 12.0
-		var scene := get_tree().current_scene
-		var quest_guide: Control = null
-		if scene != null:
-			quest_guide = scene.find_child("QuestGuide", true, false) as Control
-		if quest_guide != null and quest_guide.visible:
-			y = quest_guide.get_global_rect().end.y + 12.0
-		y = minf(y, maxf(12.0, viewport_size.y - height - 12.0))
 	panel.position = Vector2((viewport_size.x - width) * 0.5, y)
 
 
