@@ -10,6 +10,7 @@ const LEGACY_SAVE := "user://saves/save_identity_gate_legacy.json"
 const LOAD_SCENE := preload("res://load_game_scene.tscn")
 
 var _failures: Array[String] = []
+var _check_count := 0
 
 
 class ProfileHttpStub extends Node:
@@ -53,8 +54,8 @@ func _run() -> void:
 	_write_save(SAVE_A, STUDENT_A, PARENT_A, 100, "Device Student A")
 	_write_save(SAVE_B, STUDENT_B, PARENT_B, 200, "Device Student B")
 	_write_legacy_save()
-	GameState.student_id = STUDENT_A
-	GameState.parent_id = PARENT_A
+	GameState.student_id = ""
+	GameState.parent_id = ""
 
 	var scene := LOAD_SCENE.instantiate() as Control
 	get_tree().current_scene = self
@@ -62,27 +63,45 @@ func _run() -> void:
 	get_tree().current_scene = scene
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityPromptLabel") == null, "Load Game has no Verify Student prompt")
-	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityFields") == null, "Load Game has no Student ID, Parent ID, or Verify controls")
-	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityStatusLabel") == null, "Load Game has no verification instruction/status label")
-	_assert(not scene.has_method("_verify_save_owner"), "Load Game has no backend owner-verification handler")
-	_assert(_rendered_paths(scene) == [SAVE_A], "Load Game lists only saves owned by the current Student")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityPromptLabel") != null, "Load Game shows a Verify Student prompt when no session identity exists")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields") != null, "Load Game provides Student ID, Parent ID, and Verify controls")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityStatusLabel") != null, "Load Game provides verification status feedback")
+	_assert(scene.has_method("_verify_save_owner"), "Load Game has a backend owner-verification handler")
+	_assert(_rendered_paths(scene).is_empty(), "Fresh Load Game reveals no saves before Student verification")
 	var http_stub := get_node_or_null("/root/HttpApi")
 	var remote_stub := get_node_or_null("/root/RemoteSync")
-	_assert(http_stub != null and int(http_stub.get("request_count")) == 0, "Listing local saves emits no profile-check request")
+	_assert(http_stub != null and int(http_stub.get("request_count")) == 0, "Fresh Load Game does not emit a profile-check request automatically")
 	_assert(remote_stub != null and int(remote_stub.get("learning_cycle_request_count")) == 0, "Listing local saves emits no RemoteSync request")
+
+	var invalid_result: Dictionary = await scene.call("_verify_save_owner", STUDENT_A, "999999")
+	_assert(not bool(invalid_result.get("ok", false)), "Invalid Load Game credentials are rejected")
+	_assert(_rendered_paths(scene).is_empty(), "Invalid credentials reveal no saves")
+
+	var student_a_result: Dictionary = await scene.call("_verify_save_owner", STUDENT_A, PARENT_A)
+	_assert(bool(student_a_result.get("ok", false)), "Valid Student A credentials are accepted")
+	_assert(String(GameState.student_id) == STUDENT_A and String(GameState.parent_id) == PARENT_A, "Canonical Student A identity is stored in the current session")
+	scene.call("_refresh_save_list")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_assert(_rendered_paths(scene) == [SAVE_A], "Load Game lists only saves owned by the verified Student A")
 
 	_assert(GameState.peek_save_data(SAVE_B).is_empty(), "Student A cannot inspect Student B save by direct path")
 	_assert(GameState.load_save(SAVE_B, false).is_empty(), "Student A cannot load Student B save by direct path")
 	_assert(GameState.student_id == STUDENT_A and GameState.parent_id == PARENT_A, "Rejected cross-Student load preserves the current identity")
 	_assert(FileAccess.file_exists(LEGACY_SAVE), "An ownerless legacy file is preserved rather than deleted by listing")
 
-	GameState.student_id = STUDENT_B
-	GameState.parent_id = PARENT_B
+	GameState.student_id = ""
+	GameState.parent_id = ""
 	scene.call("_refresh_save_list")
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_assert(_rendered_paths(scene) == [SAVE_B], "Switching the established session to Student B shows only Student B saves")
+	_assert(_rendered_paths(scene).is_empty(), "Clearing the session identity hides all saves before re-verification")
+	var student_b_result: Dictionary = await scene.call("_verify_save_owner", STUDENT_B, PARENT_B)
+	_assert(bool(student_b_result.get("ok", false)), "Valid Student B credentials are accepted on the same device")
+	scene.call("_refresh_save_list")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_assert(_rendered_paths(scene) == [SAVE_B], "After Student B verification only Student B saves appear")
 
 	GameState.student_id = ""
 	GameState.parent_id = ""
@@ -92,9 +111,11 @@ func _run() -> void:
 	_assert(_rendered_paths(scene).is_empty(), "No established Student identity exposes no local saves")
 	var game_state_source := FileAccess.get_file_as_string("res://scripts/game_state.gd")
 	var remote_sync_source := FileAccess.get_file_as_string("res://scripts/remote_sync.gd")
+	var leaderboard_source := FileAccess.get_file_as_string("res://scripts/leaderboard_scene_controller.gd")
 	_assert(game_state_source.contains('const SAVE_DIRECTORY := "user://saves"'), "Save files remain in Godot's application-local user storage")
 	_assert(remote_sync_source.contains('game_state.connect("save_created"') and remote_sync_source.contains('request_post("/api/game/progress"'), "RemoteSync still uploads approved monitoring/progress projections")
 	_assert(not remote_sync_source.contains("GameState.list_saves") and not remote_sync_source.contains("GameState.load_save") and not remote_sync_source.contains("user://saves"), "RemoteSync has zero code paths that download, enumerate, or reconstruct local save files")
+	_assert(leaderboard_source.contains("GameState.list_saves().is_empty()") and leaderboard_source.contains("No rankings yet"), "Leaderboard stays empty without a current Student-owned save instead of using stale identity")
 
 	scene.queue_free()
 	await get_tree().process_frame
@@ -173,21 +194,22 @@ func _promote_to_root() -> void:
 
 
 func _assert(condition: bool, message: String) -> void:
+	_check_count += 1
 	if not condition:
 		_failures.append(message)
 
 
 func _finish() -> void:
-	var report := {"passed": 16 - _failures.size(), "failed": _failures.size(), "failures": _failures}
+	var report := {"passed": _check_count - _failures.size(), "failed": _failures.size(), "failures": _failures}
 	var file := FileAccess.open("res://tools/load_game_identity_gate_test_result.json", FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(report, "\t"))
 		file.close()
 	if _failures.is_empty():
-		print("LOAD_GAME_IDENTITY_GATE_TEST PASSED checks=16 failures=0")
+		print("LOAD_GAME_IDENTITY_GATE_TEST PASSED checks=%d failures=0" % _check_count)
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	print("LOAD_GAME_IDENTITY_GATE_TEST FAILED checks=16 failures=%d" % _failures.size())
+	print("LOAD_GAME_IDENTITY_GATE_TEST FAILED checks=%d failures=%d" % [_check_count, _failures.size()])
 	get_tree().quit(1)

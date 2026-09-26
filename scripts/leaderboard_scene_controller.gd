@@ -137,6 +137,16 @@ func _refresh_leaderboard_from_api() -> void:
 	_refresh_generation += 1
 	var request_generation := _refresh_generation
 	_set_loading_state()
+	# A fresh application run has no verified Student session. Keep the
+	# leaderboard empty instead of issuing a request with stale device context.
+	# The same empty state applies until the current Student has an owned local
+	# save/progress to anchor the leaderboard request.
+	if not GameState.is_valid_existing_student_id(String(GameState.student_id).strip_edges()) \
+			or not GameState.is_valid_six_digit_id(String(GameState.parent_id).strip_edges()) \
+			or GameState.list_saves().is_empty():
+		if request_generation == _refresh_generation:
+			_set_empty_state()
+		return
 	var remote_sync := get_node_or_null("/root/RemoteSync")
 	if remote_sync == null or not remote_sync.has_method("request_game_leaderboard"):
 		if request_generation == _refresh_generation:

@@ -7,6 +7,11 @@ const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
 
 @onready var saves_container: VBoxContainer = $TextureRect/SavePanel/MarginContainer/Content/ScrollContainer/SavesContainer
 @onready var empty_label: Label = $TextureRect/SavePanel/MarginContainer/Content/EmptyLabel
+@onready var identity_gate: Control = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate") as Control
+@onready var identity_student_input: LineEdit = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/StudentIdInput") as LineEdit
+@onready var identity_parent_input: LineEdit = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/ParentIdInput") as LineEdit
+@onready var identity_status_label: Label = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityStatusLabel") as Label
+@onready var identity_verify_button: Button = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/VerifyButton") as Button
 @onready var delete_confirmation: ConfirmationDialog = $DeleteSaveConfirmation
 @onready var delete_all_button: Button = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/DeleteAllButton") as Button
 @onready var delete_all_confirmation: ConfirmationDialog = get_node_or_null("DeleteAllSaveConfirmation") as ConfirmationDialog
@@ -15,6 +20,7 @@ var _save_transitioning: bool = false
 var _pending_delete_path: String = ""
 var _delete_all_pending: bool = false
 var _student_terms_gate: Control
+var _identity_verifying: bool = false
 
 func _ready() -> void:
 	MusicManager.play_for_scene(scene_file_path)
@@ -28,6 +34,8 @@ func _ready() -> void:
 		delete_all_confirmation.confirmed.connect(_on_delete_all_confirmed)
 	if delete_all_confirmation != null and not delete_all_confirmation.canceled.is_connected(_on_delete_all_canceled):
 		delete_all_confirmation.canceled.connect(_on_delete_all_canceled)
+	if identity_verify_button != null and not identity_verify_button.pressed.is_connected(_on_verify_save_owner_pressed):
+		identity_verify_button.pressed.connect(_on_verify_save_owner_pressed)
 	_refresh_save_list()
 
 
@@ -35,6 +43,17 @@ func _refresh_save_list() -> void:
 	for child in saves_container.get_children():
 		child.queue_free()
 
+	if not _has_valid_session_identity():
+		if identity_gate != null:
+			identity_gate.visible = true
+		empty_label.text = "Verify your Student ID and Parent ID to view saves."
+		empty_label.visible = true
+		if delete_all_button != null:
+			delete_all_button.disabled = true
+		return
+
+	if identity_gate != null:
+		identity_gate.visible = false
 	var saves: Array[Dictionary] = GameState.list_saves()
 	empty_label.text = "No save data found"
 	empty_label.visible = saves.is_empty()
@@ -173,6 +192,87 @@ func _on_save_selected(save_path: String) -> void:
 	if result != OK:
 		LoadingScreenController.cancel_pending_request()
 		_save_transitioning = false
+
+
+func _has_valid_session_identity() -> bool:
+	return GameState.is_valid_existing_student_id(String(GameState.student_id).strip_edges()) \
+			and GameState.is_valid_six_digit_id(String(GameState.parent_id).strip_edges())
+
+
+func _on_verify_save_owner_pressed() -> void:
+	if _identity_verifying:
+		return
+	_identity_verifying = true
+	if identity_verify_button != null:
+		identity_verify_button.disabled = true
+	if identity_status_label != null:
+		identity_status_label.text = "Verifying Student and Parent ID..."
+	var result: Dictionary = await _verify_save_owner()
+	_identity_verifying = false
+	if identity_verify_button != null:
+		identity_verify_button.disabled = false
+	if not bool(result.get("ok", false)):
+		if identity_status_label != null:
+			identity_status_label.text = String(result.get("error", "Unable to verify Student and Parent ID."))
+		GameState.student_id = ""
+		GameState.parent_id = ""
+		_refresh_save_list()
+		return
+	if identity_status_label != null:
+		identity_status_label.text = "Student verified. Showing your saves."
+	_refresh_save_list()
+
+
+func _verify_save_owner(student_code: String = "", parent_code: String = "") -> Dictionary:
+	var requested_student_id := student_code.strip_edges() if not student_code.strip_edges().is_empty() else String(identity_student_input.text).strip_edges() if identity_student_input != null else ""
+	var requested_parent_id := parent_code.strip_edges() if not parent_code.strip_edges().is_empty() else String(identity_parent_input.text).strip_edges() if identity_parent_input != null else ""
+	requested_student_id = GameState.sanitize_student_id(requested_student_id)
+	requested_parent_id = requested_parent_id.replace("-", "").strip_edges()
+	if not GameState.is_valid_existing_student_id(requested_student_id):
+		return {"ok": false, "error": "Enter a valid Student ID."}
+	if not GameState.is_valid_six_digit_id(requested_parent_id):
+		return {"ok": false, "error": "Enter a valid 6-digit Parent ID."}
+	var http := get_node_or_null("/root/HttpApi")
+	if http == null:
+		return {"ok": false, "error": "Unable to connect to the server. Please try again."}
+	var profile_result: Dictionary = await http.request_get("/api/game/profile/check/" + requested_student_id, {"parent_id": requested_parent_id})
+	var body: Variant = profile_result.get("body", {})
+	var status := int(profile_result.get("status", 0))
+	var profile_ok := bool(profile_result.get("ok", false)) or (body is Dictionary and bool(body.get("ok", false)))
+	if not profile_ok or status < 200 or status >= 300:
+		return {"ok": false, "error": _identity_api_error(profile_result)}
+	if not (body is Dictionary) or body.get("can_play", true) == false:
+		return {"ok": false, "error": String(body.get("error", "This Student and Parent account cannot play.")) if body is Dictionary else "Unable to verify Student and Parent ID."}
+	var canonical_profile: Variant = body.get("canonical_profile", null)
+	if not (canonical_profile is Dictionary):
+		return {"ok": false, "error": "Unable to verify the linked Student profile."}
+	var canonical_student_id := GameState.sanitize_student_id(String(canonical_profile.get("student_id", requested_student_id)))
+	var canonical_parent_id := String(canonical_profile.get("parent_id", requested_parent_id)).strip_edges()
+	var canonical_name := String(canonical_profile.get("name", "")).strip_edges()
+	var canonical_grade := String(canonical_profile.get("grade_level", "")).strip_edges()
+	if canonical_student_id != requested_student_id or not GameState.is_valid_six_digit_id(canonical_parent_id) \
+			or canonical_name.is_empty() or canonical_grade not in GameState.VALID_REGISTRATION_GRADES:
+		return {"ok": false, "error": "Unable to verify the linked Student profile."}
+	GameState.student_id = canonical_student_id
+	GameState.parent_id = canonical_parent_id
+	GameState.player_name = canonical_name
+	GameState.grade_level = canonical_grade
+	var canonical_gender := String(canonical_profile.get("gender", "")).to_lower().strip_edges()
+	if canonical_gender in ["male", "female"]:
+		GameState.gender = canonical_gender
+	var learning_cycle: Variant = body.get("learning_cycle", {})
+	if learning_cycle is Dictionary:
+		GameState.set_learning_cycle(learning_cycle)
+	return {"ok": true, "canonical_profile": canonical_profile, "learning_cycle": learning_cycle}
+
+
+func _identity_api_error(result: Dictionary) -> String:
+	var body: Variant = result.get("body", {})
+	if body is Dictionary:
+		var message := String(body.get("error", body.get("message", ""))).strip_edges()
+		if not message.is_empty():
+			return message
+	return "Unable to verify Student and Parent ID."
 
 
 func _ensure_terms_accepted_for_student(for_student_id: String) -> bool:
