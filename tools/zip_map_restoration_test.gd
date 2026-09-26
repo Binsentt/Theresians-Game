@@ -24,7 +24,7 @@ func _run() -> void:
 	for check in checks:
 		if not check.passed:
 			failed += 1
-	var output := FileAccess.open("res://docs/qa/2026-09-07-zip-map-runtime.json", FileAccess.WRITE)
+	var output := FileAccess.open("user://hud_runtime_map_qa_20260926_verified.json", FileAccess.WRITE)
 	output.store_string(JSON.stringify({"passed": checks.size() - failed, "failed": failed, "checks": checks, "observations": observations}, "\t"))
 	output.close()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(state.fixture_path))
@@ -86,7 +86,7 @@ func _map(path: String) -> void:
 
 func _capture(label: String) -> void:
 	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png("res://docs/qa/2026-09-07-zip-" + label + ".png")
+	get_viewport().get_texture().get_image().save_png("user://hud_runtime_map_qa_20260926_verified_" + label + ".png")
 
 func _doors() -> void:
 	state.current_task_index = 1
@@ -159,7 +159,8 @@ func _presentation() -> void:
 		await manager.notification_started
 		var complete: Control = manager._task_complete_panel
 		var complete_rect := complete.get_global_rect()
-		_expect(absf(complete_rect.get_center().x - complete.get_viewport_rect().size.x * 0.5) < 1.0 and is_equal_approx(complete_rect.position.y, 12.0), "Task Complete is top-center, viewport relative")
+		var expected_completion_y := quest_rect.end.y + 12.0 if hud.quest_guide.visible else 12.0
+		_expect(absf(complete_rect.get_center().x - complete.get_viewport_rect().size.x * 0.5) < 1.0 and complete_rect.position.y >= expected_completion_y, "Task Complete is viewport-relative and separated below the persistent Current Quest when visible")
 		_expect(manager._root_layer.layer > hud.layer, "Temporary Task Complete draws above unchanged top HUD")
 		_expect(hud.quest_guide.get_global_rect() == quest_rect and hud.get_node("TimeMargin").get_global_rect() == time_rect, "Current Quest and timer geometry unchanged by notification")
 		_expect(complete.size == Vector2(460, 88), "Task Complete existing dimensions unchanged")
@@ -173,12 +174,19 @@ func _presentation() -> void:
 		manager.show_task_trigger("Task Trigger", "Existing trigger placement", "trigger-test-" + path)
 		await manager.notification_started
 		var trigger: Control = manager._task_trigger_panel
-		var trigger_position := (get_viewport().get_visible_rect().size - Vector2(minf(manager.MAX_PANEL_WIDTH, get_viewport().get_visible_rect().size.x * 0.84), manager.TASK_TRIGGER_HEIGHT)) * 0.5
-		observations[path + ":trigger_rect"] = str(trigger.get_global_rect())
-		_expect(manager._root_layer.layer == 1 and trigger.get_global_rect().position.is_equal_approx(trigger_position), "Task Trigger keeps existing layout formula and layer")
+		var viewport_size := get_viewport().get_visible_rect().size
+		var trigger_rect := trigger.get_global_rect()
+		var trigger_bottom_margin := viewport_size.y - trigger_rect.end.y
+		var trigger_overlaps_controls := false
+		for direction in ["up", "down", "left", "right", "interact"]:
+			trigger_overlaps_controls = trigger_overlaps_controls or trigger_rect.intersects(_button(scene, direction).get_global_rect())
+		observations[path + ":trigger_rect"] = str(trigger_rect)
+		_expect(manager._root_layer.layer == 1 and absf(trigger_bottom_margin - 28.0) < 1.5 and not trigger_overlaps_controls, "Task Trigger keeps its existing safe lower-screen placement without covering mobile controls")
 		manager._on_progression_session_reset("map_test")
 		manager.show_system_notification("System", "Existing system placement", "system-test-" + path)
 		await manager.notification_started
-		_expect(manager._root_layer.layer == 1 and complete.get_global_rect().get_center().is_equal_approx(get_viewport().get_visible_rect().size * 0.5), "Other shared notifications keep existing center placement and layer")
+		var system_rect := complete.get_global_rect()
+		var system_position := Vector2((viewport_size.x - system_rect.size.x) * 0.5, 12.0)
+		_expect(manager._root_layer.layer == 1 and system_rect.position.is_equal_approx(system_position), "Other shared system notifications keep their existing top-center placement and layer")
 		manager._on_progression_session_reset("map_test")
 	get_window().size = original_window_size

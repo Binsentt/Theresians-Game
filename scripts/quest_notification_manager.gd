@@ -272,6 +272,7 @@ func _show_event_panel(event: Dictionary) -> void:
 	var kind := String(event.get("kind", ""))
 	var is_trigger := kind == "task_trigger"
 	var is_completion := String(event.get("kind", "")) in ["task_completed", "quest_completed"]
+	var placement := "bottom" if is_trigger else ("below_quest" if is_completion else "top")
 	_root_layer.layer = 2 if is_completion else 1
 	var target_panel: PanelContainer
 	var target_height: float
@@ -298,12 +299,12 @@ func _show_event_panel(event: Dictionary) -> void:
 	while target_panel.get_combined_minimum_size().y > target_height and layout_frames < 4:
 		await get_tree().process_frame
 		layout_frames += 1
-	_position_panel(target_panel, target_height, "bottom" if is_trigger else "top")
+	_position_panel(target_panel, target_height, placement)
 	target_panel.visible = true
 	# The first visible layout applies Container child rects. Recenter once those
 	# rects have settled so the resolved compact minimum size controls the panel.
 	await get_tree().process_frame
-	_position_panel(target_panel, target_height, "bottom" if is_trigger else "top")
+	_position_panel(target_panel, target_height, placement)
 
 
 func _reserve_trigger_label_width() -> void:
@@ -374,7 +375,18 @@ func _position_panel(panel: Control, height: float, placement: String) -> void:
 	var width := minf(MAX_PANEL_WIDTH, viewport_size.x * 0.84)
 	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	panel.size = Vector2(width, height)
-	var y := 12.0 if placement == "top" else maxf(12.0, viewport_size.y - height - 28.0)
+	var y := maxf(12.0, viewport_size.y - height - 28.0)
+	if placement == "top":
+		y = 12.0
+	elif placement == "below_quest":
+		y = 12.0
+		var scene := get_tree().current_scene
+		var quest_guide: Control = null
+		if scene != null:
+			quest_guide = scene.find_child("QuestGuide", true, false) as Control
+		if quest_guide != null and quest_guide.visible:
+			y = quest_guide.get_global_rect().end.y + 12.0
+		y = minf(y, maxf(12.0, viewport_size.y - height - 12.0))
 	panel.position = Vector2((viewport_size.x - width) * 0.5, y)
 
 

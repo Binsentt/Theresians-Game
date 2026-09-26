@@ -3,41 +3,55 @@
 [ext_resource type="Script" path="res://scripts/game_hud.gd" id="1_script"]
 [ext_resource type="FontFile" path="res://Font/PressStart2P.ttf" id="2_font"]
 
-[sub_resource type="StyleBoxFlat" id="1_time_panel"]
-bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.9)
+[sub_resource type="StyleBoxFlat" id="time_panel"]
+bg_color = Color(0.0352941, 0.0509804, 0.117647, 0.96)
 content_margin_left = 10.0
-content_margin_top = 7.0
+content_margin_top = 6.0
 content_margin_right = 10.0
-content_margin_bottom = 7.0
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
+content_margin_bottom = 6.0
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.94902, 0.823529, 0.443137, 1)
-shadow_color = Color(0, 0, 0, 0.28)
-shadow_size = 4
+shadow_color = Color(0, 0, 0, 0.36)
+shadow_size = 3
 
-[sub_resource type="StyleBoxFlat" id="2_quest_guide"]
-bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.92)
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
+[sub_resource type="StyleBoxFlat" id="time_progress_background"]
+bg_color = Color(0.0901961, 0.105882, 0.168627, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="time_progress_fill"]
+bg_color = Color(0.94902, 0.768627, 0.270588, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="quest_guide"]
+bg_color = Color(0.0431373, 0.054902, 0.121569, 0.95)
+content_margin_left = 12.0
+content_margin_top = 7.0
+content_margin_right = 12.0
+content_margin_bottom = 7.0
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.94902, 0.823529, 0.443137, 1)
-shadow_color = Color(0, 0, 0, 0.32)
-shadow_size = 5
+shadow_color = Color(0, 0, 0, 0.38)
+shadow_size = 3
 
 [sub_resource type="StyleBoxFlat" id="3_overlay_panel"]
 bg_color = Color(0.109804, 0.117647, 0.176471, 0.95)
@@ -57,40 +71,76 @@ script = ExtResource("1_script")
 [node name="TimeMargin" type="MarginContainer" parent="."]
 offset_left = 14.0
 offset_top = 12.0
-offset_right = 172.0
-offset_bottom = 56.0
+offset_right = 204.0
+offset_bottom = 86.0
 
 [node name="TimePanel" type="PanelContainer" parent="TimeMargin"]
 layout_mode = 2
-theme_override_styles/panel = SubResource("1_time_panel")
+custom_minimum_size = Vector2(190, 74)
+theme_override_styles/panel = SubResource("time_panel")
 
-[node name="TimeLabel" type="Label" parent="TimeMargin/TimePanel"]
+[node name="TimeContent" type="VBoxContainer" parent="TimeMargin/TimePanel"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.858824, 0.878431, 0.956863, 1)
+theme_override_constants/separation = 2
+
+[node name="TimeHeader" type="Label" parent="TimeMargin/TimePanel/TimeContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 9
-text = "Time Left: --"
+theme_override_font_sizes/font_size = 8
+text = "TIME LEFT"
 horizontal_alignment = 1
-vertical_alignment = 1
+
+[node name="TimeLabel" type="Label" parent="TimeMargin/TimePanel/TimeContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.960784, 0.937255, 0.815686, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = ExtResource("2_font")
+theme_override_font_sizes/font_size = 14
+text = "60:00"
+horizontal_alignment = 1
+
+[node name="TimeProgress" type="ProgressBar" parent="TimeMargin/TimePanel/TimeContent"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+theme_override_styles/background = SubResource("time_progress_background")
+theme_override_styles/fill = SubResource("time_progress_fill")
+max_value = 100.0
+value = 100.0
+show_percentage = false
 
 [node name="QuestGuide" type="PanelContainer" parent="."]
-anchors_preset = 10
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -140.0
+offset_left = 377.0
 offset_top = 12.0
-offset_right = 140.0
-offset_bottom = 76.0
-grow_horizontal = 2
-theme_override_styles/panel = SubResource("2_quest_guide")
+offset_right = 837.0
+offset_bottom = 75.0
+theme_override_styles/panel = SubResource("quest_guide")
 
 [node name="QuestContent" type="VBoxContainer" parent="QuestGuide"]
 layout_mode = 2
 theme_override_constants/separation = 5
 
-[node name="Heading" type="Label" parent="QuestGuide/QuestContent"]
+[node name="HeadingRow" type="HBoxContainer" parent="QuestGuide/QuestContent"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="LeftRule" type="ColorRect" parent="QuestGuide/QuestContent/HeadingRow"]
+custom_minimum_size = Vector2(18, 2)
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.94902, 0.823529, 0.443137, 0.68)
+
+[node name="LeftMarker" type="ColorRect" parent="QuestGuide/QuestContent/HeadingRow"]
+custom_minimum_size = Vector2(5, 5)
+layout_mode = 2
+color = Color(1, 0.85098, 0.466667, 1)
+rotation = 0.785398
+
+[node name="Heading" type="Label" parent="QuestGuide/QuestContent/HeadingRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -100,13 +150,30 @@ theme_override_font_sizes/font_size = 9
 text = "CURRENT QUEST"
 horizontal_alignment = 1
 
+[node name="RightMarker" type="ColorRect" parent="QuestGuide/QuestContent/HeadingRow"]
+custom_minimum_size = Vector2(5, 5)
+layout_mode = 2
+color = Color(1, 0.85098, 0.466667, 1)
+rotation = 0.785398
+
+[node name="RightRule" type="ColorRect" parent="QuestGuide/QuestContent/HeadingRow"]
+custom_minimum_size = Vector2(18, 2)
+layout_mode = 2
+size_flags_horizontal = 3
+color = Color(0.94902, 0.823529, 0.443137, 0.68)
+
+[node name="QuestDivider" type="ColorRect" parent="QuestGuide/QuestContent"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+color = Color(0.94902, 0.823529, 0.443137, 0.72)
+
 [node name="QuestLabel" type="Label" parent="QuestGuide/QuestContent"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.858824, 0.878431, 0.956863, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 2
 theme_override_fonts/font = ExtResource("2_font")
-theme_override_font_sizes/font_size = 9
+theme_override_font_sizes/font_size = 10
 autowrap_mode = 3
 horizontal_alignment = 1
 
