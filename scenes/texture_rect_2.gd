@@ -32,6 +32,7 @@ const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
 const MAIN_MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
 const PLAYER_HOUSE_SCENE_PATH := "res://interiors/player_house.tscn"
 const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
+const SLOW_PLAYTIME_REQUEST_FEEDBACK_DELAY_SECONDS := 0.75
 const LoadingScreenController := preload("res://scripts/loading_screen.gd")
 const GRADE_LABELS := {
 	"Grade1": "Grade 1",
@@ -49,6 +50,7 @@ var selected_grade_btn: TextureButton = null
 var _step_transitioning := false
 var _sanitizing_id := false
 var _play_transitioning := false
+var _playtime_request_pending := false
 var _canonical_identity_locked := false
 var _canonical_student_name := ""
 var _canonical_grade := ""
@@ -541,6 +543,8 @@ func _on_start_pressed() -> void:
 	var registration := GameState.get_new_game_registration()
 	if OS.is_debug_build():
 		print("NEW GAME PLAY REQUEST: method=POST route=/api/playtime/start target_base_url=%s" % str(get_node_or_null("/root/HttpApi").get("base_url") if get_node_or_null("/root/HttpApi") != null else "unavailable"))
+	_playtime_request_pending = true
+	call_deferred("_show_playtime_connecting_status_after_delay")
 	var playtimeResult := await RemoteSync.request_playtime_session({
 		"_force_refresh": true,
 		"student_id": String(registration.get("student_id", "")),
@@ -549,6 +553,7 @@ func _on_start_pressed() -> void:
 		"grade_level": String(registration.get("grade", "")),
 		"section": String(registration.get("section", ""))
 	})
+	_playtime_request_pending = false
 	if OS.is_debug_build():
 		print("NEW GAME PLAY RESULT: status=%d ok=%s can_play=%s should_block=%s" % [
 			int(playtimeResult.get("status", 0)),
@@ -563,6 +568,7 @@ func _on_start_pressed() -> void:
 		_show_validation(errorText)
 		_play_transitioning = false
 		return
+	_hide_validation()
 	var authoritative_start_cycle: Variant = playtimeResult.get("learning_cycle", {})
 	if not GameState.set_learning_cycle_descriptor_is_valid(authoritative_start_cycle):
 		authoritative_start_cycle = GameState.get_learning_cycle_descriptor()
@@ -768,6 +774,12 @@ func _show_validation(message: String) -> void:
 func _hide_validation() -> void:
 	validation_label.text = ""
 	validation_panel.visible = false
+
+
+func _show_playtime_connecting_status_after_delay() -> void:
+	await get_tree().create_timer(SLOW_PLAYTIME_REQUEST_FEEDBACK_DELAY_SECONDS).timeout
+	if _playtime_request_pending and is_inside_tree():
+		_show_validation("Connecting...")
 
 func _on_name_input_changed(new_text: String) -> void:
 	if _canonical_identity_locked:

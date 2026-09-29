@@ -4,6 +4,7 @@ const SAVE_ENTRY_SCENE := preload("res://ui/save_entry.tscn")
 const LoadingScreenController := preload("res://scripts/loading_screen.gd")
 const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
 const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
+const SLOW_ONLINE_VERIFICATION_FEEDBACK_DELAY_SECONDS := 0.75
 
 @onready var saves_container: VBoxContainer = $TextureRect/SavePanel/MarginContainer/Content/ScrollContainer/SavesContainer
 @onready var empty_label: Label = $TextureRect/SavePanel/MarginContainer/Content/EmptyLabel
@@ -21,6 +22,7 @@ var _pending_delete_path: String = ""
 var _delete_all_pending: bool = false
 var _student_terms_gate: Control
 var _identity_verifying: bool = false
+var _online_verification_pending: bool = false
 
 func _ready() -> void:
 	MusicManager.play_for_scene(scene_file_path)
@@ -135,6 +137,9 @@ func _on_save_selected(save_path: String) -> void:
 		_save_transitioning = false
 		return
 
+	empty_label.hide()
+	_online_verification_pending = true
+	call_deferred("_show_slow_online_verification_status_after_delay")
 	var cycle_result: Dictionary = await RemoteSync.request_learning_cycle(
 		String(save_data.get("student_id", "")),
 		String(save_data.get("parent_id", ""))
@@ -142,6 +147,7 @@ func _on_save_selected(save_path: String) -> void:
 	var cycle_descriptor: Dictionary = cycle_result.get("learning_cycle", {}) if bool(cycle_result.get("ok", false)) else {}
 	save_data = GameState.annotate_save_learning_cycle(save_data, cycle_descriptor)
 	if not bool(save_data.get("loadable", false)):
+		_online_verification_pending = false
 		empty_label.text = String(save_data.get("save_error", cycle_result.get("error", "Unable to verify Learning Cycle. Connect to continue.")))
 		empty_label.visible = true
 		_save_transitioning = false
@@ -149,6 +155,8 @@ func _on_save_selected(save_path: String) -> void:
 
 	var scene_path: String = String(save_data.get("scene_path", ""))
 	if scene_path.is_empty():
+		_online_verification_pending = false
+		empty_label.hide()
 		_save_transitioning = false
 		return
 
@@ -160,6 +168,7 @@ func _on_save_selected(save_path: String) -> void:
 		"grade_level": String(save_data.get("grade_level", "")),
 		"section": ""
 	})
+	_online_verification_pending = false
 	if not playtime_result.ok or playtime_result.get("can_play", true) == false or playtime_result.get("should_block", false) == true:
 		var error_message := String(playtime_result.get("error", "Unable to connect to playtime service."))
 		if playtime_result.get("status", 0) == 403 or playtime_result.get("should_block", false) == true:
@@ -168,6 +177,7 @@ func _on_save_selected(save_path: String) -> void:
 		empty_label.visible = true
 		_save_transitioning = false
 		return
+	empty_label.hide()
 	var authoritative_start_cycle: Variant = playtime_result.get("learning_cycle", {})
 	if GameState.set_learning_cycle_descriptor_is_valid(authoritative_start_cycle):
 		save_data = GameState.annotate_save_learning_cycle(save_data, authoritative_start_cycle)
@@ -197,6 +207,13 @@ func _on_save_selected(save_path: String) -> void:
 func _has_valid_session_identity() -> bool:
 	return GameState.is_valid_existing_student_id(String(GameState.student_id).strip_edges()) \
 			and GameState.is_valid_six_digit_id(String(GameState.parent_id).strip_edges())
+
+
+func _show_slow_online_verification_status_after_delay() -> void:
+	await get_tree().create_timer(SLOW_ONLINE_VERIFICATION_FEEDBACK_DELAY_SECONDS).timeout
+	if _online_verification_pending and is_inside_tree():
+		empty_label.text = "Connecting..."
+		empty_label.visible = true
 
 
 func _on_verify_save_owner_pressed() -> void:

@@ -465,10 +465,21 @@ func _refresh_playtime_lease() -> void:
 		_invalidate_playtime_lease()
 		_playtime_heartbeat_in_progress = false
 		return
-	if typeof(result.body) == TYPE_DICTIONARY:
-		GameState.configure_playtime_allowance(result.body, false)
+	var response_body: Variant = result.get("body", null)
+	var response_status := GameState.safe_int_value(result.get("status", 0), 0)
+	if (
+		bool(result.get("ok", false))
+		and response_status >= 200
+		and response_status < 300
+		and response_body is Dictionary
+		and not response_body.is_empty()
+	):
+		GameState.configure_playtime_allowance(response_body, false)
 	if result.ok and result.status >= 200 and result.status < 300:
 		_playtime_timeout_handled = false
+		# A successful heartbeat is the reconnect signal for this active Student.
+		# Resume durable progress/result/activity writes without blocking the heartbeat.
+		_flush_pending.call_deferred()
 	else:
 		# A 403 is a server-authoritative expiry. Other transport failures keep
 		# the previously issued lease until the next heartbeat rather than making

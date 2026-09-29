@@ -32,11 +32,13 @@ var _provider: Node = null
 var _current_question_data: Dictionary = {}
 var _provider_load_completed := false
 var _battle_finished_emitted := false
+var _network_retry_available := false
+var _network_retry_in_progress := false
 var _current_question_presented_at := ""
 var _current_question_presented_unix := -1.0
 
 func _ready():
-	question_label.text = "Preparing your math challenge..."
+	question_label.text = "Loading questions..."
 	for button in buttons:
 		button.text = ""
 	disable_buttons()
@@ -65,8 +67,7 @@ func _ready():
 		questions = []
 
 	if questions.is_empty():
-		question_label.text = "No questions found!"
-		disable_buttons()
+		_show_question_load_failure()
 		return
 
 	# Initialize the first question
@@ -78,6 +79,8 @@ func _on_questions_loaded(_count: int) -> void:
 
 
 func load_question():
+	if _network_retry_available or _network_retry_in_progress:
+		return
 	if _provider != null and _provider.has_method("get_question"):
 		var provider_question: Dictionary = _provider.call("get_question")
 		if provider_question.is_empty():
@@ -105,7 +108,7 @@ func load_question():
 
 
 func answer_selected(index:int):
-	if _battle_finished_emitted:
+	if _battle_finished_emitted or _network_retry_available or _network_retry_in_progress:
 		return
 	var q: Dictionary = _current_question_data.duplicate(true)
 	if q.is_empty() and current_question < questions.size():
@@ -176,6 +179,44 @@ func enable_buttons() -> void:
 		button.disabled = false
 
 
+func _show_question_load_failure() -> void:
+	disable_buttons()
+	for button in buttons:
+		button.text = ""
+	var error_code := String(_provider.get("last_load_error_code")) if _provider != null else ""
+	if error_code == "network":
+		_network_retry_available = true
+		question_label.text = "Connection lost. Retry to continue this battle."
+		buttons[0].text = "Retry Questions"
+		buttons[0].disabled = false
+		return
+	question_label.text = "No questions are available for this challenge."
+
+
+func _retry_questions() -> void:
+	if _network_retry_in_progress or not _network_retry_available or _provider == null:
+		return
+	_network_retry_available = false
+	_network_retry_in_progress = true
+	question_label.text = "Reconnecting... Loading questions..."
+	disable_buttons()
+	for button in buttons:
+		button.text = ""
+	var loaded: Variant = await _provider.call("load_questions")
+	if loaded is Array:
+		questions = Array(loaded)
+	elif _provider.has_method("get_questions"):
+		var provider_questions: Variant = _provider.call("get_questions")
+		questions = Array(provider_questions) if provider_questions is Array else []
+	else:
+		questions = []
+	_network_retry_in_progress = false
+	if questions.is_empty():
+		_show_question_load_failure()
+		return
+	load_question()
+
+
 func _finish_battle(success: bool) -> void:
 	if _battle_finished_emitted:
 		return
@@ -191,6 +232,9 @@ func _finish_battle(success: bool) -> void:
 
 
 func _on_choice_a_pressed():
+	if _network_retry_available:
+		_retry_questions()
+		return
 	answer_selected(0)
 
 func _on_choice_b_pressed():

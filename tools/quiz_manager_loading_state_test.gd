@@ -45,6 +45,12 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	var http := get_node_or_null("/root/HttpApi")
+	var local_profile_active := http != null and bool(http.call("is_local_qa_profile_active"))
+	_expect(local_profile_active, "loading-state fixture starts with the loopback-only API profile")
+	if not local_profile_active:
+		_finish()
+		return
 	for autoload_name in ["QuestionProvider", "RemoteSync", "HttpApi"]:
 		var live := get_node_or_null("/root/" + autoload_name)
 		if live != null:
@@ -64,7 +70,7 @@ func _run() -> void:
 	var buttons: Array[Button] = []
 	for button_name in ["ChoiceA", "ChoiceB", "ChoiceC", "ChoiceD"]:
 		buttons.append(quiz.get_node("CanvasLayer/Panel/" + button_name) as Button)
-	_expect(question_label.text == "Preparing your math challenge...", "battle immediately shows the themed question loading state")
+	_expect(question_label.text == "Loading questions...", "battle immediately shows the themed question loading state")
 	_expect(buttons.all(func(button: Button) -> bool: return button.disabled and button.text.is_empty()), "all four choices stay blank and disabled while questions load")
 
 	await get_tree().create_timer(0.45).timeout
@@ -121,5 +127,5 @@ func _expect(condition: bool, label: String) -> void:
 func _finish() -> void:
 	var failed := _checks.filter(func(check: Dictionary) -> bool: return not bool(check.get("passed", false))).size()
 	print("QUIZ_MANAGER_LOADING_STATE_TEST " + JSON.stringify({"passed": _checks.size() - failed, "failed": failed, "checks": _checks}))
-	await get_tree().create_timer(1.0).timeout
+	await get_tree().create_timer(12.0).timeout
 	get_tree().quit(0 if failed == 0 else 1)

@@ -9,6 +9,7 @@ const DEFAULT_SOURCE_PATH := "res://Data/questions.json"
 
 var _source_path: String = DEFAULT_SOURCE_PATH
 var _questions: Array[Dictionary] = []
+var last_load_error_code := ""
 var _history_by_scope: Dictionary = {}
 var _fallback_history_by_filter: Dictionary = {}
 var _last_requested_id: String = ""
@@ -49,6 +50,7 @@ func get_source_path() -> String:
 
 
 func load_questions(path: String = "") -> Array[Dictionary]:
+	last_load_error_code = ""
 	var resolved_path := path.strip_edges()
 	if resolved_path.is_empty():
 		resolved_path = _source_path
@@ -65,6 +67,7 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 	if http != null:
 		var params := _get_encounter_question_params()
 		if not _has_exact_scope(params):
+			last_load_error_code = "invalid_scope"
 			push_error("Remote question loading requires an explicit Grade and Difficulty encounter scope.")
 			questions_loaded.emit(0)
 			return []
@@ -79,8 +82,11 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 			prepared = await _fetch_remote_questions(http, params)
 		if bool(prepared.get("successful", false)):
 			_activate_questions(prepared.get("questions", []))
+			if _questions.is_empty():
+				last_load_error_code = "empty_pool"
 			questions_loaded.emit(_questions.size())
 			return _questions
+		last_load_error_code = String(prepared.get("error_code", "unavailable"))
 		# A failed exact-scope request must never widen into a local or unrelated pool.
 		questions_loaded.emit(0)
 		return []
@@ -160,11 +166,17 @@ func _fetch_remote_questions(http: Node, params: Dictionary) -> Dictionary:
 	var result: Dictionary = await http.request_get("/api/game/questions", params)
 	var status := int(result.get("status", 0))
 	var successful := bool(result.get("ok", false)) and status >= 200 and status < 300
+	var error_code := ""
 	var validated_questions: Array[Dictionary] = []
+	if not bool(result.get("ok", false)) or status == 0 or status >= 500:
+		error_code = "network"
+	elif not successful:
+		error_code = "unavailable"
 	if successful:
 		var body: Variant = result.get("body", {})
 		if not (body is Dictionary) or not body.has("questions") or not body.get("questions") is Array:
 			successful = false
+			error_code = "invalid_response"
 		else:
 			for entry in body.get("questions", []):
 				if not (entry is Dictionary):
@@ -180,6 +192,7 @@ func _fetch_remote_questions(http: Node, params: Dictionary) -> Dictionary:
 		"questions": validated_questions,
 		"scope": params.duplicate(true),
 		"status": status,
+		"error_code": error_code,
 	}
 
 
