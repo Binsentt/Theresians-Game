@@ -477,7 +477,7 @@ func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> D
 			task_state_changed.emit(previous_index, current_task_index, all_bandits_event)
 			_start_current_task_activity_after_transition(previous_index)
 		if persist and normalized_id != OAKLEAF_BANDIT_IDS[0]:
-			save_game()
+			save_checkpoint()
 		return {
 			"changed": true,
 			"action": "bandit_defeated",
@@ -509,7 +509,7 @@ func _record_oakleaf_encounter_victory(encounter_id: String, persist: bool) -> D
 		task_state_changed.emit(previous_index, current_task_index, boss_event)
 		_start_current_task_activity_after_transition(previous_index)
 		if persist:
-			save_game()
+			save_checkpoint()
 		return {
 			"changed": true,
 			"action": "boss_defeated",
@@ -546,7 +546,7 @@ func complete_oakleaf_teacher_return() -> Dictionary:
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_start_current_task_activity_after_transition(previous_index)
 	_notify_progress(event)
-	var save_path := save_game()
+	var save_path := save_checkpoint()
 	return {
 		"changed": true,
 		"action": "oakleaf_complete",
@@ -596,7 +596,7 @@ func mark_city_first_arrival() -> Dictionary:
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_start_current_task_activity_after_transition(previous_index)
 	_notify_progress(event)
-	var save_path := save_game()
+	var save_path := save_checkpoint()
 	return {
 		"changed": true,
 		"action": "city_first_arrival",
@@ -631,7 +631,7 @@ func complete_city_school_teacher() -> Dictionary:
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_start_current_task_activity_after_transition(previous_index)
 	_notify_progress(event)
-	var save_path := save_game()
+	var save_path := save_checkpoint()
 	return {
 		"changed": true,
 		"action": "city_school_complete",
@@ -787,7 +787,7 @@ func record_progression_encounter_victory(encounter_id: String, persist: bool = 
 		quest_changed.emit(current_quest)
 	var save_path := ""
 	if persist:
-		save_path = save_game()
+		save_path = save_checkpoint()
 	return {
 		"changed": true,
 		"action": action,
@@ -804,7 +804,7 @@ func complete_pinehill_old_man() -> Dictionary:
 	var previous_index := current_task_index
 	_advance_progression_checkpoint(previous_index, PINEHILL_BANDIT_TASK_INDEX,
 		"quest:pinehill:old-man", "Old Lady", "Defeat the Wizard's 4 Guards.")
-	var save_path := save_game()
+	var save_path := save_checkpoint()
 	return {"changed": true, "action": "old_man_complete", "current_index": current_task_index, "save_path": save_path}
 
 
@@ -887,7 +887,7 @@ func advance_task_and_save(event: Dictionary) -> Dictionary:
 			completion_task_id = String(get_task_activity_metadata(previous_index).get("canonical_task_id", ""))
 		_record_player_facing_completion(completion_task_id)
 		event = build_canonical_activity_event(event, previous_index, event_type)
-	var save_path := save_game()
+	var save_path := save_checkpoint()
 	task_state_changed.emit(previous_index, current_task_index, event)
 	_start_current_task_activity_after_transition(previous_index)
 	_notify_progress(event)
@@ -1467,13 +1467,13 @@ func handle_scene_entered(scene_path: String) -> void:
 			current_task_index = FINAL_SCHOOL_TASK_INDEX
 			current_quest = get_current_quest_text()
 			quest_changed.emit(current_quest)
-			save_game()
+			save_checkpoint()
 			_start_current_task_activity_after_transition(previous_scene_task_index)
 		elif city_school_stage_complete and current_task_index == CITY_NEXT_PATH_TASK_INDEX:
 			current_task_index = DEEP_FOREST_BANDIT_TASK_INDEX
 			current_quest = get_current_quest_text()
 			quest_changed.emit(current_quest)
-			save_game()
+			save_checkpoint()
 			_start_current_task_activity_after_transition(previous_scene_task_index)
 		else:
 			mark_city_first_arrival()
@@ -1482,27 +1482,27 @@ func handle_scene_entered(scene_path: String) -> void:
 			current_task_index = CITY_SCHOOL_TEACHER_TASK_INDEX
 			current_quest = get_current_quest_text()
 			quest_changed.emit(current_quest)
-			save_game()
+			save_checkpoint()
 			_start_current_task_activity_after_transition(previous_scene_task_index)
 		elif current_task_index == FINAL_SCHOOL_TASK_INDEX and return_to_city_stage >= 2:
 			current_task_index = FINAL_TEACHER_TASK_INDEX
 			current_quest = get_current_quest_text()
 			quest_changed.emit(current_quest)
-			save_game()
+			save_checkpoint()
 			_start_current_task_activity_after_transition(previous_scene_task_index)
 	elif current_scene_path == "res://scenes/2nd Village/Pinehill Village.tscn" \
 			and pinehill_unlocked and current_task_index == PINEHILL_ARRIVAL_TASK_INDEX:
 		current_task_index = PINEHILL_OLD_MAN_TASK_INDEX
 		current_quest = get_current_quest_text()
 		quest_changed.emit(current_quest)
-		save_game()
+		save_checkpoint()
 		_start_current_task_activity_after_transition(previous_scene_task_index)
 	elif current_scene_path == DEEPEST_FOREST_PATH \
 			and city_school_stage_complete and current_task_index == CITY_NEXT_PATH_TASK_INDEX:
 		current_task_index = DEEP_FOREST_BANDIT_TASK_INDEX
 		current_quest = get_current_quest_text()
 		quest_changed.emit(current_quest)
-		save_game()
+		save_checkpoint()
 		_start_current_task_activity_after_transition(previous_scene_task_index)
 
 func get_player_scene_path() -> String:
@@ -1674,41 +1674,209 @@ func get_current_battle_enemy() -> Node:
 
 
 func save_game() -> String:
+	# Compatibility entry point for callers that mean an explicit player Save.
+	return save_manual_game()
+
+
+func save_manual_game() -> String:
 	var owner_id := _get_current_save_owner_id()
 	if owner_id.is_empty():
-		push_warning("Save skipped because no valid Student identity is active.")
+		push_warning("Manual save skipped because no valid Student identity is active.")
 		return ""
 	_ensure_save_directory()
 
-	var now: Dictionary = Time.get_datetime_dict_from_system()
-	var save_stem: String = "%s/save_%s_%04d%02d%02d_%02d%02d%02d" % [
-		get_save_directory(),
-		owner_id,
-		int(now.get("year", 0)),
-		int(now.get("month", 0)),
-		int(now.get("day", 0)),
-		int(now.get("hour", 0)),
-		int(now.get("minute", 0)),
-		int(now.get("second", 0))
-	]
-	var save_path := save_stem + ".json"
-	var collision_suffix := 2
+	var sequence := _get_last_manual_save_sequence(owner_id) + 1
+	var save_path := _get_manual_save_path(owner_id, sequence)
 	while FileAccess.file_exists(save_path):
-		save_path = "%s_%03d.json" % [save_stem, collision_suffix]
-		collision_suffix += 1
-	var data := build_save_data()
+		sequence += 1
+		save_path = _get_manual_save_path(owner_id, sequence)
 
-	var file := FileAccess.open(save_path, FileAccess.WRITE)
-	if file == null:
-		push_error("Unable to create save file: %s" % save_path)
+	var data := build_save_data()
+	data["save_kind"] = "manual"
+	data["manual_save_sequence"] = sequence
+	var temporary_path := _get_manual_save_temporary_path(owner_id, sequence)
+	if not _write_verified_save_temporary(temporary_path, data):
+		push_error("Unable to write and verify the manual save.")
+		return ""
+	var promote_error := DirAccess.rename_absolute(
+		ProjectSettings.globalize_path(temporary_path),
+		ProjectSettings.globalize_path(save_path)
+	)
+	if promote_error != OK:
+		_remove_save_temporary(temporary_path)
+		push_error("Unable to promote the verified manual save.")
 		return ""
 
-	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
+	var saved_data := _read_save_file(save_path)
+	if not _is_manual_save_owned_by_current_student(saved_data):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
+		push_error("The promoted manual save failed its ownership verification.")
+		return ""
 
+	var checkpoint_data := saved_data.duplicate(true)
+	checkpoint_data["save_kind"] = "checkpoint"
+	checkpoint_data["last_manual_save_sequence"] = sequence
+	checkpoint_data.erase("manual_save_sequence")
+	var checkpoint_path := _write_checkpoint_data(owner_id, checkpoint_data)
+	if checkpoint_path.is_empty():
+		push_warning("Manual save succeeded, but the hidden checkpoint could not be refreshed.")
+
+	saved_data["save_path"] = save_path
+	save_created.emit(saved_data)
+	return save_path
+
+
+func save_checkpoint() -> String:
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty():
+		push_warning("Checkpoint skipped because no valid Student identity is active.")
+		return ""
+	_ensure_save_directory()
+	var data := build_save_data()
+	data["save_kind"] = "checkpoint"
+	data["last_manual_save_sequence"] = _get_last_manual_save_sequence(owner_id)
+	var save_path := _write_checkpoint_data(owner_id, data)
+	if save_path.is_empty():
+		return ""
 	data["save_path"] = save_path
 	save_created.emit(data)
 	return save_path
+
+
+func _write_checkpoint_data(owner_id: String, data: Dictionary) -> String:
+	var save_path := _get_current_student_save_path(owner_id)
+	var recovery_path := _get_student_save_recovery_path(owner_id)
+	if FileAccess.file_exists(save_path) and not _is_save_owned_by_current_student(_read_save_file(save_path)):
+		push_warning("Checkpoint skipped because the current-save ownership could not be verified.")
+		return ""
+	if FileAccess.file_exists(recovery_path) and not _is_save_owned_by_current_student(_read_save_file(recovery_path)):
+		push_warning("Checkpoint skipped because the recovery-save ownership could not be verified.")
+		return ""
+
+	var checkpoint_data := data.duplicate(true)
+	checkpoint_data["save_kind"] = "checkpoint"
+	var temporary_path := _get_student_save_temporary_path(owner_id)
+	if not _write_verified_save_temporary(temporary_path, checkpoint_data):
+		push_error("Unable to write and verify the current checkpoint.")
+		return ""
+
+	var current_save_moved_to_recovery := false
+	if FileAccess.file_exists(save_path):
+		if FileAccess.file_exists(recovery_path):
+			var remove_recovery_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(recovery_path))
+			if remove_recovery_error != OK:
+				_remove_save_temporary(temporary_path)
+				push_error("Unable to rotate the checkpoint recovery copy.")
+				return ""
+		var move_current_error := DirAccess.rename_absolute(
+			ProjectSettings.globalize_path(save_path),
+			ProjectSettings.globalize_path(recovery_path)
+		)
+		if move_current_error != OK:
+			_remove_save_temporary(temporary_path)
+			push_error("Unable to preserve the previous checkpoint.")
+			return ""
+		current_save_moved_to_recovery = true
+
+	var promote_error := DirAccess.rename_absolute(
+		ProjectSettings.globalize_path(temporary_path),
+		ProjectSettings.globalize_path(save_path)
+	)
+	if promote_error != OK:
+		if current_save_moved_to_recovery:
+			var restore_error := DirAccess.rename_absolute(
+				ProjectSettings.globalize_path(recovery_path),
+				ProjectSettings.globalize_path(save_path)
+			)
+			if restore_error != OK:
+				push_error("Checkpoint promotion failed; the previous checkpoint remains in its recovery path.")
+		_remove_save_temporary(temporary_path)
+		push_error("Unable to promote the verified checkpoint.")
+		return ""
+
+	var saved_data := _read_save_file(save_path)
+	if not _is_save_owned_by_current_student(saved_data) or String(saved_data.get("save_kind", "")) != "checkpoint":
+		_remove_save_temporary(temporary_path)
+		if FileAccess.file_exists(save_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
+		if current_save_moved_to_recovery:
+			DirAccess.rename_absolute(
+				ProjectSettings.globalize_path(recovery_path),
+				ProjectSettings.globalize_path(save_path)
+			)
+		push_error("The promoted checkpoint failed its ownership verification.")
+		return ""
+	return save_path
+
+
+func _get_current_student_save_path(owner_id: String) -> String:
+	return "%s/save_%s_current.json" % [get_save_directory(), owner_id]
+
+
+func _get_student_save_recovery_path(owner_id: String) -> String:
+	return "%s/save_%s_recovery.json" % [get_save_directory(), owner_id]
+
+
+func _get_student_save_temporary_path(owner_id: String) -> String:
+	return "%s/.save_%s_current_%d.tmp" % [get_save_directory(), owner_id, Time.get_ticks_usec()]
+
+
+func _get_manual_save_path(owner_id: String, sequence: int) -> String:
+	return "%s/save_%s_manual_%06d.json" % [get_save_directory(), owner_id, sequence]
+
+
+func _get_manual_save_temporary_path(owner_id: String, sequence: int) -> String:
+	return "%s/.save_%s_manual_%06d_%d.tmp" % [get_save_directory(), owner_id, sequence, Time.get_ticks_usec()]
+
+
+func _get_last_manual_save_sequence(owner_id: String) -> int:
+	var highest_sequence := 0
+	var checkpoint_paths := [
+		_get_current_student_save_path(owner_id),
+		_get_student_save_recovery_path(owner_id),
+	]
+	for checkpoint_path in checkpoint_paths:
+		var checkpoint := _read_save_file(String(checkpoint_path))
+		if _is_save_owned_by_current_student(checkpoint):
+			highest_sequence = maxi(highest_sequence, int(checkpoint.get("last_manual_save_sequence", checkpoint.get("manual_save_sequence", 0))))
+
+	var directory := DirAccess.open(ProjectSettings.globalize_path(get_save_directory()))
+	if directory == null:
+		return highest_sequence
+	var manual_prefix := "save_%s_manual_" % owner_id
+	directory.list_dir_begin()
+	var file_name := directory.get_next()
+	while not file_name.is_empty():
+		if not directory.current_is_dir() and file_name.begins_with(manual_prefix) and file_name.ends_with(".json"):
+			var manual_data := _read_save_file(get_save_directory() + "/" + file_name)
+			if _is_manual_save_owned_by_current_student(manual_data):
+				highest_sequence = maxi(highest_sequence, int(manual_data.get("manual_save_sequence", 0)))
+		file_name = directory.get_next()
+	directory.list_dir_end()
+	return highest_sequence
+
+
+func _write_verified_save_temporary(temporary_path: String, data: Dictionary) -> bool:
+	var file := FileAccess.open(temporary_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(data, "\t"))
+	file.flush()
+	var write_error := file.get_error()
+	file.close()
+	if write_error != OK:
+		_remove_save_temporary(temporary_path)
+		return false
+	var written_data := _read_save_file(temporary_path)
+	if not _is_save_owned_by_current_student(written_data):
+		_remove_save_temporary(temporary_path)
+		return false
+	return true
+
+
+func _remove_save_temporary(temporary_path: String) -> void:
+	if FileAccess.file_exists(temporary_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
 
 
 func build_save_data() -> Dictionary:
@@ -1781,8 +1949,10 @@ func build_save_data() -> Dictionary:
 
 func list_saves() -> Array[Dictionary]:
 	var saves: Array[Dictionary] = []
-	if _get_current_save_owner_id().is_empty():
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty():
 		return saves
+	_migrate_latest_legacy_checkpoint(owner_id)
 	var directory := DirAccess.open(ProjectSettings.globalize_path(get_save_directory()))
 	if directory == null:
 		return saves
@@ -1793,15 +1963,54 @@ func list_saves() -> Array[Dictionary]:
 		if not directory.current_is_dir() and file_name.ends_with(".json"):
 			var save_path := get_save_directory() + "/" + file_name
 			var save_data := _read_save_file(save_path)
-			# Ownership must be proven from the canonical Student ID saved after
-			# profile validation. Ownerless legacy files remain untouched and hidden.
-			if _is_save_owned_by_current_student(save_data):
+			# Only explicit player-initiated saves belong in Load Game. Checkpoints,
+			# recovery copies and ambiguous legacy timestamp files remain hidden.
+			if _is_manual_save_owned_by_current_student(save_data):
 				saves.append(_prepare_save_entry(save_data, save_path))
 		file_name = directory.get_next()
 
 	directory.list_dir_end()
-	saves.sort_custom(Callable(self, "_sort_saves_desc"))
+	saves.sort_custom(Callable(self, "_sort_manual_saves_asc"))
+	for index in range(saves.size()):
+		saves[index]["slot_number"] = index + 1
 	return saves
+
+
+func _migrate_latest_legacy_checkpoint(owner_id: String) -> void:
+	var current_data := _read_save_file(_get_current_student_save_path(owner_id))
+	if _is_save_owned_by_current_student(current_data):
+		return
+	var recovery_data := _read_save_file(_get_student_save_recovery_path(owner_id))
+	if _is_save_owned_by_current_student(recovery_data):
+		return
+
+	var directory := DirAccess.open(ProjectSettings.globalize_path(get_save_directory()))
+	if directory == null:
+		return
+	var legacy_saves: Array[Dictionary] = []
+	directory.list_dir_begin()
+	var file_name := directory.get_next()
+	while not file_name.is_empty():
+		if not directory.current_is_dir() and file_name.ends_with(".json"):
+			var save_path := get_save_directory() + "/" + file_name
+			if save_path != _get_current_student_save_path(owner_id) \
+					and save_path != _get_student_save_recovery_path(owner_id):
+				var save_data := _read_save_file(save_path)
+				if _is_save_owned_by_current_student(save_data) \
+						and String(save_data.get("save_kind", "")).is_empty():
+					var prepared := _prepare_save_entry(save_data, save_path)
+					if bool(prepared.get("loadable", false)):
+						legacy_saves.append(prepared)
+		file_name = directory.get_next()
+	directory.list_dir_end()
+	if legacy_saves.is_empty():
+		return
+	legacy_saves.sort_custom(Callable(self, "_sort_saves_desc"))
+	var newest_legacy := legacy_saves[0].duplicate(true)
+	newest_legacy["save_kind"] = "checkpoint"
+	newest_legacy["last_manual_save_sequence"] = _get_last_manual_save_sequence(owner_id)
+	newest_legacy.erase("save_path")
+	_write_checkpoint_data(owner_id, newest_legacy)
 
 
 func load_save(path: String, emit_progression_session_reset: bool = true) -> Dictionary:
@@ -1827,9 +2036,14 @@ func delete_save(path: String) -> bool:
 	var save_path := _validated_save_path(path)
 	if save_path.is_empty() or not FileAccess.file_exists(save_path):
 		return false
-	if not _is_save_owned_by_current_student(_read_save_file(save_path)):
+	var save_data := _read_save_file(save_path)
+	if not _is_manual_save_owned_by_current_student(save_data):
 		return false
-
+	var visible_manual_paths: Array[String] = []
+	for visible_save in list_saves():
+		visible_manual_paths.append(String(visible_save.get("save_path", "")))
+	if not visible_manual_paths.has(save_path):
+		return false
 	return DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path)) == OK
 
 
@@ -2247,6 +2461,12 @@ func _is_save_owned_by_current_student(data: Dictionary) -> bool:
 	return saved_device_id.is_empty() or saved_device_id == get_device_installation_id()
 
 
+func _is_manual_save_owned_by_current_student(data: Dictionary) -> bool:
+	return _is_save_owned_by_current_student(data) \
+		and String(data.get("save_kind", "")) == "manual" \
+		and int(data.get("manual_save_sequence", 0)) > 0
+
+
 func get_device_installation_id() -> String:
 	if not device_installation_id.is_empty():
 		return device_installation_id
@@ -2524,4 +2744,18 @@ func _sort_saves_desc(a: Dictionary, b: Dictionary) -> bool:
 		String(b.get("save_date", "")).strip_edges(),
 		String(b.get("save_time", "")).strip_edges()
 	]
-	return a_date_time > b_date_time
+	if a_date_time != b_date_time:
+		return a_date_time > b_date_time
+	return String(a.get("save_path", "")) > String(b.get("save_path", ""))
+
+
+func _sort_manual_saves_asc(a: Dictionary, b: Dictionary) -> bool:
+	var a_sequence := int(a.get("manual_save_sequence", 0))
+	var b_sequence := int(b.get("manual_save_sequence", 0))
+	if a_sequence != b_sequence:
+		return a_sequence < b_sequence
+	var a_timestamp := int(a.get("save_timestamp", 0))
+	var b_timestamp := int(b.get("save_timestamp", 0))
+	if a_timestamp != b_timestamp:
+		return a_timestamp < b_timestamp
+	return String(a.get("save_path", "")) < String(b.get("save_path", ""))

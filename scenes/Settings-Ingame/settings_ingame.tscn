@@ -1,11 +1,11 @@
 [gd_scene format=3 uid="uid://c1lpjvyk18oh5"]
 
-[ext_resource type="Texture2D" uid="uid://cye4hy5o2054t" path="res://Images/settings-logo.png" id="1_5kl81"]
-[ext_resource type="Texture2D" uid="uid://dvxojb3lpqahx" path="res://Images/popup.png" id="3_hu1oc"]
-[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="4_y7tm3"]
-[ext_resource type="Texture2D" uid="uid://cg4wtlqou0rd2" path="res://Images/grabber.png" id="6_j8nds"]
-[ext_resource type="Texture2D" uid="uid://b10upp8m1yaof" path="res://Images/slide bar.png" id="7_geh8q"]
-[ext_resource type="Texture2D" uid="uid://dhtn0o3ukx2t0" path="res://Images/btn.png" id="8_hrtxq"]
+[ext_resource type="Texture2D" uid="uid://c3fxxmbebsytx" path="res://Images/settings-logo.png" id="1_5kl81"]
+[ext_resource type="Texture2D" uid="uid://dm5fp85ae3mkc" path="res://Images/popup.png" id="3_hu1oc"]
+[ext_resource type="FontFile" uid="uid://e1m7150gckir" path="res://Font/PressStart2P.ttf" id="4_y7tm3"]
+[ext_resource type="Texture2D" uid="uid://cup28rtopsysn" path="res://Images/grabber.png" id="6_j8nds"]
+[ext_resource type="Texture2D" uid="uid://bmiv166npewvs" path="res://Images/slide bar.png" id="7_geh8q"]
+[ext_resource type="Texture2D" uid="uid://bru6kqs5e7108" path="res://Images/btn.png" id="8_hrtxq"]
 [ext_resource type="Script" uid="uid://c2l2xw77hfi57" path="res://scenes/Settings-Ingame/settings_ingame_controller.gd" id="9_controller"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_save_toast"]
@@ -172,13 +172,14 @@ offset_left = 382.0
 offset_top = 225.0
 offset_right = 602.0
 offset_bottom = 277.0
+mouse_filter = 2
 icon = ExtResource("8_hrtxq")
 flat = true
 expand_icon = true
-mouse_filter = 2
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/LoadGameBtn" unique_id=686641483]
 layout_mode = 1
+mouse_filter = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -206,6 +207,7 @@ expand_icon = true
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/ExitBtn" unique_id=771607587]
 layout_mode = 1
+mouse_filter = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -233,6 +235,7 @@ expand_icon = true
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/ResumeBtn" unique_id=1048843531]
 layout_mode = 1
+mouse_filter = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -260,6 +263,7 @@ expand_icon = true
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/SaveBtn" unique_id=1868119323]
 layout_mode = 1
+mouse_filter = 2
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0

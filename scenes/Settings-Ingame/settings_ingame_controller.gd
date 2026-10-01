@@ -1,6 +1,8 @@
 extends Control
 
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
+const LOAD_GAME_SCENE := "res://load_game_scene.tscn"
+const CONFIRMATION_FONT: Font = preload("res://Font/PressStart2P.ttf")
 
 const EXIT_PROMPT_TEXT := "Your current progress will be saved before leaving."
 const SAVE_PROMPT_TEXT := "Do you want to save this game?"
@@ -152,6 +154,7 @@ func _build_save_dialog() -> void:
 	_save_dialog.cancel_button_text = "NO"
 	_save_dialog.exclusive = true
 	add_child(_save_dialog)
+	_apply_confirmation_theme(_save_dialog)
 
 func _connect_controls() -> void:
 	if not settings_button.pressed.is_connected(_on_settings_button_pressed):
@@ -265,12 +268,6 @@ func _on_load_pressed() -> void:
 	if load_button.disabled:
 		return
 
-	var save_data := GameState.load_latest_save()
-	var scene_path := String(save_data.get("scene_path", "")).strip_edges()
-	if scene_path.is_empty():
-		_refresh_load_button_state()
-		return
-
 	settings_popup.visible = false
 	InputManager.unlock_input("settings_pause")
 	get_tree().paused = false
@@ -278,7 +275,13 @@ func _on_load_pressed() -> void:
 		_save_dialog.hide()
 	if _exit_dialog != null:
 		_exit_dialog.hide()
-	get_tree().change_scene_to_file(scene_path)
+	var transition_error := get_tree().change_scene_to_file(LOAD_GAME_SCENE)
+	if transition_error != OK:
+		settings_popup.visible = true
+		settings_button.visible = false
+		InputManager.lock_input("settings_pause")
+		get_tree().paused = true
+		_refresh_load_button_state()
 
 func _on_exit_pressed() -> void:
 	if _exit_dialog == null or _exit_in_progress:
@@ -302,7 +305,7 @@ func _on_exit_confirmed() -> void:
 	var current_scene := get_tree().current_scene
 	if player != null and current_scene != null:
 		GameState.capture_runtime(current_scene.scene_file_path, player.global_position)
-		GameState.save_game()
+		GameState.save_checkpoint()
 		# Give the existing save_created sync observer one frame to begin its
 		# best-effort progress flush before the session close request.
 		await get_tree().process_frame
@@ -318,22 +321,52 @@ func _on_exit_canceled() -> void:
 		return
 	_resume_game()
 
-func _apply_confirmation_theme(dialog: ConfirmationDialog) -> void:
+func _apply_confirmation_theme(dialog: ConfirmationDialog, destructive_action: bool = false) -> void:
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.04, 0.08, 0.18, 0.98)
-	panel_style.border_color = Color(0.95, 0.76, 0.28, 1.0)
-	panel_style.set_border_width_all(3)
-	panel_style.set_corner_radius_all(8)
-	panel_style.content_margin_left = 22.0
-	panel_style.content_margin_right = 22.0
+	panel_style.bg_color = Color(0.025, 0.055, 0.16, 1.0)
+	panel_style.border_color = Color(0.94902, 0.823529, 0.443137, 1.0)
+	panel_style.set_border_width_all(4)
+	panel_style.content_margin_left = 20.0
+	panel_style.content_margin_right = 20.0
 	panel_style.content_margin_top = 18.0
 	panel_style.content_margin_bottom = 18.0
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.72)
+	panel_style.shadow_size = 6
+	panel_style.shadow_offset = Vector2(3.0, 3.0)
 	dialog.add_theme_stylebox_override("panel", panel_style)
-	dialog.add_theme_color_override("font_color", Color(0.90, 0.92, 1.0, 1.0))
-	dialog.add_theme_font_size_override("font_size", 14)
-	for button in [dialog.get_ok_button(), dialog.get_cancel_button()]:
-		button.add_theme_color_override("font_color", Color(0.95, 0.82, 0.44, 1.0))
-		button.add_theme_font_size_override("font_size", 12)
+	dialog.add_theme_color_override("font_color", Color(0.96, 0.91, 0.77, 1.0))
+	dialog.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.78, 1.0))
+	dialog.add_theme_font_override("font", CONFIRMATION_FONT)
+	dialog.add_theme_font_size_override("font_size", 10)
+	for button: Button in [dialog.get_ok_button(), dialog.get_cancel_button()]:
+		button.custom_minimum_size = Vector2(142.0, 42.0)
+		button.add_theme_font_override("font", CONFIRMATION_FONT)
+		button.add_theme_font_size_override("font_size", 8)
+		button.add_theme_color_override("font_color", Color(0.98, 0.86, 0.5, 1.0))
+		button.add_theme_color_override("font_hover_color", Color(1.0, 0.97, 0.82, 1.0))
+		button.add_theme_color_override("font_pressed_color", Color(0.93, 0.75, 0.32, 1.0))
+		button.add_theme_stylebox_override("normal", _make_confirmation_button_style(false, destructive_action and button == dialog.get_ok_button()))
+		button.add_theme_stylebox_override("hover", _make_confirmation_button_style(true, destructive_action and button == dialog.get_ok_button()))
+		button.add_theme_stylebox_override("pressed", _make_confirmation_button_style(false, destructive_action and button == dialog.get_ok_button(), true))
+
+
+func _make_confirmation_button_style(hovered: bool, destructive: bool, pressed: bool = false) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	if destructive:
+		style.bg_color = Color(0.40, 0.075, 0.11, 1.0) if not pressed else Color(0.28, 0.045, 0.07, 1.0)
+		if hovered:
+			style.bg_color = Color(0.58, 0.12, 0.15, 1.0)
+	else:
+		style.bg_color = Color(0.035, 0.16, 0.43, 1.0) if not pressed else Color(0.02, 0.095, 0.29, 1.0)
+		if hovered:
+			style.bg_color = Color(0.08, 0.27, 0.58, 1.0)
+	style.border_color = Color(1.0, 0.78, 0.24, 1.0)
+	style.set_border_width_all(3)
+	style.content_margin_left = 10.0
+	style.content_margin_right = 10.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	return style
 
 func _on_save_confirmed() -> void:
 	var player := get_tree().get_first_node_in_group("player_character") as Node2D
@@ -343,7 +376,7 @@ func _on_save_confirmed() -> void:
 		return
 
 	GameState.capture_runtime(current_scene.scene_file_path, player.global_position)
-	var save_path := GameState.save_game()
+	var save_path := GameState.save_manual_game()
 	if save_path.is_empty():
 		return
 

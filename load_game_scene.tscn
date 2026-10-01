@@ -1,17 +1,13 @@
 [gd_scene format=3 uid="uid://chdstyagpuypj"]
 
-[ext_resource type="Texture2D" uid="uid://c5cd1rgyki63p" path="res://Images/Background-Menu.png" id="1_fluog"]
-[ext_resource type="Texture2D" uid="uid://dyn5rg0xmcobe" path="res://Images/loadgame.png" id="2_cwdwd"]
-[ext_resource type="FontFile" uid="uid://b6l6rkfvxogbt" path="res://Font/PressStart2P.ttf" id="3_4ntfu"]
+[ext_resource type="Texture2D" uid="uid://g2muc8pyh7m7" path="res://Images/Background-Menu.png" id="1_fluog"]
+[ext_resource type="Texture2D" uid="uid://bdbdw6r3s0sfa" path="res://Images/loadgame.png" id="2_cwdwd"]
+[ext_resource type="FontFile" uid="uid://e1m7150gckir" path="res://Font/PressStart2P.ttf" id="3_4ntfu"]
 [ext_resource type="Script" uid="uid://b44bhscs5echs" path="res://scripts/back_btn.gd" id="4_cwdwd"]
-[ext_resource type="Script" path="res://scripts/load_game_scene.gd" id="5_scene"]
+[ext_resource type="Script" uid="uid://d1f8dug4m3a7n" path="res://scripts/load_game_scene.gd" id="5_scene"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_saves"]
-bg_color = Color(0.0627451, 0.0862745, 0.172549, 0.86)
-corner_radius_top_left = 18
-corner_radius_top_right = 18
-corner_radius_bottom_right = 18
-corner_radius_bottom_left = 18
+bg_color = Color(0.0196078, 0.0470588, 0.129412, 0.46)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
@@ -20,15 +16,19 @@ border_color = Color(0.898039, 0.752941, 0.415686, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_all"]
 bg_color = Color(0.337255, 0.12549, 0.156863, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
 border_color = Color(0.898039, 0.752941, 0.415686, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_back"]
+bg_color = Color(0.024, 0.08, 0.22, 0.92)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.85, 0.62, 0.18, 1)
 
 [node name="LoadGameScene" type="Control" unique_id=395386632]
 layout_mode = 3
@@ -40,9 +40,13 @@ grow_vertical = 2
 script = ExtResource("5_scene")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=414615538]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
 
 [node name="BackgroundMenu" type="Sprite2D" parent="TextureRect" unique_id=948205012]
 position = Vector2(608, 271)
@@ -54,111 +58,76 @@ position = Vector2(608, 304)
 scale = Vector2(0.82747394, 0.6645508)
 texture = ExtResource("2_cwdwd")
 
-[node name="SavePanel" type="PanelContainer" parent="TextureRect"]
-layout_mode = 0
-offset_left = 238.0
-offset_top = 118.0
-offset_right = 988.0
-offset_bottom = 492.0
+[node name="SavePanel" type="PanelContainer" parent="TextureRect" unique_id=246880797]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.15
+anchor_top = 0.21
+anchor_right = 0.85
+anchor_bottom = 0.93
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_saves")
 
-[node name="MarginContainer" type="MarginContainer" parent="TextureRect/SavePanel"]
+[node name="MarginContainer" type="MarginContainer" parent="TextureRect/SavePanel" unique_id=656966186]
 layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="Content" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer"]
+[node name="Content" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer" unique_id=2126469988]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
-[node name="IdentityGate" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content"]
-custom_minimum_size = Vector2(0, 86)
-layout_mode = 2
-theme_override_constants/separation = 5
-
-[node name="IdentityPromptLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898039, 0.752941, 0.415686, 1)
-theme_override_fonts/font = ExtResource("3_4ntfu")
-theme_override_font_sizes/font_size = 12
-text = "Verify your Student ID and linked Parent ID to view saved games."
-horizontal_alignment = 1
-
-[node name="IdentityFields" type="HBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="StudentIdInput" type="LineEdit" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields"]
-custom_minimum_size = Vector2(190, 32)
-layout_mode = 2
-size_flags_horizontal = 3
-placeholder_text = "Student ID"
-max_length = 8
-
-[node name="ParentIdInput" type="LineEdit" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields"]
-custom_minimum_size = Vector2(150, 32)
-layout_mode = 2
-size_flags_horizontal = 3
-placeholder_text = "Parent ID"
-max_length = 6
-
-[node name="VerifyButton" type="Button" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields"]
-custom_minimum_size = Vector2(112, 32)
-layout_mode = 2
-text = "Verify"
-
-[node name="IdentityStatusLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.898039, 0.752941, 0.415686, 1)
-theme_override_fonts/font = ExtResource("3_4ntfu")
-theme_override_font_sizes/font_size = 10
-text = ""
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="EmptyLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content"]
+[node name="EmptyLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content" unique_id=243289848]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
 theme_override_fonts/font = ExtResource("3_4ntfu")
-theme_override_font_sizes/font_size = 18
-text = "No save data found"
+theme_override_font_sizes/font_size = 12
+text = "No saved games for this Student yet."
 horizontal_alignment = 1
+autowrap_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="TextureRect/SavePanel/MarginContainer/Content"]
-custom_minimum_size = Vector2(0, 216)
+[node name="ScrollContainer" type="ScrollContainer" parent="TextureRect/SavePanel/MarginContainer/Content" unique_id=1062800280]
+custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="SavesContainer" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content/ScrollContainer"]
+[node name="SavesContainer" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content/ScrollContainer" unique_id=1455009342]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 10
+theme_override_constants/separation = 9
 
-[node name="DeleteAllButton" type="Button" parent="TextureRect/SavePanel/MarginContainer/Content"]
-custom_minimum_size = Vector2(0, 36)
+[node name="Footer" type="HBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content" unique_id=84682976]
 layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="DeleteAllButton" type="Button" parent="TextureRect/SavePanel/MarginContainer/Content/Footer" unique_id=2041813518]
+custom_minimum_size = Vector2(176, 40)
+layout_mode = 2
+focus_mode = 0
 theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
+theme_override_fonts/font = ExtResource("3_4ntfu")
+theme_override_font_sizes/font_size = 8
 theme_override_styles/normal = SubResource("StyleBoxFlat_delete_all")
-theme_override_styles/hover = SubResource("StyleBoxFlat_delete_all")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_delete_all")
-text = "Delete All"
+theme_override_styles/hover = SubResource("StyleBoxFlat_delete_all")
+text = "DELETE ALL"
 
-[node name="DeleteSaveConfirmation" type="ConfirmationDialog" parent="."]
+[node name="DeleteSaveConfirmation" type="ConfirmationDialog" parent="." unique_id=1800148740]
 title = "Confirm Delete"
-dialog_text = "Delete this save?"
 ok_button_text = "Delete"
-cancel_button_text = "Cancel"
-exclusive = true
+cancel_button_text = "Keep Save"
+dialog_text = "Delete this save?"
 
-[node name="DeleteAllSaveConfirmation" type="ConfirmationDialog" parent="."]
+[node name="DeleteAllSaveConfirmation" type="ConfirmationDialog" parent="." unique_id=1847028692]
 title = "Confirm Delete All"
-dialog_text = "Delete all saved games? This cannot be undone."
 ok_button_text = "Delete All"
 cancel_button_text = "Cancel"
-exclusive = true
+dialog_text = "Delete all saved games? This cannot be undone."
 
 [node name="Fade" type="ColorRect" parent="." unique_id=2010100567]
 modulate = Color(1, 1, 1, 0)
@@ -188,18 +157,26 @@ theme_override_font_sizes/font_size = 46
 text = "LOAD GAME"
 
 [node name="Button" type="Button" parent="." unique_id=356833224]
-layout_mode = 0
-offset_left = 25.0
-offset_top = 29.0
-offset_right = 141.0
-offset_bottom = 75.0
-theme_override_colors/font_color = Color(0, 0.039215688, 0.60784316, 1)
-theme_override_colors/font_pressed_color = Color(0.3078449, 0.14900312, 0.026899772, 1)
-theme_override_colors/font_hover_color = Color(0.24705882, 0.3019608, 0.5411765, 1)
-theme_override_constants/outline_size = 6
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -1033.0
+offset_top = -107.0
+offset_right = -885.0
+offset_bottom = -64.0
+grow_horizontal = 0
+grow_vertical = 0
+focus_mode = 0
+theme_override_colors/font_color = Color(1, 0.870588, 0.529412, 1)
+theme_override_colors/font_pressed_color = Color(0.945098, 0.807843, 0.431373, 1)
+theme_override_colors/font_hover_color = Color(1, 0.941176, 0.705882, 1)
 theme_override_fonts/font = ExtResource("3_4ntfu")
-theme_override_font_sizes/font_size = 38
-text = "←
-"
-flat = true
+theme_override_font_sizes/font_size = 9
+theme_override_styles/normal = SubResource("StyleBoxFlat_back")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_back")
+theme_override_styles/hover = SubResource("StyleBoxFlat_back")
+text = "< BACK"
 script = ExtResource("4_cwdwd")

@@ -1,68 +1,96 @@
 extends Node
 
-const SAVE_DIRECTORY := "user://saves"
-const OLDEST_PATH := SAVE_DIRECTORY + "/save_000_oldest.json"
-const MIDDLE_PATH := SAVE_DIRECTORY + "/save_500_middle.json"
-const NEWEST_PATH := SAVE_DIRECTORY + "/save_900_newest.json"
-const SAME_TIMESTAMP_NEWER_DATE_PATH := SAVE_DIRECTORY + "/save_100_same_timestamp_newer_date.json"
+const QA_SAVE_ROOT := "user://qa_local_saves"
 const LOAD_SCENE_PATH := "res://load_game_scene.tscn"
 const SAVE_ENTRY_SCENE := preload("res://ui/save_entry.tscn")
 
 var _failures: Array[String] = []
-var _fixture_paths: Array[String] = [OLDEST_PATH, MIDDLE_PATH, NEWEST_PATH, SAME_TIMESTAMP_NEWER_DATE_PATH]
+var _save_directory := ""
+var _oldest_path := ""
+var _middle_path := ""
+var _newest_path := ""
+var _same_timestamp_newer_date_path := ""
+var _fixture_paths: Array[String] = []
+var _previous_save_directory := ""
 
 func _ready() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	var http_api := get_node_or_null("/root/HttpApi")
+	if http_api == null or not bool(http_api.call("enable_local_qa_mode", "http://127.0.0.1:5000")):
+		_fail("Load Game UX test requires explicit local-only API mode.")
+		_finish()
+		return
+	var remote_sync := get_node_or_null("/root/RemoteSync")
+	if remote_sync != null:
+		remote_sync.call("enable_local_qa_mode")
+	var qa_save_id := "%d_%d" % [OS.get_process_id(), Time.get_ticks_usec()]
+	_save_directory = "%s/load_game_ux_%s" % [QA_SAVE_ROOT, qa_save_id]
+	if DirAccess.dir_exists_absolute(_absolute_path(_save_directory)):
+		_fail("Refusing to reuse an existing Load Game UX QA directory.")
+		_finish()
+		return
+	if DirAccess.make_dir_recursive_absolute(_absolute_path(_save_directory)) != OK:
+		_fail("Could not create the unique Load Game UX QA directory.")
+		_finish()
+		return
+	_oldest_path = _save_directory + "/save_000_oldest.json"
+	_middle_path = _save_directory + "/save_500_middle.json"
+	_newest_path = _save_directory + "/save_900_newest.json"
+	_same_timestamp_newer_date_path = _save_directory + "/save_100_same_timestamp_newer_date.json"
+	_fixture_paths = [_oldest_path, _middle_path, _newest_path, _same_timestamp_newer_date_path]
 	_promote_to_root()
 	get_tree().current_scene = self
 	_configure_live_remote_sync()
 	GameState.set_script(load("res://tools/load_game_ux_test_state.gd"))
+	_previous_save_directory = GameState.get_save_directory()
+	GameState.set("_save_directory", _save_directory)
 	GameState.student_id = "001234"
 	GameState.parent_id = "123456"
+	GameState.device_installation_id = "qa-load-game-ux-device"
 	GameState.fixture_paths = _fixture_paths.duplicate()
 	_prepare_fixture_saves()
-	var loaded_middle := GameState.load_save(MIDDLE_PATH, false)
+	var loaded_middle := GameState.load_save(_middle_path, false)
 	_assert(String(loaded_middle.get("student_id", "")) == "001234" and int(loaded_middle.get("current_task_index", -1)) == 2, "Individual Load preserves the selected save identity and quest fields")
 
 	var initial_scene := await _mount_load_scene()
-	var expected_order: Array[String] = [SAME_TIMESTAMP_NEWER_DATE_PATH, NEWEST_PATH, MIDDLE_PATH, OLDEST_PATH]
+	var expected_order: Array[String] = [_same_timestamp_newer_date_path, _newest_path, _middle_path, _oldest_path]
 	_assert(_save_paths(initial_scene) == expected_order, "Load Game orders entries by saved timestamp, then saved date/time, descending")
-	_assert((initial_scene.get_node("TextureRect/SavePanel/MarginContainer/Content/DeleteAllButton") as Button).visible, "Delete All is placed in the existing Save Panel content area")
+	_assert((initial_scene.get_node("TextureRect/SavePanel/MarginContainer/Content/Footer/DeleteAllButton") as Button).visible, "Delete All is placed in the separated Save Panel footer")
 	initial_scene.queue_free()
 	await get_tree().process_frame
 
 	var restarted_scene := await _mount_load_scene()
 	_assert(_save_paths(restarted_scene) == expected_order, "Restarting Load Game preserves timestamp/date ordering")
 
-	var middle_entry := _find_entry(restarted_scene, MIDDLE_PATH)
+	var middle_entry := _find_entry(restarted_scene, _middle_path)
 	var selected_path: Array[String] = [""]
 	if middle_entry != null:
 		_assert((middle_entry.get_node("MarginContainer/Content/Actions/LoadButton") as Button).visible, "Individual Load remains visible on each save entry")
 	var standalone_entry := SAVE_ENTRY_SCENE.instantiate() as Control
 	add_child(standalone_entry)
 	standalone_entry.save_selected.connect(func(path: String) -> void: selected_path[0] = path)
-	standalone_entry.setup(GameState.peek_save_data(MIDDLE_PATH))
+	standalone_entry.setup(GameState.peek_save_data(_middle_path))
 	(standalone_entry.get_node("MarginContainer/Content/Actions/LoadButton") as Button).pressed.emit()
 	standalone_entry.queue_free()
-	_assert(selected_path[0] == MIDDLE_PATH, "Individual Load still targets the selected save")
+	_assert(selected_path[0] == _middle_path, "Individual Load still targets the selected save")
 
 	var individual_confirmation := restarted_scene.get_node("DeleteSaveConfirmation") as ConfirmationDialog
-	restarted_scene.call("_on_delete_requested", OLDEST_PATH)
+	restarted_scene.call("_on_delete_requested", _oldest_path)
 	await get_tree().process_frame
 	_assert(individual_confirmation.visible, "Individual Delete still opens confirmation")
 	individual_confirmation.canceled.emit()
 	individual_confirmation.hide()
 	await get_tree().process_frame
-	_assert(FileAccess.file_exists(_absolute_path(OLDEST_PATH)), "Individual Delete cancel preserves the save")
-	restarted_scene.call("_on_delete_requested", OLDEST_PATH)
+	_assert(FileAccess.file_exists(_absolute_path(_oldest_path)), "Individual Delete cancel preserves the save")
+	restarted_scene.call("_on_delete_requested", _oldest_path)
 	individual_confirmation.confirmed.emit()
 	individual_confirmation.hide()
 	await get_tree().process_frame
-	_assert(not FileAccess.file_exists(_absolute_path(OLDEST_PATH)) and FileAccess.file_exists(_absolute_path(MIDDLE_PATH)), "Individual Delete removes only the selected save")
+	_assert(not FileAccess.file_exists(_absolute_path(_oldest_path)) and FileAccess.file_exists(_absolute_path(_middle_path)), "Individual Delete removes only the selected save")
 
-	var delete_all_button := restarted_scene.get_node("TextureRect/SavePanel/MarginContainer/Content/DeleteAllButton") as Button
+	var delete_all_button := restarted_scene.get_node("TextureRect/SavePanel/MarginContainer/Content/Footer/DeleteAllButton") as Button
 	var delete_all_confirmation := restarted_scene.get_node("DeleteAllSaveConfirmation") as ConfirmationDialog
 	delete_all_button.pressed.emit()
 	await get_tree().process_frame
@@ -70,7 +98,7 @@ func _run() -> void:
 	delete_all_confirmation.canceled.emit()
 	delete_all_confirmation.hide()
 	await get_tree().process_frame
-	_assert(not GameState.list_saves().is_empty() and FileAccess.file_exists(_absolute_path(MIDDLE_PATH)), "Delete All cancel preserves every remaining save")
+	_assert(not GameState.list_saves().is_empty() and FileAccess.file_exists(_absolute_path(_middle_path)), "Delete All cancel preserves every remaining save")
 
 	delete_all_button.pressed.emit()
 	delete_all_confirmation.confirmed.emit()
@@ -97,13 +125,12 @@ func _mount_load_scene() -> Control:
 	return scene
 
 func _prepare_fixture_saves() -> void:
-	DirAccess.make_dir_recursive_absolute(_absolute_path(SAVE_DIRECTORY))
-	_write_fixture(OLDEST_PATH, 100, "2026-01-01", "08:00:00")
-	_write_fixture(MIDDLE_PATH, 200, "2026-01-02", "08:00:00")
-	_write_fixture(NEWEST_PATH, 300, "2026-01-03", "08:00:00")
-	_write_fixture(SAME_TIMESTAMP_NEWER_DATE_PATH, 300, "2026-01-04", "08:00:00")
+	_write_fixture(_oldest_path, 100, "2026-01-01", "08:00:00", 1)
+	_write_fixture(_middle_path, 200, "2026-01-02", "08:00:00", 2)
+	_write_fixture(_newest_path, 300, "2026-01-03", "08:00:00", 3)
+	_write_fixture(_same_timestamp_newer_date_path, 300, "2026-01-04", "08:00:00", 4)
 
-func _write_fixture(path: String, timestamp: int, save_date: String, save_time: String) -> void:
+func _write_fixture(path: String, timestamp: int, save_date: String, save_time: String, sequence: int) -> void:
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		_fail("fixture save could not be created: %s" % path)
@@ -123,6 +150,8 @@ func _write_fixture(path: String, timestamp: int, save_date: String, save_time: 
 		"current_task_index": 2,
 		"correct_answers": 4,
 		"incorrect_answers": 1,
+		"save_kind": "manual",
+		"manual_save_sequence": sequence,
 		"save_date": save_date,
 		"save_time": save_time,
 		"save_timestamp": timestamp,
@@ -157,8 +186,15 @@ func _promote_to_root() -> void:
 
 func _cleanup_fixture_saves() -> void:
 	for path in _fixture_paths:
+		if not path.begins_with(_save_directory + "/"):
+			push_error("Refusing to clean a Load Game UX fixture outside its unique QA directory.")
+			continue
 		if FileAccess.file_exists(_absolute_path(path)):
 			DirAccess.remove_absolute(_absolute_path(path))
+	if not _save_directory.is_empty() and _save_directory.begins_with(QA_SAVE_ROOT + "/"):
+		DirAccess.remove_absolute(_absolute_path(_save_directory))
+	if not _previous_save_directory.is_empty():
+		GameState.set("_save_directory", _previous_save_directory)
 
 func _absolute_path(path: String) -> String:
 	return ProjectSettings.globalize_path(path)
@@ -172,18 +208,18 @@ func _fail(message: String) -> void:
 
 func _finish() -> void:
 	var report := {"passed": 0, "failed": _failures.size(), "failures": _failures}
-	var report_file := FileAccess.open("res://tools/load_game_ux_test_result.json", FileAccess.WRITE)
+	var report_file := FileAccess.open("user://load_game_ux_test_result.json", FileAccess.WRITE)
 	if report_file != null:
 		report["passed"] = 14 - _failures.size()
 		report_file.store_string(JSON.stringify(report))
 		report_file.close()
 	if _failures.is_empty():
 		print("LOAD_GAME_UX_TEST: PASS")
-		await get_tree().create_timer(3.0).timeout
+		await get_tree().create_timer(45.0).timeout
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
 	print("LOAD_GAME_UX_TEST: FAIL")
-	await get_tree().create_timer(3.0).timeout
+	await get_tree().create_timer(45.0).timeout
 	get_tree().quit(1)

@@ -4,28 +4,26 @@ const SAVE_ENTRY_SCENE := preload("res://ui/save_entry.tscn")
 const LoadingScreenController := preload("res://scripts/loading_screen.gd")
 const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
 const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
+const CONFIRMATION_FONT: Font = preload("res://Font/PressStart2P.ttf")
 const SLOW_ONLINE_VERIFICATION_FEEDBACK_DELAY_SECONDS := 0.75
 
 @onready var saves_container: VBoxContainer = $TextureRect/SavePanel/MarginContainer/Content/ScrollContainer/SavesContainer
 @onready var empty_label: Label = $TextureRect/SavePanel/MarginContainer/Content/EmptyLabel
-@onready var identity_gate: Control = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate") as Control
-@onready var identity_student_input: LineEdit = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/StudentIdInput") as LineEdit
-@onready var identity_parent_input: LineEdit = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/ParentIdInput") as LineEdit
-@onready var identity_status_label: Label = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityStatusLabel") as Label
-@onready var identity_verify_button: Button = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/VerifyButton") as Button
 @onready var delete_confirmation: ConfirmationDialog = $DeleteSaveConfirmation
-@onready var delete_all_button: Button = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/DeleteAllButton") as Button
+@onready var delete_all_button: Button = get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/Footer/DeleteAllButton") as Button
 @onready var delete_all_confirmation: ConfirmationDialog = get_node_or_null("DeleteAllSaveConfirmation") as ConfirmationDialog
 
 var _save_transitioning: bool = false
 var _pending_delete_path: String = ""
 var _delete_all_pending: bool = false
 var _student_terms_gate: Control
-var _identity_verifying: bool = false
 var _online_verification_pending: bool = false
 
 func _ready() -> void:
 	MusicManager.play_for_scene(scene_file_path)
+	_configure_confirmation_dialog(delete_confirmation, true)
+	if delete_all_confirmation != null:
+		_configure_confirmation_dialog(delete_all_confirmation, true)
 	if not delete_confirmation.confirmed.is_connected(_on_delete_confirmed):
 		delete_confirmation.confirmed.connect(_on_delete_confirmed)
 	if not delete_confirmation.canceled.is_connected(_on_delete_canceled):
@@ -36,9 +34,60 @@ func _ready() -> void:
 		delete_all_confirmation.confirmed.connect(_on_delete_all_confirmed)
 	if delete_all_confirmation != null and not delete_all_confirmation.canceled.is_connected(_on_delete_all_canceled):
 		delete_all_confirmation.canceled.connect(_on_delete_all_canceled)
-	if identity_verify_button != null and not identity_verify_button.pressed.is_connected(_on_verify_save_owner_pressed):
-		identity_verify_button.pressed.connect(_on_verify_save_owner_pressed)
 	_refresh_save_list()
+
+
+func _configure_confirmation_dialog(dialog: ConfirmationDialog, destructive_action: bool) -> void:
+	if dialog == null:
+		return
+	dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	dialog.exclusive = true
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.025, 0.055, 0.16, 1.0)
+	panel_style.border_color = Color(0.94902, 0.823529, 0.443137, 1.0)
+	panel_style.set_border_width_all(4)
+	panel_style.content_margin_left = 20.0
+	panel_style.content_margin_right = 20.0
+	panel_style.content_margin_top = 18.0
+	panel_style.content_margin_bottom = 18.0
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.72)
+	panel_style.shadow_size = 6
+	panel_style.shadow_offset = Vector2(3.0, 3.0)
+	dialog.add_theme_stylebox_override("panel", panel_style)
+	dialog.add_theme_color_override("font_color", Color(0.96, 0.91, 0.77, 1.0))
+	dialog.add_theme_color_override("font_hover_color", Color(1.0, 0.95, 0.78, 1.0))
+	dialog.add_theme_font_override("font", CONFIRMATION_FONT)
+	dialog.add_theme_font_size_override("font_size", 10)
+	for button: Button in [dialog.get_ok_button(), dialog.get_cancel_button()]:
+		button.custom_minimum_size = Vector2(142.0, 42.0)
+		button.add_theme_font_override("font", CONFIRMATION_FONT)
+		button.add_theme_font_size_override("font_size", 8)
+		button.add_theme_color_override("font_color", Color(0.98, 0.86, 0.5, 1.0))
+		button.add_theme_color_override("font_hover_color", Color(1.0, 0.97, 0.82, 1.0))
+		button.add_theme_color_override("font_pressed_color", Color(0.93, 0.75, 0.32, 1.0))
+		var destructive: bool = destructive_action and button == dialog.get_ok_button()
+		button.add_theme_stylebox_override("normal", _make_confirmation_button_style(false, destructive))
+		button.add_theme_stylebox_override("hover", _make_confirmation_button_style(true, destructive))
+		button.add_theme_stylebox_override("pressed", _make_confirmation_button_style(false, destructive, true))
+
+
+func _make_confirmation_button_style(hovered: bool, destructive: bool, pressed: bool = false) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	if destructive:
+		style.bg_color = Color(0.40, 0.075, 0.11, 1.0) if not pressed else Color(0.28, 0.045, 0.07, 1.0)
+		if hovered:
+			style.bg_color = Color(0.58, 0.12, 0.15, 1.0)
+	else:
+		style.bg_color = Color(0.035, 0.16, 0.43, 1.0) if not pressed else Color(0.02, 0.095, 0.29, 1.0)
+		if hovered:
+			style.bg_color = Color(0.08, 0.27, 0.58, 1.0)
+	style.border_color = Color(1.0, 0.78, 0.24, 1.0)
+	style.set_border_width_all(3)
+	style.content_margin_left = 10.0
+	style.content_margin_right = 10.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	return style
 
 
 func _refresh_save_list() -> void:
@@ -46,26 +95,24 @@ func _refresh_save_list() -> void:
 		child.queue_free()
 
 	if not _has_valid_session_identity():
-		if identity_gate != null:
-			identity_gate.visible = true
-		empty_label.text = "Verify your Student ID and Parent ID to view saves."
+		empty_label.text = "Sign in from New Game to view your saved games."
 		empty_label.visible = true
 		if delete_all_button != null:
 			delete_all_button.disabled = true
 		return
 
-	if identity_gate != null:
-		identity_gate.visible = false
 	var saves: Array[Dictionary] = GameState.list_saves()
-	empty_label.text = "No save data found"
+	empty_label.text = "No saved games for this Student yet."
 	empty_label.visible = saves.is_empty()
 	if delete_all_button != null:
 		delete_all_button.disabled = _save_transitioning or saves.is_empty()
 
-	for save_data: Dictionary in saves:
+	for index in range(saves.size()):
+		var save_data: Dictionary = saves[index]
 		var save_entry: Control = SAVE_ENTRY_SCENE.instantiate() as Control
 		saves_container.add_child(save_entry)
 		save_entry.setup(save_data)
+		save_entry.set_slot_number(int(save_data.get("slot_number", index + 1)))
 		save_entry.save_selected.connect(_on_save_selected)
 		save_entry.save_delete_requested.connect(_on_delete_requested)
 
@@ -214,82 +261,6 @@ func _show_slow_online_verification_status_after_delay() -> void:
 	if _online_verification_pending and is_inside_tree():
 		empty_label.text = "Connecting..."
 		empty_label.visible = true
-
-
-func _on_verify_save_owner_pressed() -> void:
-	if _identity_verifying:
-		return
-	_identity_verifying = true
-	if identity_verify_button != null:
-		identity_verify_button.disabled = true
-	if identity_status_label != null:
-		identity_status_label.text = "Verifying Student and Parent ID..."
-	var result: Dictionary = await _verify_save_owner()
-	_identity_verifying = false
-	if identity_verify_button != null:
-		identity_verify_button.disabled = false
-	if not bool(result.get("ok", false)):
-		if identity_status_label != null:
-			identity_status_label.text = String(result.get("error", "Unable to verify Student and Parent ID."))
-		GameState.student_id = ""
-		GameState.parent_id = ""
-		_refresh_save_list()
-		return
-	if identity_status_label != null:
-		identity_status_label.text = "Student verified. Showing your saves."
-	_refresh_save_list()
-
-
-func _verify_save_owner(student_code: String = "", parent_code: String = "") -> Dictionary:
-	var requested_student_id := student_code.strip_edges() if not student_code.strip_edges().is_empty() else String(identity_student_input.text).strip_edges() if identity_student_input != null else ""
-	var requested_parent_id := parent_code.strip_edges() if not parent_code.strip_edges().is_empty() else String(identity_parent_input.text).strip_edges() if identity_parent_input != null else ""
-	requested_student_id = GameState.sanitize_student_id(requested_student_id)
-	requested_parent_id = requested_parent_id.replace("-", "").strip_edges()
-	if not GameState.is_valid_existing_student_id(requested_student_id):
-		return {"ok": false, "error": "Enter a valid Student ID."}
-	if not GameState.is_valid_six_digit_id(requested_parent_id):
-		return {"ok": false, "error": "Enter a valid 6-digit Parent ID."}
-	var http := get_node_or_null("/root/HttpApi")
-	if http == null:
-		return {"ok": false, "error": "Unable to connect to the server. Please try again."}
-	var profile_result: Dictionary = await http.request_get("/api/game/profile/check/" + requested_student_id, {"parent_id": requested_parent_id})
-	var body: Variant = profile_result.get("body", {})
-	var status := int(profile_result.get("status", 0))
-	var profile_ok := bool(profile_result.get("ok", false)) or (body is Dictionary and bool(body.get("ok", false)))
-	if not profile_ok or status < 200 or status >= 300:
-		return {"ok": false, "error": _identity_api_error(profile_result)}
-	if not (body is Dictionary) or body.get("can_play", true) == false:
-		return {"ok": false, "error": String(body.get("error", "This Student and Parent account cannot play.")) if body is Dictionary else "Unable to verify Student and Parent ID."}
-	var canonical_profile: Variant = body.get("canonical_profile", null)
-	if not (canonical_profile is Dictionary):
-		return {"ok": false, "error": "Unable to verify the linked Student profile."}
-	var canonical_student_id := GameState.sanitize_student_id(String(canonical_profile.get("student_id", requested_student_id)))
-	var canonical_parent_id := String(canonical_profile.get("parent_id", requested_parent_id)).strip_edges()
-	var canonical_name := String(canonical_profile.get("name", "")).strip_edges()
-	var canonical_grade := String(canonical_profile.get("grade_level", "")).strip_edges()
-	if canonical_student_id != requested_student_id or not GameState.is_valid_six_digit_id(canonical_parent_id) \
-			or canonical_name.is_empty() or canonical_grade not in GameState.VALID_REGISTRATION_GRADES:
-		return {"ok": false, "error": "Unable to verify the linked Student profile."}
-	GameState.student_id = canonical_student_id
-	GameState.parent_id = canonical_parent_id
-	GameState.player_name = canonical_name
-	GameState.grade_level = canonical_grade
-	var canonical_gender := String(canonical_profile.get("gender", "")).to_lower().strip_edges()
-	if canonical_gender in ["male", "female"]:
-		GameState.gender = canonical_gender
-	var learning_cycle: Variant = body.get("learning_cycle", {})
-	if learning_cycle is Dictionary:
-		GameState.set_learning_cycle(learning_cycle)
-	return {"ok": true, "canonical_profile": canonical_profile, "learning_cycle": learning_cycle}
-
-
-func _identity_api_error(result: Dictionary) -> String:
-	var body: Variant = result.get("body", {})
-	if body is Dictionary:
-		var message := String(body.get("error", body.get("message", ""))).strip_edges()
-		if not message.is_empty():
-			return message
-	return "Unable to verify Student and Parent ID."
 
 
 func _ensure_terms_accepted_for_student(for_student_id: String) -> bool:

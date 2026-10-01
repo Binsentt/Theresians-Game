@@ -120,7 +120,7 @@ func _on_time_limit_reached() -> void:
 	var current_scene: Node = get_tree().current_scene
 	if current_scene != null:
 		GameState.capture_runtime(current_scene.scene_file_path, get_tree().get_first_node_in_group("player_character").global_position if get_tree().get_first_node_in_group("player_character") != null else Vector2.ZERO)
-	var auto_save_path: String = GameState.save_game()
+	var auto_save_path: String = GameState.save_checkpoint()
 	if local_qa_only:
 		# Local human QA keeps the same local-save/modal behavior without making
 		# any telemetry or progress request outside the isolated runtime.
