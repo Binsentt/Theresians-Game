@@ -9,9 +9,9 @@ const INTERACTION_PRIORITY := 20
 const DIALOGUE_OVERLAY := preload("res://ui/progression_dialogue_overlay.tscn")
 const DIALOGUE_LINES: Array[String] = [
 	"Old Lady: You must be the young traveler from the City of Knowledge.",
-	"Old Lady: A powerful Wizard lives inside the tower ahead.",
+	"Old Lady: A powerful Wizard waits outside the house ahead.",
 	"Old Lady: But four guards protect the path to him.",
-	"Old Lady: Defeat them first, and the Wizard Tower will open.",
+	"Old Lady: Defeat them first, then challenge the Wizard outside.",
 ]
 var _actor: Node2D
 var _active := false

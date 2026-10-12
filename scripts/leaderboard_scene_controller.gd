@@ -21,11 +21,11 @@ func _set_loading_state() -> void:
 
 
 func _set_empty_state() -> void:
-	_show_status("No rankings yet")
+	_show_status("No leaderboard records yet.")
 
 
 func _set_connection_error_state() -> void:
-	_show_status("Leaderboard unavailable")
+	_show_status("Leaderboard unavailable.")
 
 
 func _show_status(message: String) -> void:
@@ -76,7 +76,7 @@ func _normalized_row_data(entry: Variant) -> Dictionary:
 		"rank": "#%d" % rank,
 		"display_name": display_name,
 		"grade": grade if not grade.is_empty() else "--",
-		"game_score": _format_game_score(entry.get("game_score", null)),
+		"game_score": _format_correct_answer_count(entry.get("correct_answers", null)),
 	}
 
 
@@ -137,16 +137,6 @@ func _refresh_leaderboard_from_api() -> void:
 	_refresh_generation += 1
 	var request_generation := _refresh_generation
 	_set_loading_state()
-	# A fresh application run has no verified Student session. Keep the
-	# leaderboard empty instead of issuing a request with stale device context.
-	# The same empty state applies until the current Student has an owned local
-	# save/progress to anchor the leaderboard request.
-	if not GameState.is_valid_existing_student_id(String(GameState.student_id).strip_edges()) \
-			or not GameState.is_valid_six_digit_id(String(GameState.parent_id).strip_edges()) \
-			or GameState.list_saves().is_empty():
-		if request_generation == _refresh_generation:
-			_set_empty_state()
-		return
 	var remote_sync := get_node_or_null("/root/RemoteSync")
 	if remote_sync == null or not remote_sync.has_method("request_game_leaderboard"):
 		if request_generation == _refresh_generation:
@@ -166,36 +156,18 @@ func _refresh_leaderboard_from_api() -> void:
 	_render_entries(entries)
 
 
-func _format_progress_percentage(progress_value: Variant) -> String:
-	if progress_value is int:
-		return "%d%%" % progress_value
-	if progress_value is float:
-		var progress_float: float = progress_value
-		if not is_finite(progress_float):
+func _format_correct_answer_count(answer_count: Variant) -> String:
+	if answer_count is int:
+		return str(answer_count) if answer_count >= 0 else "--"
+	if answer_count is float:
+		var count_float: float = answer_count
+		if not is_finite(count_float) or count_float < 0.0 or not is_equal_approx(count_float, roundf(count_float)):
 			return "--"
-		if is_equal_approx(progress_float, roundf(progress_float)):
-			return "%d%%" % int(roundf(progress_float))
-		return "%s%%" % str(progress_float)
-	if progress_value is String:
-		var parsed := GameState.safe_float_value(progress_value, -1.0)
-		if parsed < 0.0:
+		return str(int(roundf(count_float)))
+	if answer_count is String:
+		var normalized_count := String(answer_count).strip_edges()
+		if not normalized_count.is_valid_int():
 			return "--"
-		if is_equal_approx(parsed, roundf(parsed)):
-			return "%d%%" % int(roundf(parsed))
-		return "%s%%" % str(parsed)
-	return "--"
-
-
-func _format_game_score(score_value: Variant) -> String:
-	if score_value is int:
-		return str(score_value) if score_value >= 0 else "--"
-	if score_value is float:
-		if not is_finite(score_value) or score_value < 0.0 or not is_equal_approx(score_value, roundf(score_value)):
-			return "--"
-		return str(int(roundf(score_value)))
-	if score_value is String:
-		var parsed := GameState.safe_float_value(score_value, -1.0)
-		if parsed < 0.0 or not is_equal_approx(parsed, roundf(parsed)):
-			return "--"
-		return str(int(roundf(parsed)))
+		var parsed_count := int(normalized_count)
+		return str(parsed_count) if parsed_count >= 0 else "--"
 	return "--"

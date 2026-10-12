@@ -5,6 +5,9 @@ signal request_failed(error: String)
 
 const DEFAULT_CONFIG_PATH := "res://Data/api_config.json"
 const QA_LOCAL_PROFILE_PATH := "res://Data/api_config.qa_local.json"
+const ANDROID_QA_PROFILE_PATH := "res://Data/api_config.android_qa.json"
+const ANDROID_QA_API_BASE_URL := "https://theresians-monitoring-system-qa-owner-testing.up.railway.app"
+const PRODUCTION_API_HOST := "theresiansquest.com"
 const PRODUCTION_SMOKE_TEST_ENVIRONMENT := "THERESIANS_PRODUCTION_SMOKE_TEST"
 const QA_LOCAL_ENVIRONMENT_VARIABLE := "THERESIANS_QA_LOCAL"
 const DEFAULT_LOCAL_QA_URL := "http://127.0.0.1:5000"
@@ -13,12 +16,17 @@ var default_timeout_ms: int = 10000
 var production_qa_mode := false
 var local_qa_only := false
 var qa_local_profile_active := false
+var android_qa_mode := false
+var android_qa_config_valid := false
+var android_qa_remote_writes_enabled := false
+var android_qa_configuration_error := ""
 var config_source_path := DEFAULT_CONFIG_PATH
 
 func _ready() -> void:
 	var cfg: Dictionary = {}
-	qa_local_profile_active = is_local_qa_profile_requested()
-	config_source_path = QA_LOCAL_PROFILE_PATH if qa_local_profile_active else DEFAULT_CONFIG_PATH
+	android_qa_mode = OS.has_feature("android_qa")
+	qa_local_profile_active = not android_qa_mode and is_local_qa_profile_requested()
+	config_source_path = ANDROID_QA_PROFILE_PATH if android_qa_mode else (QA_LOCAL_PROFILE_PATH if qa_local_profile_active else DEFAULT_CONFIG_PATH)
 	var config_file := FileAccess.open(config_source_path, FileAccess.READ)
 	if config_file:
 		var text := config_file.get_as_text()
@@ -26,34 +34,84 @@ func _ready() -> void:
 		var parsed_config = JSON.parse_string(text)
 		if typeof(parsed_config) == TYPE_DICTIONARY:
 			cfg = parsed_config
-			var debug_build := OS.is_debug_build()
-			var production_smoke_test_enabled := is_production_qa_enabled(cfg, is_production_smoke_test_enabled())
-			var local_qa_requested := qa_local_profile_active or is_local_qa_requested()
-			production_qa_mode = debug_build and production_smoke_test_enabled and not local_qa_requested
-			var configured_url := resolve_api_base_url(cfg, debug_build, production_smoke_test_enabled, local_qa_requested)
-			var requires_production_url := (not debug_build and not local_qa_requested) or (production_smoke_test_enabled and not local_qa_requested)
-			if local_qa_requested and not is_loopback_url(configured_url):
-				base_url = ""
+	if android_qa_mode:
+		_apply_android_qa_profile(cfg, true)
+		if android_qa_config_valid:
+			print("API MODE: ANDROID QA — " + base_url)
+		print("API CONFIG SOURCE: " + config_source_path)
+		return
+	if not cfg.is_empty():
+		var debug_build := OS.is_debug_build()
+		var production_smoke_test_enabled := is_production_qa_enabled(cfg, is_production_smoke_test_enabled())
+		var local_qa_requested := qa_local_profile_active or is_local_qa_requested()
+		production_qa_mode = debug_build and production_smoke_test_enabled and not local_qa_requested
+		var configured_url := resolve_api_base_url(cfg, debug_build, production_smoke_test_enabled, local_qa_requested)
+		var requires_production_url := (not debug_build and not local_qa_requested) or (production_smoke_test_enabled and not local_qa_requested)
+		if local_qa_requested and not is_loopback_url(configured_url):
+			base_url = ""
+			local_qa_only = true
+			push_error("QA_LOCAL_REMOTE_BLOCKED")
+		elif _is_usable_base_url(configured_url, requires_production_url):
+			base_url = configured_url.rstrip("/")
+			if local_qa_requested:
 				local_qa_only = true
+		else:
+			base_url = ""
+			if local_qa_requested:
 				push_error("QA_LOCAL_REMOTE_BLOCKED")
-			elif _is_usable_base_url(configured_url, requires_production_url):
-				base_url = configured_url.rstrip("/")
-				if local_qa_requested:
-					local_qa_only = true
 			else:
-				base_url = ""
-				if local_qa_requested:
-					push_error("QA_LOCAL_REMOTE_BLOCKED")
-				else:
-					push_warning("HttpApi: no usable API URL is configured for this build; remote API requests are disabled.")
-			if debug_build:
-				var mode_label := "LOCAL QA ONLY" if local_qa_only else ("PRODUCTION QA" if production_qa_mode else "LOCAL DEVELOPMENT")
-				print("API MODE: " + mode_label + " — " + (base_url if base_url != "" else "disabled (invalid API URL)"))
-				print("API CONFIG SOURCE: " + config_source_path)
-				print("CANONICAL RUNTIME: pid=" + str(OS.get_process_id()) + " project=" + ProjectSettings.globalize_path("res://"))
-			if cfg.has("timeout_ms"):
-				default_timeout_ms = int(cfg.get("timeout_ms"))
+				push_warning("HttpApi: no usable API URL is configured for this build; remote API requests are disabled.")
+		if debug_build:
+			var mode_label := "LOCAL QA ONLY" if local_qa_only else ("PRODUCTION QA" if production_qa_mode else "LOCAL DEVELOPMENT")
+			print("API MODE: " + mode_label + " — " + (base_url if base_url != "" else "disabled (invalid API URL)"))
+			print("API CONFIG SOURCE: " + config_source_path)
+			print("CANONICAL RUNTIME: pid=" + str(OS.get_process_id()) + " project=" + ProjectSettings.globalize_path("res://"))
+		if cfg.has("timeout_ms"):
+			default_timeout_ms = int(cfg.get("timeout_ms"))
 	# no persistent HTTPRequest node: create per-request nodes to avoid blocking and allow concurrency
+
+
+func resolve_android_qa_profile(config: Dictionary) -> Dictionary:
+	var candidate := String(config.get("api_base_url", "")).strip_edges().trim_suffix("/")
+	var is_approved_qa_target := candidate == ANDROID_QA_API_BASE_URL
+	var targets_production := candidate.to_lower().contains(PRODUCTION_API_HOST)
+	if not is_approved_qa_target or targets_production:
+		return {
+			"profile": "android_qa",
+			"api_base_url": "",
+			"config_valid": false,
+			"remote_writes_enabled": false,
+			"error": "ANDROID_QA_CONFIGURATION_INVALID",
+		}
+	return {
+		"profile": "android_qa",
+		"api_base_url": ANDROID_QA_API_BASE_URL,
+		"config_valid": true,
+		"remote_writes_enabled": true,
+		"error": "",
+	}
+
+
+func _apply_android_qa_profile(config: Dictionary, log_configuration_error: bool = false) -> Dictionary:
+	android_qa_mode = true
+	var profile := resolve_android_qa_profile(config)
+	android_qa_config_valid = bool(profile.get("config_valid", false))
+	android_qa_remote_writes_enabled = bool(profile.get("remote_writes_enabled", false))
+	android_qa_configuration_error = String(profile.get("error", ""))
+	base_url = String(profile.get("api_base_url", ""))
+	production_qa_mode = false
+	local_qa_only = false
+	if not android_qa_config_valid and log_configuration_error:
+		push_error("ANDROID_QA_CONFIGURATION_INVALID: remote requests and writes are disabled.")
+	return profile
+
+
+func is_android_qa_mode() -> bool:
+	return android_qa_mode
+
+
+func is_android_qa_remote_writes_enabled() -> bool:
+	return android_qa_mode and android_qa_config_valid and android_qa_remote_writes_enabled
 
 
 func enable_local_qa_mode(local_url: String = DEFAULT_LOCAL_QA_URL) -> bool:
@@ -93,15 +151,26 @@ func is_local_qa_profile_requested() -> bool:
 			or normalized.ends_with("/question_pool_randomization_test.tscn")
 			or normalized.ends_with("/question_provider_startup_context_test.tscn")
 			or normalized.ends_with("/terms_startup_flow_test.tscn")
+			or normalized.ends_with("/terms_acceptance_contract_test.tscn")
+			or normalized.ends_with("/game_over_settings_identity_qa_test.tscn")
+			or normalized.ends_with("/settings_ingame_regression_test.tscn")
+			or normalized.ends_with("/settings_touch_hitbox_regression_test.tscn")
 			or normalized.ends_with("/terms_policy_contract_test.tscn")
 			or normalized.ends_with("/terms_runtime_layout_test.tscn")
 			or normalized.ends_with("/leaderboard_numeric_display_regression_test.tscn")
 			or normalized.ends_with("/game_leaderboard_contract_test.tscn")
 			or normalized.ends_with("/leaderboard_multi_row_regression_test.tscn")
+			or normalized.ends_with("/load_game_identity_gate_test.tscn")
+			or normalized.ends_with("/telemetry_payload_resilience_test.tscn")
 			or normalized.ends_with("/original_flow_ingestion_test.tscn")
 			or normalized.ends_with("/quest_telemetry_contract_test.tscn")
 			or normalized.ends_with("/final_game_flow_state_test.tscn")
 			or normalized.ends_with("/final_story_continuation_qa_test.tscn")
+			or normalized.ends_with("/map_audio_transition_regression_test.tscn")
+			or normalized.ends_with("/story_continuation_dialogue_test.tscn")
+			or normalized.ends_with("/camera_door_exit_regression_test.tscn")
+			or normalized.ends_with("/save_load_project_context_test.tscn")
+			or normalized.ends_with("/production_polish_test.tscn")
 			or normalized.ends_with("/remote_sync_pending_queue_test.tscn")
 			or normalized.ends_with("/quest_presentation_dialogue_regression_test.tscn")
 			or normalized.ends_with("/game_hud_runtime_test.tscn")
@@ -115,8 +184,19 @@ func is_local_qa_profile_requested() -> bool:
 			or normalized.ends_with("/oakleaf_same_scene_availability_test.tscn")
 			or normalized.ends_with("/oakleaf_bandit_routing_test.tscn")
 			or normalized.ends_with("/oakleaf_progression_test.tscn")
+			or normalized.ends_with("/city_school_interaction_test.tscn")
+			or normalized.ends_with("/quest_timeline_progression_test.tscn")
+			or normalized.ends_with("/settings_ingame_regression_test.tscn")
+			or normalized.ends_with("/deepest_forest_pinehill_flow_test.tscn")
 			or normalized.ends_with("/quiz_manager_network_retry_test.tscn")
 			or normalized.ends_with("/remote_sync_reconnect_flush_test.tscn")
+			or normalized.ends_with("/progress_commit_boundary_test.tscn")
+			or normalized.ends_with("/new_game_login_contract_test.tscn")
+			or normalized.ends_with("/load_game_identity_gate_test.tscn")
+			or normalized.ends_with("/learning_cycle_save_test.tscn")
+			or normalized.ends_with("/current_student_save_regression_test.tscn")
+			or normalized.ends_with("/load_game_save_delete_test.tscn")
+			or normalized.ends_with("/load_game_save_data_compatibility_test.tscn")
 			or normalized.ends_with("/quiz_manager_loading_state_test.tscn")
 			or normalized.ends_with("/new_game_slow_request_feedback_test.tscn")
 			or normalized.ends_with("/oakleaf_encounter_data_integrity_test.tscn")
@@ -216,8 +296,15 @@ func _build_url(path: String, params: Dictionary = {}) -> String:
 
 
 func _qa_request_allowed() -> bool:
+	if android_qa_mode:
+		if not is_android_qa_remote_writes_enabled() or base_url.rstrip("/") != ANDROID_QA_API_BASE_URL:
+			return false
+		return true
 	if local_qa_only and not is_loopback_url(base_url):
 		push_error("QA_LOCAL_REMOTE_BLOCKED")
+		return false
+	if base_url.strip_edges().is_empty():
+		push_warning("HttpApi: request blocked because no API base URL is configured.")
 		return false
 	return true
 

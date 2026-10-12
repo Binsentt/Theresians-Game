@@ -3,9 +3,11 @@ extends Node
 const STUDENT_A := "88001001"
 const STUDENT_B := "88001002"
 const STUDENT_C := "88001003"
+const STUDENT_PLAYTIME := "88001004"
 const PARENT_A := "880011"
 const PARENT_B := "880012"
 const PARENT_C := "880013"
+const PARENT_PLAYTIME := "880014"
 const VALID_SCENE := "res://scenes/oak_leaf_village.tscn"
 const MANUAL_SAVE_SCENES := [
 	"res://scenes/oak_leaf_village.tscn",
@@ -55,6 +57,7 @@ func _run() -> void:
 	GameState.set("device_installation_id", _test_device_id)
 
 	_test_manual_save_count_and_snapshots()
+	_test_elapsed_playtime_is_saved()
 	_test_autosave_checkpoint()
 	_test_save_entrypoint_wiring()
 	await _test_load_game_list_shows_manual_slots()
@@ -134,12 +137,51 @@ func _test_autosave_checkpoint() -> void:
 	_assert(int(progressed_checkpoint.get("current_task_index", -1)) == int(GameState.current_task_index), "Progression checkpoint stores the advanced quest state")
 
 
+func _test_elapsed_playtime_is_saved() -> void:
+	# Use a separate QA owner so the additional persistence snapshots don't
+	# contaminate Student A's manual-slot listing assertions later in this run.
+	_set_student(STUDENT_PLAYTIME, PARENT_PLAYTIME, "QA Playtime Student")
+	GameState.total_play_time = 0
+	GameState.playtime_authorized = true
+	GameState.playtime_countdown_active = true
+	GameState.playtime_remaining_seconds = 1800.0
+	GameState.playtime_remaining_minutes = 30
+	GameState.consume_playtime_clock(301.75)
+	_assert(GameState.total_play_time == 301, "The active playtime clock accumulates actual whole elapsed seconds for saves")
+
+	var manual_path := GameState.save_manual_game()
+	var manual_data: Dictionary = GameState.peek_save_data(manual_path)
+	_assert(int(manual_data.get("total_play_time", 0)) == 301, "Manual Save persists the actual accumulated playtime instead of zero")
+	GameState.total_play_time = 0
+	GameState.load_save(manual_path, false)
+	_assert(GameState.total_play_time == 301, "Load restores the committed playtime")
+	var resaved_path := GameState.save_manual_game()
+	_assert(int(GameState.peek_save_data(resaved_path).get("total_play_time", 0)) == 301, "Load then re-save does not reset accumulated playtime")
+
+	GameState.total_play_time = 1204
+	var forced_path := GameState.save_daily_time_limit_game()
+	var forced_data: Dictionary = GameState.peek_save_data(forced_path)
+	_assert(int(forced_data.get("total_play_time", 0)) == 1204, "Daily time-limit Auto Save persists the current cumulative playtime")
+	# Keep this focused playtime fixture separate from the later manual-slot UI
+	# assertions. A daily-limit save is a distinct recovery record, not a manual slot.
+	var daily_recovery_path := "%s/save_%s_daily_time_limit.json" % [_test_directory, STUDENT_PLAYTIME]
+	var daily_recovery_removed := DirAccess.remove_absolute(ProjectSettings.globalize_path(daily_recovery_path)) == OK
+	_assert(daily_recovery_removed, "Daily-limit fixture is removed from the isolated test directory after verification")
+	var playtime_manual_cleanup: Dictionary = GameState.delete_all_saves()
+	_assert(int(playtime_manual_cleanup.get("failed_count", 0)) == 0, "Playtime-only manual fixtures are removed without affecting other Students")
+	for fixture_path in [_current_path(STUDENT_PLAYTIME), _recovery_path(STUDENT_PLAYTIME)]:
+		if FileAccess.file_exists(fixture_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(fixture_path))
+	GameState.playtime_countdown_active = false
+	GameState.playtime_authorized = false
+
+
 func _test_save_entrypoint_wiring() -> void:
 	var settings_source := FileAccess.get_file_as_string("res://scenes/Settings-Ingame/settings_ingame_controller.gd")
 	var remote_sync_source := FileAccess.get_file_as_string("res://scripts/remote_sync.gd")
 	_assert(settings_source.contains("GameState.save_manual_game()"), "Settings Save action creates a visible manual save")
-	_assert(settings_source.contains("GameState.save_checkpoint()"), "Settings exit persists to the hidden checkpoint")
-	_assert(remote_sync_source.contains("GameState.save_checkpoint()"), "RemoteSync timeout persists to the hidden checkpoint")
+	_assert(settings_source.contains("GameState.discard_unsaved_run()"), "Voluntary Settings exit discards the unsaved run rather than committing it")
+	_assert(remote_sync_source.contains("GameState.save_daily_time_limit_game()"), "Daily timeout uses the dedicated forced recovery save path")
 	_assert(not remote_sync_source.contains("GameState.save_game()"), "RemoteSync never creates a visible manual save")
 
 

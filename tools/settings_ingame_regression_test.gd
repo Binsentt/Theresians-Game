@@ -10,6 +10,7 @@ var _checks := 0
 var _qa_directory := ""
 var _created_qa_directory := false
 var _previous_save_directory := ""
+var _action_click_counts: Dictionary = {}
 
 
 func _ready() -> void:
@@ -17,6 +18,10 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	if not HttpApi.is_local_qa_profile_active():
+		push_error("Settings QA refused to run without local-only startup selected before autoload initialization.")
+		get_tree().quit(1)
+		return
 	# Force all activity into local QA before writing any test save or opening a
 	# scene with gameplay-side integrations.
 	HttpApi.enable_local_qa_mode("http://127.0.0.1:5000")
@@ -53,9 +58,13 @@ func _run() -> void:
 	get_tree().current_scene = settings
 	await get_tree().process_frame
 	await get_tree().process_frame
+	await _capture_settings_runtime_frame(settings)
 	_assert_action_hitboxes_do_not_overlap(settings)
+	_assert_action_button_artwork_fills_hitboxes(settings)
+	await _assert_responsive_settings_layout(settings)
 	_assert_child_labels_do_not_intercept(settings)
 	_assert_confirmation_theme_and_modal_flags(settings)
+	await _assert_button_and_slider_input_isolation(settings)
 	await _assert_modal_blocks_background(settings)
 
 	var settings_source := FileAccess.get_file_as_string("res://scenes/Settings-Ingame/settings_ingame_controller.gd")
@@ -63,9 +72,10 @@ func _run() -> void:
 	var routes_to_load_list := load_handler.contains("change_scene_to_file(LOAD_GAME_SCENE)")
 	_assert(routes_to_load_list, "Settings Load routes to the canonical Load Game scene instead of auto-loading the latest save")
 	if routes_to_load_list:
-		settings.call("_on_load_pressed")
+		await _dispatch_click(settings.get_node("SettingsPopup/TextureRect/LoadGameBtn") as Control)
 		for _frame in range(12):
 			await get_tree().process_frame
+		_assert(_action_click_counts["LoadGameBtn"] == 1 and _action_click_counts["ResumeBtn"] == 2 and _action_click_counts["SaveBtn"] == 1 and _action_click_counts["ExitBtn"] == 1, "Load click triggers Load only after isolated Resume, Save, Exit, and slider input")
 		var load_scene := get_tree().current_scene
 		_assert(load_scene != null and load_scene.scene_file_path == LOAD_SCENE_PATH, "Settings Load opens the canonical Load Game scene")
 		_assert(GameState.student_id == QA_STUDENT_ID and GameState.parent_id == QA_PARENT_ID, "Opening Load Game preserves the authenticated Student identity")
@@ -85,7 +95,74 @@ func _run() -> void:
 	await _finish()
 
 
+func _capture_settings_runtime_frame(settings: Control) -> void:
+	var popup := settings.get_node_or_null("SettingsPopup") as Control
+	if popup == null:
+		return
+	popup.visible = true
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var screenshot := get_viewport().get_texture().get_image()
+	var output_path := "user://qa_test_artifacts/settings_runtime_1215x545.png"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa_test_artifacts"))
+	var save_error := screenshot.save_png(ProjectSettings.globalize_path(output_path))
+	_assert(save_error == OK, "Captures the actual 1215×545 Settings runtime layout for visual inspection")
+	popup.visible = false
+
+
+func _assert_action_button_artwork_fills_hitboxes(settings: Control) -> void:
+	for button_name in ["ResumeBtn", "SaveBtn", "LoadGameBtn", "ExitBtn"]:
+		var button := settings.get_node("SettingsPopup/TextureRect/%s" % button_name) as Button
+		var frame := button.get_node_or_null("ButtonFrame") as TextureRect
+		_assert(button.icon == null, "%s does not render the frame as a tiny Button icon" % button_name)
+		_assert(frame != null and frame.texture != null, "%s uses the existing fantasy frame as a background texture" % button_name)
+		_assert(frame != null and frame.mouse_filter == Control.MOUSE_FILTER_IGNORE, "%s background art does not intercept pointer input" % button_name)
+		if frame != null:
+			_assert(frame.get_global_rect().is_equal_approx(button.get_global_rect()), "%s background art fills exactly its clickable rectangle" % button_name)
+		if button_name == "LoadGameBtn":
+			var was_disabled := button.disabled
+			button.disabled = true
+			_assert(button.size == Vector2(220.0, 52.0) and frame != null and frame.get_global_rect().is_equal_approx(button.get_global_rect()), "Disabled Load Game keeps the full-size themed frame and click bounds")
+			button.disabled = was_disabled
+
+
+func _assert_responsive_settings_layout(settings: Control) -> void:
+	var original_viewport_size: Vector2i = get_viewport().size
+	var viewport_sizes := [Vector2i(1215, 545), Vector2i(640, 360), Vector2i(844, 390), Vector2i(915, 412), Vector2i(360, 640)]
+	var texture_rect := settings.get_node("SettingsPopup/TextureRect") as Control
+	var action_names := ["ResumeBtn", "SaveBtn", "LoadGameBtn", "ExitBtn"]
+	for viewport_size: Vector2i in viewport_sizes:
+		get_viewport().size = viewport_size
+		settings.call("_center_popup")
+		await get_tree().process_frame
+		for button_name in action_names:
+			var button := settings.get_node("SettingsPopup/TextureRect/%s" % button_name) as Button
+			_assert(button.size == Vector2(220.0, 52.0), "%s stays full-sized at viewport %s" % [button_name, str(viewport_size)])
+			_assert(Rect2(button.position, button.size).position.x >= 0.0 and Rect2(button.position, button.size).end.x <= texture_rect.size.x and Rect2(button.position, button.size).position.y >= 0.0 and Rect2(button.position, button.size).end.y <= texture_rect.size.y, "%s remains within the Settings panel at viewport %s" % [button_name, str(viewport_size)])
+		var music_label := settings.get_node("SettingsPopup/TextureRect/MusicLabel") as Control
+		var sfx_label := settings.get_node("SettingsPopup/TextureRect/SfxLabel") as Control
+		var music_slider := settings.get_node("SettingsPopup/TextureRect/MusicVolume") as Control
+		var sfx_slider := settings.get_node("SettingsPopup/TextureRect/SfxVolume") as Control
+		for button_name in action_names:
+			var button := settings.get_node("SettingsPopup/TextureRect/%s" % button_name) as Control
+			_assert(not button.get_global_rect().intersects(music_label.get_global_rect()) and not button.get_global_rect().intersects(sfx_label.get_global_rect()), "%s does not overlap volume labels at viewport %s" % [button_name, str(viewport_size)])
+			_assert(not button.get_global_rect().intersects(music_slider.get_global_rect()) and not button.get_global_rect().intersects(sfx_slider.get_global_rect()), "%s does not overlap volume controls at viewport %s" % [button_name, str(viewport_size)])
+		if viewport_size == Vector2i(640, 360):
+			var popup := settings.get_node("SettingsPopup") as Control
+			popup.visible = true
+			await RenderingServer.frame_post_draw
+			var screenshot := get_viewport().get_texture().get_image()
+			var output_path := "user://qa_test_artifacts/settings_runtime_640x360.png"
+			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa_test_artifacts"))
+			_assert(screenshot.save_png(ProjectSettings.globalize_path(output_path)) == OK, "Captures Settings controls at 640×360 for visual inspection")
+			popup.visible = false
+	get_viewport().size = original_viewport_size
+	settings.call("_center_popup")
+	await get_tree().process_frame
+
+
 func _assert_action_hitboxes_do_not_overlap(settings: Control) -> void:
+	var panel := settings.get_node("SettingsPopup/TextureRect") as Control
 	var paths := [
 		"SettingsPopup/TextureRect/ResumeBtn",
 		"SettingsPopup/TextureRect/SaveBtn",
@@ -107,7 +184,79 @@ func _assert_action_hitboxes_do_not_overlap(settings: Control) -> void:
 			_assert(not first.get_global_rect().intersects(second.get_global_rect()), "%s and %s clickable rectangles do not overlap" % [first.name, second.name])
 	for path in paths.slice(0, 4):
 		var button := settings.get_node(path) as Button
+		_assert(_rect_inside(Rect2(button.position, button.size), Rect2(Vector2.ZERO, panel.size)), "%s hitbox stays within the visible settings panel" % button.name)
+		_assert(button.size == Vector2(220, 52), "%s clickable rectangle remains exactly 220×52" % button.name)
 		_assert(is_equal_approx(button.size.y, button.custom_minimum_size.y), "%s hitbox height matches its visible button height" % button.name)
+		_assert(button.mouse_filter == Control.MOUSE_FILTER_STOP, "%s receives clicks inside its own visible hitbox" % button.name)
+	for path in paths.slice(4, 6):
+		var slider := settings.get_node(path) as HSlider
+		_assert(_rect_inside(Rect2(slider.position, slider.size), Rect2(Vector2.ZERO, panel.size)), "%s hitbox stays within the visible settings panel" % slider.name)
+		_assert(slider.size == Vector2(220, 30), "%s clickable rectangle remains exactly 220×30" % slider.name)
+
+
+func _rect_inside(rect: Rect2, bounds: Rect2) -> bool:
+	return bounds.encloses(rect)
+
+
+func _assert_button_and_slider_input_isolation(settings: Control) -> void:
+	var popup := settings.get_node("SettingsPopup") as Control
+	var texture_rect := settings.get_node("SettingsPopup/TextureRect") as Control
+	_action_click_counts = {"ResumeBtn": 0, "SaveBtn": 0, "LoadGameBtn": 0, "ExitBtn": 0}
+	for button_name in _action_click_counts.keys():
+		var captured_name := String(button_name)
+		var button := texture_rect.get_node(captured_name) as Button
+		button.pressed.connect(func() -> void: _action_click_counts[captured_name] += 1)
+
+	popup.visible = true
+	await _dispatch_click(texture_rect.get_node("ResumeBtn") as Control)
+	_assert(_action_click_counts["ResumeBtn"] == 1 and _action_click_counts["SaveBtn"] == 0 and _action_click_counts["LoadGameBtn"] == 0 and _action_click_counts["ExitBtn"] == 0, "Resume click triggers Resume only")
+	_assert(not popup.visible, "Resume click closes Settings without activating a neighboring action")
+	popup.visible = true
+
+	await _dispatch_click(texture_rect.get_node("SaveBtn") as Control)
+	_assert(_action_click_counts["SaveBtn"] == 1 and _action_click_counts["ResumeBtn"] == 1 and _action_click_counts["LoadGameBtn"] == 0 and _action_click_counts["ExitBtn"] == 0, "Save click triggers Save only")
+	var save_dialog := settings.get("_save_dialog") as ConfirmationDialog
+	_assert(save_dialog.visible, "Save click opens only the Save confirmation")
+	save_dialog.hide()
+
+	await _dispatch_click(texture_rect.get_node("ExitBtn") as Control)
+	_assert(_action_click_counts["ExitBtn"] == 1 and _action_click_counts["ResumeBtn"] == 1 and _action_click_counts["SaveBtn"] == 1 and _action_click_counts["LoadGameBtn"] == 0, "Exit click triggers Exit only")
+	var exit_dialog := settings.get("_exit_dialog") as ConfirmationDialog
+	_assert(exit_dialog.visible, "Exit click opens only the Exit confirmation")
+	exit_dialog.hide()
+
+	var music := texture_rect.get_node("MusicVolume") as HSlider
+	var sfx := texture_rect.get_node("SfxVolume") as HSlider
+	var before := _action_click_counts.duplicate()
+	var prior_music := music.value
+	var prior_sfx := sfx.value
+	await _dispatch_click(music)
+	await _dispatch_slider_drag(sfx)
+	_assert(_action_click_counts == before, "Music and SFX slider pointer input triggers no action button")
+	music.value = prior_music
+	sfx.value = prior_sfx
+	popup.visible = true
+
+
+func _dispatch_slider_drag(slider: HSlider) -> void:
+	var rect := slider.get_global_rect()
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.position = Vector2(rect.position.x + 20.0, rect.get_center().y)
+	press.pressed = true
+	Input.parse_input_event(press)
+	await get_tree().process_frame
+	var motion := InputEventMouseMotion.new()
+	motion.position = Vector2(rect.end.x - 20.0, rect.get_center().y)
+	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+	Input.parse_input_event(motion)
+	await get_tree().process_frame
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.position = motion.position
+	release.pressed = false
+	Input.parse_input_event(release)
+	await get_tree().process_frame
 
 
 func _assert_child_labels_do_not_intercept(settings: Control) -> void:

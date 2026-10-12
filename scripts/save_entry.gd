@@ -52,6 +52,7 @@ var save_path: String = ""
 var _pending_save_data: Dictionary = {}
 var _loadable: bool = true
 var _slot_number := 0
+var _save_kind := "manual"
 
 
 func _ready() -> void:
@@ -79,13 +80,15 @@ func set_slot_number(slot_number: int) -> void:
 
 func _update_slot_number_label() -> void:
 	if is_instance_valid(slot_number_label):
-		slot_number_label.text = str(_slot_number) if _slot_number > 0 else ""
+		slot_number_label.text = str(_slot_number) if _save_kind == "manual" and _slot_number > 0 else ""
 	if is_instance_valid(slot_caption_label):
-		slot_caption_label.text = "SAVE"
+		slot_caption_label.text = "TIME LIMIT" if _save_kind == "daily_time_limit" else "SAVE"
 
 
 func _apply_save_data(save_data: Dictionary) -> void:
 	save_path = String(save_data.get("save_path", ""))
+	_save_kind = String(save_data.get("save_kind", "manual"))
+	_update_slot_number_label()
 	var location := LOCATION_PRESENTATION.get(String(save_data.get("scene_path", "")), {}) as Dictionary
 	location_label.text = String(location.get("label", "Unknown Location"))
 	thumbnail.texture = location.get("thumbnail", DEFAULT_THUMBNAIL) as Texture2D
@@ -100,6 +103,7 @@ func _apply_save_data(save_data: Dictionary) -> void:
 	availability_label.visible = not _loadable
 	availability_label.text = String(save_data.get("save_error", "This save is unavailable. Delete it or create a new save."))
 	load_button.disabled = not _loadable
+	delete_button.disabled = _save_kind != "manual"
 
 
 func _display_value(value: Variant, fallback: String) -> String:

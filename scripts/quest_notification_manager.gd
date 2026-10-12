@@ -272,7 +272,7 @@ func _show_event_panel(event: Dictionary) -> void:
 	var kind := String(event.get("kind", ""))
 	var is_trigger := kind == "task_trigger"
 	var is_completion := String(event.get("kind", "")) in ["task_completed", "quest_completed"]
-	var placement := "bottom" if is_trigger else "top"
+	var placement := "bottom" if is_trigger else ("top" if kind == "system" else "below_quest")
 	_root_layer.layer = 2 if is_completion else 1
 	var target_panel: PanelContainer
 	var target_height: float
@@ -378,7 +378,22 @@ func _position_panel(panel: Control, height: float, placement: String) -> void:
 	var y := maxf(12.0, viewport_size.y - height - 28.0)
 	if placement == "top":
 		y = 12.0
+	elif placement == "below_quest":
+		y = _quest_notification_top()
 	panel.position = Vector2((viewport_size.x - width) * 0.5, y)
+
+
+func _quest_notification_top() -> float:
+	var current_scene := get_tree().current_scene
+	if current_scene == null:
+		return 12.0
+	var hud := current_scene.find_child("GameHUD", true, false)
+	if hud == null:
+		return 12.0
+	var quest_guide := hud.find_child("QuestGuide", true, false) as Control
+	if quest_guide == null or not quest_guide.is_visible_in_tree():
+		return 12.0
+	return maxf(12.0, quest_guide.get_global_rect().end.y + 12.0)
 
 
 func _hide_all_panels_immediately() -> void:

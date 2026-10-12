@@ -3,7 +3,7 @@ extends CanvasLayer
 signal dialogue_closed
 
 @onready var panel: Control = $DialoguePanel
-@onready var label: Label = $DialoguePanel/DialogueLabel
+@onready var label: Label = $DialoguePanel/DialogueContent/DialogueLabel
 
 var _lines: Array[String] = []
 var _line_index := 0

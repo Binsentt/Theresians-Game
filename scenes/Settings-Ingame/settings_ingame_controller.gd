@@ -25,6 +25,8 @@ const SETTINGS_BUTTON_TOP_RIGHT_MARGIN := Vector2(16.0, 12.0)
 const COMPACT_SLIDER_SIZE := Vector2(220.0, 30.0)
 const COMPACT_GRABBER_SIZE := Vector2i(30, 29)
 const GRABBER_TEXTURE: Texture2D = preload("res://Images/grabber.png")
+const ACTION_BUTTON_FRAME_TEXTURE: Texture2D = preload("res://Images/btn.png")
+const ACTION_BUTTON_FRAME_REGION := Rect2(24.0, 284.0, 1488.0, 400.0)
 
 @onready var settings_button: Button = $"Settings-Logo-Button"
 @onready var settings_popup: Control = $SettingsPopup
@@ -56,6 +58,7 @@ func _ready() -> void:
 	offset_bottom = 0.0
 
 	_configure_button_positions()
+	_configure_action_button_frames()
 	_configure_compact_volume_sliders()
 	_configure_popup()
 	_configure_save_toast()
@@ -91,6 +94,30 @@ func _configure_button_positions() -> void:
 	settings_button.offset_right = -SETTINGS_BUTTON_TOP_RIGHT_MARGIN.x
 	settings_button.offset_bottom = SETTINGS_BUTTON_TOP_RIGHT_MARGIN.y + SETTINGS_BUTTON_SIZE.y
 	settings_button.visible = true
+
+
+func _configure_action_button_frames() -> void:
+	for button: Button in [resume_button, save_button, load_button, exit_button]:
+		# btn.png is a wide framed-button asset, not a button icon. Rendering it as
+		# an icon made it collapse to a small strip beside the separately authored
+		# text label at runtime.
+		button.icon = null
+		button.expand_icon = false
+		button.flat = true
+		var frame := button.get_node_or_null("ButtonFrame") as TextureRect
+		if frame == null:
+			frame = TextureRect.new()
+			frame.name = "ButtonFrame"
+			frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			frame.stretch_mode = TextureRect.STRETCH_SCALE
+			var atlas_texture := AtlasTexture.new()
+			atlas_texture.atlas = ACTION_BUTTON_FRAME_TEXTURE
+			atlas_texture.region = ACTION_BUTTON_FRAME_REGION
+			frame.texture = atlas_texture
+			button.add_child(frame)
+			button.move_child(frame, 0)
+		frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
 func _configure_compact_volume_sliders() -> void:
@@ -300,18 +327,18 @@ func _on_exit_confirmed() -> void:
 		_exit_dialog.get_ok_button().disabled = true
 		_exit_dialog.get_cancel_button().disabled = true
 		_exit_dialog.hide()
-	print("Settings: exit confirmed; saving once and closing playtime once")
-	var player := get_tree().get_first_node_in_group("player_character") as Node2D
-	var current_scene := get_tree().current_scene
-	if player != null and current_scene != null:
-		GameState.capture_runtime(current_scene.scene_file_path, player.global_position)
-		GameState.save_checkpoint()
-		# Give the existing save_created sync observer one frame to begin its
-		# best-effort progress flush before the session close request.
-		await get_tree().process_frame
+	print("Settings: exit confirmed; discarding unsaved academic progress and closing playtime once")
+	# Close the paused overlay and unpause the SceneTree before awaiting the
+	# Screen Time request. HTTPRequest inherits the tree pause state; awaiting it
+	# while paused otherwise stalls Exit until another UI action resumes gameplay.
+	settings_popup.visible = false
+	settings_button.visible = false
+	get_tree().paused = false
 	if RemoteSync != null and RemoteSync.has_method("request_end_playtime_session"):
 		await RemoteSync.request_end_playtime_session()
-	settings_popup.visible = false
+	var discard_result: Dictionary = GameState.discard_unsaved_run()
+	if not bool(discard_result.get("ok", false)):
+		print("Settings: no valid active run was available to discard; Student identity was preserved.")
 	InputManager.unlock_input("settings_pause")
 	get_tree().paused = false
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
@@ -404,20 +431,105 @@ func _sync_volume_controls() -> void:
 func _center_popup() -> void:
 	if settings_popup == null or popup_texture == null:
 		return
-
-	var popup_size := popup_texture.size
-	if popup_size.x <= 0.0 or popup_size.y <= 0.0:
-		return
-
+	var viewport_size := get_viewport_rect().size
 	var available_size := Vector2(
-		maxf(size.x - (POPUP_SAFE_MARGIN.x * 2.0), 1.0),
-		maxf(size.y - (POPUP_SAFE_MARGIN.y * 2.0), 1.0)
+		maxf(viewport_size.x - POPUP_SAFE_MARGIN.x * 2.0, 1.0),
+		maxf(viewport_size.y - POPUP_SAFE_MARGIN.y * 2.0, 1.0)
 	)
-	var scale_factor := minf(1.0, minf(available_size.x / popup_size.x, available_size.y / popup_size.y))
-	var content_center_offset := popup_texture.position + (popup_size * 0.5)
-	settings_popup.scale = Vector2.ONE * scale_factor
-	settings_popup.pivot_offset = content_center_offset
-	settings_popup.position = (size * 0.5) - (content_center_offset * scale_factor)
+	var is_portrait := viewport_size.y > viewport_size.x
+	var panel_size := Vector2(
+		minf(available_size.x, 1008.0),
+		minf(available_size.y, 621.0)
+	)
+	if is_portrait:
+		panel_size.y = minf(available_size.y, 560.0)
+
+	settings_popup.scale = Vector2.ONE
+	settings_popup.pivot_offset = Vector2.ZERO
+	settings_popup.size = panel_size
+	settings_popup.position = (viewport_size - panel_size) * 0.5
+	popup_texture.position = Vector2.ZERO
+	popup_texture.size = panel_size
+	_layout_settings_controls(panel_size, is_portrait)
+
+
+func _layout_settings_controls(panel_size: Vector2, is_portrait: bool) -> void:
+	const BUTTON_SIZE := Vector2(220.0, 52.0)
+	const BUTTON_GAP := 13.0
+	var buttons: Array[Button] = [resume_button, save_button, load_button, exit_button]
+	for button in buttons:
+		button.custom_minimum_size = BUTTON_SIZE
+		button.size = BUTTON_SIZE
+		var label := button.get_node_or_null("Label") as Label
+		if label != null:
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	close_button.size = Vector2(38.0, 38.0)
+	close_button.position = Vector2(maxf(panel_size.x - 54.0, 4.0), 12.0)
+
+	var button_left := (panel_size.x - BUTTON_SIZE.x) * 0.5
+	var slider_left := button_left
+	var slider_top := 0.0
+	if is_portrait:
+		var button_top := 34.0
+		for index in range(buttons.size()):
+			buttons[index].position = Vector2(button_left, button_top + index * (BUTTON_SIZE.y + BUTTON_GAP))
+		slider_left = button_left
+		slider_top = button_top + buttons.size() * (BUTTON_SIZE.y + BUTTON_GAP) + 6.0
+		_place_volume_controls(panel_size, slider_left, slider_top, true)
+	elif panel_size.y < 440.0 or panel_size.x < 760.0:
+		var column_gap := 24.0
+		var grid_width := BUTTON_SIZE.x * 2.0 + column_gap
+		var grid_left := (panel_size.x - grid_width) * 0.5
+		var first_row_y := 30.0
+		for index in range(buttons.size()):
+			var column := index % 2
+			var row := floori(float(index) / 2.0)
+			buttons[index].position = Vector2(grid_left + column * (BUTTON_SIZE.x + column_gap), first_row_y + row * (BUTTON_SIZE.y + BUTTON_GAP))
+		slider_left = grid_left
+		var last_button_bottom := first_row_y + BUTTON_SIZE.y + BUTTON_GAP + BUTTON_SIZE.y
+		# Reserve the slider-label row and clear the second button row. The prior
+		# arithmetic put MUSIC VOLUME over the lower edge of Load Game on short
+		# landscape viewports.
+		slider_top = last_button_bottom + 8.0 + 18.0 + 4.0
+		_place_volume_controls(panel_size, slider_left, slider_top, false)
+	else:
+		var first_button_y := 88.0 if panel_size.y >= 560.0 else 32.0
+		for index in range(buttons.size()):
+			buttons[index].position = Vector2(button_left, first_button_y + index * (BUTTON_SIZE.y + BUTTON_GAP))
+		var slider_group_width := COMPACT_SLIDER_SIZE.x * 2.0 + 40.0
+		slider_left = (panel_size.x - slider_group_width) * 0.5
+		slider_top = panel_size.y - 95.0
+		_place_volume_controls(panel_size, slider_left, slider_top, false)
+
+
+func _place_volume_controls(panel_size: Vector2, left: float, top: float, stacked: bool) -> void:
+	const LABEL_SIZE := Vector2(220.0, 18.0)
+	const SLIDER_SIZE := Vector2(220.0, 30.0)
+	var music_label := get_node("SettingsPopup/TextureRect/MusicLabel") as Label
+	var sfx_label := get_node("SettingsPopup/TextureRect/SfxLabel") as Label
+	for label in [music_label, sfx_label]:
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.size = LABEL_SIZE
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	music_slider.custom_minimum_size = SLIDER_SIZE
+	sfx_slider.custom_minimum_size = SLIDER_SIZE
+	music_slider.size = SLIDER_SIZE
+	sfx_slider.size = SLIDER_SIZE
+	if stacked:
+		music_label.position = Vector2(left, top)
+		music_slider.position = Vector2(left, top + 20.0)
+		sfx_label.position = Vector2(left, top + 78.0)
+		sfx_slider.position = Vector2(left, top + 98.0)
+	else:
+		var column_gap := 40.0 if panel_size.y >= 440.0 else 24.0
+		music_label.position = Vector2(left, top - LABEL_SIZE.y - 4.0)
+		music_slider.position = Vector2(left, top)
+		sfx_label.position = Vector2(left + SLIDER_SIZE.x + column_gap, top - LABEL_SIZE.y - 4.0)
+		sfx_slider.position = Vector2(left + SLIDER_SIZE.x + column_gap, top)
 
 func _show_save_success_toast() -> void:
 	if save_toast == null:

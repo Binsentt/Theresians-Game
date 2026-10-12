@@ -161,7 +161,7 @@ func _run() -> void:
 	_assert(game_state_source.contains('const SAVE_DIRECTORY := "user://saves"'), "Save files remain in Godot's application-local user storage")
 	_assert(remote_sync_source.contains('game_state.connect("save_created"') and remote_sync_source.contains('request_post("/api/game/progress"'), "RemoteSync still uploads approved monitoring/progress projections")
 	_assert(not remote_sync_source.contains("GameState.list_saves") and not remote_sync_source.contains("GameState.load_save") and not remote_sync_source.contains("user://saves"), "RemoteSync has zero code paths that download, enumerate, or reconstruct local save files")
-	_assert(leaderboard_source.contains("GameState.list_saves().is_empty()") and leaderboard_source.contains("No rankings yet"), "Leaderboard stays empty without a current Student-owned save instead of using stale identity")
+	_assert(not leaderboard_source.contains("GameState.list_saves().is_empty()") and leaderboard_source.contains("No leaderboard records yet."), "Public leaderboard loads independently of local saves or Student identity")
 
 	scene.queue_free()
 	await get_tree().process_frame

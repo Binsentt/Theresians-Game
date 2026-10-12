@@ -1172,6 +1172,9 @@ position = Vector2(128, 508)
 [node name="spawn_from_deepest_forest" type="Marker2D" parent="."]
 position = Vector2(128, 508)
 
+[node name="spawn_from_oakleaf" type="Marker2D" parent="." unique_id=1632756012]
+position = Vector2(1172, 96)
+
 [node name="Bandits" parent="." unique_id=8116170 instance=ExtResource("26_gdmg8")]
 position = Vector2(114, 487)
 

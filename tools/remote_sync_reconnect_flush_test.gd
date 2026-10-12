@@ -29,6 +29,7 @@ var _checks: Array[Dictionary] = []
 var _pending_file := ""
 var _transport: FakeHttpApi
 var _remote: Node
+var _run_id := ""
 
 
 func _ready() -> void:
@@ -36,11 +37,16 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	_run_id = "%d_%d" % [OS.get_process_id(), Time.get_ticks_usec()]
 	var http := get_node_or_null("/root/HttpApi")
 	var remote_autoload := get_node_or_null("/root/RemoteSync")
 	var state := get_node_or_null("/root/GameState")
-	var local_only := http != null and bool(http.call("is_local_qa_profile_active"))
-	_expect(local_only, "reconnect fixture starts with the loopback-only API profile")
+	var loopback_mode_enabled := http != null and bool(http.call("enable_local_qa_mode", "http://127.0.0.1:5000"))
+	var local_only := loopback_mode_enabled and bool(http.call("is_local_qa_mode")) \
+			and String(http.get("base_url")) == "http://127.0.0.1:5000"
+	_expect(local_only, "reconnect fixture forces a verified loopback-only API mode")
+	if remote_autoload != null and remote_autoload.has_method("enable_local_qa_mode"):
+		remote_autoload.call("enable_local_qa_mode")
 	_expect(remote_autoload != null and bool(remote_autoload.get("local_qa_only")), "real RemoteSync autoload suppresses writes in this fixture")
 	if not local_only or state == null:
 		_finish()
@@ -106,6 +112,17 @@ func _expect(condition: bool, label: String) -> void:
 
 func _finish() -> void:
 	var failed := _checks.filter(func(check: Dictionary) -> bool: return not bool(check.get("passed", false))).size()
+	var report := {
+		"passed": _checks.size() - failed,
+		"failed": failed,
+		"checks": _checks,
+		"qa_local_only": true,
+		"production_writes": 0,
+	}
+	var report_file := FileAccess.open("user://qa_local_saves/remote_sync_reconnect_%s.json" % _run_id, FileAccess.WRITE)
+	if report_file != null:
+		report_file.store_string(JSON.stringify(report, "\t"))
+		report_file.close()
 	print("REMOTE_SYNC_RECONNECT_FLUSH_TEST " + JSON.stringify({"passed": _checks.size() - failed, "failed": failed, "checks": _checks}))
 	if not _pending_file.is_empty():
 		var path := ProjectSettings.globalize_path(_pending_file)

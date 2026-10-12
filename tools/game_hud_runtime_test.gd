@@ -13,6 +13,7 @@ const QUEST_LABEL_PATH := QUEST_GUIDE_PATH + "/QuestContent/QuestLabel"
 var _failures: Array[String] = []
 var _passes := 0
 var _layout_observations: Dictionary = {}
+var _qa_run_id := ""
 
 
 func _ready() -> void:
@@ -20,6 +21,8 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	_qa_run_id = "%d_%d" % [OS.get_process_id(), Time.get_ticks_usec()]
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa_test_artifacts"))
 	var http := get_tree().root.get_node_or_null("HttpApi")
 	var remote_sync := get_tree().root.get_node_or_null("RemoteSync")
 	_expect(http != null and http.has_method("is_local_qa_mode") and bool(http.call("is_local_qa_mode")), "HUD runtime test selects the local-only API profile before autoload startup.")
@@ -34,7 +37,6 @@ func _run() -> void:
 	var original_journey_complete: bool = GameState.journey_complete
 	var original_time_limit: int = GameState.playtime_limit_minutes
 	var original_remaining_seconds: float = GameState.playtime_remaining_seconds
-	var original_window_size := get_window().size
 	GameState.journey_complete = false
 	GameState.current_task_index = 1
 	GameState.current_quest = GameState.get_current_quest_text()
@@ -55,10 +57,10 @@ func _run() -> void:
 
 	_exercise_hud_structure(hud)
 	_exercise_time_display(hud)
-	var default_snapshot_error := await _save_runtime_snapshot("user://game_hud_visual_qa_default_20260926.png")
+	var default_snapshot_error := await _save_runtime_snapshot("user://qa_test_artifacts/game_hud_%s_default.png" % _qa_run_id)
 	_expect(default_snapshot_error == OK, "Default viewport HUD visual snapshot is saved to a new disposable user:// QA path.")
 	await _exercise_quest_display(hud)
-	await _exercise_responsive_layout(hud, original_window_size)
+	await _exercise_responsive_layout(hud)
 	await _exercise_notification_overlap(hud)
 	await _exercise_hud_singleton()
 
@@ -223,7 +225,7 @@ func _exercise_quest_display(hud: CanvasLayer) -> void:
 	await get_tree().process_frame
 
 
-func _exercise_responsive_layout(hud: CanvasLayer, original_window_size: Vector2i) -> void:
+func _exercise_responsive_layout(hud: CanvasLayer) -> void:
 	GameState.set_mode(GameState.GameMode.EXPLORATION)
 	var mobile_controls := MOBILE_CONTROLS_SCENE.instantiate() as CanvasLayer
 	get_tree().current_scene.add_child(mobile_controls)
@@ -233,11 +235,17 @@ func _exercise_responsive_layout(hud: CanvasLayer, original_window_size: Vector2
 	get_tree().current_scene.add_child(dialogue_overlay)
 	await get_tree().process_frame
 	var dialogue_panel := dialogue_overlay.get_node("DialoguePanel") as Control
-	var dialogue_label := dialogue_overlay.get_node("DialoguePanel/DialogueLabel") as Label
+	var dialogue_label := dialogue_overlay.get_node("DialoguePanel/DialogueContent/DialogueLabel") as Label
+	var actual_movement := mobile_controls.get_node("Root/MovementMargin") as Control
+	var actual_action := mobile_controls.get_node("Root/ActionMargin") as Control
 	dialogue_label.text = "The Elder says: The road to Pinehill winds beyond the deepest forest. Find the old guide, then return to the City of Knowledge."
-	dialogue_panel.visible = true
+	dialogue_panel.visible = false
 	_expect(dialogue_overlay.layer > hud.layer, "Existing dialogue remains layered above the exploration HUD.")
 	_expect(dialogue_label.autowrap_mode != TextServer.AUTOWRAP_OFF, "Dialogue text keeps its existing word-wrap behavior.")
+	await get_tree().process_frame
+	_expect(actual_movement.visible and actual_action.visible, "Movement and ACT controls are both visible during exploration QA.")
+	var exploration_controls_snapshot := await _save_runtime_snapshot("user://qa_test_artifacts/game_hud_%s_controls_exploration.png" % _qa_run_id)
+	_expect(exploration_controls_snapshot == OK, "Exploration controls screenshot is saved under a new user-only QA path.")
 	var sizes: Array[Vector2] = [
 		Vector2(844.0, 509.0),
 		Vector2(1215.0, 545.0),
@@ -265,17 +273,97 @@ func _exercise_responsive_layout(hud: CanvasLayer, original_window_size: Vector2
 		_expect(quest_rect.size.x >= 340.0 and quest_rect.size.x <= 450.0, "Quest panel remains within its compact 340–450 px desktop width at %dx%d." % [int(viewport_size.x), int(viewport_size.y)])
 		_expect(not time_rect.intersects(movement_rect) and not time_rect.intersects(action_rect), "Top-left timer avoids the movement/ACT control areas at %dx%d." % [int(viewport_size.x), int(viewport_size.y)])
 		_expect(not quest_rect.intersects(movement_rect) and not quest_rect.intersects(action_rect), "Top-center quest avoids the movement/ACT control areas at %dx%d." % [int(viewport_size.x), int(viewport_size.y)])
+	var dialogue_viewports: Array[Vector2] = [
+		Vector2(640.0, 360.0),
+		Vector2(844.0, 390.0),
+		Vector2(915.0, 412.0),
+		Vector2(844.0, 509.0),
+		Vector2(1215.0, 545.0),
+		Vector2(1280.0, 720.0),
+		Vector2(1920.0, 1080.0),
+	]
+	for viewport_size in dialogue_viewports:
+		var dialogue_rect := Rect2(
+			Vector2(
+				viewport_size.x * dialogue_panel.anchor_left + dialogue_panel.offset_left,
+				viewport_size.y * dialogue_panel.anchor_top + dialogue_panel.offset_top
+			),
+			Vector2(
+				viewport_size.x * (dialogue_panel.anchor_right - dialogue_panel.anchor_left) + dialogue_panel.offset_right - dialogue_panel.offset_left,
+				viewport_size.y * (dialogue_panel.anchor_bottom - dialogue_panel.anchor_top) + dialogue_panel.offset_bottom - dialogue_panel.offset_top
+			)
+		)
+		var action_rect := Rect2(Vector2(viewport_size.x - 262.0, viewport_size.y - 262.0), Vector2(200.0, 160.0))
+		_layout_observations["dialogue_controls_%dx%d" % [int(viewport_size.x), int(viewport_size.y)]] = {
+			"dialogue": dialogue_rect,
+			"action": action_rect,
+		}
+		_expect(Rect2(Vector2.ZERO, viewport_size).encloses(dialogue_rect), "Dialogue panel stays inside the %dx%d viewport." % [int(viewport_size.x), int(viewport_size.y)])
+		_expect(dialogue_rect.size.x >= 300.0, "Dialogue keeps at least 300 logical pixels of text width at %dx%d." % [int(viewport_size.x), int(viewport_size.y)])
+		_expect(not dialogue_rect.intersects(action_rect), "Dialogue and ACT control have separate visual/touch regions at %dx%d." % [int(viewport_size.x), int(viewport_size.y)])
 
 	var actual_viewport_size := get_viewport().get_visible_rect().size
-	var actual_movement := mobile_controls.get_node("Root/MovementMargin") as Control
-	var actual_action := mobile_controls.get_node("Root/ActionMargin") as Control
 	var actual_time := (hud.get_node("TimeMargin/TimePanel") as Control).get_global_rect()
 	var actual_quest := (hud.get_node(QUEST_GUIDE_PATH) as Control).get_global_rect()
 	_expect(not actual_time.intersects(actual_movement.get_global_rect()) and not actual_time.intersects(actual_action.get_global_rect()), "Time indicator avoids actual runtime movement/ACT controls at %dx%d." % [int(actual_viewport_size.x), int(actual_viewport_size.y)])
 	_expect(not actual_quest.intersects(actual_movement.get_global_rect()) and not actual_quest.intersects(actual_action.get_global_rect()), "Quest indicator avoids actual runtime movement/ACT controls at %dx%d." % [int(actual_viewport_size.x), int(actual_viewport_size.y)])
 
-	get_window().size = Vector2i(844, 509)
+	# Project physical handset sizes into the fixed landscape logical viewport.
+	# Window.size does not resize this root Viewport, so reading Control.get_global_rect()
+	# after changing the OS window would produce stale coordinates and false failures.
+	var handset_sizes: Array[Vector2i] = [
+		Vector2i(640, 360),
+		Vector2i(844, 390),
+		Vector2i(915, 412),
+		Vector2i(1280, 720),
+	]
+	var logical_size := get_viewport().get_visible_rect().size
+	var logical_movement := actual_movement.get_global_rect()
+	var logical_action := actual_action.get_global_rect()
+	for handset_size in handset_sizes:
+		var scale := minf(float(handset_size.x) / logical_size.x, float(handset_size.y) / logical_size.y)
+		var letterbox := (Vector2(handset_size) - logical_size * scale) * 0.5
+		var handset_rect := Rect2(Vector2.ZERO, Vector2(handset_size))
+		var movement_rect := Rect2(letterbox + logical_movement.position * scale, logical_movement.size * scale)
+		var action_rect := Rect2(letterbox + logical_action.position * scale, logical_action.size * scale)
+		_layout_observations["handset_%dx%d_landscape" % [handset_size.x, handset_size.y]] = {
+			"fit_scale": scale,
+			"letterbox": letterbox,
+			"movement": movement_rect,
+			"action": action_rect,
+			"direction_touch_size_pixels": Vector2(70.0, 70.0) * scale,
+			"action_touch_size_pixels": Vector2(112.0, 112.0) * scale,
+		}
+		_expect(handset_rect.encloses(movement_rect) and handset_rect.encloses(action_rect), "Projected controls stay inside the %dx%d landscape display." % [handset_size.x, handset_size.y])
+		_expect(not movement_rect.intersects(action_rect), "Projected movement and ACT hitboxes stay separate at %dx%d landscape." % [handset_size.x, handset_size.y])
+
+	GameState.set_mode(GameState.GameMode.DIALOGUE)
+	dialogue_panel.visible = true
 	await get_tree().process_frame
+	await get_tree().process_frame
+	var dialogue_rect := dialogue_panel.get_global_rect()
+	var dialogue_action_rect := actual_action.get_global_rect()
+	_layout_observations["dialogue_mobile_overlap"] = {
+		"dialogue_panel": dialogue_rect,
+		"act_action_margin": dialogue_action_rect,
+		"intersection": dialogue_rect.intersection(dialogue_action_rect),
+		"viewport": actual_viewport_size,
+	}
+	_expect(not actual_movement.visible, "Movement controls hide during dialogue.")
+	_expect(actual_action.visible and _rect_inside_viewport(dialogue_action_rect), "ACT remains visible and within the configured runtime viewport during dialogue.")
+	_expect(not dialogue_action_rect.intersects(dialogue_rect), "ACT hitbox and dialogue panel must not overlap.")
+	var continue_prompt := dialogue_panel.get_node("DialogueContent/ContinuePrompt") as Control
+	_expect(dialogue_rect.encloses(continue_prompt.get_global_rect()), "Dialogue continue prompt stays inside the panel.")
+	var dialogue_snapshot_error := await _save_runtime_snapshot("user://qa_test_artifacts/game_hud_%s_dialogue.png" % _qa_run_id)
+	_expect(dialogue_snapshot_error == OK, "Current-viewport dialogue/control screenshot is saved under a new user-only QA path.")
+	dialogue_panel.visible = false
+	GameState.set_mode(GameState.GameMode.BATTLE)
+	await get_tree().process_frame
+	_expect(not mobile_controls.visible and not actual_action.visible, "Mobile controls are hidden during battle/quiz UI.")
+	GameState.set_mode(GameState.GameMode.EXPLORATION)
+	await get_tree().process_frame
+
+	_apply_quest_text(hud, "Defeat the Bandits in the Deepest Forest, then continue to Pinehill Village and find someone who knows about the Wizard.")
 	_apply_quest_text(hud, "Defeat the Bandits in the Deepest Forest, then continue to Pinehill Village and find someone who knows about the Wizard.")
 	var quest_guide := hud.get_node_or_null(QUEST_GUIDE_PATH) as PanelContainer
 	var quest_label := hud.get_node_or_null(QUEST_LABEL_PATH) as Label
@@ -288,10 +376,8 @@ func _exercise_responsive_layout(hud: CanvasLayer, original_window_size: Vector2
 		_expect(quest_label.get_line_count() >= 2, "Long objective visibly wraps at its narrow responsive layout width.")
 		_layout_observations["narrow"] = _describe_quest_layout(hud, quest_guide)
 		_expect(dialogue_label.get_line_count() >= 2, "Long dialogue remains word-wrapped and readable at 844x509.")
-		var narrow_snapshot_error := await _save_runtime_snapshot("user://game_hud_visual_qa_20260926.png")
-		_expect(narrow_snapshot_error == OK, "Narrow viewport HUD visual snapshot is saved to a new disposable user:// QA path.")
-	get_window().size = original_window_size
-	await get_tree().process_frame
+		var narrow_snapshot_error := await _save_runtime_snapshot("user://qa_test_artifacts/game_hud_%s_narrow.png" % _qa_run_id)
+		_expect(narrow_snapshot_error == OK, "Narrow viewport HUD snapshot is saved in a new user-only QA artifact path.")
 	dialogue_overlay.queue_free()
 	mobile_controls.queue_free()
 	await get_tree().process_frame
@@ -322,8 +408,8 @@ func _exercise_notification_overlap(hud: CanvasLayer) -> void:
 	if completion_panel != null:
 		_expect(completion_panel.visible, "Task completion notification is presented by the shared manager.")
 		var completion_rect := completion_panel.get_global_rect()
-		_expect(completion_rect.position.y <= quest_rect.position.y + 1.0, "Task Complete stays in the top-center notification layer instead of being pushed below the quest.")
-		_expect(completion_rect.intersects(quest_rect), "Temporary top notification is allowed to cover the persistent Current Quest area.")
+		_expect(completion_rect.position.y >= quest_rect.end.y - 1.0, "Task Complete stays below the persistent Current Quest panel.")
+		_expect(not completion_rect.intersects(quest_rect), "Temporary completion notification does not cover the persistent Current Quest area.")
 		_expect(quest_guide.visible and String(quest_guide.get_node("QuestContent/QuestLabel").text) == "Return to the City of Knowledge", "Current Quest remains intact behind the temporary notification.")
 		var notification_layer := manager.get("_root_layer") as CanvasLayer
 		_expect(notification_layer != null and notification_layer.layer > hud.layer, "Temporary notification renders above the persistent quest HUD.")
@@ -389,6 +475,15 @@ func _save_runtime_snapshot(path: String) -> Error:
 	return image.save_png(path)
 
 
+func _mobile_button_rects(mobile_controls: CanvasLayer) -> Dictionary:
+	var rects := {}
+	for button_name in ["UpButton", "LeftButton", "RightButton", "DownButton"]:
+		var button := mobile_controls.find_child(button_name, true, false) as Control
+		if button != null:
+			rects[button_name] = button.get_global_rect()
+	return rects
+
+
 func _apply_quest_text(hud: CanvasLayer, text: String) -> void:
 	if hud.has_method("_set_quest_text"):
 		hud.call("_set_quest_text", text)
@@ -414,7 +509,8 @@ func _expect(condition: bool, message: String) -> void:
 
 func _finish() -> void:
 	var result := {"passed": _passes, "failed": _failures.size(), "failures": _failures, "layout": _layout_observations}
-	var result_file := FileAccess.open("user://game_hud_runtime_result_hud_20260926.json", FileAccess.WRITE)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa_test_artifacts"))
+	var result_file := FileAccess.open("user://qa_test_artifacts/game_hud_runtime_%s.json" % _qa_run_id, FileAccess.WRITE)
 	if result_file != null:
 		result_file.store_string(JSON.stringify(result))
 		result_file.close()

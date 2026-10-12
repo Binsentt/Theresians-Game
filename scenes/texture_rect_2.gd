@@ -28,7 +28,6 @@ enum RegistrationStep { GENDER, IDS, NAME_GRADE }
 	$NameGradeSelect/Grade6
 ]
 
-const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
 const MAIN_MENU_SCENE_PATH := "res://scenes/main_menu.tscn"
 const PLAYER_HOUSE_SCENE_PATH := "res://interiors/player_house.tscn"
 const LOADING_SCENE_PATH := "res://scenes/loading_screen.tscn"
@@ -55,7 +54,6 @@ var _canonical_identity_locked := false
 var _canonical_student_name := ""
 var _canonical_grade := ""
 var _canonical_section := ""
-var _student_terms_gate: Control
 
 var male_tween: Tween
 var female_tween: Tween
@@ -387,7 +385,10 @@ func _validate_ids_with_backend() -> Dictionary:
 	var profile_status: int = int(profile_result.get("status", 0))
 	if not profile_ok or profile_status < 200 or profile_status >= 300:
 		return {"ok": false, "error": _registration_api_error(profile_result, "Unable to connect to the server. Please try again.")}
-	if profile_body.get("should_block", false):
+	var explicitly_existing_profile := bool(profile_body.get("exists", false)) \
+		or bool(profile_body.get("existing_profile", false)) \
+		or String(profile_body.get("error", "")).to_lower().contains("existing game profile")
+	if profile_body.get("should_block", false) and not explicitly_existing_profile:
 		return {"ok": false, "error": String(profile_body.get("error", "Student ID already has an existing game profile. Please use Load Game."))}
 	var canonical_profile: Variant = profile_body.get("canonical_profile", null)
 	if not (canonical_profile is Dictionary):
@@ -536,7 +537,7 @@ func _on_start_pressed() -> void:
 		return
 
 	_hide_validation()
-	var terms_accepted := await _ensure_terms_accepted()
+	var terms_accepted := _ensure_terms_accepted()
 	if not terms_accepted:
 		_play_transitioning = false
 		return
@@ -608,41 +609,15 @@ func _on_start_pressed() -> void:
 		_show_validation("Unable to start the new game.")
 
 
+func has_local_terms_acceptance() -> bool:
+	return GameState.has_method("has_current_terms_app_acceptance") \
+		and bool(GameState.call("has_current_terms_app_acceptance"))
+
+
 func _ensure_terms_accepted() -> bool:
-	var registration := GameState.get_new_game_registration()
-	var current_student_id := String(registration.get("student_id", "")).strip_edges()
-	if current_student_id.is_empty() or not GameState.has_method("has_current_terms_acceptance"):
-		return false
-	if bool(GameState.call("has_current_terms_acceptance", current_student_id)):
+	if has_local_terms_acceptance():
 		return true
-	var app_acceptance := GameState.has_method("has_current_terms_app_acceptance") and bool(GameState.call("has_current_terms_app_acceptance"))
-	var app_student_id := String(GameState.call("get_terms_app_acceptance_student_id")) if GameState.has_method("get_terms_app_acceptance_student_id") else ""
-	if app_acceptance and (app_student_id.is_empty() or app_student_id == current_student_id) and GameState.has_method("bind_current_terms_acceptance_to_student"):
-		return bool(GameState.call("bind_current_terms_acceptance_to_student", current_student_id))
-	if app_acceptance and not app_student_id.is_empty() and app_student_id != current_student_id:
-		return await _request_student_terms_acceptance(current_student_id)
 	_show_validation("Please return to the Main Menu and accept the Terms & Conditions before starting.")
-	return false
-
-
-func _request_student_terms_acceptance(for_student_id: String) -> bool:
-	if is_instance_valid(_student_terms_gate):
-		return false
-	_student_terms_gate = TERMS_GATE_SCRIPT.new() as Control
-	_student_terms_gate.name = "StudentTermsGate"
-	add_child(_student_terms_gate)
-	_student_terms_gate.set_student_context(for_student_id)
-	var completion_state := {"accepted": false, "cancelled": false}
-	_student_terms_gate.accepted.connect(func() -> void: completion_state["accepted"] = true)
-	_student_terms_gate.cancelled.connect(func() -> void: completion_state["cancelled"] = true)
-	while is_instance_valid(_student_terms_gate) and not bool(completion_state["accepted"]) and not bool(completion_state["cancelled"]):
-		await get_tree().process_frame
-	if is_instance_valid(_student_terms_gate):
-		_student_terms_gate.queue_free()
-	_student_terms_gate = null
-	if bool(completion_state["accepted"]) and GameState.has_method("has_current_terms_acceptance"):
-		return bool(GameState.call("has_current_terms_acceptance", for_student_id))
-	_show_validation("Please accept the Terms & Conditions before starting.")
 	return false
 
 func _sync_form_to_registration() -> void:
@@ -777,7 +752,12 @@ func _hide_validation() -> void:
 
 
 func _show_playtime_connecting_status_after_delay() -> void:
-	await get_tree().create_timer(SLOW_PLAYTIME_REQUEST_FEEDBACK_DELAY_SECONDS).timeout
+	if not is_inside_tree():
+		return
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return
+	await scene_tree.create_timer(SLOW_PLAYTIME_REQUEST_FEEDBACK_DELAY_SECONDS).timeout
 	if _playtime_request_pending and is_inside_tree():
 		_show_validation("Connecting...")
 

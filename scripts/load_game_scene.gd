@@ -104,8 +104,13 @@ func _refresh_save_list() -> void:
 	var saves: Array[Dictionary] = GameState.list_saves()
 	empty_label.text = "No saved games for this Student yet."
 	empty_label.visible = saves.is_empty()
+	var has_manual_save := false
+	for save_data in saves:
+		if String(save_data.get("save_kind", "")) == "manual":
+			has_manual_save = true
+			break
 	if delete_all_button != null:
-		delete_all_button.disabled = _save_transitioning or saves.is_empty()
+		delete_all_button.disabled = _save_transitioning or not has_manual_save
 
 	for index in range(saves.size()):
 		var save_data: Dictionary = saves[index]
@@ -266,18 +271,13 @@ func _show_slow_online_verification_status_after_delay() -> void:
 func _ensure_terms_accepted_for_student(for_student_id: String) -> bool:
 	if for_student_id.is_empty():
 		return false
-	if GameState.has_current_terms_acceptance(for_student_id):
+	if GameState.has_current_terms_app_acceptance():
 		return true
-	var app_acceptance := GameState.has_current_terms_app_acceptance()
-	var app_student_id := GameState.get_terms_app_acceptance_student_id()
-	if app_acceptance and (app_student_id.is_empty() or app_student_id == for_student_id):
-		return GameState.bind_current_terms_acceptance_to_student(for_student_id)
 	if is_instance_valid(_student_terms_gate):
 		return false
 	_student_terms_gate = TERMS_GATE_SCRIPT.new() as Control
 	_student_terms_gate.name = "LoadStudentTermsGate"
 	add_child(_student_terms_gate)
-	_student_terms_gate.set_student_context(for_student_id)
 	var completion_state := {"accepted": false, "cancelled": false}
 	_student_terms_gate.accepted.connect(func() -> void: completion_state["accepted"] = true)
 	_student_terms_gate.cancelled.connect(func() -> void: completion_state["cancelled"] = true)
@@ -286,4 +286,4 @@ func _ensure_terms_accepted_for_student(for_student_id: String) -> bool:
 	if is_instance_valid(_student_terms_gate):
 		_student_terms_gate.queue_free()
 	_student_terms_gate = null
-	return bool(completion_state["accepted"]) and GameState.has_current_terms_acceptance(for_student_id)
+	return bool(completion_state["accepted"]) and GameState.has_current_terms_app_acceptance()

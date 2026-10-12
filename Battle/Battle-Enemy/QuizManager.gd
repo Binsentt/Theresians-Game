@@ -36,8 +36,13 @@ var _network_retry_available := false
 var _network_retry_in_progress := false
 var _current_question_presented_at := ""
 var _current_question_presented_unix := -1.0
+var _music_return_scene_path := ""
 
 func _ready():
+	_music_return_scene_path = _resolve_music_return_scene_path()
+	var music_manager := get_node_or_null("/root/MusicManager")
+	if music_manager != null and music_manager.has_method("play_for_scene"):
+		music_manager.call("play_for_scene", scene_file_path)
 	question_label.text = "Loading questions..."
 	for button in buttons:
 		button.text = ""
@@ -72,6 +77,29 @@ func _ready():
 
 	# Initialize the first question
 	load_question()
+
+
+func _exit_tree() -> void:
+	var tree := get_tree()
+	if tree == null or tree.current_scene == self:
+		return
+	var music_manager := tree.root.get_node_or_null("MusicManager")
+	if music_manager != null and music_manager.has_method("play_for_scene") and not _music_return_scene_path.is_empty():
+		music_manager.call("play_for_scene", _music_return_scene_path)
+
+
+func _resolve_music_return_scene_path() -> String:
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state != null:
+		var context: Variant = game_state.get("encounter_context")
+		if context is Dictionary:
+			var source_scene_path := String(context.get("source_scene_path", "")).strip_edges()
+			if not source_scene_path.is_empty():
+				return source_scene_path
+	var tree := get_tree()
+	if tree != null and tree.current_scene != null:
+		return tree.current_scene.scene_file_path
+	return ""
 
 
 func _on_questions_loaded(_count: int) -> void:

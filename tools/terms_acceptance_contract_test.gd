@@ -8,6 +8,10 @@ func _ready() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	if not HttpApi.is_local_qa_profile_active():
+		push_error("Terms contract QA refused to run without local-only startup selected before autoload initialization.")
+		get_tree().quit(1)
+		return
 	var state_source := FileAccess.get_file_as_string("res://scripts/game_state.gd")
 	var login_source := FileAccess.get_file_as_string("res://scenes/texture_rect_2.gd")
 	var menu_source := FileAccess.get_file_as_string("res://scripts/main_menu_scene.gd")
@@ -19,10 +23,9 @@ func _run() -> void:
 	_expect(menu_source.contains("TERMS_GATE_SCRIPT") and menu_source.contains("_initialize_terms_gate"), "Main Menu owns the startup Terms gate")
 	_expect(gate_source.contains("AgreementCheckBox") and gate_source.contains("ContinueButton"), "Terms gate uses a checkbox and Continue action")
 	_expect(gate_source.contains("disabled = true") and gate_source.contains("_on_checkbox_toggled"), "Continue starts disabled and follows checkbox state")
-	_expect(login_source.contains("bind_current_terms_acceptance_to_student"), "New Game binds app acceptance to the known Student ID")
-	_expect(not login_source.contains("func() -> void: accepted = true"), "Student-specific Terms acceptance does not rely on a captured primitive flag")
-	_expect(not login_source.contains("func() -> void: cancelled = true"), "Student-specific Terms cancellation does not rely on a captured primitive flag")
-	_expect(login_source.contains("completion_state"), "Student-specific Terms gate shares completion state with its signal callbacks")
+	_expect(login_source.contains("has_local_terms_acceptance"), "New Game checks persistent device acceptance independently of Student identity")
+	_expect(not login_source.contains("bind_current_terms_acceptance_to_student"), "New Game does not bind device acceptance to one Student")
+	_expect(not login_source.contains("_request_student_terms_acceptance"), "New Game does not reopen a Student-specific Terms gate")
 	_expect(login_source.contains("request_playtime_session") and login_source.find("_ensure_terms_accepted") < login_source.find("request_playtime_session"), "Terms gate runs before playtime/game start")
 	var state := GameStateScript.new()
 	add_child(state)

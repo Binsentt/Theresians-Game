@@ -2,6 +2,7 @@
 
 const PRODUCTION_PENDING_FILE := "user://pending_syncs.json"
 const LOCAL_QA_PENDING_FILE := "user://pending_syncs_local_qa.json"
+const ANDROID_QA_PENDING_FILE := "user://pending_syncs_android_qa.json"
 var _pending_file := PRODUCTION_PENDING_FILE
 
 var _current_playtime_session_id: int = 0
@@ -15,9 +16,12 @@ var _playtime_heartbeat_in_progress: bool = false
 var _playtime_heartbeat_elapsed: float = 0.0
 var _playtime_timeout_handled: bool = false
 var _playtime_timeout_pending: bool = false
+var _app_close_in_progress: bool = false
 var _pending_flush_in_progress: bool = false
 var _pending_flush_requested: bool = false
 var local_qa_only := false
+var android_qa_mode := false
+var android_qa_remote_writes_enabled := false
 
 const PLAYTIME_DAILY_LIMIT_MINUTES := 60
 const PLAYTIME_HEARTBEAT_INTERVAL_SECONDS := 15.0
@@ -45,7 +49,10 @@ func _ensure_playtime_session() -> Dictionary:
 
 func _ready() -> void:
 	var http := get_node_or_null("/root/HttpApi")
-	if http != null and http.has_method("is_local_qa_mode") and bool(http.call("is_local_qa_mode")):
+	if http != null and http.has_method("is_android_qa_mode") and bool(http.call("is_android_qa_mode")):
+		var android_writes_enabled := http.has_method("is_android_qa_remote_writes_enabled") and bool(http.call("is_android_qa_remote_writes_enabled"))
+		configure_android_qa_mode(android_writes_enabled)
+	elif http != null and http.has_method("is_local_qa_mode") and bool(http.call("is_local_qa_mode")):
 		enable_local_qa_mode()
 	var game_state := get_node_or_null("/root/GameState")
 	if game_state:
@@ -59,8 +66,26 @@ func _ready() -> void:
 		if not game_state.canonical_activity_boundary.is_connected(_on_canonical_activity_boundary):
 			game_state.canonical_activity_boundary.connect(_on_canonical_activity_boundary)
 	_load_pending()
+	var root_window := get_tree().root if get_tree() != null else null
+	if root_window is Window:
+		get_tree().auto_accept_quit = false
+		if not root_window.close_requested.is_connected(_on_window_close_requested):
+			root_window.close_requested.connect(_on_window_close_requested)
+
+
+func _on_window_close_requested() -> void:
+	if _app_close_in_progress:
+		return
+	_app_close_in_progress = true
+	if GameState != null:
+		await _end_playtime_session()
+		GameState.discard_unsaved_run()
+	if get_tree() != null:
+		get_tree().quit()
 
 func enable_local_qa_mode() -> void:
+	android_qa_mode = false
+	android_qa_remote_writes_enabled = false
 	local_qa_only = true
 	_pending_file = LOCAL_QA_PENDING_FILE
 	_invalidate_playtime_lease()
@@ -72,12 +97,42 @@ func enable_local_qa_mode() -> void:
 	_acknowledged_activity_keys.clear()
 	print("RemoteSync: LOCAL QA ONLY — all telemetry/progress writes disabled")
 
-func _process(delta: float) -> void:
+
+func configure_android_qa_mode(remote_writes_enabled: bool) -> void:
+	android_qa_mode = true
+	android_qa_remote_writes_enabled = remote_writes_enabled
+	local_qa_only = false
+	_pending_file = ANDROID_QA_PENDING_FILE
+	_invalidate_playtime_lease()
+	_session_start_in_progress = false
+	_playtime_end_in_progress = false
+	_playtime_heartbeat_in_progress = false
+	_playtime_timeout_pending = false
+	_activity_requests_in_flight.clear()
+	_acknowledged_activity_keys.clear()
+	if remote_writes_enabled:
+		print("RemoteSync: ANDROID QA — isolated QA outbox enabled")
+	else:
+		print("RemoteSync: ANDROID QA CONFIG INVALID — remote writes disabled")
+
+
+func _remote_writes_blocked() -> bool:
+	return local_qa_only or (android_qa_mode and not android_qa_remote_writes_enabled)
+
+
+func _current_environment_scope() -> String:
 	if local_qa_only:
-		return
+		return "local_qa"
+	if android_qa_mode:
+		return "android_qa"
+	return "production"
+
+func _process(delta: float) -> void:
 	if not GameState:
 		return
 	GameState.consume_playtime_clock(delta)
+	if _remote_writes_blocked():
+		return
 	if not _has_active_playtime_lease():
 		return
 	_playtime_heartbeat_elapsed += delta
@@ -86,18 +141,28 @@ func _process(delta: float) -> void:
 		_refresh_playtime_lease.call_deferred()
 
 func _on_save_created(save_data: Dictionary) -> void:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return
-	# Always allow local save to complete; attempt remote sync but do not block
-	await _async_send_progress(save_data)
+	var save_kind := String(save_data.get("save_kind", ""))
+	if save_kind not in ["manual", "daily_time_limit"]:
+		return
+	if not _commit_academic_save_data(save_data):
+		print("RemoteSync: save commit was not durably queued; retaining pending academic events locally.")
+		return
+	GameState.mark_academic_commit_enqueued(save_data)
+	# A daily limit ends permission to play. Keep the committed bundle durable
+	# and let the next authorized session flush it rather than opening a new
+	# session just to send records after the limit.
+	if GameState.playtime_authorized:
+		await _flush_pending()
 
 func _on_progression_session_reset(source: String) -> void:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return
 	if source == "new_game":
-		await _create_activity_log("New Game", "New Game profile initialized", {})
+		_stage_academic_activity_log("New Game", "New Game profile initialized", {})
 	elif source == "load":
-		await _create_activity_log("Load Game", "Existing game profile loaded", {})
+		_stage_academic_activity_log("Load Game", "Existing game profile loaded", {})
 
 	if source == "new_game" or source == "load":
 		var session_result := await _start_playtime_session()
@@ -105,9 +170,9 @@ func _on_progression_session_reset(source: String) -> void:
 			GameState.emit_tutorial_activity_started()
 
 func _on_game_over() -> void:
-	if local_qa_only:
-		return
-	await _end_playtime_session()
+	# Game Over is a retry state, not the end of the independent Screen Time
+	# session. The session is closed only when the player chooses to leave.
+	return
 
 func _on_time_limit_reached() -> void:
 	if GameState.playtime_authorized or _playtime_timeout_handled:
@@ -117,18 +182,34 @@ func _on_time_limit_reached() -> void:
 		return
 	_playtime_timeout_pending = false
 	_playtime_timeout_handled = true
-	var current_scene: Node = get_tree().current_scene
-	if current_scene != null:
-		GameState.capture_runtime(current_scene.scene_file_path, get_tree().get_first_node_in_group("player_character").global_position if get_tree().get_first_node_in_group("player_character") != null else Vector2.ZERO)
-	var auto_save_path: String = GameState.save_checkpoint()
-	if local_qa_only:
+	var time_limit_state_ready := true
+	var in_battle := GameState.battle_active or GameState.get_mode() == GameState.GameMode.BATTLE \
+			or GameState.current_lives <= 0
+	if in_battle:
+		time_limit_state_ready = GameState.prepare_daily_time_limit_state()
+	else:
+		var current_scene: Node = get_tree().current_scene
+		if current_scene != null and GameState._is_recoverable_gameplay_scene(current_scene.scene_file_path):
+			var player := get_tree().get_first_node_in_group("player_character") as Node2D
+			if player != null:
+				GameState.capture_runtime(current_scene.scene_file_path, player.global_position)
+			time_limit_state_ready = GameState.prepare_daily_time_limit_state()
+		else:
+			time_limit_state_ready = GameState.prepare_daily_time_limit_state()
+	if time_limit_state_ready:
+		await _create_activity_log("Auto Save", "Auto-save due to daily playtime limit reached", {})
+		await _create_activity_log("Timeout", "Gameplay session timed out after daily limit reached", {})
+	var auto_save_path: String = GameState.save_daily_time_limit_game() if time_limit_state_ready else ""
+	if not auto_save_path.is_empty():
+		_commit_academic_save_data(GameState.peek_save_data(auto_save_path))
+	if _remote_writes_blocked():
 		# Local human QA keeps the same local-save/modal behavior without making
 		# any telemetry or progress request outside the isolated runtime.
 		_invalidate_playtime_lease()
 	else:
 		await _end_playtime_session()
-		await _create_activity_log("Auto Save", "Auto-save due to daily playtime limit reached", {})
-		await _create_activity_log("Timeout", "Gameplay session timed out after daily limit reached", {})
+		if auto_save_path.is_empty():
+			print("RemoteSync: daily time-limit save was unavailable; no academic commit was created.")
 	var hud := get_node_or_null("/root/GameHUD")
 	if hud != null and hud.has_method("show_time_limit_reached"):
 		hud.call("show_time_limit_reached")
@@ -151,11 +232,11 @@ func _on_playtime_warning(remaining_minutes: int) -> void:
 
 func _on_task_state_changed(previous_index: int, current_index: int, event: Dictionary) -> void:
 	# GameState owns progression. This observer adds no quest state or UI effects.
-	await _submit_canonical_task_activity(previous_index, current_index, event)
+	_submit_canonical_task_activity(previous_index, current_index, event)
 
 
 func _on_canonical_activity_boundary(event: Dictionary) -> void:
-	await _submit_canonical_task_activity(
+	_submit_canonical_task_activity(
 		GameState.safe_int_value(event.get("previous_index", GameState.current_task_index), GameState.current_task_index),
 		GameState.safe_int_value(event.get("current_index", GameState.current_task_index), GameState.current_task_index),
 		event
@@ -163,7 +244,7 @@ func _on_canonical_activity_boundary(event: Dictionary) -> void:
 
 
 func _submit_canonical_task_activity(previous_index: int, current_index: int, event: Dictionary) -> void:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return
 	var event_type := _canonical_activity_type(GameState.safe_text_value(event.get("activity_type", event.get("type", ""))))
 	if event_type.is_empty():
@@ -205,18 +286,9 @@ func _submit_canonical_task_activity(previous_index: int, current_index: int, ev
 		"duration_seconds": canonical_event.get("duration_seconds", null),
 		"is_player_facing": bool(canonical_event.get("is_player_facing", true)),
 	}
-	# Write ahead before the first network await. A crash, connection loss, or
-	# expired lease cannot erase a genuine canonical completion event.
-	_enqueue_pending_activity(payload)
-	if not _has_active_playtime_lease():
-		var lease_result: Dictionary = await _ensure_playtime_session()
-		if not bool(lease_result.get("ok", false)):
-			return
-	if get_node_or_null("/root/HttpApi") == null:
-		return
-	_activity_requests_in_flight[acknowledgement_key] = true
-	await _flush_pending()
-	_activity_requests_in_flight.erase(acknowledgement_key)
+	# Progression is local until the player explicitly commits it. Staging also
+	# writes the event into the hidden owner-scoped checkpoint for crash safety.
+	GameState.stage_pending_academic_activity(payload, CANONICAL_ACTIVITY_ENDPOINT)
 
 
 func _canonical_activity_type(candidate: String) -> String:
@@ -331,8 +403,188 @@ func _is_learning_cycle_changed(result: Dictionary) -> bool:
 	var body: Variant = result.get("body", {})
 	return body is Dictionary and GameState.safe_text_value(body.get("code", "")) == "LEARNING_CYCLE_CHANGED"
 
+func _commit_academic_save_data(save_data: Dictionary) -> bool:
+	if _remote_writes_blocked():
+		return false
+	var save_kind := String(save_data.get("save_kind", ""))
+	if save_kind not in ["manual", "daily_time_limit"]:
+		return false
+	var student_id := GameState.safe_text_value(save_data.get("student_id", ""))
+	var parent_id := GameState.safe_text_value(save_data.get("parent_id", ""))
+	var commit_id := GameState.safe_text_value(save_data.get("save_commit_id", ""))
+	if not GameState.is_valid_existing_student_id(student_id) \
+			or not GameState.is_valid_six_digit_id(parent_id) or commit_id.is_empty():
+		return false
+	if student_id != GameState.safe_text_value(GameState.student_id) \
+			or parent_id != GameState.safe_text_value(GameState.parent_id) \
+			or int(save_data.get("learning_cycle_version", -1)) != int(GameState.learning_cycle_version):
+		return false
+	var queue := _load_pending()
+	var queued_ids: Dictionary = {}
+	for item: Variant in queue:
+		if item is Dictionary:
+			queued_ids[_pending_item_identity(item)] = true
+	var environment_scope := _current_environment_scope()
+	var results: Variant = save_data.get("pending_academic_results", [])
+	if results is Array:
+		for result: Variant in results:
+			if not (result is Dictionary):
+				continue
+			var result_payload: Dictionary = result.duplicate(true)
+			if String(result_payload.get("student_id", "")) != student_id \
+					or String(result_payload.get("parent_id", "")) != parent_id \
+					or int(result_payload.get("learning_cycle_version", -1)) != int(save_data.get("learning_cycle_version", -2)):
+				continue
+			result_payload.erase("playtime_session_id")
+			result_payload.erase("playtime_session_credential")
+			result_payload.erase("session_id")
+			result_payload["environment_scope"] = environment_scope
+			var item := {
+				"kind": "result",
+				"path": CANONICAL_RESULT_ENDPOINT,
+				"environment_scope": environment_scope,
+				"student_id": student_id,
+				"parent_id": parent_id,
+				"learning_cycle_version": int(save_data.get("learning_cycle_version", 0)),
+				"payload": result_payload,
+			}
+			var identity := _pending_item_identity(item)
+			if not queued_ids.has(identity):
+				queue.append(item)
+				queued_ids[identity] = true
+	var activities: Variant = save_data.get("pending_academic_activities", [])
+	if activities is Array:
+		for activity: Variant in activities:
+			if not (activity is Dictionary):
+				continue
+			var event_key := GameState.safe_text_value(activity.get("event_key", ""))
+			var activity_owner := GameState.safe_text_value(activity.get("student_id", ""))
+			var activity_parent := GameState.safe_text_value(activity.get("parent_id", ""))
+			var activity_cycle := GameState.safe_int_value(activity.get("learning_cycle_version", -1), -1)
+			var nested_payload: Variant = activity.get("payload", {})
+			var endpoint := GameState.safe_text_value(activity.get("path", CANONICAL_ACTIVITY_ENDPOINT))
+			if event_key.is_empty() or activity_owner != student_id or activity_parent != parent_id \
+					or activity_cycle != int(save_data.get("learning_cycle_version", -2)) \
+					or not (nested_payload is Dictionary) \
+					or endpoint not in [CANONICAL_ACTIVITY_ENDPOINT, "/api/activity-logs"]:
+				continue
+			var activity_payload: Dictionary = nested_payload.duplicate(true)
+			activity_payload.erase("session_id")
+			activity_payload.erase("session_credential")
+			activity_payload["event_key"] = event_key
+			activity_payload["activity_event_id"] = event_key
+			activity_payload["environment_scope"] = environment_scope
+			var item := {
+				"kind": "activity",
+				"path": endpoint,
+				"environment_scope": environment_scope,
+				"student_id": student_id,
+				"parent_id": parent_id,
+				"learning_cycle_version": int(save_data.get("learning_cycle_version", 0)),
+				"payload": activity_payload,
+			}
+			var identity := _pending_item_identity(item)
+			if not queued_ids.has(identity):
+				queue.append(item)
+				queued_ids[identity] = true
+	var progress_payload := _build_progress_commit_payload(save_data)
+	progress_payload["environment_scope"] = environment_scope
+	var progress_item := {
+		"kind": "progress_commit",
+		"path": "/api/game/progress",
+		"environment_scope": environment_scope,
+		"student_id": student_id,
+		"parent_id": parent_id,
+		"learning_cycle_version": int(save_data.get("learning_cycle_version", 0)),
+		"save_commit_id": commit_id,
+		"payload": progress_payload,
+	}
+	var progress_identity := _pending_item_identity(progress_item)
+	if not queued_ids.has(progress_identity):
+		queue.append(progress_item)
+		queued_ids[progress_identity] = true
+	return _persist_pending_queue(queue)
+
+
+func _build_progress_commit_payload(save_data: Dictionary) -> Dictionary:
+	return {
+		"parent_id": GameState.safe_text_value(save_data.get("parent_id", "")),
+		"student_id": GameState.safe_text_value(save_data.get("student_id", "")),
+		"student_name": GameState.safe_text_value(save_data.get("player_name", save_data.get("student_name", ""))),
+		"grade_level": GameState.safe_text_value(save_data.get("grade_level", "")),
+		"gender": GameState.safe_text_value(save_data.get("gender", "")),
+		"current_quest": GameState.safe_text_value(save_data.get("current_quest", "")),
+		"quest_progress": GameState.safe_int_value(save_data.get("current_task_index", 0), 0),
+		"lesson_progress": GameState.safe_int_value(save_data.get("lesson_progress", 0), 0),
+		"progress_percentage": GameState.safe_int_value(save_data.get("progress_percentage", save_data.get("completion_percentage", 0)), 0),
+		"current_scene": GameState.safe_text_value(save_data.get("scene_path", save_data.get("current_scene", ""))),
+		"current_map": GameState.safe_text_value(save_data.get("current_map", save_data.get("scene_path", ""))),
+		"save_timestamp": GameState.safe_int_value(save_data.get("save_timestamp", 0), 0),
+		"save_time": GameState.safe_text_value(save_data.get("save_time", "")),
+		"save_date": GameState.safe_text_value(save_data.get("save_date", "")),
+		"score": GameState.safe_int_value(save_data.get("score", 0), 0),
+		"correct_answers": GameState.safe_int_value(save_data.get("correct_answers", 0), 0),
+		"incorrect_answers": GameState.safe_int_value(save_data.get("incorrect_answers", 0), 0),
+		"total_questions": GameState.safe_int_value(save_data.get("total_questions", 0), 0),
+		"total_play_time": GameState.safe_int_value(save_data.get("total_play_time", 0), 0),
+		"total_quests_completed": GameState.safe_int_value(save_data.get("total_quests_completed", 0), 0),
+		"difficulty_level": GameState.safe_text_value(save_data.get("difficulty_level", "Unknown"), "Unknown"),
+		"learning_cycle_version": GameState.safe_int_value(save_data.get("learning_cycle_version", GameState.learning_cycle_version), GameState.learning_cycle_version),
+		"save_commit_id": GameState.safe_text_value(save_data.get("save_commit_id", "")),
+		"commit_trigger": GameState.safe_text_value(save_data.get("commit_trigger", "")),
+		"save_status": "saved",
+	}
+
+
+func _persist_pending_queue(queue: Array) -> bool:
+	var directory := _pending_file.get_base_dir()
+	if directory.is_empty():
+		return false
+	var absolute_directory := ProjectSettings.globalize_path(directory)
+	if not DirAccess.dir_exists_absolute(absolute_directory) \
+			and DirAccess.make_dir_recursive_absolute(absolute_directory) != OK:
+		return false
+	var nonce := str(Time.get_ticks_usec())
+	var temporary_path := "%s.%s.tmp" % [_pending_file, nonce]
+	var backup_path := "%s.%s.backup" % [_pending_file, nonce]
+	var file := FileAccess.open(temporary_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(queue))
+	file.flush()
+	var write_error := file.get_error()
+	file.close()
+	if write_error != OK or not _is_valid_pending_queue(_load_pending_queue_from_path(temporary_path)):
+		if FileAccess.file_exists(temporary_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
+		return false
+	var had_existing := FileAccess.file_exists(_pending_file)
+	if had_existing and DirAccess.rename_absolute(ProjectSettings.globalize_path(_pending_file), ProjectSettings.globalize_path(backup_path)) != OK:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
+		return false
+	if DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary_path), ProjectSettings.globalize_path(_pending_file)) != OK:
+		if had_existing:
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(_pending_file))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
+		return false
+	if had_existing and FileAccess.file_exists(backup_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+	return true
+
+
+func _load_pending_queue_from_path(path: String) -> Array:
+	if not FileAccess.file_exists(path):
+		return []
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return []
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	return parsed if parsed is Array else []
+
+
 func _async_send_progress(save_data: Dictionary) -> void:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return
 	# perform non-blocking via thread? We'll do simple call and rely on HttpApi's await behavior
 	var http := get_node_or_null("/root/HttpApi")
@@ -396,7 +648,7 @@ func _build_playtime_start_payload(override_payload: Dictionary = {}) -> Diction
 	return payload
 
 func _send_playtime_start_request(override_payload: Dictionary = {}) -> Dictionary:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
@@ -409,7 +661,7 @@ func _send_playtime_start_request(override_payload: Dictionary = {}) -> Dictiona
 	return await http.request_post("/api/playtime/start", payload)
 
 func _send_playtime_end_request(lease: Dictionary = {}) -> Dictionary:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
@@ -429,7 +681,7 @@ func _send_playtime_end_request(lease: Dictionary = {}) -> Dictionary:
 
 
 func _send_playtime_heartbeat_request(lease: Dictionary = {}) -> Dictionary:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
@@ -493,33 +745,55 @@ func _refresh_playtime_lease() -> void:
 	_playtime_heartbeat_in_progress = false
 
 func _create_activity_log(status: String, description: String, override_payload: Dictionary = {}) -> void:
-	if local_qa_only:
+	if _remote_writes_blocked():
+		return
+	if status not in ["Playing", "Offline"]:
+		_stage_academic_activity_log(status, description, override_payload)
 		return
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return
+	var payload := _build_activity_log_payload(status, description, override_payload)
+	if payload.is_empty():
+		return
+	var result: Dictionary = await http.request_post("/api/activity-logs", payload)
+	if not result.ok:
+		print("RemoteSync: activity log failed: %s" % str(result.error))
 
+
+func _stage_academic_activity_log(status: String, description: String, override_payload: Dictionary = {}) -> void:
+	if _remote_writes_blocked():
+		return
+	var payload := _build_activity_log_payload(status, description, override_payload)
+	if payload.is_empty():
+		return
+	var event_key := "cycle:%d:app:%s:%s:%d" % [
+		int(GameState.learning_cycle_version), status.to_lower().replace(" ", "_"),
+		GameState.safe_text_value(payload.get("student_id", "")), Time.get_ticks_usec()
+	]
+	payload["event_key"] = event_key
+	payload["activity_event_id"] = event_key
+	GameState.stage_pending_academic_activity(payload, "/api/activity-logs")
+
+
+func _build_activity_log_payload(status: String, description: String, override_payload: Dictionary) -> Dictionary:
 	var student_id := GameState.safe_text_value(override_payload.get("student_id", GameState.student_id))
 	if not GameState.is_valid_existing_student_id(student_id):
-		return
-
+		return {}
 	var payload := {
 		"student_id": student_id,
 		"student_name": GameState.safe_text_value(override_payload.get("student_name", GameState.player_name)),
 		"grade_level": GameState.safe_text_value(override_payload.get("grade_level", GameState.grade_level)),
 		"section": GameState.safe_text_value(override_payload.get("section", "")),
-		"current_quest": GameState.safe_text_value(override_payload.get("current_quest", GameState.current_quest)),
+		"current_quest": GameState.safe_text_value(override_payload.get("current_quest", "")),
 		"save_status": "playing" if status == "Playing" else "saved",
 		"total_play_time": 0,
-		"quest_progress": GameState.safe_int_value(override_payload.get("quest_progress", GameState.current_task_index), GameState.current_task_index),
+		"quest_progress": GameState.safe_int_value(override_payload.get("quest_progress", 0), 0),
 		"role": "Student",
 		"status": status,
 		"activity_description": description
 	}
-
-	var result: Dictionary = await http.request_post("/api/activity-logs", payload)
-	if not result.ok:
-		print("RemoteSync: activity log failed: %s" % str(result.error))
+	return payload
 
 func _finish_playtime_start_transition() -> void:
 	_session_start_in_progress = false
@@ -707,24 +981,11 @@ func request_end_playtime_session() -> Dictionary:
 
 
 func request_game_leaderboard() -> Dictionary:
-	if not _has_active_playtime_lease():
-		if GameState.is_valid_existing_student_id(GameState.student_id) and GameState.is_valid_six_digit_id(GameState.parent_id):
-			var session_result: Dictionary = await _ensure_playtime_session()
-			if not bool(session_result.get("ok", false)):
-				return {"ok": false, "status": 0, "error": "An active playtime lease is required.", "entries": []}
-		else:
-			return {"ok": false, "status": 0, "error": "An active playtime lease is required.", "entries": []}
 	var http := get_node_or_null("/root/HttpApi")
 	if http == null:
 		return {"ok": false, "status": 0, "error": "Leaderboard service unavailable.", "entries": []}
-	var result: Dictionary = await http.request_post("/api/game/leaderboard", {
-		"session_id": _current_playtime_session_id,
-		"session_credential": _current_playtime_session_credential,
-		"learning_cycle_version": int(GameState.learning_cycle_version),
-	})
+	var result: Dictionary = await http.request_get("/api/game/leaderboard")
 	var status := GameState.safe_int_value(result.get("status", 0), 0)
-	if _is_learning_cycle_changed(result):
-		return {"ok": false, "status": status, "error": "Leaderboard belongs to a previous learning cycle.", "entries": []}
 	if not bool(result.get("ok", false)) or status < 200 or status >= 300:
 		return {"ok": false, "status": status, "error": "Leaderboard unavailable.", "entries": []}
 	var body: Variant = result.get("body", {})
@@ -748,12 +1009,7 @@ func _sanitize_game_leaderboard_entries(raw_entries: Array) -> Array:
 		var entry := {
 			"rank": rank,
 			"display_name": display_name,
-			"game_score": _normalize_leaderboard_number(raw_entry.get("game_score", null)),
-			"progress_percentage": _normalize_leaderboard_number(raw_entry.get("progress_percentage", null)),
-			"accuracy_rate": _normalize_leaderboard_number(raw_entry.get("accuracy_rate", null)),
 			"correct_answers": _normalize_leaderboard_number(raw_entry.get("correct_answers", null)),
-			"total_questions": _normalize_leaderboard_number(raw_entry.get("total_questions", null)),
-			"quests_completed": _normalize_leaderboard_number(raw_entry.get("quests_completed", null)),
 		}
 		if raw_entry.has("grade"):
 			entry["grade"] = GameState.safe_text_value(raw_entry.get("grade", ""))
@@ -777,26 +1033,14 @@ func _normalize_leaderboard_number(value: Variant) -> Variant:
 
 
 func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return
-	var http := get_node_or_null("/root/HttpApi")
 	if not GameState.is_valid_existing_student_id(GameState.student_id) or not GameState.is_valid_six_digit_id(GameState.parent_id):
 		return
 	var payload := _build_question_result_payload(question, is_correct)
-	# Persist the canonical event before any await. The same payload (and event
-	# ID) is retained until a same-owner server lease acknowledges it.
-	_enqueue_pending_result(payload)
-	# Battle scenes can answer the first question while the asynchronous
-	# playtime-start request is still completing. Recover the current lease here
-	# instead of silently dropping that graded answer from website analytics.
-	if not _has_active_playtime_lease():
-		var session_result: Dictionary = await _ensure_playtime_session()
-		if not bool(session_result.get("ok", false)):
-			print("RemoteSync: unable to establish a playtime lease for question result; keeping it in the outbox.")
-			return
-	if http == null:
-		return
-	await _flush_pending()
+	# A graded answer is academic progress. Persist it locally, but do not create
+	# an outbox item or make a network request until an approved save boundary.
+	GameState.stage_pending_academic_result(payload)
 
 
 func _build_question_result_payload(question: Dictionary, is_correct: bool) -> Dictionary:
@@ -885,11 +1129,11 @@ func _enqueue_pending_result(payload: Dictionary) -> void:
 	queued_payload.erase("playtime_session_id")
 	queued_payload.erase("playtime_session_credential")
 	queued_payload.erase("session_id")
-	queued_payload["environment_scope"] = "local_qa" if local_qa_only else "production"
+	queued_payload["environment_scope"] = _current_environment_scope()
 	pending.append({
 		"kind": "result",
 		"path": CANONICAL_RESULT_ENDPOINT,
-		"environment_scope": "local_qa" if local_qa_only else "production",
+		"environment_scope": _current_environment_scope(),
 		"payload": queued_payload,
 	})
 	var file := FileAccess.open(_pending_file, FileAccess.WRITE)
@@ -903,8 +1147,7 @@ func _enqueue_pending_result(payload: Dictionary) -> void:
 func _enqueue_pending(save_data: Dictionary) -> void:
 	var pending := _load_pending()
 	var queued_save := save_data.duplicate(true)
-	if local_qa_only:
-		queued_save["environment_scope"] = "local_qa"
+	queued_save["environment_scope"] = _current_environment_scope()
 	pending.append(queued_save)
 	var file := FileAccess.open(_pending_file, FileAccess.WRITE)
 	if file:
@@ -934,7 +1177,7 @@ func _enqueue_pending_activity(payload: Dictionary) -> void:
 	var queued_payload := payload.duplicate(true)
 	queued_payload.erase("session_id")
 	queued_payload.erase("session_credential")
-	var environment_scope := "local_qa" if local_qa_only else "production"
+	var environment_scope := _current_environment_scope()
 	queued_payload["environment_scope"] = environment_scope
 	pending.append({
 		"kind": "activity",
@@ -986,6 +1229,10 @@ func _is_valid_pending_queue(queue: Array) -> bool:
 func _pending_item_identity(item: Dictionary) -> String:
 	var kind := String(item.get("kind", ""))
 	var payload: Variant = item.get("payload", item)
+	if kind == "progress_commit":
+		var commit_id := String(item.get("save_commit_id", "")).strip_edges()
+		if not commit_id.is_empty():
+			return "progress:%s:%s" % [_pending_item_student_id(item), commit_id]
 	if kind == "result" and payload is Dictionary:
 		var result_event_id := String(payload.get("result_event_id", "")).strip_edges()
 		if not result_event_id.is_empty():
@@ -1046,7 +1293,7 @@ func _reconcile_processed_pending_items(processed_counts: Dictionary) -> void:
 
 
 func _flush_pending(allow_lease_recovery: bool = true) -> void:
-	if local_qa_only:
+	if _remote_writes_blocked():
 		return
 	if _pending_flush_in_progress:
 		_pending_flush_requested = true
@@ -1068,7 +1315,8 @@ func _flush_pending(allow_lease_recovery: bool = true) -> void:
 	for item in pending:
 		if not (item is Dictionary):
 			continue
-		if String(item.get("environment_scope", "production")) != "production":
+		var expected_environment_scope := _current_environment_scope()
+		if String(item.get("environment_scope", "production")) != expected_environment_scope:
 			_mark_pending_item_processed(processed_counts, item)
 			continue
 		if (
@@ -1092,25 +1340,29 @@ func _flush_pending(allow_lease_recovery: bool = true) -> void:
 		var path := "/api/game/progress"
 		var payload: Dictionary = item.duplicate(true)
 		var is_activity := false
-		if String(item.get("kind", "")) == "activity":
+		var item_kind := String(item.get("kind", ""))
+		if item_kind in ["activity", "progress_commit"]:
 			path = String(item.get("path", CANONICAL_ACTIVITY_ENDPOINT))
 			var queued_payload: Variant = item.get("payload", {})
 			if not (queued_payload is Dictionary):
 				_mark_pending_item_processed(processed_counts, item)
 				continue
 			payload = queued_payload.duplicate(true)
-			if String(payload.get("environment_scope", "production")) != "production":
+			if String(payload.get("environment_scope", "production")) != expected_environment_scope:
 				_mark_pending_item_processed(processed_counts, item)
 				continue
-			is_activity = true
-		elif String(item.get("kind", "")) == "result":
+			if item_kind == "activity":
+				is_activity = true
+			else:
+				path = "/api/game/progress"
+		elif item_kind == "result":
 			path = String(item.get("path", CANONICAL_RESULT_ENDPOINT))
 			var queued_result: Variant = item.get("payload", {})
 			if not (queued_result is Dictionary):
 				_mark_pending_item_processed(processed_counts, item)
 				continue
 			payload = queued_result.duplicate(true)
-			if String(payload.get("environment_scope", "production")) != "production":
+			if String(payload.get("environment_scope", "production")) != expected_environment_scope:
 				_mark_pending_item_processed(processed_counts, item)
 				continue
 		if not _has_active_playtime_lease():
@@ -1128,7 +1380,7 @@ func _flush_pending(allow_lease_recovery: bool = true) -> void:
 				break
 		if is_activity:
 			_update_activity_lease_fields(payload)
-		elif String(item.get("kind", "")) == "result":
+		elif item_kind == "result":
 			_update_result_lease_fields(payload)
 		else:
 			_update_progress_lease_fields(payload)

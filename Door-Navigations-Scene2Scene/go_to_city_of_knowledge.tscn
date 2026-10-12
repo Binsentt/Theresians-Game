@@ -9,6 +9,7 @@ size = Vector2(14.75, 22.8125)
 script = ExtResource("1_door")
 destination_scene_path = "res://scenes/city_of_knowledge.tscn"
 destination_spawn_position = Vector2(1172, 96)
+destination_spawn_marker_name = "spawn_from_oakleaf"
 destination_facing_direction = "left"
 play_fade_transition = true
 requires_city_of_knowledge_unlock = true

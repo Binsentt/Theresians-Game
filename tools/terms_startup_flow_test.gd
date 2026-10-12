@@ -1,12 +1,17 @@
 extends Node
 
-const TERMS_APP_ACCEPTANCE_PATH := "user://terms_app_acceptance.json"
 const MAIN_MENU_SCENE := preload("res://scenes/main_menu.tscn")
+const NEW_GAME_SCENE := preload("res://scenes/new_game_scene.tscn")
 const RESULT_PATH := "user://terms_startup_flow_test_result.json"
 
 var _checks: Array[Dictionary] = []
-var _original_acceptance := ""
-var _had_original_acceptance := false
+var _isolated_directory := ""
+var _isolated_acceptance_path := ""
+var _secondary_acceptance_path := ""
+var _simulated_acceptance_path := ""
+var _original_device_installation_id := ""
+var _original_app_acceptance_contents := ""
+var _original_app_acceptance_exists := false
 
 
 func _ready() -> void:
@@ -14,14 +19,42 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	_original_acceptance = FileAccess.get_file_as_string(TERMS_APP_ACCEPTANCE_PATH)
-	_had_original_acceptance = FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH)
-	if _had_original_acceptance:
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(TERMS_APP_ACCEPTANCE_PATH))
-
+	if not HttpApi.is_local_qa_profile_active():
+		push_error("Terms QA refused to run without local-only startup selected before autoload initialization.")
+		get_tree().quit(1)
+		return
 	var game_state := get_node_or_null("/root/GameState")
 	_expect(game_state != null and game_state.has_method("has_current_terms_app_acceptance"), "GameState exposes a device-scoped app Terms acceptance")
 	_expect(game_state != null and game_state.has_method("record_terms_app_acceptance"), "GameState persists app Terms acceptance without inventing a Student ID")
+	_expect(game_state != null and game_state.has_method("set_terms_app_acceptance_path_for_qa"), "Terms QA can select an isolated acceptance profile without touching developer user data")
+	if game_state == null or not game_state.has_method("set_terms_app_acceptance_path_for_qa"):
+		await _finish()
+		return
+
+	_isolated_directory = "user://qa_test_artifacts/terms_startup_flow_test_%d_%d" % [OS.get_process_id(), Time.get_ticks_usec()]
+	var absolute_directory := ProjectSettings.globalize_path(_isolated_directory)
+	if DirAccess.dir_exists_absolute(absolute_directory):
+		_expect(false, "Refusing to reuse an existing isolated Terms QA profile")
+		await _finish()
+		return
+	if DirAccess.make_dir_recursive_absolute(absolute_directory) != OK:
+		_expect(false, "Could not create the isolated Terms QA profile")
+		await _finish()
+		return
+	_isolated_acceptance_path = _isolated_directory.path_join("profile_one_terms.json")
+	_secondary_acceptance_path = _isolated_directory.path_join("profile_two_terms.json")
+	_original_app_acceptance_exists = FileAccess.file_exists(GameState.TERMS_APP_ACCEPTANCE_PATH)
+	if _original_app_acceptance_exists:
+		_original_app_acceptance_contents = FileAccess.get_file_as_string(GameState.TERMS_APP_ACCEPTANCE_PATH)
+	_original_device_installation_id = String(game_state.get("device_installation_id"))
+	game_state.set("device_installation_id", "terms-test-device-%d-%d" % [OS.get_process_id(), Time.get_ticks_usec()])
+	var profile_selected := bool(game_state.call("set_terms_app_acceptance_path_for_qa", _isolated_acceptance_path))
+	_expect(profile_selected, "Terms QA selected a unique clean acceptance profile")
+	if not profile_selected:
+		_cleanup_acceptance()
+		await _finish()
+		return
+	_expect(not FileAccess.file_exists(_isolated_acceptance_path), "Fresh isolated profile begins without accepted Terms")
 
 	# The production button scripts resolve Fade/VBoxContainer from the active
 	# scene during @onready; provide harmless stand-ins while this harness mounts
@@ -92,8 +125,8 @@ func _run() -> void:
 			_expect(not new_game.disabled and not load_game.disabled and not leaderboard.disabled, "Main Menu controls restore after acceptance")
 			_expect(game_state != null and bool(game_state.call("has_current_terms_app_acceptance")), "Continue persists the app acceptance")
 
-	var saved_app_acceptance := FileAccess.get_file_as_string(TERMS_APP_ACCEPTANCE_PATH)
-	var stale_file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
+	var saved_app_acceptance := FileAccess.get_file_as_string(_isolated_acceptance_path)
+	var stale_file := FileAccess.open(_isolated_acceptance_path, FileAccess.WRITE)
 	if stale_file != null:
 		stale_file.store_string(JSON.stringify({
 			"device_installation_id": game_state.get_device_installation_id(),
@@ -102,7 +135,7 @@ func _run() -> void:
 		}))
 		stale_file.close()
 	_expect(game_state != null and not bool(game_state.call("has_current_terms_app_acceptance")), "Terms version changes require fresh acceptance")
-	var current_file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
+	var current_file := FileAccess.open(_isolated_acceptance_path, FileAccess.WRITE)
 	if current_file != null:
 		current_file.store_string(saved_app_acceptance)
 		current_file.close()
@@ -116,21 +149,70 @@ func _run() -> void:
 	await get_tree().process_frame
 	var accepted_new_game := accepted_menu.get_node_or_null("VBoxContainer/NewGameBtn") as BaseButton
 	var accepted_terms_gate := accepted_menu.get_node_or_null("TermsGate") as Control
-	_expect(accepted_terms_gate != null and accepted_terms_gate.visible, "A fresh debug run shows Terms even when persisted device acceptance exists")
-	_expect(accepted_new_game != null and accepted_new_game.disabled, "Persisted production acceptance never bypasses a fresh debug run")
+	_expect(accepted_terms_gate == null or not accepted_terms_gate.visible, "Persisted device acceptance survives a fresh debug run")
+	_expect(accepted_new_game != null and not accepted_new_game.disabled, "Persisted device acceptance unlocks gameplay after restart")
+	var fresh_install_button := accepted_menu.get_node_or_null("EditorFreshTermsButton") as Button
+	_expect(fresh_install_button != null and fresh_install_button.visible, "Editor/local-QA Main Menu exposes an explicit fresh-install Terms simulation")
+	if fresh_install_button != null:
+		fresh_install_button.pressed.emit()
+		await get_tree().process_frame
+		accepted_terms_gate = accepted_menu.get_node_or_null("TermsGate") as Control
+		_simulated_acceptance_path = String(game_state.call("_terms_app_acceptance_path"))
+		_expect(accepted_terms_gate != null and accepted_terms_gate.visible, "Fresh-install simulation opens the real Terms gate")
+		_expect(_simulated_acceptance_path.begins_with("user://qa_test_artifacts/terms_startup_flow_test_editor_"), "Simulation stores acceptance in a unique QA-only profile")
+		_expect(accepted_new_game != null and accepted_new_game.disabled, "Fresh-install simulation gates gameplay until Terms are accepted")
+		var simulated_checkbox := accepted_terms_gate.get_node_or_null("Panel/Margin/Content/AgreementRow/AgreementCheckBox") as CheckBox if accepted_terms_gate != null else null
+		var simulated_continue := accepted_terms_gate.get_node_or_null("Panel/Margin/Content/Actions/ContinueButton") as Button if accepted_terms_gate != null else null
+		if simulated_checkbox != null and simulated_continue != null:
+			simulated_checkbox.button_pressed = true
+			await get_tree().process_frame
+			simulated_continue.pressed.emit()
+			await get_tree().process_frame
+			_expect(FileAccess.file_exists(_simulated_acceptance_path), "Accept persists Terms for the simulated profile during this run")
+		_expect(not FileAccess.file_exists(GameState.TERMS_APP_ACCEPTANCE_PATH) if not _original_app_acceptance_exists else FileAccess.get_file_as_string(GameState.TERMS_APP_ACCEPTANCE_PATH) == _original_app_acceptance_contents, "Simulation never overwrites the real installation acceptance")
+	var simulated_restart_game_state: Node = load("res://scripts/game_state.gd").new()
+	simulated_restart_game_state.set("device_installation_id", String(game_state.get("device_installation_id")))
+	simulated_restart_game_state.call("set_terms_app_acceptance_path_for_qa", _isolated_acceptance_path)
+	_expect(bool(simulated_restart_game_state.call("has_current_terms_app_acceptance")), "A fresh GameState instance reads acceptance from the same persisted profile after restart")
+	simulated_restart_game_state.free()
+
+	var new_game_wizard := NEW_GAME_SCENE.instantiate() as Control
+	get_tree().root.add_child(new_game_wizard)
+	var new_game_controller := new_game_wizard.get_node_or_null("TextureRect2")
+	GameState.update_new_game_registration({"student_id": "12345678", "parent_id": "654321"})
+	_expect(new_game_controller != null and new_game_controller.has_method("has_local_terms_acceptance"), "New Game checks device acceptance independently of Student ownership")
+	if new_game_controller != null and new_game_controller.has_method("has_local_terms_acceptance"):
+		_expect(bool(new_game_controller.call("has_local_terms_acceptance")), "Accepted device Terms remain valid after Student/Parent validation")
+		GameState.update_new_game_registration({"student_id": "23456789", "parent_id": "654321"})
+		_expect(bool(new_game_controller.call("has_local_terms_acceptance")), "Switching linked Student profiles does not reopen device Terms")
+	new_game_wizard.queue_free()
+
+	var fresh_profile_selected := bool(game_state.call("set_terms_app_acceptance_path_for_qa", _secondary_acceptance_path))
+	_expect(fresh_profile_selected and not FileAccess.file_exists(_secondary_acceptance_path), "A different fresh local profile has no inherited acceptance")
+	var fresh_profile_menu := MAIN_MENU_SCENE.instantiate() as Control
+	get_tree().root.add_child(fresh_profile_menu)
+	get_tree().current_scene = fresh_profile_menu
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var fresh_profile_gate := fresh_profile_menu.get_node_or_null("TermsGate") as Control
+	_expect(fresh_profile_gate != null and fresh_profile_gate.visible, "A different fresh local profile sees Terms before gameplay")
+	fresh_profile_menu.queue_free()
 
 	_cleanup_acceptance()
 	_finish()
 
 
 func _cleanup_acceptance() -> void:
-	if FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(TERMS_APP_ACCEPTANCE_PATH))
-	if _had_original_acceptance:
-		var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
-		if file != null:
-			file.store_string(_original_acceptance)
-			file.close()
+	for path in [_isolated_acceptance_path, _secondary_acceptance_path, _simulated_acceptance_path]:
+		if not path.is_empty() and FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	if not _isolated_directory.is_empty() and DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(_isolated_directory)):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(_isolated_directory))
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state != null:
+		if game_state.has_method("reset_terms_app_acceptance_path_for_qa"):
+			game_state.call("reset_terms_app_acceptance_path_for_qa")
+		game_state.set("device_installation_id", _original_device_installation_id)
 
 
 func _expect(condition: bool, label: String) -> void:
@@ -149,5 +231,5 @@ func _finish() -> void:
 	if result_file != null:
 		result_file.store_string(JSON.stringify(result))
 	print("TERMS_STARTUP_FLOW_TEST " + JSON.stringify(result))
-	await get_tree().create_timer(1.0).timeout
+	await get_tree().create_timer(45.0).timeout
 	get_tree().quit(0 if failed == 0 else 1)

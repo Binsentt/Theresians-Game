@@ -1,6 +1,8 @@
 extends Node
 
 const LEADERBOARD_SCENE := preload("res://leaderboard_scene.tscn")
+const QA_STUDENT_ID := "88001018"
+const QA_PARENT_ID := "880118"
 
 
 class LocalLeaderboardStub extends Node:
@@ -11,6 +13,11 @@ class LocalLeaderboardStub extends Node:
 
 
 var _failures: Array[String] = []
+var _game_state: Node
+var _qa_save_directory := ""
+var _previous_save_directory := ""
+var _previous_identity: Dictionary = {}
+var _created_qa_directory := false
 
 
 func _ready() -> void:
@@ -18,6 +25,39 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	_game_state = get_tree().root.get_node_or_null("GameState")
+	if _game_state == null:
+		_expect(false, "The isolated leaderboard fixture requires the GameState autoload.")
+		_finish()
+		return
+	_previous_save_directory = String(_game_state.get_save_directory())
+	_game_state.enable_local_qa_mode()
+	_previous_identity = {
+		"student_id": _game_state.student_id,
+		"parent_id": _game_state.parent_id,
+		"player_name": _game_state.player_name,
+		"grade_level": _game_state.grade_level,
+		"device_installation_id": _game_state.device_installation_id,
+	}
+	_qa_save_directory = "%s/leaderboard_multi_row_%d_%d" % [
+		_game_state.LOCAL_QA_SAVE_DIRECTORY,
+		OS.get_process_id(),
+		Time.get_ticks_usec(),
+	]
+	var absolute_qa_directory := ProjectSettings.globalize_path(_qa_save_directory)
+	if DirAccess.dir_exists_absolute(absolute_qa_directory) or DirAccess.make_dir_recursive_absolute(absolute_qa_directory) != OK:
+		_expect(false, "Could not create a new isolated leaderboard fixture directory.")
+		_finish()
+		return
+	_created_qa_directory = true
+	_game_state.set("_save_directory", _qa_save_directory)
+	_game_state.student_id = QA_STUDENT_ID
+	_game_state.parent_id = QA_PARENT_ID
+	_game_state.player_name = "Leaderboard Multi Row QA"
+	_game_state.grade_level = "Grade 2"
+	_game_state.device_installation_id = "leaderboard-multi-row-qa-device"
+	_expect(_game_state.save_manual_game().begins_with(_qa_save_directory + "/"), "An isolated local save anchors leaderboard rendering without a network request.")
+
 	var real_remote_sync := get_tree().root.get_node_or_null("RemoteSync")
 	if real_remote_sync != null:
 		real_remote_sync.name = "LeaderboardMultiRowOriginalRemoteSync"
@@ -126,7 +166,7 @@ func _entry(rank: int, display_name: String, grade: String, progress: Variant, g
 		"display_name": display_name,
 		"grade": grade,
 		"progress_percentage": progress,
-		"game_score": game_score,
+		"correct_answers": game_score,
 		"student_id": "001234",
 		"parent_id": "009876",
 	}
@@ -138,7 +178,9 @@ func _expect(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
-	var report := FileAccess.open("res://docs/qa/leaderboard_multi_row_regression_test.json", FileAccess.WRITE)
+	_cleanup_qa_fixture()
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa_test_artifacts"))
+	var report := FileAccess.open("user://qa_test_artifacts/leaderboard_multi_row_regression_test.json", FileAccess.WRITE)
 	if report != null:
 		report.store_string(JSON.stringify({"passed": 8 - _failures.size(), "failed": _failures.size(), "failures": _failures}, "\t"))
 		report.close()
@@ -149,3 +191,25 @@ func _finish() -> void:
 	for failure in _failures:
 		push_error(failure)
 	get_tree().quit(1)
+
+
+func _cleanup_qa_fixture() -> void:
+	if _game_state == null:
+		return
+	if _created_qa_directory:
+		var absolute_directory := ProjectSettings.globalize_path(_qa_save_directory)
+		var directory := DirAccess.open(absolute_directory)
+		if directory != null:
+			directory.list_dir_begin()
+			var file_name := directory.get_next()
+			while not file_name.is_empty():
+				if not directory.current_is_dir():
+					DirAccess.remove_absolute(absolute_directory.path_join(file_name))
+				file_name = directory.get_next()
+			directory.list_dir_end()
+			DirAccess.remove_absolute(absolute_directory)
+			_created_qa_directory = false
+	if not _previous_save_directory.is_empty():
+		_game_state.set("_save_directory", _previous_save_directory)
+	for key in _previous_identity:
+		_game_state.set(key, _previous_identity[key])

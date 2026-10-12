@@ -30,6 +30,7 @@ const DEVICE_INSTALLATION_ID_PATH := "user://device_installation_id.txt"
 const TERMS_VERSION := "1.0"
 const TERMS_ACCEPTANCE_PATH := "user://terms_acceptance.json"
 const TERMS_APP_ACCEPTANCE_PATH := "user://terms_app_acceptance.json"
+var _terms_app_acceptance_path_qa_override := ""
 const VALID_REGISTRATION_GRADES := ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
 const OAKLEAF_BANDIT_IDS: Array[String] = [
 	"oakleaf_bandits1",
@@ -111,6 +112,9 @@ var _terms_session_accepted := false
 var learning_cycle_version: int = 0
 var learning_cycle_started_at: String = ""
 var _new_game_registration: Dictionary = {}
+var _quest_start_checkpoint: Dictionary = {}
+var _pending_academic_results: Array[Dictionary] = []
+var _pending_academic_activities: Array[Dictionary] = []
 
 var current_quest := DEFAULT_QUEST
 var current_lives := 3
@@ -145,6 +149,7 @@ var progress_percentage: int = 0
 var lesson_progress: int = 0
 var total_quests_completed: int = 0
 var total_play_time: int = 0
+var _total_play_time_fraction: float = 0.0
 var difficulty_level: String = "Unknown"
 
 var current_task_index: int = 0
@@ -253,9 +258,9 @@ var tasks = [
 		"quest_text": "Find someone who knows about the Wizard.",
 		"dialogue": [
 			"Old Lady: You must be the young traveler from the City of Knowledge.",
-			"Old Lady: A powerful Wizard lives inside the tower ahead.",
+			"Old Lady: A powerful Wizard waits outside the house ahead.",
 			"Old Lady: But four guards protect the path to him.",
-			"Old Lady: Defeat them first, and the Wizard Tower will open.",
+			"Old Lady: Defeat them first, then challenge the Wizard outside.",
 		]
 	},
 	{
@@ -265,8 +270,8 @@ var tasks = [
 	},
 	{
 		"activity_id": "defeat-the-wizard",
-		"activity_label": "Enter the Wizard Tower",
-		"quest_text": "Enter the Wizard Tower.",
+		"activity_label": "Challenge the Wizard",
+		"quest_text": "Talk to the Wizard",
 		"dialogue": [
 			"Wizard: So you defeated all of my guards.",
 			"Wizard: You have come far, but knowledge alone will not be enough.",
@@ -825,7 +830,7 @@ func get_current_quest_text() -> String:
 	if current_task_index == PINEHILL_BANDIT_TASK_INDEX:
 		return "Defeat the Wizard's 4 Guards."
 	if current_task_index == WIZARD_TASK_INDEX:
-		return "Enter the Wizard Tower."
+		return "Talk to the Wizard"
 	if current_task_index == FINAL_TEACHER_TASK_INDEX:
 		return "Face the Teacher's Final Challenge."
 	if current_task_index >= PINEHILL_OLD_MAN_TASK_INDEX and current_task_index < PINEHILL_BANDIT_TASK_INDEX:
@@ -1248,6 +1253,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	progress_percentage = 0
 	lesson_progress = 0
 	total_play_time = 0
+	_total_play_time_fraction = 0.0
 	difficulty_level = "Unknown"
 	player_name = String(profile.get("player_name", "")).strip_edges()
 	gender = String(profile.get("gender", "male")).to_lower()
@@ -1265,6 +1271,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	city_school_stage_complete = false
 	city_next_path_unlocked = false
 	current_task_index = 0
+	_quest_start_checkpoint.clear()
 	_reset_oakleaf_progression()
 	_reset_world_progression()
 	_tutorial_activity_started = false
@@ -1272,6 +1279,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	_started_task_activity_ids.clear()
 	_activity_started_at.clear()
 	_completed_player_facing_tasks.clear()
+	clear_pending_academic_events()
 	total_quests_completed = 0
 	_pending_scene_spawn.clear()
 	_return_context.clear()
@@ -1381,6 +1389,10 @@ func consume_playtime_clock(delta: float) -> void:
 		return
 
 	var previous_remaining_seconds := playtime_remaining_seconds
+	# Count only the portion of this frame that was covered by the active playtime
+	# lease. This keeps cumulative saved playtime truthful when the limit expires
+	# partway through a frame.
+	_accumulate_total_play_time(minf(delta, playtime_remaining_seconds))
 	playtime_remaining_seconds = maxf(0.0, playtime_remaining_seconds - delta)
 	_emit_crossed_playtime_warnings(previous_remaining_seconds, playtime_remaining_seconds)
 	if playtime_remaining_seconds <= 0.0:
@@ -1392,6 +1404,17 @@ func consume_playtime_clock(delta: float) -> void:
 		return
 
 	playtime_remaining_minutes = int(ceil(playtime_remaining_seconds / 60.0))
+
+
+func _accumulate_total_play_time(elapsed_seconds: float) -> void:
+	if elapsed_seconds <= 0.0:
+		return
+	_total_play_time_fraction += elapsed_seconds
+	var whole_seconds := int(floor(_total_play_time_fraction))
+	if whole_seconds <= 0:
+		return
+	total_play_time += whole_seconds
+	_total_play_time_fraction -= float(whole_seconds)
 
 func get_playtime_remaining_seconds() -> float:
 	return playtime_remaining_seconds
@@ -1691,9 +1714,12 @@ func save_manual_game() -> String:
 		sequence += 1
 		save_path = _get_manual_save_path(owner_id, sequence)
 
+	_ensure_quest_start_checkpoint()
 	var data := build_save_data()
 	data["save_kind"] = "manual"
 	data["manual_save_sequence"] = sequence
+	data["commit_trigger"] = "manual_save"
+	data["save_commit_id"] = "manual:%s:%d:%d" % [owner_id, learning_cycle_version, sequence]
 	var temporary_path := _get_manual_save_temporary_path(owner_id, sequence)
 	if not _write_verified_save_temporary(temporary_path, data):
 		push_error("Unable to write and verify the manual save.")
@@ -1732,6 +1758,7 @@ func save_checkpoint() -> String:
 		push_warning("Checkpoint skipped because no valid Student identity is active.")
 		return ""
 	_ensure_save_directory()
+	_ensure_quest_start_checkpoint()
 	var data := build_save_data()
 	data["save_kind"] = "checkpoint"
 	data["last_manual_save_sequence"] = _get_last_manual_save_sequence(owner_id)
@@ -1741,6 +1768,298 @@ func save_checkpoint() -> String:
 	data["save_path"] = save_path
 	save_created.emit(data)
 	return save_path
+
+
+func save_daily_time_limit_game() -> String:
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty():
+		push_warning("Daily time-limit save skipped because no valid Student identity is active.")
+		return ""
+	_ensure_save_directory()
+	var data := build_save_data()
+	var date_key := String(data.get("save_date", ""))
+	data["save_kind"] = "daily_time_limit"
+	data["commit_trigger"] = "daily_time_limit"
+	data["save_commit_id"] = "daily-limit:%s:%s" % [owner_id, date_key]
+	data["forced_save_date"] = date_key
+	data["manual_save_sequence"] = 0
+	var save_path := _get_daily_time_limit_save_path(owner_id)
+	if not _write_owned_visible_save_atomically(save_path, data, "daily_time_limit"):
+		push_error("Unable to write and verify the daily time-limit recovery save.")
+		return ""
+	data["save_path"] = save_path
+	save_created.emit(data)
+	return save_path
+
+
+func stage_pending_academic_result(payload: Dictionary) -> bool:
+	var event_id := String(payload.get("result_event_id", "")).strip_edges()
+	if not is_valid_existing_student_id(student_id) or not is_valid_six_digit_id(parent_id) \
+			or event_id.is_empty() or String(payload.get("student_id", "")).strip_edges() != student_id.strip_edges() \
+			or String(payload.get("parent_id", "")).strip_edges() != parent_id.strip_edges():
+		return false
+	for event in _pending_academic_results:
+		if String(event.get("result_event_id", "")) == event_id:
+			return true
+	_pending_academic_results.append(payload.duplicate(true))
+	save_checkpoint()
+	return true
+
+
+func stage_pending_academic_activity(payload: Dictionary, endpoint: String = "/api/game/activity") -> bool:
+	var event_key := String(payload.get("event_key", payload.get("activity_event_id", ""))).strip_edges()
+	if not is_valid_existing_student_id(student_id) or not is_valid_six_digit_id(parent_id) or event_key.is_empty():
+		return false
+	for event in _pending_academic_activities:
+		if String(event.get("event_key", "")) == event_key:
+			return true
+	_pending_academic_activities.append({
+		"event_key": event_key,
+		"path": endpoint,
+		"student_id": student_id,
+		"parent_id": parent_id,
+		"learning_cycle_version": learning_cycle_version,
+		"payload": payload.duplicate(true),
+	})
+	save_checkpoint()
+	return true
+
+
+func get_pending_academic_event_count() -> int:
+	return _pending_academic_results.size() + _pending_academic_activities.size()
+
+
+func get_pending_academic_events() -> Dictionary:
+	return {
+		"results": _pending_academic_results.duplicate(true),
+		"activities": _pending_academic_activities.duplicate(true),
+	}
+
+
+func clear_pending_academic_events() -> void:
+	_pending_academic_results.clear()
+	_pending_academic_activities.clear()
+
+
+func mark_academic_commit_enqueued(save_data: Dictionary) -> void:
+	var results: Variant = save_data.get("pending_academic_results", [])
+	var activities: Variant = save_data.get("pending_academic_activities", [])
+	var result_ids: Dictionary = {}
+	var activity_keys: Dictionary = {}
+	if results is Array:
+		for result: Variant in results:
+			if result is Dictionary:
+				result_ids[String(result.get("result_event_id", ""))] = true
+	if activities is Array:
+		for activity: Variant in activities:
+			if activity is Dictionary:
+				activity_keys[String(activity.get("event_key", ""))] = true
+		_remove_committed_events_from_pending_buffers(result_ids, activity_keys)
+		_strip_committed_events_from_owned_saves(result_ids, activity_keys)
+
+
+func _remove_committed_events_from_pending_buffers(result_ids: Dictionary, activity_keys: Dictionary) -> void:
+	var kept_results: Array[Dictionary] = []
+	for event in _pending_academic_results:
+		if not result_ids.has(String(event.get("result_event_id", ""))):
+			kept_results.append(event)
+	_pending_academic_results = kept_results
+	var kept_activities: Array[Dictionary] = []
+	for event in _pending_academic_activities:
+		if not activity_keys.has(String(event.get("event_key", ""))):
+			kept_activities.append(event)
+	_pending_academic_activities = kept_activities
+
+
+func _strip_committed_events_from_owned_saves(result_ids: Dictionary, activity_keys: Dictionary) -> void:
+	if result_ids.is_empty() and activity_keys.is_empty():
+		return
+	var directory := DirAccess.open(ProjectSettings.globalize_path(get_save_directory()))
+	if directory == null:
+		return
+	var paths: Array[String] = []
+	directory.list_dir_begin()
+	var file_name := directory.get_next()
+	while not file_name.is_empty():
+		if not directory.current_is_dir() and file_name.ends_with(".json"):
+			paths.append(get_save_directory() + "/" + file_name)
+		file_name = directory.get_next()
+	directory.list_dir_end()
+	for save_path in paths:
+		var data := _read_save_file(save_path)
+		if not _is_save_owned_by_current_student(data):
+			continue
+		var changed := false
+		var results: Variant = data.get("pending_academic_results", [])
+		if results is Array:
+			var kept_results: Array = []
+			for result: Variant in results:
+				if result is Dictionary and result_ids.has(String(result.get("result_event_id", ""))):
+					changed = true
+				else:
+					kept_results.append(result)
+			data["pending_academic_results"] = kept_results
+		var activities: Variant = data.get("pending_academic_activities", [])
+		if activities is Array:
+			var kept_activities: Array = []
+			for activity: Variant in activities:
+				if activity is Dictionary and activity_keys.has(String(activity.get("event_key", ""))):
+					changed = true
+				else:
+					kept_activities.append(activity)
+			data["pending_academic_activities"] = kept_activities
+		if changed:
+			_persist_owned_save_atomically(save_path, data)
+
+
+func restore_game_over_checkpoint() -> Dictionary:
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty():
+		return {"ok": false, "reason": "missing_student_identity"}
+
+	var checkpoint_data: Dictionary = {}
+	var checkpoint_source := "safe_in_memory_fallback"
+	for candidate_path in [
+		_get_current_student_save_path(owner_id),
+		_get_student_save_recovery_path(owner_id),
+	]:
+		var candidate := _read_save_file(candidate_path)
+		if _is_game_over_checkpoint_owned_by_current_identity(candidate):
+			checkpoint_data = candidate
+			checkpoint_source = "hidden_current_checkpoint"
+			break
+
+	if not checkpoint_data.is_empty():
+		apply_save_data(checkpoint_data, false)
+		var quest_checkpoint: Variant = checkpoint_data.get("quest_start_checkpoint", {})
+		if quest_checkpoint is Dictionary \
+				and _is_game_over_checkpoint_owned_by_current_identity(quest_checkpoint) \
+				and int(quest_checkpoint.get("current_task_index", -1)) == current_task_index \
+				and _is_recoverable_gameplay_scene(String(quest_checkpoint.get("scene_path", ""))):
+			current_scene_path = _normalize_scene_path(String(quest_checkpoint.get("scene_path", "")))
+			current_map = String(quest_checkpoint.get("current_map", current_scene_path))
+			player_position = _dictionary_to_vector2(quest_checkpoint.get("player_position", {}))
+			checkpoint_source = "quest_start_checkpoint"
+		else:
+			var safe_location := _select_game_over_safe_location(current_scene_path, player_position)
+			current_scene_path = String(safe_location.get("scene_path", START_SCENE_PATH))
+			player_position = safe_location.get("position", get_scene_fallback_spawn(current_scene_path))
+			if current_map.strip_edges().is_empty():
+				current_map = current_scene_path
+			checkpoint_source = "hidden_checkpoint_location_fallback"
+	else:
+		var safe_location := _select_game_over_safe_location(current_scene_path, player_position)
+		current_scene_path = String(safe_location.get("scene_path", START_SCENE_PATH))
+		player_position = safe_location.get("position", get_scene_fallback_spawn(current_scene_path))
+		if current_map.strip_edges().is_empty():
+			current_map = current_scene_path
+
+	max_lives = 3
+	current_lives = 3
+	_clear_battle_state()
+	encounter_context.clear()
+	_clear_resume_state()
+	_return_context.clear()
+	current_quest = get_current_quest_text()
+	set_mode(GameMode.EXPLORATION)
+	queue_scene_spawn(current_scene_path, player_position)
+	lives_changed.emit(current_lives, max_lives)
+	quest_changed.emit(current_quest)
+	var refreshed_checkpoint_path := save_checkpoint()
+	return {
+		"ok": true,
+		"source": checkpoint_source,
+		"scene_path": current_scene_path,
+		"player_position": player_position,
+		"student_id": student_id,
+		"parent_id": parent_id,
+		"current_task_index": current_task_index,
+		"current_quest": current_quest,
+		"checkpoint_refreshed": not refreshed_checkpoint_path.is_empty(),
+	}
+
+
+func discard_unsaved_run() -> Dictionary:
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty() or not is_valid_six_digit_id(parent_id):
+		return {"ok": false, "reason": "missing_student_identity"}
+	for checkpoint_path in [_get_current_student_save_path(owner_id), _get_student_save_recovery_path(owner_id)]:
+		if not FileAccess.file_exists(checkpoint_path):
+			continue
+		var checkpoint := _read_save_file(checkpoint_path)
+		if _is_game_over_checkpoint_owned_by_current_identity(checkpoint) \
+				and String(checkpoint.get("save_kind", "")) == "checkpoint":
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(checkpoint_path))
+	clear_pending_academic_events()
+	var profile := {
+		"student_id": student_id,
+		"parent_id": parent_id,
+		"player_name": player_name,
+		"grade_level": grade_level,
+		"gender": gender,
+		"learning_cycle": get_learning_cycle_descriptor(),
+	}
+	start_new_game(profile, false)
+	return {"ok": true, "student_id": student_id, "manual_saves_preserved": true}
+
+
+func prepare_daily_time_limit_state() -> bool:
+	var in_battle := battle_active or get_mode() == GameMode.BATTLE \
+			or current_lives <= 0 or current_scene_path.to_lower().contains("_vs_")
+	if in_battle:
+		var recovery := restore_game_over_checkpoint()
+		if not bool(recovery.get("ok", false)):
+			return false
+		return not battle_active and get_mode() == GameMode.EXPLORATION \
+				and _is_recoverable_gameplay_scene(current_scene_path)
+	return _is_recoverable_gameplay_scene(current_scene_path)
+
+
+func _ensure_quest_start_checkpoint() -> void:
+	if _quest_start_checkpoint.is_empty() \
+			or int(_quest_start_checkpoint.get("current_task_index", -1)) != current_task_index \
+			or not _is_game_over_checkpoint_owned_by_current_identity(_quest_start_checkpoint):
+		_quest_start_checkpoint = build_save_data()
+		_quest_start_checkpoint.erase("quest_start_checkpoint")
+		_quest_start_checkpoint.erase("save_path")
+		_quest_start_checkpoint.erase("save_kind")
+		_quest_start_checkpoint.erase("manual_save_sequence")
+		_quest_start_checkpoint.erase("last_manual_save_sequence")
+		_quest_start_checkpoint["checkpoint_kind"] = "quest_start"
+		_quest_start_checkpoint["encounter_context"] = {}
+		_quest_start_checkpoint["current_lives"] = max_lives
+		_quest_start_checkpoint["max_lives"] = max_lives
+
+
+func _is_recoverable_gameplay_scene(scene_path: String) -> bool:
+	var normalized_path := _normalize_scene_path(scene_path)
+	if SCENE_FALLBACK_SPAWNS.has(normalized_path):
+		return ResourceLoader.exists(normalized_path)
+	return normalized_path.begins_with("res://interiors/") and ResourceLoader.exists(normalized_path)
+
+
+func _select_game_over_safe_location(preferred_scene_path: String, preferred_position: Vector2) -> Dictionary:
+	var normalized_path := _normalize_scene_path(preferred_scene_path)
+	if _is_recoverable_gameplay_scene(normalized_path):
+		var position := preferred_position
+		if position == Vector2.ZERO:
+			position = get_scene_fallback_spawn(normalized_path)
+		return {"scene_path": normalized_path, "position": position}
+
+	var safe_scene := START_SCENE_PATH
+	if journey_complete or final_teacher_defeated or return_to_city_stage >= 2:
+		safe_scene = "res://scenes/city_of_knowledge.tscn"
+	elif wizard_defeated:
+		safe_scene = DEEPEST_FOREST_PATH
+	elif pinehill_unlocked:
+		safe_scene = "res://scenes/2nd Village/Pinehill Village.tscn"
+	elif city_of_knowledge_unlocked:
+		safe_scene = "res://scenes/city_of_knowledge.tscn"
+	elif oakleaf_boss_defeated:
+		safe_scene = "res://scenes/oak_leaf_village.tscn"
+	if not _is_recoverable_gameplay_scene(safe_scene):
+		safe_scene = START_SCENE_PATH
+	return {"scene_path": safe_scene, "position": get_scene_fallback_spawn(safe_scene)}
 
 
 func _write_checkpoint_data(owner_id: String, data: Dictionary) -> String:
@@ -1825,6 +2144,10 @@ func _get_manual_save_path(owner_id: String, sequence: int) -> String:
 	return "%s/save_%s_manual_%06d.json" % [get_save_directory(), owner_id, sequence]
 
 
+func _get_daily_time_limit_save_path(owner_id: String) -> String:
+	return "%s/save_%s_daily_time_limit.json" % [get_save_directory(), owner_id]
+
+
 func _get_manual_save_temporary_path(owner_id: String, sequence: int) -> String:
 	return "%s/.save_%s_manual_%06d_%d.tmp" % [get_save_directory(), owner_id, sequence, Time.get_ticks_usec()]
 
@@ -1877,6 +2200,66 @@ func _write_verified_save_temporary(temporary_path: String, data: Dictionary) ->
 func _remove_save_temporary(temporary_path: String) -> void:
 	if FileAccess.file_exists(temporary_path):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
+
+
+func _write_owned_visible_save_atomically(save_path: String, data: Dictionary, expected_kind: String) -> bool:
+	if FileAccess.file_exists(save_path):
+		var existing := _read_save_file(save_path)
+		if not _is_daily_time_limit_save_owned_by_current_student(existing):
+			return false
+	var nonce := str(Time.get_ticks_usec())
+	var temporary_path := "%s.%s.tmp" % [save_path, nonce]
+	var backup_path := "%s.%s.backup" % [save_path, nonce]
+	if not _write_verified_save_temporary(temporary_path, data):
+		return false
+	var had_existing := FileAccess.file_exists(save_path)
+	if had_existing:
+		var backup_error := DirAccess.rename_absolute(ProjectSettings.globalize_path(save_path), ProjectSettings.globalize_path(backup_path))
+		if backup_error != OK:
+			_remove_save_temporary(temporary_path)
+			return false
+	var promote_error := DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary_path), ProjectSettings.globalize_path(save_path))
+	if promote_error != OK:
+		if had_existing:
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(save_path))
+		_remove_save_temporary(temporary_path)
+		return false
+	var promoted := _read_save_file(save_path)
+	if not _is_daily_time_limit_save_owned_by_current_student(promoted) \
+			or String(promoted.get("save_kind", "")) != expected_kind:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
+		if had_existing:
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(save_path))
+		return false
+	if had_existing and FileAccess.file_exists(backup_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+	return true
+
+
+func _persist_owned_save_atomically(save_path: String, data: Dictionary) -> bool:
+	if not _is_save_owned_by_current_student(_read_save_file(save_path)):
+		return false
+	var nonce := str(Time.get_ticks_usec())
+	var temporary_path := "%s.%s.commit.tmp" % [save_path, nonce]
+	var backup_path := "%s.%s.commit-backup" % [save_path, nonce]
+	if not _write_verified_save_temporary(temporary_path, data):
+		return false
+	var backup_error := DirAccess.rename_absolute(ProjectSettings.globalize_path(save_path), ProjectSettings.globalize_path(backup_path))
+	if backup_error != OK:
+		_remove_save_temporary(temporary_path)
+		return false
+	var promote_error := DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary_path), ProjectSettings.globalize_path(save_path))
+	if promote_error != OK:
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(save_path))
+		_remove_save_temporary(temporary_path)
+		return false
+	var promoted := _read_save_file(save_path)
+	if not _is_save_owned_by_current_student(promoted):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(save_path))
+		return false
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+	return true
 
 
 func build_save_data() -> Dictionary:
@@ -1933,6 +2316,7 @@ func build_save_data() -> Dictionary:
 		"activity_started_at": _activity_started_at.duplicate(true),
 		"completed_player_facing_tasks": _completed_player_facing_tasks.duplicate(true),
 		"current_task_index": current_task_index,
+		"quest_start_checkpoint": _quest_start_checkpoint.duplicate(true),
 		"score": score,
 		"correct_answers": correct_answers,
 		"incorrect_answers": incorrect_answers,
@@ -1942,6 +2326,8 @@ func build_save_data() -> Dictionary:
 		"total_quests_completed": total_quests_completed,
 		"total_play_time": total_play_time,
 		"difficulty_level": difficulty_level,
+		"pending_academic_results": _pending_academic_results.duplicate(true),
+		"pending_academic_activities": _pending_academic_activities.duplicate(true),
 		"save_date": save_date,
 		"save_time": save_time,
 		"save_timestamp": timestamp
@@ -1963,16 +2349,22 @@ func list_saves() -> Array[Dictionary]:
 		if not directory.current_is_dir() and file_name.ends_with(".json"):
 			var save_path := get_save_directory() + "/" + file_name
 			var save_data := _read_save_file(save_path)
-			# Only explicit player-initiated saves belong in Load Game. Checkpoints,
-			# recovery copies and ambiguous legacy timestamp files remain hidden.
-			if _is_manual_save_owned_by_current_student(save_data):
+			# Manual saves and the single daily-limit recovery slot are visible.
+			# Ordinary checkpoints and ambiguous legacy files remain hidden.
+			if _is_manual_save_owned_by_current_student(save_data) \
+					or _is_daily_time_limit_save_owned_by_current_student(save_data):
 				saves.append(_prepare_save_entry(save_data, save_path))
 		file_name = directory.get_next()
 
 	directory.list_dir_end()
-	saves.sort_custom(Callable(self, "_sort_manual_saves_asc"))
+	saves.sort_custom(Callable(self, "_sort_visible_saves"))
+	var manual_slot := 0
 	for index in range(saves.size()):
-		saves[index]["slot_number"] = index + 1
+		if String(saves[index].get("save_kind", "")) == "manual":
+			manual_slot += 1
+			saves[index]["slot_number"] = manual_slot
+		else:
+			saves[index]["slot_number"] = 0
 	return saves
 
 
@@ -2051,6 +2443,8 @@ func delete_all_saves() -> Dictionary:
 	var deleted_count := 0
 	var failed_count := 0
 	for save_data in list_saves():
+		if String(save_data.get("save_kind", "")) != "manual":
+			continue
 		var save_path := String(save_data.get("save_path", ""))
 		if save_path.is_empty():
 			continue
@@ -2171,7 +2565,14 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	lesson_progress = int(data.get("lesson_progress", 0))
 	total_quests_completed = _completed_player_facing_tasks.size() if not _completed_player_facing_tasks.is_empty() else int(data.get("total_quests_completed", 0))
 	total_play_time = int(data.get("total_play_time", 0))
+	_total_play_time_fraction = 0.0
 	difficulty_level = String(data.get("difficulty_level", "Unknown"))
+	var loaded_quest_checkpoint: Variant = data.get("quest_start_checkpoint", {})
+	if loaded_quest_checkpoint is Dictionary and _is_game_over_checkpoint_owned_by_current_identity(loaded_quest_checkpoint):
+		_quest_start_checkpoint = loaded_quest_checkpoint.duplicate(true)
+	else:
+		_quest_start_checkpoint.clear()
+	_restore_pending_academic_events(data)
 	set_mode(GameMode.EXPLORATION)
 	queue_scene_spawn(current_scene_path, player_position)
 
@@ -2179,6 +2580,34 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	quest_changed.emit(current_quest)
 	if emit_progression_session_reset:
 		progression_session_reset.emit("load")
+
+
+func _restore_pending_academic_events(data: Dictionary) -> void:
+	_pending_academic_results.clear()
+	_pending_academic_activities.clear()
+	if String(data.get("student_id", "")).strip_edges() != student_id.strip_edges() \
+			or String(data.get("parent_id", "")).strip_edges() != parent_id.strip_edges():
+		return
+	var saved_cycle := int(data.get("learning_cycle_version", 0))
+	var raw_results: Variant = data.get("pending_academic_results", [])
+	if raw_results is Array:
+		for result: Variant in raw_results:
+			if result is Dictionary \
+					and String(result.get("student_id", "")).strip_edges() == student_id.strip_edges() \
+					and String(result.get("parent_id", "")).strip_edges() == parent_id.strip_edges() \
+					and int(result.get("learning_cycle_version", saved_cycle)) == learning_cycle_version \
+					and not String(result.get("result_event_id", "")).strip_edges().is_empty():
+				_pending_academic_results.append(result.duplicate(true))
+	var raw_activities: Variant = data.get("pending_academic_activities", [])
+	if raw_activities is Array:
+		for activity: Variant in raw_activities:
+			if activity is Dictionary \
+					and String(activity.get("student_id", "")).strip_edges() == student_id.strip_edges() \
+					and String(activity.get("parent_id", "")).strip_edges() == parent_id.strip_edges() \
+					and int(activity.get("learning_cycle_version", saved_cycle)) == learning_cycle_version \
+					and activity.get("payload", null) is Dictionary \
+					and not String(activity.get("event_key", "")).strip_edges().is_empty():
+				_pending_academic_activities.append(activity.duplicate(true))
 
 # ================================
 # HELPERS
@@ -2202,10 +2631,16 @@ func has_latest_save() -> bool:
 	return not get_latest_save_path().is_empty()
 
 func get_latest_save_path() -> String:
+	var latest_path := ""
+	var latest_timestamp := -1
 	for save_data in list_saves():
-		if bool(save_data.get("loadable", false)):
-			return String(save_data.get("save_path", ""))
-	return ""
+		if not bool(save_data.get("loadable", false)):
+			continue
+		var timestamp := int(save_data.get("save_timestamp", 0))
+		if latest_path.is_empty() or timestamp >= latest_timestamp:
+			latest_path = String(save_data.get("save_path", ""))
+			latest_timestamp = timestamp
+	return latest_path
 
 func load_latest_save() -> Dictionary:
 	var latest_save_path := get_latest_save_path()
@@ -2461,10 +2896,29 @@ func _is_save_owned_by_current_student(data: Dictionary) -> bool:
 	return saved_device_id.is_empty() or saved_device_id == get_device_installation_id()
 
 
+func _is_game_over_checkpoint_owned_by_current_identity(data: Dictionary) -> bool:
+	var owner_id := _get_current_save_owner_id()
+	if owner_id.is_empty() or data.is_empty():
+		return false
+	if String(data.get("student_id", "")).strip_edges() != owner_id:
+		return false
+	if String(data.get("parent_id", "")).strip_edges() != parent_id.strip_edges():
+		return false
+	var saved_device_id := String(data.get("device_installation_id", "")).strip_edges()
+	return saved_device_id.is_empty() or saved_device_id == get_device_installation_id()
+
+
 func _is_manual_save_owned_by_current_student(data: Dictionary) -> bool:
 	return _is_save_owned_by_current_student(data) \
 		and String(data.get("save_kind", "")) == "manual" \
 		and int(data.get("manual_save_sequence", 0)) > 0
+
+
+func _is_daily_time_limit_save_owned_by_current_student(data: Dictionary) -> bool:
+	return _is_game_over_checkpoint_owned_by_current_identity(data) \
+		and String(data.get("save_kind", "")) == "daily_time_limit" \
+		and String(data.get("commit_trigger", "")) == "daily_time_limit" \
+		and not String(data.get("save_commit_id", "")).strip_edges().is_empty()
 
 
 func get_device_installation_id() -> String:
@@ -2534,9 +2988,10 @@ func reset_terms_session_acceptance() -> void:
 
 
 func _read_terms_app_acceptance() -> Dictionary:
-	if not FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
+	var acceptance_path := _terms_app_acceptance_path()
+	if not FileAccess.file_exists(acceptance_path):
 		return {}
-	var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.READ)
+	var file := FileAccess.open(acceptance_path, FileAccess.READ)
 	if file == null:
 		return {}
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
@@ -2559,7 +3014,7 @@ func has_current_terms_app_acceptance() -> bool:
 func record_terms_app_acceptance() -> bool:
 	var existing := _read_terms_app_acceptance()
 	var existing_owner := String(existing.get("student_id", "")).strip_edges()
-	var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(_terms_app_acceptance_path(), FileAccess.WRITE)
 	if file == null:
 		return false
 	file.store_string(JSON.stringify({
@@ -2582,7 +3037,7 @@ func bind_current_terms_acceptance_to_student(for_student_id: String) -> bool:
 	if not existing_owner.is_empty() and existing_owner != owner_id:
 		return false
 	if existing_owner.is_empty():
-		var file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
+		var file := FileAccess.open(_terms_app_acceptance_path(), FileAccess.WRITE)
 		if file == null:
 			return false
 		existing["student_id"] = owner_id
@@ -2590,6 +3045,25 @@ func bind_current_terms_acceptance_to_student(for_student_id: String) -> bool:
 		file.close()
 	_terms_session_accepted = true
 	return record_terms_acceptance(owner_id)
+
+
+func set_terms_app_acceptance_path_for_qa(path: String) -> bool:
+	if not OS.is_debug_build():
+		return false
+	var normalized := path.replace("\\", "/").strip_edges()
+	if not normalized.begins_with("user://qa_test_artifacts/terms_startup_flow_test_") \
+			or normalized.contains("/../") or normalized.ends_with("/"):
+		return false
+	_terms_app_acceptance_path_qa_override = normalized
+	return true
+
+
+func reset_terms_app_acceptance_path_for_qa() -> void:
+	_terms_app_acceptance_path_qa_override = ""
+
+
+func _terms_app_acceptance_path() -> String:
+	return _terms_app_acceptance_path_qa_override if not _terms_app_acceptance_path_qa_override.is_empty() else TERMS_APP_ACCEPTANCE_PATH
 
 
 func record_terms_acceptance(for_student_id: String = "") -> bool:
@@ -2614,6 +3088,7 @@ func record_terms_acceptance(for_student_id: String = "") -> bool:
 func _prepare_save_entry(data: Dictionary, save_path: String) -> Dictionary:
 	var prepared := data.duplicate(true)
 	prepared["save_path"] = save_path
+	prepared["save_kind"] = String(prepared.get("save_kind", ""))
 	prepared["player_name"] = String(prepared.get("player_name", "Unknown")).strip_edges()
 	if String(prepared.get("player_name", "")).is_empty():
 		prepared["player_name"] = "Unknown"
@@ -2759,3 +3234,13 @@ func _sort_manual_saves_asc(a: Dictionary, b: Dictionary) -> bool:
 	if a_timestamp != b_timestamp:
 		return a_timestamp < b_timestamp
 	return String(a.get("save_path", "")) < String(b.get("save_path", ""))
+
+
+func _sort_visible_saves(a: Dictionary, b: Dictionary) -> bool:
+	var a_kind := String(a.get("save_kind", ""))
+	var b_kind := String(b.get("save_kind", ""))
+	if a_kind != b_kind:
+		return a_kind == "manual"
+	if a_kind == "manual":
+		return _sort_manual_saves_asc(a, b)
+	return int(a.get("save_timestamp", 0)) > int(b.get("save_timestamp", 0))

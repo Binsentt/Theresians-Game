@@ -122,16 +122,15 @@ theme_override_constants/separation = 18
 [node name="YesButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/ButtonsRow"]
 custom_minimum_size = Vector2(180, 60)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 0.75)
+theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
 theme_override_colors/font_disabled_color = Color(0.709804, 0.701961, 0.65098, 0.6)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
 theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("3_button_disabled")
+theme_override_styles/normal = SubResource("2_button_style")
 theme_override_styles/disabled = SubResource("3_button_disabled")
 text = "YES"
-disabled = true
 
 [node name="NoButton" type="Button" parent="CenterContainer/PanelContainer/VBoxContainer/ButtonsRow"]
 custom_minimum_size = Vector2(180, 60)

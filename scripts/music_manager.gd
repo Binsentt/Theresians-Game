@@ -3,6 +3,8 @@
 const TRACK_MENU := "menu"
 const TRACK_HOME := "school_or_house"
 const TRACK_ADVENTURE := "adventure"
+const TRACK_BATTLE := "battle"
+const TRACK_TEACHER_BATTLE := "teacher_battle"
 const TRACK_ENDING := "ending"
 const FADE_DURATION := 0.2
 const SILENT_VOLUME_DB := -60.0
@@ -10,6 +12,8 @@ const TARGET_VOLUME_DB := 0.0
 const MENU_STREAM := preload("res://bg-musics/menu.mp3")
 const HOME_STREAM := preload("res://bg-musics/schoolorhouse.mp3")
 const ADVENTURE_STREAM := preload("res://bg-musics/adventure3.mp3")
+const BATTLE_STREAM := preload("res://bg-musics/battle-mus.mp3")
+const TEACHER_BATTLE_STREAM := preload("res://bg-musics/Teacher-Battle.mp3")
 const ENDING_STREAM := preload("res://bg-musics/ending the game.mp3")
 const SCENE_TRACKS := {
 	"res://scenes/main_menu.tscn": TRACK_MENU,
@@ -26,7 +30,16 @@ const SCENE_TRACKS := {
 	"res://world/teacher_house_outside_door.tscn": TRACK_ADVENTURE,
 	"res://scenes/city_of_knowledge.tscn": TRACK_ADVENTURE,
 	"res://scenes/pinehill_village.tscn": TRACK_ADVENTURE,
-	"res://scenes/2nd Village/Pinehill Village.tscn": TRACK_ADVENTURE
+	"res://scenes/2nd Village/Pinehill Village.tscn": TRACK_ADVENTURE,
+	"res://Battle/Battle-Enemy/male_vs_teacher.tscn": TRACK_TEACHER_BATTLE,
+	"res://Battle/Battle-Enemy/female_vs_teacher.tscn": TRACK_TEACHER_BATTLE,
+	"res://Battle/Battle-Enemy/male_vs_bandit.tscn": TRACK_BATTLE,
+	"res://Battle/Battle-Enemy/female_vs_bandit.tscn": TRACK_BATTLE,
+	"res://Battle/Battle-Enemy/male_vs_boss.tscn": TRACK_BATTLE,
+	"res://Battle/Battle-Enemy/female_vs_boss_bandit.tscn": TRACK_BATTLE,
+	"res://Battle/Battle-Enemy/male_vs_boss_bandit.tscn": TRACK_BATTLE,
+	"res://Battle/Battle-Enemy/male_vs_wizard.tscn": TRACK_BATTLE,
+	"res://Battle/Battle-Enemy/female_vs_wizard1.tscn": TRACK_BATTLE
 }
 
 var _player: AudioStreamPlayer
@@ -144,6 +157,10 @@ func _get_stream_for_track(track_key: String) -> AudioStream:
 			return HOME_STREAM
 		TRACK_ADVENTURE:
 			return ADVENTURE_STREAM
+		TRACK_BATTLE:
+			return BATTLE_STREAM
+		TRACK_TEACHER_BATTLE:
+			return TEACHER_BATTLE_STREAM
 		TRACK_ENDING:
 			return ENDING_STREAM
 		_:
