@@ -937,8 +937,8 @@ y_sort_enabled = true
 position = Vector2(914.99994, 350.00003)
 scale = Vector2(0.28, 0.273)
 
-[node name="SchoolExitMarker" type="Marker2D" parent="." unique_id=235821821]
-position = Vector2(884, 386)
+[node name="spawn_from_school" type="Marker2D" parent="." unique_id=235821821]
+position = Vector2(884, 404)
 
 [node name="SchoolDoor" type="Area2D" parent="." unique_id=1962965205]
 position = Vector2(915, 420)
@@ -1203,7 +1203,7 @@ animation = &"up"
 position = Vector2(327, 237)
 
 [node name="City-of-knowlwedge-to-PineHill" parent="." unique_id=1162980262 instance=ExtResource("27_053uc")]
-position = Vector2(128, 530)
+position = Vector2(190, 500)
 
 [connection signal="body_entered" from="adult-male_npc/Area2D" to="adult-male_npc/InteractableArea" method="_on_body_entered"]
 [connection signal="body_exited" from="adult-male_npc/Area2D" to="adult-male_npc/InteractableArea" method="_on_body_exited"]
