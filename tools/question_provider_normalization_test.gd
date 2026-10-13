@@ -6,6 +6,7 @@ func _init() -> void:
 	var provider := QuestionProviderScript.new()
 	var api_question: Dictionary = provider._normalize_question({
 		"id": 91,
+		"question_id": 91,
 		"question": "5 + 2 = ?",
 		"options": ["8", "7", "6", "9"],
 		"correct_answer": "7",
@@ -19,6 +20,10 @@ func _init() -> void:
 		quit(1)
 		return
 	if not _assert_equal(api_question.get("question_set_id"), 77, "Remote question-set metadata must survive answer normalization"):
+		provider.free()
+		quit(1)
+		return
+	if not _assert_equal(api_question.get("question_id"), 91, "Exact canonical question IDs must survive answer normalization as numeric IDs"):
 		provider.free()
 		quit(1)
 		return
@@ -45,6 +50,10 @@ func _init() -> void:
 		"correct": 1,
 	})
 	if not _assert_equal(fallback_question.get("correct"), "1", "JSON fallback choice index must remain unchanged"):
+		provider.free()
+		quit(1)
+		return
+	if not _assert_equal(fallback_question.has("question_id"), false, "Local fallback question IDs must not be misrepresented as database question IDs"):
 		provider.free()
 		quit(1)
 		return

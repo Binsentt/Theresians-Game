@@ -505,13 +505,13 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 		return {}
 	normalized["correct"] = correct
 
-	var learning_file_id: Variant = question.get("learning_file_id", null)
-	if learning_file_id is int and learning_file_id > 0:
-		normalized["question_set_id"] = learning_file_id
-	elif learning_file_id is float:
-		var question_set_id := int(learning_file_id)
-		if learning_file_id > 0.0 and learning_file_id == float(question_set_id):
-			normalized["question_set_id"] = question_set_id
+	var question_id := _positive_question_set_id(question.get("question_id", null))
+	if question_id > 0:
+		normalized["question_id"] = question_id
+	var learning_file_id: Variant = question.get("learning_file_id", question.get("question_set_id", null))
+	var question_set_id := _positive_question_set_id(learning_file_id)
+	if question_set_id > 0:
+		normalized["question_set_id"] = question_set_id
 
 	# optional metadata passthrough
 	for key in ["grade", "grade_level", "difficulty", "topic_id", "topic", "math_topic", "source"]:

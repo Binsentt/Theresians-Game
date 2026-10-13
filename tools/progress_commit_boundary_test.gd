@@ -97,7 +97,10 @@ func _run() -> void:
 func _test_pending_results_and_activities_wait_for_save() -> void:
 	_fake_http.requests.clear()
 	_remote.call("record_question_attempt", {
-		"question_id": "qa-question-1",
+		"id": "91",
+		"question_id": 91,
+		"question_set_id": 77,
+		"topic_id": "basic_addition",
 		"difficulty": "Easy",
 		"question_presented_at": "2026-10-11T01:00:00Z",
 		"answer_submitted_at": "2026-10-11T01:00:04Z",
@@ -112,6 +115,12 @@ func _test_pending_results_and_activities_wait_for_save() -> void:
 	_expect(_fake_http.requests.is_empty(), "Quiz answers and quest activity do not reach the Website before manual Save")
 	_expect(GameState.has_method("get_pending_academic_event_count") and int(GameState.call("get_pending_academic_event_count")) >= 2,
 		"Quiz and quest events remain pending in the current Student-owned run")
+	var pending_events: Dictionary = GameState.get_pending_academic_events()
+	var pending_results: Array = pending_events.get("results", [])
+	var staged_result: Dictionary = pending_results[0] if not pending_results.is_empty() else {}
+	_expect(staged_result.get("question_id") == 91 and staged_result.get("question_set_id") == 77
+			and staged_result.get("topic_id") == "basic_addition",
+		"Manual-save staging preserves the exact canonical question, question-set, and topic IDs")
 
 
 func _test_checkpoint_does_not_commit_progress() -> void:
