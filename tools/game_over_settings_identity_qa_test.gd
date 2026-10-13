@@ -51,6 +51,7 @@ func _run() -> void:
 	await _assert_linked_student_reuse()
 	_assert_teacher_quest_retry()
 	_assert_later_quest_retry()
+	_assert_city_quest_retry()
 	_assert_manual_save_and_student_isolation()
 	await _assert_exit_flow()
 
@@ -104,7 +105,8 @@ func _assert_settings_geometry() -> void:
 		for index in range(mini(4, controls.size())):
 			var button := controls[index]
 			_assert(button.size.is_equal_approx(Vector2(220.0, 52.0)), "%s stays full size at %s" % [button.name, viewport_size])
-			_assert(button.get_global_rect().size.is_equal_approx(Vector2(220.0, 52.0)), "%s touch hitbox stays full size at %s" % [button.name, viewport_size])
+			var scale_factor := (settings.get_node("SettingsPopup") as Control).scale.x
+			_assert(button.get_global_rect().size.is_equal_approx(Vector2(220.0, 52.0) * scale_factor), "%s touch hitbox follows the uniform Settings scale at %s" % [button.name, viewport_size])
 			_assert(_rect_inside(button.get_global_rect(), Rect2(Vector2.ZERO, Vector2(viewport_size))), "%s stays inside the viewport at %s" % [button.name, viewport_size])
 			var label := button.get_node_or_null("Label") as Label
 			_assert(label != null and label.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER and label.vertical_alignment == VERTICAL_ALIGNMENT_CENTER, "%s label remains centered at %s" % [button.name, viewport_size])
@@ -115,7 +117,9 @@ func _assert_settings_geometry() -> void:
 		load_button.disabled = false
 		for index in range(4, controls.size()):
 			var slider := controls[index]
-			_assert(slider.get_global_rect().size.is_equal_approx(Vector2(220.0, 30.0)), "%s touch area stays full size at %s" % [slider.name, viewport_size])
+			var scale_factor := (settings.get_node("SettingsPopup") as Control).scale.x
+			_assert(slider.size.is_equal_approx(Vector2(220.0, 30.0)), "%s authored touch area stays 220×30 at %s" % [slider.name, viewport_size])
+			_assert(slider.get_global_rect().size.is_equal_approx(Vector2(220.0, 30.0) * scale_factor), "%s visible touch area follows the uniform Settings scale at %s" % [slider.name, viewport_size])
 			_assert(_rect_inside(slider.get_global_rect(), Rect2(Vector2.ZERO, Vector2(viewport_size))), "%s stays inside the viewport at %s" % [slider.name, viewport_size])
 		for index in range(controls.size()):
 			for other_index in range(index + 1, controls.size()):
@@ -155,6 +159,13 @@ func _assert_linked_student_reuse() -> void:
 	})
 	var wrong_parent: Dictionary = await controller.call("_validate_ids_with_backend")
 	_assert(not bool(wrong_parent.get("ok", false)), "Reusing an existing Student profile does not bypass Parent-link validation")
+	controller.set("current_step", 1)
+	await controller.call("handle_back")
+	var registration: Dictionary = GameState.get_new_game_registration()
+	_assert(int(controller.get("current_step")) == 0, "Backing from Student/Parent IDs returns to the Gender step")
+	_assert(String(controller.get_node("StudentParentId/StudentIdInput").text).is_empty(), "Backing to Gender clears Student ID")
+	_assert(String(controller.get_node("StudentParentId/ParentIdInput").text).is_empty(), "Backing to Gender clears Parent ID")
+	_assert(String(registration.get("student_id", "")).is_empty() and String(registration.get("parent_id", "")).is_empty(), "Cleared IDs are also removed from the pending registration state")
 	var requests: Array = http.get("requests")
 	_assert(requests.size() == 3, "Linked-pair reuse and invalid-parent checks use only the canonical profile check")
 	for request in requests:
@@ -175,11 +186,12 @@ func _assert_teacher_quest_retry() -> void:
 	_assert(bool(game_over_result.get("game_over", false)), "Three failed Oakleaf encounters reach Game Over")
 	var recovery: Dictionary = state.call("restore_game_over_checkpoint")
 	_assert(bool(recovery.get("ok", false)), "Game Over retry restores a hidden checkpoint without a manual save")
-	_assert(String(recovery.get("source", "")) == "quest_start_checkpoint", "Teacher quest retry selects its saved quest-start checkpoint")
+	_assert(String(recovery.get("source", "")) == "hidden_checkpoint_safe_respawn", "Teacher quest retry uses the hidden checkpoint and a safe Oakleaf respawn")
 	_assert(String(state.student_id) == "88001001" and String(state.parent_id) == "880101", "Game Over retry preserves the linked Student identity")
 	_assert(int(state.current_lives) == 3, "Game Over retry restores three lives")
 	_assert(String(state.current_quest) == expected_quest and int(state.current_task_index) == GameState.OAKLEAF_BANDIT_TASK_INDEX, "The active Teacher-given quest remains active")
-	_assert(String(state.current_scene_path) == OAKLEAF_SCENE and state.player_position.is_equal_approx(Vector2(710.0, 292.0)), "Teacher quest returns to its quest-start scene and position")
+	var oakleaf_position := _scene_marker_position(OAKLEAF_SCENE, "PlayerHouseExitSpawn")
+	_assert(String(state.current_scene_path) == OAKLEAF_SCENE and String(recovery.get("marker_name", "")) == "PlayerHouseExitSpawn" and state.player_position.is_equal_approx(oakleaf_position), "Teacher quest returns to the safe Oakleaf marker, not a battle-frame position")
 	_assert(not state.is_oakleaf_bandit_defeated("oakleaf_bandits1"), "The failed Oakleaf encounter is not marked complete")
 	_assert(state.list_saves().is_empty(), "Hidden Game Over recovery does not create a visible manual save")
 	var retry_context: Dictionary = state.begin_encounter({"encounter_id": "oakleaf_bandits1", "quest_checkpoint": GameState.OAKLEAF_BANDIT_TASK_INDEX})
@@ -200,20 +212,49 @@ func _assert_later_quest_retry() -> void:
 	_assert(bool(game_over_result.get("game_over", false)), "Three failed Pinehill encounters reach Game Over")
 	var recovery: Dictionary = state.call("restore_game_over_checkpoint")
 	_assert(bool(recovery.get("ok", false)), "Later-story Game Over retry restores a hidden checkpoint")
-	_assert(String(recovery.get("source", "")) == "quest_start_checkpoint", "Later quest retry selects its own quest-start checkpoint")
+	_assert(String(recovery.get("source", "")) == "hidden_checkpoint_safe_respawn", "Later quest retry uses its hidden checkpoint and safe Pinehill respawn")
 	_assert(String(state.current_quest) == expected_quest and int(state.current_task_index) == GameState.PINEHILL_BANDIT_TASK_INDEX, "Later retry keeps the Pinehill guard quest active")
-	_assert(String(state.current_scene_path) == PINEHILL_SCENE and state.player_position.is_equal_approx(Vector2(258.0, 348.0)), "Later retry returns to Pinehill, not Teacher House")
+	var pinehill_position := _scene_marker_position(PINEHILL_SCENE, "spawn_from_city")
+	_assert(String(state.current_scene_path) == PINEHILL_SCENE and String(recovery.get("marker_name", "")) == "spawn_from_city" and state.player_position.is_equal_approx(pinehill_position), "Later retry returns to Pinehill's safe arrival marker, not Teacher House")
 	_assert(not state.is_progression_encounter_defeated("pinehill_bandits1"), "Failed Pinehill guard is not marked complete")
 	_assert(int(state.current_lives) == 3 and String(state.student_id) == "88001002", "Later retry restores lives and preserves Student identity")
+
+
+func _assert_city_quest_retry() -> void:
+	var state := get_node("/root/GameState")
+	var city_scene := "res://scenes/city_of_knowledge.tscn"
+	_configure_student(state, "88001008", "880108", GameState.CITY_SCHOOL_TEACHER_TASK_INDEX, city_scene, Vector2(608.0, 272.0))
+	state.city_of_knowledge_unlocked = true
+	state.city_first_arrival_seen = true
+	state.city_school_stage = 1
+	state.city_school_stage_complete = false
+	state.city_next_path_unlocked = false
+	state.current_quest = state.get_current_quest_text()
+	var expected_quest := String(state.current_quest)
+	_assert(not state.save_checkpoint().is_empty(), "City School quest stores its own hidden recovery checkpoint")
+	state.capture_runtime(city_scene, Vector2(1110.0, 500.0))
+	var game_over_result: Dictionary = _lose_three_encounters(state, "city_school_teacher", GameState.CITY_SCHOOL_TEACHER_TASK_INDEX)
+	_assert(bool(game_over_result.get("game_over", false)), "Three failed City encounters reach Game Over")
+	var recovery: Dictionary = state.call("restore_game_over_checkpoint")
+	var city_position := _scene_marker_position(city_scene, "spawn_from_school")
+	_assert(bool(recovery.get("ok", false)) and String(state.current_scene_path) == city_scene, "City Game Over retry stays in City of Knowledge")
+	_assert(String(recovery.get("marker_name", "")) == "spawn_from_school" and state.player_position.is_equal_approx(city_position), "City retry returns to its School-side safe spawn")
+	_assert(String(state.current_quest) == expected_quest and int(state.current_task_index) == GameState.CITY_SCHOOL_TEACHER_TASK_INDEX, "City retry keeps the current Math Teacher quest active")
+	_assert(not bool(state.get("city_school_stage_complete")) and not bool(state.get("city_next_path_unlocked")), "Failed City encounter does not advance School progression")
+	_assert(int(state.current_lives) == 3 and state.list_saves().is_empty(), "City retry restores three lives without creating a manual slot")
 
 
 func _assert_manual_save_and_student_isolation() -> void:
 	var state := get_node("/root/GameState")
 	_configure_student(state, "88001003", "880103", GameState.CITY_SCHOOL_TASK_INDEX, "res://scenes/city_of_knowledge.tscn", Vector2(608.0, 272.0))
 	state.city_of_knowledge_unlocked = true
+	state.current_lives = 2
 	var manual_path := String(state.save_manual_game())
 	_assert(not manual_path.is_empty(), "Manual save fixture is created only in the isolated QA directory")
 	var before_data := FileAccess.get_file_as_string(manual_path) if not manual_path.is_empty() else ""
+	state.current_lives = 3
+	var loaded_manual: Dictionary = state.load_save(manual_path, false)
+	_assert(not loaded_manual.is_empty() and int(state.current_lives) == 2, "Normal Load Game restores the selected manual slot's saved life count")
 	state.capture_runtime("res://scenes/city_of_knowledge.tscn", Vector2(900.0, 410.0))
 	_lose_three_encounters(state, "city_school_teacher", GameState.CITY_SCHOOL_TASK_INDEX)
 	var recovery: Dictionary = state.call("restore_game_over_checkpoint")
@@ -427,6 +468,19 @@ func _assert(condition: bool, message: String) -> void:
 	if not condition:
 		_failures.append(message)
 		push_error(message)
+
+
+func _scene_marker_position(scene_path: String, marker_name: String) -> Vector2:
+	var packed_scene := load(scene_path) as PackedScene
+	if packed_scene == null:
+		return Vector2.ZERO
+	var root := packed_scene.instantiate()
+	if root == null:
+		return Vector2.ZERO
+	var marker := root.find_child(marker_name, true, false) as Node2D
+	var result := marker.global_position if marker != null else Vector2.ZERO
+	root.free()
+	return result
 
 
 func _finish() -> void:

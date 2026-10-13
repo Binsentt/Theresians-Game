@@ -5,11 +5,13 @@ var _checks: Array[Dictionary] = []
 const QA_PROFILE_PATH := "res://Data/api_config.qa_local.json"
 const ANDROID_QA_PROFILE_PATH := "res://Data/api_config.android_qa.json"
 const ANDROID_QA_BASE_URL := "https://theresians-monitoring-system-qa-owner-testing.up.railway.app"
-const TERMS_APP_ACCEPTANCE_PATH := "user://terms_app_acceptance.json"
+const REAL_TERMS_APP_ACCEPTANCE_PATH := "user://terms_app_acceptance.json"
 const RESULT_PATH := "user://qa_local_runtime_contract_test_result.json"
 
 var _had_original_terms_app_acceptance := false
 var _original_terms_app_acceptance := ""
+var _terms_test_path := ""
+var _terms_test_directory := ""
 
 
 func _ready() -> void:
@@ -17,7 +19,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	_capture_terms_app_acceptance()
+	_capture_real_terms_app_acceptance_read_only()
 	var http := get_node_or_null("/root/HttpApi")
 	var remote := get_node_or_null("/root/RemoteSync")
 	var game_state := get_node_or_null("/root/GameState")
@@ -128,17 +130,34 @@ func _run() -> void:
 	if game_state != null and game_state.has_method("enable_local_qa_mode"):
 		game_state.call("enable_local_qa_mode")
 		_expect(String(game_state.call("get_save_directory")).contains("qa_local"), "GameState selects the local QA save namespace")
-	await _run_terms_startup_checks()
-	_restore_terms_app_acceptance()
-	_expect(_terms_app_acceptance_is_restored(), "The QA harness restores the owner's pre-existing Terms acceptance record")
-	_finish()
+	_terms_test_directory = "user://qa_test_artifacts/terms_startup_flow_test_%d_%d" % [OS.get_process_id(), Time.get_ticks_usec()]
+	_terms_test_path = _terms_test_directory + "/acceptance.json"
+	var absolute_terms_test_directory := ProjectSettings.globalize_path(_terms_test_directory)
+	_expect(not DirAccess.dir_exists_absolute(absolute_terms_test_directory), "Terms startup QA uses a fresh isolated acceptance directory")
+	if DirAccess.dir_exists_absolute(absolute_terms_test_directory):
+		await _finish()
+		return
+	var directory_error := DirAccess.make_dir_recursive_absolute(absolute_terms_test_directory)
+	_expect(directory_error == OK, "Terms startup QA creates only its isolated acceptance directory")
+	if directory_error != OK:
+		await _finish()
+		return
+	var acceptance_override_ready := game_state != null and game_state.has_method("set_terms_app_acceptance_path_for_qa") \
+			and bool(game_state.call("set_terms_app_acceptance_path_for_qa", _terms_test_path))
+	_expect(acceptance_override_ready, "Terms startup QA redirects persistence to its isolated acceptance file")
+	if acceptance_override_ready:
+		await _run_terms_startup_checks()
+		game_state.call("reset_terms_app_acceptance_path_for_qa")
+	_cleanup_isolated_terms_acceptance()
+	_expect(_real_terms_app_acceptance_is_unchanged(), "The real Terms acceptance file remains unchanged throughout QA")
+	await _finish()
 
 
 func _run_terms_startup_checks() -> void:
 	const MAIN_MENU_SCENE := preload("res://scenes/main_menu.tscn")
 	var game_state := get_node_or_null("/root/GameState")
-	if FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(TERMS_APP_ACCEPTANCE_PATH))
+	if FileAccess.file_exists(_terms_test_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(_terms_test_path))
 	var fade_stub := ColorRect.new()
 	fade_stub.name = "Fade"
 	add_child(fade_stub)
@@ -212,32 +231,29 @@ func _run_terms_startup_checks() -> void:
 	menu.queue_free()
 	second_menu.queue_free()
 	third_menu.queue_free()
-	if FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(TERMS_APP_ACCEPTANCE_PATH))
 
 
-func _capture_terms_app_acceptance() -> void:
-	_had_original_terms_app_acceptance = FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH)
-	_original_terms_app_acceptance = FileAccess.get_file_as_string(TERMS_APP_ACCEPTANCE_PATH) if _had_original_terms_app_acceptance else ""
+func _capture_real_terms_app_acceptance_read_only() -> void:
+	_had_original_terms_app_acceptance = FileAccess.file_exists(REAL_TERMS_APP_ACCEPTANCE_PATH)
+	_original_terms_app_acceptance = FileAccess.get_file_as_string(REAL_TERMS_APP_ACCEPTANCE_PATH) if _had_original_terms_app_acceptance else ""
 
 
-func _restore_terms_app_acceptance() -> void:
-	if FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(TERMS_APP_ACCEPTANCE_PATH))
-	if not _had_original_terms_app_acceptance:
-		return
-	var acceptance_file := FileAccess.open(TERMS_APP_ACCEPTANCE_PATH, FileAccess.WRITE)
-	if acceptance_file != null:
-		acceptance_file.store_string(_original_terms_app_acceptance)
-		acceptance_file.close()
+func _cleanup_isolated_terms_acceptance() -> void:
+	if _terms_test_path.begins_with("user://qa_test_artifacts/terms_startup_flow_test_") \
+			and FileAccess.file_exists(_terms_test_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(_terms_test_path))
+	var absolute_directory := ProjectSettings.globalize_path(_terms_test_directory)
+	if _terms_test_directory.begins_with("user://qa_test_artifacts/terms_startup_flow_test_") \
+			and DirAccess.dir_exists_absolute(absolute_directory):
+		DirAccess.remove_absolute(absolute_directory)
 
 
-func _terms_app_acceptance_is_restored() -> bool:
-	if FileAccess.file_exists(TERMS_APP_ACCEPTANCE_PATH) != _had_original_terms_app_acceptance:
+func _real_terms_app_acceptance_is_unchanged() -> bool:
+	if FileAccess.file_exists(REAL_TERMS_APP_ACCEPTANCE_PATH) != _had_original_terms_app_acceptance:
 		return false
 	if not _had_original_terms_app_acceptance:
 		return true
-	return FileAccess.get_file_as_string(TERMS_APP_ACCEPTANCE_PATH) == _original_terms_app_acceptance
+	return FileAccess.get_file_as_string(REAL_TERMS_APP_ACCEPTANCE_PATH) == _original_terms_app_acceptance
 
 
 func _expect(condition: bool, label: String) -> void:

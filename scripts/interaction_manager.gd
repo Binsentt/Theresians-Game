@@ -81,10 +81,21 @@ func request_interaction() -> bool:
 
 	# One physical touch can issue one request even if an adapter rejects it.
 	_interaction_locked_until_release = true
+	return _invoke_interaction(component)
+
+
+func _invoke_interaction(component: Node) -> bool:
+	if component == null or not is_instance_valid(component):
+		return false
 	if not component.has_method("interact"):
 		unregister(component)
 		return false
-	return bool(component.call("interact"))
+	# Async quest adapters return before their dialogue completes. Only coerce an
+	# explicit synchronous bool; a non-bool return means dispatch began normally.
+	var interaction_result: Variant = component.call("interact")
+	if interaction_result is bool:
+		return interaction_result
+	return true
 
 
 func _connect_lifecycle_signals() -> void:

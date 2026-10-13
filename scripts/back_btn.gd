@@ -59,6 +59,13 @@ func _gui_input(event: InputEvent) -> void:
 				await _fade_and_change_scene()
 
 func _fade_and_change_scene() -> void:
+	var destination_scene := target_scene
+	var current_scene := get_tree().current_scene
+	if current_scene != null and current_scene.has_method("resolve_back_navigation"):
+		var resolved_destination: Variant = current_scene.call("resolve_back_navigation")
+		if resolved_destination is String and ResourceLoader.exists(resolved_destination):
+			destination_scene = resolved_destination
+
 	if menu is Control:
 		(menu as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -72,7 +79,7 @@ func _fade_and_change_scene() -> void:
 		tween.parallel().tween_property(fade, "modulate:a", 1.0, 0.25)
 
 	await tween.finished
-	get_tree().change_scene_to_file(target_scene)
+	get_tree().change_scene_to_file(destination_scene)
 
 func _on_mouse_entered() -> void:
 	_is_hovered = true

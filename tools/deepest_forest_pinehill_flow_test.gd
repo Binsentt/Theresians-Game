@@ -271,7 +271,9 @@ func _run_live_city_forest_pinehill_flow() -> void:
 	if old_lady != null and old_lady_actor != null:
 		player.global_position = old_lady_actor.global_position
 		_expect(bool(old_lady.call("can_interact")), "Old Lady is reachable/interactable at her authored position")
-		old_lady.call("interact")
+		await _tap_interact()
+		var interaction_started := GameState.get_mode() == GameState.GameMode.DIALOGUE and bool(old_lady.get("_active"))
+		_expect(interaction_started, "A normal ACT press dispatches the Old Lady's async dialogue without a bool-conversion runtime error")
 		for _line in range(4):
 			await _tap_interact()
 		for _frame in range(10):

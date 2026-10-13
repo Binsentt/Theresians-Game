@@ -22,10 +22,10 @@ corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_on2qd"]
 texture = ExtResource("7_geh8q")
-expand_margin_left = 8.0
-expand_margin_top = 8.0
-expand_margin_right = 8.0
-expand_margin_bottom = 8.0
+
+[sub_resource type="AtlasTexture" id="SettingsButtonFrameTexture"]
+atlas = ExtResource("8_hrtxq")
+region = Rect2(24, 284, 1488, 400)
 
 [node name="Settings-Ingame" type="Control" unique_id=1187377283]
 process_mode = 3
@@ -79,18 +79,14 @@ vertical_alignment = 1
 [node name="SettingsPopup" type="Control" parent="." unique_id=1889347194]
 process_mode = 3
 anchors_preset = 0
-offset_left = 597.00006
-offset_top = 271.00003
-offset_right = 637.00006
-offset_bottom = 311.00003
+offset_right = 1008.0
+offset_bottom = 680.0
 
 [node name="TextureRect" type="TextureRect" parent="SettingsPopup" unique_id=296293124]
-custom_minimum_size = Vector2(-0.43, 0)
 layout_mode = 0
-offset_left = -604.00006
-offset_top = -290.00003
-offset_right = 403.99994
-offset_bottom = 330.99997
+offset_top = 46.0
+offset_right = 1008.0
+offset_bottom = 726.0
 texture = ExtResource("3_hu1oc")
 expand_mode = 1
 
@@ -111,10 +107,10 @@ flat = true
 
 [node name="MusicLabel" type="Label" parent="SettingsPopup/TextureRect" unique_id=1916982620]
 layout_mode = 0
-offset_left = 230.0
-offset_top = 462.0
-offset_right = 386.0
-offset_bottom = 475.0
+offset_left = 239.0
+offset_top = 450.0
+offset_right = 459.0
+offset_bottom = 463.0
 theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
 theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
@@ -122,13 +118,15 @@ theme_override_constants/outline_size = 10
 theme_override_fonts/font = ExtResource("4_y7tm3")
 theme_override_font_sizes/font_size = 13
 text = "MUSIC VOLUME"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="SfxLabel" type="Label" parent="SettingsPopup/TextureRect" unique_id=370388374]
 layout_mode = 0
-offset_left = 542.0
-offset_top = 461.0
-offset_right = 672.0
-offset_bottom = 474.0
+offset_left = 549.0
+offset_top = 450.0
+offset_right = 769.0
+offset_bottom = 463.0
 theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
 theme_override_colors/font_shadow_color = Color(0.78039217, 0.627451, 0.30980393, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.99607843)
@@ -136,14 +134,38 @@ theme_override_constants/outline_size = 10
 theme_override_fonts/font = ExtResource("4_y7tm3")
 theme_override_font_sizes/font_size = 13
 text = "SFX VOLUME"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MusicVolumeTrack" type="TextureRect" parent="SettingsPopup/TextureRect"]
+layout_mode = 0
+offset_left = 239.0
+offset_top = 468.0
+offset_right = 459.0
+offset_bottom = 498.0
+mouse_filter = 2
+texture = ExtResource("7_geh8q")
+expand_mode = 1
+stretch_mode = 1
+
+[node name="SfxVolumeTrack" type="TextureRect" parent="SettingsPopup/TextureRect"]
+layout_mode = 0
+offset_left = 549.0
+offset_top = 468.0
+offset_right = 769.0
+offset_bottom = 498.0
+mouse_filter = 2
+texture = ExtResource("7_geh8q")
+expand_mode = 1
+stretch_mode = 1
 
 [node name="MusicVolume" type="HSlider" parent="SettingsPopup/TextureRect" unique_id=328446895]
 custom_minimum_size = Vector2(220, 30)
 layout_mode = 0
 offset_left = 239.0
-offset_top = 427.0
+offset_top = 468.0
 offset_right = 459.0
-offset_bottom = 652.0
+offset_bottom = 498.0
 theme_override_icons/grabber = ExtResource("6_j8nds")
 theme_override_icons/grabber_highlight = ExtResource("6_j8nds")
 theme_override_icons/grabber_disabled = ExtResource("6_j8nds")
@@ -156,9 +178,9 @@ value = 0.8
 custom_minimum_size = Vector2(220, 30)
 layout_mode = 0
 offset_left = 549.0
-offset_top = 427.0
+offset_top = 468.0
 offset_right = 769.0
-offset_bottom = 652.0
+offset_bottom = 498.0
 theme_override_icons/grabber = ExtResource("6_j8nds")
 theme_override_icons/grabber_highlight = ExtResource("6_j8nds")
 theme_override_icons/grabber_disabled = ExtResource("6_j8nds")
@@ -168,15 +190,25 @@ step = 0.01
 value = 0.8
 
 [node name="LoadGameBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=169047210]
+clip_contents = true
 custom_minimum_size = Vector2(220, 52)
 layout_mode = 0
-offset_left = 382.0
-offset_top = 225.0
-offset_right = 602.0
-offset_bottom = 421.0
-icon = ExtResource("8_hrtxq")
+offset_left = 390.0
+offset_top = 305.0
+offset_right = 610.0
+offset_bottom = 357.0
 flat = true
-expand_icon = true
+
+[node name="ButtonFrame" type="TextureRect" parent="SettingsPopup/TextureRect/LoadGameBtn" unique_id=1749674701]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("SettingsButtonFrameTexture")
+expand_mode = 1
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/LoadGameBtn" unique_id=686641483]
 layout_mode = 1
@@ -195,15 +227,25 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ExitBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1004605551]
+clip_contents = true
 custom_minimum_size = Vector2(220, 52)
 layout_mode = 0
-offset_left = 382.0
-offset_top = 290.0
-offset_right = 602.0
-offset_bottom = 489.0
-icon = ExtResource("8_hrtxq")
+offset_left = 390.0
+offset_top = 370.0
+offset_right = 610.0
+offset_bottom = 422.0
 flat = true
-expand_icon = true
+
+[node name="ButtonFrame" type="TextureRect" parent="SettingsPopup/TextureRect/ExitBtn" unique_id=1749674702]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("SettingsButtonFrameTexture")
+expand_mode = 1
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/ExitBtn" unique_id=771607587]
 layout_mode = 1
@@ -222,15 +264,25 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ResumeBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1600404717]
+clip_contents = true
 custom_minimum_size = Vector2(220, 52)
 layout_mode = 0
-offset_left = 382.0
-offset_top = 95.0
-offset_right = 602.0
-offset_bottom = 273.0
-icon = ExtResource("8_hrtxq")
+offset_left = 390.0
+offset_top = 175.0
+offset_right = 610.0
+offset_bottom = 227.0
 flat = true
-expand_icon = true
+
+[node name="ButtonFrame" type="TextureRect" parent="SettingsPopup/TextureRect/ResumeBtn" unique_id=1749674703]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("SettingsButtonFrameTexture")
+expand_mode = 1
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/ResumeBtn" unique_id=1048843531]
 layout_mode = 1
@@ -249,25 +301,31 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="SaveBtn" type="Button" parent="SettingsPopup/TextureRect" unique_id=1858043335]
+clip_contents = true
 custom_minimum_size = Vector2(220, 52)
 layout_mode = 0
-offset_left = 382.0
-offset_top = 160.0
-offset_right = 602.0
-offset_bottom = 338.0
-icon = ExtResource("8_hrtxq")
+offset_left = 390.0
+offset_top = 240.0
+offset_right = 610.0
+offset_bottom = 292.0
 flat = true
-expand_icon = true
+
+[node name="ButtonFrame" type="TextureRect" parent="SettingsPopup/TextureRect/SaveBtn" unique_id=1749674704]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("SettingsButtonFrameTexture")
+expand_mode = 1
 
 [node name="Label" type="Label" parent="SettingsPopup/TextureRect/SaveBtn" unique_id=1868119323]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 3.0
-offset_top = -2.0
-offset_right = 3.0
-offset_bottom = -2.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)

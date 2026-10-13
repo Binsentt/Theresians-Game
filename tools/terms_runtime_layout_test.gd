@@ -7,8 +7,6 @@ const RESULT_PATH := "res://tools/terms_runtime_layout_test_result.json"
 
 var _results: Array[Dictionary] = []
 var _failures: Array[String] = []
-var _had_original_acceptance := false
-var _original_acceptance := ""
 
 
 func _ready() -> void:
@@ -16,14 +14,12 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	_capture_acceptance()
 	for requested_size: Vector2i in VIEWPORTS:
 		var test_viewport := SubViewport.new()
 		test_viewport.size = requested_size
 		test_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		get_tree().root.add_child(test_viewport)
 		await _settle_window()
-		_clear_acceptance()
 		var gate := TERMS_GATE_SCRIPT.new() as Control
 		test_viewport.add_child(gate)
 		await get_tree().process_frame
@@ -47,7 +43,6 @@ func _run() -> void:
 		"failures": _failures,
 		"results": _results,
 	}
-	_restore_acceptance()
 	var file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(output))
@@ -109,6 +104,10 @@ func _check_gate(requested_size: Vector2i, actual_size: Vector2, gate: Control) 
 	_require(row_rect.end.y <= viewport_rect.end.y + 1.0, "checkbox row is visible", requested_size)
 	_require(actions_rect.end.y <= viewport_rect.end.y + 1.0, "actions are visible", requested_size)
 	_require(checkbox.get_global_rect().size.x > 0.0 and checkbox.get_global_rect().size.y > 0.0, "checkbox is laid out", requested_size)
+	var checkbox_icon := checkbox.get_theme_icon("unchecked") as Texture2D
+	var checkbox_image := checkbox_icon.get_image() if checkbox_icon != null else null
+	var border_pixel := checkbox_image.get_pixel(4, 14) if checkbox_image != null else Color.TRANSPARENT
+	_require(border_pixel.r > 0.85 and border_pixel.g > 0.85 and border_pixel.b > 0.85, "unchecked agreement checkbox has a visible white border", requested_size)
 	_require(continue_button.get_global_rect().end.y <= viewport_rect.end.y + 1.0, "continue button is visible", requested_size)
 	_require(cancel_button.get_global_rect().end.y <= viewport_rect.end.y + 1.0, "cancel button is visible", requested_size)
 	_require(scrollable, "terms body is scrollable", requested_size)
@@ -144,28 +143,6 @@ func _check_main_menu(requested_size: Vector2i, actual_size: Vector2, menu: Cont
 	var viewport_rect := Rect2(Vector2.ZERO, actual_size)
 	_require(buttons_rect.position.y >= title_rect.end.y + 4.0, "main menu buttons do not overlap the title", requested_size)
 	_require(buttons_rect.end.y <= viewport_rect.end.y + 1.0, "main menu buttons fit inside the viewport", requested_size)
-
-
-func _clear_acceptance() -> void:
-	var path := ProjectSettings.globalize_path("user://terms_app_acceptance.json")
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
-
-
-func _capture_acceptance() -> void:
-	var path := "user://terms_app_acceptance.json"
-	_had_original_acceptance = FileAccess.file_exists(path)
-	_original_acceptance = FileAccess.get_file_as_string(path) if _had_original_acceptance else ""
-
-
-func _restore_acceptance() -> void:
-	_clear_acceptance()
-	if not _had_original_acceptance:
-		return
-	var file := FileAccess.open("user://terms_app_acceptance.json", FileAccess.WRITE)
-	if file != null:
-		file.store_string(_original_acceptance)
-		file.close()
 
 
 func _rect_dict(rect: Rect2) -> Dictionary:

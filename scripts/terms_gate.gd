@@ -129,6 +129,7 @@ func _build_ui() -> void:
 	_checkbox = CheckBox.new()
 	_checkbox.name = "AgreementCheckBox"
 	_checkbox.focus_mode = Control.FOCUS_ALL
+	_apply_checkbox_icons(_checkbox)
 	_checkbox.toggled.connect(_on_checkbox_toggled)
 	_agreement_row.add_child(_checkbox)
 
@@ -230,6 +231,49 @@ func _apply_font(control: Control) -> void:
 	var font := load(TERMS_FONT_PATH) as Font
 	if font != null:
 		control.add_theme_font_override("font", font)
+
+
+func _apply_checkbox_icons(checkbox: CheckBox) -> void:
+	checkbox.add_theme_icon_override("unchecked", _make_checkbox_icon(false, false))
+	checkbox.add_theme_icon_override("checked", _make_checkbox_icon(true, false))
+	checkbox.add_theme_icon_override("unchecked_disabled", _make_checkbox_icon(false, true))
+	checkbox.add_theme_icon_override("checked_disabled", _make_checkbox_icon(true, true))
+
+
+func _make_checkbox_icon(checked: bool, disabled: bool) -> ImageTexture:
+	const SIDE := 28
+	const EDGE := 4
+	const BORDER := 3
+	var image := Image.create(SIDE, SIDE, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0.0, 0.0, 0.0, 0.0))
+	var border_color := Color("#f4f7ff") if not disabled else Color("#aeb8cc")
+	var fill_color := Color("#071737")
+	for y in range(EDGE, SIDE - EDGE):
+		for x in range(EDGE, SIDE - EDGE):
+			var is_border := x < EDGE + BORDER or x >= SIDE - EDGE - BORDER \
+					or y < EDGE + BORDER or y >= SIDE - EDGE - BORDER
+			image.set_pixel(x, y, border_color if is_border else fill_color)
+	if checked:
+		var check_color := Color("#f2c14e") if not disabled else Color("#c2a75c")
+		_draw_checkbox_segment(image, Vector2i(8, 14), Vector2i(12, 18), check_color, 3)
+		_draw_checkbox_segment(image, Vector2i(12, 18), Vector2i(20, 9), check_color, 3)
+	return ImageTexture.create_from_image(image)
+
+
+func _draw_checkbox_segment(image: Image, start: Vector2i, finish: Vector2i, color: Color, thickness: int) -> void:
+	var delta := finish - start
+	var steps := maxi(abs(delta.x), abs(delta.y))
+	var half_thickness := floori(float(thickness) / 2.0)
+	for step in range(steps + 1):
+		var point := start if steps == 0 else Vector2i(
+			roundi(lerpf(float(start.x), float(finish.x), float(step) / float(steps))),
+			roundi(lerpf(float(start.y), float(finish.y), float(step) / float(steps)))
+		)
+		for offset_y in range(-half_thickness, half_thickness + 1):
+			for offset_x in range(-half_thickness, half_thickness + 1):
+				var pixel := point + Vector2i(offset_x, offset_y)
+				if pixel.x >= 0 and pixel.x < image.get_width() and pixel.y >= 0 and pixel.y < image.get_height():
+					image.set_pixel(pixel.x, pixel.y, color)
 
 func _panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

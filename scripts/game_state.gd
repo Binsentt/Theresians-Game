@@ -19,6 +19,21 @@ signal playtime_warning(remaining_minutes: int)
 enum GameMode { EXPLORATION, DIALOGUE, CUTSCENE, BATTLE, MENU }
 
 const SAVE_VERSION := 9
+const AUTHORITATIVE_MANUAL_SNAPSHOT_KEYS: Array[String] = [
+	"player_name", "gender", "grade_level", "student_id", "parent_id",
+	"learning_cycle_version", "learning_cycle_started_at", "current_quest",
+	"scene_path", "current_map", "player_position", "current_lives", "max_lives",
+	"encounter_context", "city_of_knowledge_unlocked", "city_first_arrival_seen",
+	"city_school_stage_complete", "city_next_path_unlocked", "city_school_stage",
+	"deep_forest_defeated_bandits", "pinehill_unlocked", "pinehill_old_man_completed",
+	"pinehill_defeated_bandits", "wizard_defeated", "return_to_city_stage",
+	"return_path_defeated_bandits", "final_teacher_defeated", "journey_complete",
+	"oakleaf_defeated_bandits", "oakleaf_boss_defeated", "oakleaf_return_to_teacher",
+	"activity_started_at", "completed_player_facing_tasks", "current_task_index",
+	"score", "correct_answers", "incorrect_answers", "total_questions",
+	"progress_percentage", "lesson_progress", "total_quests_completed",
+	"total_play_time", "difficulty_level",
+]
 const TELEMETRY_CONTRACT_VERSION := "2.0"
 const QUEST_GRAPH_VERSION := "oakleaf-city-pinehill-v1"
 const START_SCENE_PATH := "res://interiors/player_house.tscn"
@@ -111,8 +126,11 @@ var _save_directory := SAVE_DIRECTORY
 var _terms_session_accepted := false
 var learning_cycle_version: int = 0
 var learning_cycle_started_at: String = ""
+var historical_replay_mode := false
+var replay_origin_learning_cycle_version := -1
 var _new_game_registration: Dictionary = {}
 var _quest_start_checkpoint: Dictionary = {}
+var _load_game_browse_context: Dictionary = {}
 var _pending_academic_results: Array[Dictionary] = []
 var _pending_academic_activities: Array[Dictionary] = []
 
@@ -1243,6 +1261,7 @@ func is_valid_new_game_registration(values: Dictionary) -> bool:
 
 
 func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = true) -> void:
+	clear_load_game_browse_context()
 	# A New Game is a new per-Student progression session. Never let the
 	# previous profile's answer/progress counters leak into this profile's save
 	# or remote progress projection.
@@ -1260,6 +1279,8 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	grade_level = String(profile.get("grade_level", "")).strip_edges()
 	student_id = String(profile.get("student_id", ""))
 	parent_id = String(profile.get("parent_id", ""))
+	historical_replay_mode = false
+	replay_origin_learning_cycle_version = -1
 	set_learning_cycle(profile.get("learning_cycle", {}))
 
 	current_quest = TUTORIAL_QUEST
@@ -1793,6 +1814,8 @@ func save_daily_time_limit_game() -> String:
 
 
 func stage_pending_academic_result(payload: Dictionary) -> bool:
+	if historical_replay_mode:
+		return false
 	var event_id := String(payload.get("result_event_id", "")).strip_edges()
 	if not is_valid_existing_student_id(student_id) or not is_valid_six_digit_id(parent_id) \
 			or event_id.is_empty() or String(payload.get("student_id", "")).strip_edges() != student_id.strip_edges() \
@@ -1807,6 +1830,8 @@ func stage_pending_academic_result(payload: Dictionary) -> bool:
 
 
 func stage_pending_academic_activity(payload: Dictionary, endpoint: String = "/api/game/activity") -> bool:
+	if historical_replay_mode:
+		return false
 	var event_key := String(payload.get("event_key", payload.get("activity_event_id", ""))).strip_edges()
 	if not is_valid_existing_student_id(student_id) or not is_valid_six_digit_id(parent_id) or event_key.is_empty():
 		return false
@@ -1918,6 +1943,7 @@ func restore_game_over_checkpoint() -> Dictionary:
 		return {"ok": false, "reason": "missing_student_identity"}
 
 	var checkpoint_data: Dictionary = {}
+	var safe_location: Dictionary = {}
 	var checkpoint_source := "safe_in_memory_fallback"
 	for candidate_path in [
 		_get_current_student_save_path(owner_id),
@@ -1931,28 +1957,17 @@ func restore_game_over_checkpoint() -> Dictionary:
 
 	if not checkpoint_data.is_empty():
 		apply_save_data(checkpoint_data, false)
-		var quest_checkpoint: Variant = checkpoint_data.get("quest_start_checkpoint", {})
-		if quest_checkpoint is Dictionary \
-				and _is_game_over_checkpoint_owned_by_current_identity(quest_checkpoint) \
-				and int(quest_checkpoint.get("current_task_index", -1)) == current_task_index \
-				and _is_recoverable_gameplay_scene(String(quest_checkpoint.get("scene_path", ""))):
-			current_scene_path = _normalize_scene_path(String(quest_checkpoint.get("scene_path", "")))
-			current_map = String(quest_checkpoint.get("current_map", current_scene_path))
-			player_position = _dictionary_to_vector2(quest_checkpoint.get("player_position", {}))
-			checkpoint_source = "quest_start_checkpoint"
-		else:
-			var safe_location := _select_game_over_safe_location(current_scene_path, player_position)
-			current_scene_path = String(safe_location.get("scene_path", START_SCENE_PATH))
-			player_position = safe_location.get("position", get_scene_fallback_spawn(current_scene_path))
-			if current_map.strip_edges().is_empty():
-				current_map = current_scene_path
-			checkpoint_source = "hidden_checkpoint_location_fallback"
-	else:
-		var safe_location := _select_game_over_safe_location(current_scene_path, player_position)
+		safe_location = _select_game_over_safe_location(current_scene_path, player_position)
 		current_scene_path = String(safe_location.get("scene_path", START_SCENE_PATH))
 		player_position = safe_location.get("position", get_scene_fallback_spawn(current_scene_path))
-		if current_map.strip_edges().is_empty():
-			current_map = current_scene_path
+		current_map = String(safe_location.get("current_map", _game_over_map_name(current_scene_path)))
+		checkpoint_source = "hidden_checkpoint_safe_respawn"
+	else:
+		safe_location = _select_game_over_safe_location(current_scene_path, player_position)
+		current_scene_path = String(safe_location.get("scene_path", START_SCENE_PATH))
+		player_position = safe_location.get("position", get_scene_fallback_spawn(current_scene_path))
+		current_map = String(safe_location.get("current_map", _game_over_map_name(current_scene_path)))
+		checkpoint_source = String(safe_location.get("source", "safe_in_memory_fallback"))
 
 	max_lives = 3
 	current_lives = 3
@@ -1962,7 +1977,7 @@ func restore_game_over_checkpoint() -> Dictionary:
 	_return_context.clear()
 	current_quest = get_current_quest_text()
 	set_mode(GameMode.EXPLORATION)
-	queue_scene_spawn(current_scene_path, player_position)
+	queue_scene_spawn(current_scene_path, player_position, "", String(safe_location.get("marker_name", "")))
 	lives_changed.emit(current_lives, max_lives)
 	quest_changed.emit(current_quest)
 	var refreshed_checkpoint_path := save_checkpoint()
@@ -1971,6 +1986,7 @@ func restore_game_over_checkpoint() -> Dictionary:
 		"source": checkpoint_source,
 		"scene_path": current_scene_path,
 		"player_position": player_position,
+		"marker_name": String(safe_location.get("marker_name", "")),
 		"student_id": student_id,
 		"parent_id": parent_id,
 		"current_task_index": current_task_index,
@@ -2039,27 +2055,111 @@ func _is_recoverable_gameplay_scene(scene_path: String) -> bool:
 
 
 func _select_game_over_safe_location(preferred_scene_path: String, preferred_position: Vector2) -> Dictionary:
-	var normalized_path := _normalize_scene_path(preferred_scene_path)
-	if _is_recoverable_gameplay_scene(normalized_path):
-		var position := preferred_position
-		if position == Vector2.ZERO:
-			position = get_scene_fallback_spawn(normalized_path)
-		return {"scene_path": normalized_path, "position": position}
+	var progression_location := _safe_game_over_location_for_task(current_task_index)
+	if not progression_location.is_empty():
+		return _resolve_game_over_marker_location(progression_location, "safe_progression_marker")
 
-	var safe_scene := START_SCENE_PATH
-	if journey_complete or final_teacher_defeated or return_to_city_stage >= 2:
-		safe_scene = "res://scenes/city_of_knowledge.tscn"
-	elif wizard_defeated:
-		safe_scene = DEEPEST_FOREST_PATH
-	elif pinehill_unlocked:
-		safe_scene = "res://scenes/2nd Village/Pinehill Village.tscn"
-	elif city_of_knowledge_unlocked:
-		safe_scene = "res://scenes/city_of_knowledge.tscn"
-	elif oakleaf_boss_defeated:
-		safe_scene = "res://scenes/oak_leaf_village.tscn"
-	if not _is_recoverable_gameplay_scene(safe_scene):
-		safe_scene = START_SCENE_PATH
-	return {"scene_path": safe_scene, "position": get_scene_fallback_spawn(safe_scene)}
+	var normalized_path := _normalize_scene_path(preferred_scene_path)
+	if not _is_recoverable_gameplay_scene(normalized_path):
+		normalized_path = START_SCENE_PATH
+		if journey_complete or final_teacher_defeated or return_to_city_stage >= 2:
+			normalized_path = "res://scenes/city_of_knowledge.tscn"
+		elif pinehill_unlocked:
+			normalized_path = "res://scenes/2nd Village/Pinehill Village.tscn"
+		elif city_of_knowledge_unlocked:
+			normalized_path = "res://scenes/city_of_knowledge.tscn"
+		elif oakleaf_boss_defeated:
+			normalized_path = "res://scenes/oak_leaf_village.tscn"
+	var marker_name := _safe_respawn_marker_for_scene(normalized_path)
+	var fallback_position := get_scene_fallback_spawn(normalized_path)
+	if _is_recoverable_gameplay_scene(normalized_path) and not marker_name.is_empty():
+		return _resolve_game_over_marker_location({
+			"scene_path": normalized_path,
+			"marker_name": marker_name,
+			"position": fallback_position,
+		}, "safe_scene_marker")
+	var safe_scene := normalized_path if _is_recoverable_gameplay_scene(normalized_path) else START_SCENE_PATH
+	var safe_position := preferred_position if safe_scene == normalized_path and preferred_position != Vector2.ZERO else get_scene_fallback_spawn(safe_scene)
+	return {"scene_path": safe_scene, "position": safe_position, "marker_name": "", "current_map": _game_over_map_name(safe_scene), "source": "safe_in_memory_fallback"}
+
+
+func _safe_game_over_location_for_task(task_index: int) -> Dictionary:
+	if task_index >= 0 and task_index <= 2:
+		return {"scene_path": START_SCENE_PATH, "marker_name": "PlayerSpawn", "position": get_scene_fallback_spawn(START_SCENE_PATH)}
+	if task_index in [OAKLEAF_BANDIT_TASK_INDEX, OAKLEAF_BOSS_TASK_INDEX, OAKLEAF_RETURN_TEACHER_TASK_INDEX]:
+		return {"scene_path": "res://scenes/oak_leaf_village.tscn", "marker_name": "PlayerHouseExitSpawn", "position": Vector2.ZERO}
+	if task_index == CITY_OF_KNOWLEDGE_TASK_INDEX:
+		return {"scene_path": "res://scenes/city_of_knowledge.tscn", "marker_name": "spawn_from_oakleaf", "position": Vector2.ZERO}
+	if task_index in [CITY_SCHOOL_TASK_INDEX, CITY_SCHOOL_TEACHER_TASK_INDEX, CITY_NEXT_PATH_TASK_INDEX]:
+		return {"scene_path": "res://scenes/city_of_knowledge.tscn", "marker_name": "spawn_from_school", "position": Vector2.ZERO}
+	if task_index == DEEP_FOREST_BANDIT_TASK_INDEX:
+		return {"scene_path": DEEPEST_FOREST_PATH, "marker_name": "spawn_from_city", "position": Vector2.ZERO}
+	if task_index in [PINEHILL_ARRIVAL_TASK_INDEX, PINEHILL_OLD_MAN_TASK_INDEX, PINEHILL_BANDIT_TASK_INDEX, WIZARD_TASK_INDEX, RETURN_CITY_TASK_INDEX]:
+		return {"scene_path": "res://scenes/2nd Village/Pinehill Village.tscn", "marker_name": "spawn_from_city", "position": Vector2.ZERO}
+	if task_index == FINAL_SCHOOL_TASK_INDEX:
+		return {"scene_path": "res://scenes/city_of_knowledge.tscn", "marker_name": "spawn_from_deepest_forest", "position": Vector2.ZERO}
+	if task_index >= FINAL_TEACHER_TASK_INDEX:
+		return {"scene_path": "res://interiors/school.tscn", "marker_name": "PlayerSpawn", "position": Vector2.ZERO}
+	return {}
+
+
+func _safe_respawn_marker_for_scene(scene_path: String) -> String:
+	match _normalize_scene_path(scene_path):
+		"res://interiors/player_house.tscn", "res://interiors/school.tscn", "res://interiors/teacher_house.tscn", "res://interiors/npc_house.tscn":
+			return "PlayerSpawn"
+		"res://scenes/oak_leaf_village.tscn":
+			return "PlayerHouseExitSpawn"
+		"res://scenes/city_of_knowledge.tscn":
+			return "spawn_from_deepest_forest"
+		DEEPEST_FOREST_PATH:
+			return "spawn_from_city"
+		"res://scenes/2nd Village/Pinehill Village.tscn":
+			return "spawn_from_city"
+	return ""
+
+
+func _resolve_game_over_marker_location(location: Dictionary, source: String) -> Dictionary:
+	var scene_path := _normalize_scene_path(String(location.get("scene_path", START_SCENE_PATH)))
+	if not _is_recoverable_gameplay_scene(scene_path):
+		return {}
+	var marker_name := String(location.get("marker_name", "")).strip_edges()
+	var fallback_position: Vector2 = location.get("position", get_scene_fallback_spawn(scene_path))
+	var position := _get_scene_marker_position(scene_path, marker_name, fallback_position)
+	return {
+		"scene_path": scene_path,
+		"position": position,
+		"marker_name": marker_name,
+		"current_map": _game_over_map_name(scene_path),
+		"source": source,
+	}
+
+
+func _get_scene_marker_position(scene_path: String, marker_name: String, fallback_position: Vector2) -> Vector2:
+	if marker_name.is_empty():
+		return fallback_position
+	var packed_scene := load(scene_path) as PackedScene
+	if packed_scene == null:
+		return fallback_position
+	var root := packed_scene.instantiate()
+	if root == null:
+		return fallback_position
+	var marker := root.find_child(marker_name, true, false) as Node2D
+	var position := marker.global_position if marker != null else fallback_position
+	root.free()
+	return position
+
+
+func _game_over_map_name(scene_path: String) -> String:
+	match _normalize_scene_path(scene_path):
+		"res://interiors/player_house.tscn": return "Player House"
+		"res://interiors/school.tscn": return "School"
+		"res://interiors/teacher_house.tscn": return "Teacher House"
+		"res://interiors/npc_house.tscn": return "NPC House"
+		"res://scenes/oak_leaf_village.tscn": return "Oakleaf Village"
+		"res://scenes/city_of_knowledge.tscn": return "City of Knowledge"
+		DEEPEST_FOREST_PATH: return "Deepest Forest"
+		"res://scenes/2nd Village/Pinehill Village.tscn": return "Pinehill Village"
+	return scene_path
 
 
 func _write_checkpoint_data(owner_id: String, data: Dictionary) -> String:
@@ -2286,6 +2386,8 @@ func build_save_data() -> Dictionary:
 		"device_installation_id": get_device_installation_id(),
 		"learning_cycle_version": learning_cycle_version,
 		"learning_cycle_started_at": learning_cycle_started_at,
+		"historical_replay_mode": historical_replay_mode,
+		"replay_origin_learning_cycle_version": replay_origin_learning_cycle_version,
 		"current_quest": TUTORIAL_QUEST if is_tutorial_active() else current_quest,
 		"scene_path": current_scene_path,
 		"current_map": current_map,
@@ -2405,12 +2507,28 @@ func _migrate_latest_legacy_checkpoint(owner_id: String) -> void:
 	_write_checkpoint_data(owner_id, newest_legacy)
 
 
-func load_save(path: String, emit_progression_session_reset: bool = true) -> Dictionary:
+func load_save(
+		path: String,
+		emit_progression_session_reset: bool = true,
+		authoritative_learning_cycle: Dictionary = {}
+) -> Dictionary:
 	var data := peek_save_data(path)
 	if data.is_empty() or not bool(data.get("loadable", false)):
 		return {}
-
-	apply_save_data(data, emit_progression_session_reset)
+	var cycle_to_apply: Dictionary = {}
+	if set_learning_cycle_descriptor_is_valid(authoritative_learning_cycle):
+		data = annotate_save_learning_cycle(data, authoritative_learning_cycle)
+		if not bool(data.get("loadable", false)):
+			return {}
+		cycle_to_apply = authoritative_learning_cycle
+	else:
+		# A historical replay needs a server-authenticated current cycle. An
+		# offline/direct load may continue only when its saved cycle matches the
+		# already-established runtime cycle and the slot is not replay-marked.
+		if bool(data.get("historical_replay_mode", false)) \
+				or int(data.get("learning_cycle_version", 0)) != learning_cycle_version:
+			return {}
+	apply_save_data(data, emit_progression_session_reset, cycle_to_apply)
 	data["scene_path"] = current_scene_path
 	return data
 
@@ -2458,17 +2576,58 @@ func delete_all_saves() -> Dictionary:
 	}
 
 
-func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = true) -> void:
+func _is_authoritative_manual_snapshot(data: Dictionary) -> bool:
+	if int(data.get("save_version", -1)) != SAVE_VERSION \
+			or String(data.get("save_kind", "")) != "manual" \
+			or int(data.get("manual_save_sequence", 0)) <= 0:
+		return false
+	for key in AUTHORITATIVE_MANUAL_SNAPSHOT_KEYS:
+		if not data.has(key):
+			return false
+	return data.get("player_position") is Dictionary \
+			and data.get("encounter_context") is Dictionary \
+			and data.get("oakleaf_defeated_bandits") is Dictionary \
+			and data.get("deep_forest_defeated_bandits") is Dictionary \
+			and data.get("pinehill_defeated_bandits") is Dictionary \
+			and data.get("return_path_defeated_bandits") is Dictionary \
+			and data.get("activity_started_at") is Dictionary \
+			and data.get("completed_player_facing_tasks") is Dictionary
+
+
+func apply_save_data(
+		data: Dictionary,
+		emit_progression_session_reset: bool = true,
+		authoritative_learning_cycle: Dictionary = {}
+) -> void:
+	var authoritative_manual_snapshot := _is_authoritative_manual_snapshot(data)
+	var saved_cycle_version := maxi(0, int(data.get("learning_cycle_version", 0)))
+	var saved_replay_mode := bool(data.get("historical_replay_mode", false))
+	var saved_replay_origin := int(data.get("replay_origin_learning_cycle_version", -1))
 	_clear_battle_state()
 	player_name = String(data.get("player_name", ""))
 	gender = String(data.get("gender", "male")).to_lower()
 	grade_level = String(data.get("grade_level", ""))
 	student_id = String(data.get("student_id", ""))
 	parent_id = String(data.get("parent_id", ""))
-	set_learning_cycle({
-		"version": int(data.get("learning_cycle_version", 0)),
-		"started_at": String(data.get("learning_cycle_started_at", "")),
-	})
+	if set_learning_cycle_descriptor_is_valid(authoritative_learning_cycle):
+		set_learning_cycle(authoritative_learning_cycle)
+		historical_replay_mode = saved_replay_mode or saved_cycle_version != learning_cycle_version
+		if historical_replay_mode:
+			replay_origin_learning_cycle_version = saved_replay_origin if saved_replay_origin >= 0 else saved_cycle_version
+		else:
+			replay_origin_learning_cycle_version = -1
+	elif saved_replay_mode:
+		# Keep the already authenticated runtime cycle when re-applying a
+		# pre-annotated replay snapshot in an isolated test/internal path.
+		historical_replay_mode = true
+		replay_origin_learning_cycle_version = saved_replay_origin if saved_replay_origin >= 0 else saved_cycle_version
+	else:
+		set_learning_cycle({
+			"version": saved_cycle_version,
+			"started_at": String(data.get("learning_cycle_started_at", "")),
+		})
+		historical_replay_mode = false
+		replay_origin_learning_cycle_version = -1
 
 	current_quest = String(data.get("current_quest", DEFAULT_QUEST))
 	current_scene_path = _normalize_scene_path(String(data.get("scene_path", START_SCENE_PATH)))
@@ -2493,18 +2652,19 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	city_school_stage = clampi(int(data.get("city_school_stage", 0)), 0, 4)
 	var loaded_task_index := clampi(int(data.get("current_task_index", 0)), 0, tasks.size())
 	current_task_index = loaded_task_index
-	if not data.has("city_first_arrival_seen"):
-		city_first_arrival_seen = loaded_task_index >= CITY_SCHOOL_TASK_INDEX
-	if not data.has("city_school_stage_complete"):
-		city_school_stage_complete = loaded_task_index >= CITY_NEXT_PATH_TASK_INDEX
-	if not data.has("city_next_path_unlocked"):
-		city_next_path_unlocked = loaded_task_index >= CITY_NEXT_PATH_TASK_INDEX
-	if city_next_path_unlocked or city_school_stage_complete:
-		current_task_index = maxi(current_task_index, CITY_NEXT_PATH_TASK_INDEX)
-	elif city_first_arrival_seen:
-		current_task_index = maxi(current_task_index, CITY_SCHOOL_TASK_INDEX)
-	if not data.has("city_school_stage"):
-		city_school_stage = 2 if city_school_stage_complete else (1 if city_first_arrival_seen else 0)
+	if not authoritative_manual_snapshot:
+		if not data.has("city_first_arrival_seen"):
+			city_first_arrival_seen = loaded_task_index >= CITY_SCHOOL_TASK_INDEX
+		if not data.has("city_school_stage_complete"):
+			city_school_stage_complete = loaded_task_index >= CITY_NEXT_PATH_TASK_INDEX
+		if not data.has("city_next_path_unlocked"):
+			city_next_path_unlocked = loaded_task_index >= CITY_NEXT_PATH_TASK_INDEX
+		if city_next_path_unlocked or city_school_stage_complete:
+			current_task_index = maxi(current_task_index, CITY_NEXT_PATH_TASK_INDEX)
+		elif city_first_arrival_seen:
+			current_task_index = maxi(current_task_index, CITY_SCHOOL_TASK_INDEX)
+		if not data.has("city_school_stage"):
+			city_school_stage = 2 if city_school_stage_complete else (1 if city_first_arrival_seen else 0)
 	oakleaf_defeated_bandits = _normalize_oakleaf_defeated_bandits(
 		data.get("oakleaf_defeated_bandits", null),
 		loaded_task_index
@@ -2526,33 +2686,35 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 	)
 	final_teacher_defeated = bool(data.get("final_teacher_defeated", false))
 	journey_complete = bool(data.get("journey_complete", false))
-	# Monotonic migration for SAVE_VERSION 9 records that predate the extended
-	# world timeline. Optional fields default safely and never move a checkpoint
-	# backward or replay an already completed stage.
-	if journey_complete or final_teacher_defeated:
-		journey_complete = journey_complete or final_teacher_defeated
-		final_teacher_defeated = true
-		city_school_stage = 4
-		current_task_index = tasks.size()
-	elif return_to_city_stage >= 2:
-		current_task_index = maxi(current_task_index, RETURN_CITY_TASK_INDEX)
-	elif wizard_defeated:
-		return_to_city_stage = 2
-		current_task_index = maxi(current_task_index, RETURN_CITY_TASK_INDEX)
-	elif are_all_progression_bandits_defeated("pinehill"):
-		current_task_index = maxi(current_task_index, WIZARD_TASK_INDEX)
-	elif pinehill_old_man_completed:
-		current_task_index = maxi(current_task_index, PINEHILL_BANDIT_TASK_INDEX)
-	elif pinehill_unlocked:
-		current_task_index = maxi(current_task_index, PINEHILL_ARRIVAL_TASK_INDEX)
-	elif are_all_progression_bandits_defeated("deep_forest"):
-		current_task_index = maxi(current_task_index, PINEHILL_ARRIVAL_TASK_INDEX)
+	if not authoritative_manual_snapshot:
+		# Forward reconciliation remains for incomplete legacy snapshots. Complete
+		# current-format manual slots are immutable gameplay checkpoints: their own
+		# saved index and flags are authoritative, even when later slots advanced.
+		if journey_complete or final_teacher_defeated:
+			journey_complete = journey_complete or final_teacher_defeated
+			final_teacher_defeated = true
+			city_school_stage = 4
+			current_task_index = tasks.size()
+		elif return_to_city_stage >= 2:
+			current_task_index = maxi(current_task_index, RETURN_CITY_TASK_INDEX)
+		elif wizard_defeated:
+			return_to_city_stage = 2
+			current_task_index = maxi(current_task_index, RETURN_CITY_TASK_INDEX)
+		elif are_all_progression_bandits_defeated("pinehill"):
+			current_task_index = maxi(current_task_index, WIZARD_TASK_INDEX)
+		elif pinehill_old_man_completed:
+			current_task_index = maxi(current_task_index, PINEHILL_BANDIT_TASK_INDEX)
+		elif pinehill_unlocked:
+			current_task_index = maxi(current_task_index, PINEHILL_ARRIVAL_TASK_INDEX)
+		elif are_all_progression_bandits_defeated("deep_forest"):
+			current_task_index = maxi(current_task_index, PINEHILL_ARRIVAL_TASK_INDEX)
 	# Existing saves persist current_quest. Unmarked legacy saves retain
 	# their existing task checkpoint rather than replaying an unrecorded tutorial.
 	_tutorial_activity_completed = current_task_index > 0 or current_quest != TUTORIAL_QUEST
 	# Older saves can carry a completed checkpoint with an obsolete quest title.
 	# The checkpoint is authoritative; reconcile presentation without replaying tasks.
-	current_quest = get_current_quest_text()
+	if not authoritative_manual_snapshot:
+		current_quest = get_current_quest_text()
 	_tutorial_activity_started = false
 	_started_task_activity_ids.clear()
 	_activity_started_at = data.get("activity_started_at", {}).duplicate(true) if data.get("activity_started_at", {}) is Dictionary else {}
@@ -2585,6 +2747,8 @@ func apply_save_data(data: Dictionary, emit_progression_session_reset: bool = tr
 func _restore_pending_academic_events(data: Dictionary) -> void:
 	_pending_academic_results.clear()
 	_pending_academic_activities.clear()
+	if historical_replay_mode or bool(data.get("historical_replay_mode", false)):
+		return
 	if String(data.get("student_id", "")).strip_edges() != student_id.strip_edges() \
 			or String(data.get("parent_id", "")).strip_edges() != parent_id.strip_edges():
 		return
@@ -2629,6 +2793,47 @@ func get_scene_fallback_spawn(scene_path: String) -> Vector2:
 
 func has_latest_save() -> bool:
 	return not get_latest_save_path().is_empty()
+
+
+func begin_load_game_browse(origin_scene_path: String, origin_position: Vector2) -> bool:
+	var normalized_scene_path := _normalize_scene_path(origin_scene_path)
+	if not _is_recoverable_gameplay_scene(normalized_scene_path):
+		return false
+	var origin_map := current_map
+	capture_runtime(normalized_scene_path, origin_position)
+	_load_game_browse_context = {
+		"scene_path": normalized_scene_path,
+		"player_position": origin_position,
+		"current_map": origin_map,
+		"student_id": student_id,
+		"parent_id": parent_id,
+		"current_task_index": current_task_index,
+		"current_lives": current_lives,
+	}
+	return true
+
+
+func has_load_game_browse_context() -> bool:
+	return not _load_game_browse_context.is_empty()
+
+
+func cancel_load_game_browse() -> Dictionary:
+	if _load_game_browse_context.is_empty():
+		return {}
+	var context := _load_game_browse_context.duplicate(true)
+	_load_game_browse_context.clear()
+	var scene_path := _normalize_scene_path(String(context.get("scene_path", START_SCENE_PATH)))
+	if not _is_recoverable_gameplay_scene(scene_path):
+		return {}
+	current_scene_path = scene_path
+	player_position = context.get("player_position", get_scene_fallback_spawn(scene_path))
+	current_map = String(context.get("current_map", current_map))
+	queue_scene_spawn(scene_path, player_position)
+	return {"ok": true, "scene_path": scene_path, "player_position": player_position}
+
+
+func clear_load_game_browse_context() -> void:
+	_load_game_browse_context.clear()
 
 func get_latest_save_path() -> String:
 	var latest_path := ""
@@ -3123,11 +3328,34 @@ func annotate_save_learning_cycle(data: Dictionary, descriptor: Dictionary) -> D
 		return prepared
 	var saved_version := maxi(0, int(prepared.get("learning_cycle_version", 0)))
 	var current_version := maxi(0, int(descriptor.get("version", 0)))
-	if saved_version != current_version:
+	var is_manual_save := String(prepared.get("save_kind", "")) == "manual" \
+			and int(prepared.get("manual_save_sequence", 0)) > 0
+	var already_historical := bool(prepared.get("historical_replay_mode", false))
+	if saved_version > current_version:
+		prepared["loadable"] = false
+		prepared["save_valid"] = false
+		prepared["save_error"] = "Learning Cycle mismatch"
+		return prepared
+	if saved_version < current_version and not is_manual_save and not already_historical:
 		prepared["loadable"] = false
 		prepared["save_valid"] = false
 		prepared["save_error"] = "Previous Learning Cycle"
 		return prepared
+	if saved_version < current_version and not already_historical:
+		prepared["historical_replay_mode"] = true
+		prepared["replay_origin_learning_cycle_version"] = saved_version
+	elif already_historical:
+		prepared["historical_replay_mode"] = true
+		var replay_origin := int(prepared.get("replay_origin_learning_cycle_version", -1))
+		prepared["replay_origin_learning_cycle_version"] = replay_origin if replay_origin >= 0 else saved_version
+	else:
+		prepared["historical_replay_mode"] = false
+		prepared["replay_origin_learning_cycle_version"] = -1
+	prepared["learning_cycle_version"] = current_version
+	prepared["learning_cycle_started_at"] = String(descriptor.get("started_at", "")).strip_edges()
+	if bool(prepared.get("historical_replay_mode", false)) or saved_version != current_version:
+		prepared["pending_academic_results"] = []
+		prepared["pending_academic_activities"] = []
 	prepared["loadable"] = true
 	prepared["save_valid"] = true
 	prepared["save_error"] = ""

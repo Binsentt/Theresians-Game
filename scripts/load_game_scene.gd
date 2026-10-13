@@ -231,29 +231,48 @@ func _on_save_selected(save_path: String) -> void:
 		return
 	empty_label.hide()
 	var authoritative_start_cycle: Variant = playtime_result.get("learning_cycle", {})
+	var verified_learning_cycle: Dictionary = cycle_descriptor
 	if GameState.set_learning_cycle_descriptor_is_valid(authoritative_start_cycle):
-		save_data = GameState.annotate_save_learning_cycle(save_data, authoritative_start_cycle)
-		if not bool(save_data.get("loadable", false)):
-			await RemoteSync.request_end_playtime_session()
-			empty_label.text = String(save_data.get("save_error", "Previous Learning Cycle"))
-			empty_label.visible = true
-			_save_transitioning = false
-			return
+		verified_learning_cycle = authoritative_start_cycle
+	if not GameState.set_learning_cycle_descriptor_is_valid(verified_learning_cycle):
+		await RemoteSync.request_end_playtime_session()
+		empty_label.text = "Unable to verify Learning Cycle. Connect to continue."
+		empty_label.visible = true
+		_save_transitioning = false
+		return
+	save_data = GameState.annotate_save_learning_cycle(save_data, verified_learning_cycle)
+	if not bool(save_data.get("loadable", false)):
+		await RemoteSync.request_end_playtime_session()
+		empty_label.text = String(save_data.get("save_error", "Learning Cycle mismatch"))
+		empty_label.visible = true
+		_save_transitioning = false
+		return
 
-	var applied_save: Dictionary = GameState.load_save(save_path, false)
+	var applied_save: Dictionary = GameState.load_save(save_path, false, verified_learning_cycle)
 	if applied_save.is_empty():
 		empty_label.text = "Unable to load selected save."
 		empty_label.visible = true
 		_save_transitioning = false
 		return
-	if GameState.set_learning_cycle_descriptor_is_valid(authoritative_start_cycle):
-		GameState.set_learning_cycle(authoritative_start_cycle)
+	GameState.set_learning_cycle(verified_learning_cycle)
+	if GameState.has_method("clear_load_game_browse_context"):
+		GameState.clear_load_game_browse_context()
 
 	LoadingScreenController.prepare_load_game(scene_path)
 	var result: int = get_tree().change_scene_to_file(LOADING_SCENE_PATH)
 	if result != OK:
 		LoadingScreenController.cancel_pending_request()
 		_save_transitioning = false
+		if GameState.has_method("clear_load_game_browse_context"):
+			GameState.clear_load_game_browse_context()
+
+
+func resolve_back_navigation() -> String:
+	if GameState.has_method("cancel_load_game_browse"):
+		var context: Dictionary = GameState.cancel_load_game_browse()
+		if bool(context.get("ok", false)):
+			return String(context.get("scene_path", "res://scenes/main_menu.tscn"))
+	return "res://scenes/main_menu.tscn"
 
 
 func _has_valid_session_identity() -> bool:

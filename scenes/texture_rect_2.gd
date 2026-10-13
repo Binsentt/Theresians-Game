@@ -677,6 +677,23 @@ func handle_back() -> void:
 			_step_transitioning = true
 			await _fade_and_change_scene_to_main_menu()
 		RegistrationStep.IDS:
+			student_id_input.clear()
+			parent_id_input.clear()
+			selected_grade = ""
+			selected_grade_btn = null
+			name_input.clear()
+			_canonical_student_name = ""
+			_canonical_grade = ""
+			_canonical_section = ""
+			_set_canonical_identity_lock(false)
+			GameState.update_new_game_registration({
+				"student_id": "",
+				"parent_id": "",
+				"student_name": "",
+				"grade": "",
+				"section": "",
+			})
+			_hide_validation()
 			await _show_step(RegistrationStep.GENDER)
 		RegistrationStep.NAME_GRADE:
 			_set_canonical_identity_lock(false)

@@ -20,13 +20,11 @@ const SAVE_TOAST_FADE_OUT_DURATION := 0.32
 const ENABLED_BUTTON_MODULATE := Color(1.0, 1.0, 1.0, 1.0)
 const DISABLED_BUTTON_MODULATE := Color(1.0, 1.0, 1.0, 0.45)
 const POPUP_SAFE_MARGIN := Vector2(24.0, 24.0)
+const SETTINGS_COMPOSITION_SIZE := Vector2(1008.0, 680.0)
 const SETTINGS_BUTTON_SIZE := Vector2(52.0, 52.0)
 const SETTINGS_BUTTON_TOP_RIGHT_MARGIN := Vector2(16.0, 12.0)
-const COMPACT_SLIDER_SIZE := Vector2(220.0, 30.0)
 const COMPACT_GRABBER_SIZE := Vector2i(30, 29)
 const GRABBER_TEXTURE: Texture2D = preload("res://Images/grabber.png")
-const ACTION_BUTTON_FRAME_TEXTURE: Texture2D = preload("res://Images/btn.png")
-const ACTION_BUTTON_FRAME_REGION := Rect2(24.0, 284.0, 1488.0, 400.0)
 
 @onready var settings_button: Button = $"Settings-Logo-Button"
 @onready var settings_popup: Control = $SettingsPopup
@@ -58,7 +56,7 @@ func _ready() -> void:
 	offset_bottom = 0.0
 
 	_configure_button_positions()
-	_configure_action_button_frames()
+	_configure_action_buttons()
 	_configure_compact_volume_sliders()
 	_configure_popup()
 	_configure_save_toast()
@@ -96,45 +94,36 @@ func _configure_button_positions() -> void:
 	settings_button.visible = true
 
 
-func _configure_action_button_frames() -> void:
+func _configure_action_buttons() -> void:
 	for button: Button in [resume_button, save_button, load_button, exit_button]:
-		# btn.png is a wide framed-button asset, not a button icon. Rendering it as
-		# an icon made it collapse to a small strip beside the separately authored
-		# text label at runtime.
 		button.icon = null
 		button.expand_icon = false
 		button.flat = true
-		var frame := button.get_node_or_null("ButtonFrame") as TextureRect
-		if frame == null:
-			frame = TextureRect.new()
-			frame.name = "ButtonFrame"
-			frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			frame.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			frame.stretch_mode = TextureRect.STRETCH_SCALE
-			var atlas_texture := AtlasTexture.new()
-			atlas_texture.atlas = ACTION_BUTTON_FRAME_TEXTURE
-			atlas_texture.region = ACTION_BUTTON_FRAME_REGION
-			frame.texture = atlas_texture
-			button.add_child(frame)
-			button.move_child(frame, 0)
-		frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		button.clip_contents = true
+		var label := button.get_node_or_null("Label") as Label
+		if label != null:
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for label_path in ["SettingsPopup/TextureRect/MusicLabel", "SettingsPopup/TextureRect/SfxLabel"]:
+		var label := get_node_or_null(label_path) as Label
+		if label != null:
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _configure_compact_volume_sliders() -> void:
+	# Keep the existing gold-and-blue orb art while matching the authored 220×30
+	# slider control, so neither the visual knob nor its hitbox reaches adjacent UI.
 	var compact_grabber := _create_compact_grabber()
 	for slider: HSlider in [music_slider, sfx_slider]:
-		slider.custom_minimum_size = COMPACT_SLIDER_SIZE
-		slider.size = COMPACT_SLIDER_SIZE
 		slider.add_theme_icon_override(&"grabber", compact_grabber)
 		slider.add_theme_icon_override(&"grabber_highlight", compact_grabber)
 		slider.add_theme_icon_override(&"grabber_disabled", compact_grabber)
-		slider.reset_size()
 
 
 func _create_compact_grabber() -> ImageTexture:
 	var image := GRABBER_TEXTURE.get_image()
 	image.resize(COMPACT_GRABBER_SIZE.x, COMPACT_GRABBER_SIZE.y, Image.INTERPOLATE_NEAREST)
 	return ImageTexture.create_from_image(image)
+
 
 func _configure_popup() -> void:
 	settings_popup.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -200,6 +189,8 @@ func _connect_controls() -> void:
 		music_slider.value_changed.connect(_on_music_volume_changed)
 	if not sfx_slider.value_changed.is_connected(_on_sfx_volume_changed):
 		sfx_slider.value_changed.connect(_on_sfx_volume_changed)
+	if GameState.has_signal("save_created") and not GameState.save_created.is_connected(_on_save_created):
+		GameState.save_created.connect(_on_save_created)
 	if not _exit_dialog.confirmed.is_connected(_on_exit_confirmed):
 		_exit_dialog.confirmed.connect(_on_exit_confirmed)
 	if not _exit_dialog.canceled.is_connected(_on_exit_canceled):
@@ -294,6 +285,13 @@ func _on_save_pressed() -> void:
 func _on_load_pressed() -> void:
 	if load_button.disabled:
 		return
+	var origin_scene_path := String(GameState.current_scene_path)
+	var player := get_tree().get_first_node_in_group("player_character") as Node2D
+	var origin_position := GameState.player_position
+	if player != null:
+		origin_position = player.global_position
+	if not GameState.begin_load_game_browse(origin_scene_path, origin_position):
+		return
 
 	settings_popup.visible = false
 	InputManager.unlock_input("settings_pause")
@@ -304,6 +302,7 @@ func _on_load_pressed() -> void:
 		_exit_dialog.hide()
 	var transition_error := get_tree().change_scene_to_file(LOAD_GAME_SCENE)
 	if transition_error != OK:
+		GameState.clear_load_game_browse_context()
 		settings_popup.visible = true
 		settings_button.visible = false
 		InputManager.lock_input("settings_pause")
@@ -431,105 +430,22 @@ func _sync_volume_controls() -> void:
 func _center_popup() -> void:
 	if settings_popup == null or popup_texture == null:
 		return
-	var viewport_size := get_viewport_rect().size
+	_fit_popup_to_viewport(get_viewport_rect().size)
+
+
+func _fit_popup_to_viewport(viewport_size: Vector2) -> void:
 	var available_size := Vector2(
 		maxf(viewport_size.x - POPUP_SAFE_MARGIN.x * 2.0, 1.0),
 		maxf(viewport_size.y - POPUP_SAFE_MARGIN.y * 2.0, 1.0)
 	)
-	var is_portrait := viewport_size.y > viewport_size.x
-	var panel_size := Vector2(
-		minf(available_size.x, 1008.0),
-		minf(available_size.y, 621.0)
+	var scale_factor := minf(
+		minf(available_size.x / SETTINGS_COMPOSITION_SIZE.x, available_size.y / SETTINGS_COMPOSITION_SIZE.y),
+		1.0
 	)
-	if is_portrait:
-		panel_size.y = minf(available_size.y, 560.0)
-
-	settings_popup.scale = Vector2.ONE
+	settings_popup.scale = Vector2.ONE * scale_factor
 	settings_popup.pivot_offset = Vector2.ZERO
-	settings_popup.size = panel_size
-	settings_popup.position = (viewport_size - panel_size) * 0.5
-	popup_texture.position = Vector2.ZERO
-	popup_texture.size = panel_size
-	_layout_settings_controls(panel_size, is_portrait)
-
-
-func _layout_settings_controls(panel_size: Vector2, is_portrait: bool) -> void:
-	const BUTTON_SIZE := Vector2(220.0, 52.0)
-	const BUTTON_GAP := 13.0
-	var buttons: Array[Button] = [resume_button, save_button, load_button, exit_button]
-	for button in buttons:
-		button.custom_minimum_size = BUTTON_SIZE
-		button.size = BUTTON_SIZE
-		var label := button.get_node_or_null("Label") as Label
-		if label != null:
-			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	close_button.size = Vector2(38.0, 38.0)
-	close_button.position = Vector2(maxf(panel_size.x - 54.0, 4.0), 12.0)
-
-	var button_left := (panel_size.x - BUTTON_SIZE.x) * 0.5
-	var slider_left := button_left
-	var slider_top := 0.0
-	if is_portrait:
-		var button_top := 34.0
-		for index in range(buttons.size()):
-			buttons[index].position = Vector2(button_left, button_top + index * (BUTTON_SIZE.y + BUTTON_GAP))
-		slider_left = button_left
-		slider_top = button_top + buttons.size() * (BUTTON_SIZE.y + BUTTON_GAP) + 6.0
-		_place_volume_controls(panel_size, slider_left, slider_top, true)
-	elif panel_size.y < 440.0 or panel_size.x < 760.0:
-		var column_gap := 24.0
-		var grid_width := BUTTON_SIZE.x * 2.0 + column_gap
-		var grid_left := (panel_size.x - grid_width) * 0.5
-		var first_row_y := 30.0
-		for index in range(buttons.size()):
-			var column := index % 2
-			var row := floori(float(index) / 2.0)
-			buttons[index].position = Vector2(grid_left + column * (BUTTON_SIZE.x + column_gap), first_row_y + row * (BUTTON_SIZE.y + BUTTON_GAP))
-		slider_left = grid_left
-		var last_button_bottom := first_row_y + BUTTON_SIZE.y + BUTTON_GAP + BUTTON_SIZE.y
-		# Reserve the slider-label row and clear the second button row. The prior
-		# arithmetic put MUSIC VOLUME over the lower edge of Load Game on short
-		# landscape viewports.
-		slider_top = last_button_bottom + 8.0 + 18.0 + 4.0
-		_place_volume_controls(panel_size, slider_left, slider_top, false)
-	else:
-		var first_button_y := 88.0 if panel_size.y >= 560.0 else 32.0
-		for index in range(buttons.size()):
-			buttons[index].position = Vector2(button_left, first_button_y + index * (BUTTON_SIZE.y + BUTTON_GAP))
-		var slider_group_width := COMPACT_SLIDER_SIZE.x * 2.0 + 40.0
-		slider_left = (panel_size.x - slider_group_width) * 0.5
-		slider_top = panel_size.y - 95.0
-		_place_volume_controls(panel_size, slider_left, slider_top, false)
-
-
-func _place_volume_controls(panel_size: Vector2, left: float, top: float, stacked: bool) -> void:
-	const LABEL_SIZE := Vector2(220.0, 18.0)
-	const SLIDER_SIZE := Vector2(220.0, 30.0)
-	var music_label := get_node("SettingsPopup/TextureRect/MusicLabel") as Label
-	var sfx_label := get_node("SettingsPopup/TextureRect/SfxLabel") as Label
-	for label in [music_label, sfx_label]:
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.size = LABEL_SIZE
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	music_slider.custom_minimum_size = SLIDER_SIZE
-	sfx_slider.custom_minimum_size = SLIDER_SIZE
-	music_slider.size = SLIDER_SIZE
-	sfx_slider.size = SLIDER_SIZE
-	if stacked:
-		music_label.position = Vector2(left, top)
-		music_slider.position = Vector2(left, top + 20.0)
-		sfx_label.position = Vector2(left, top + 78.0)
-		sfx_slider.position = Vector2(left, top + 98.0)
-	else:
-		var column_gap := 40.0 if panel_size.y >= 440.0 else 24.0
-		music_label.position = Vector2(left, top - LABEL_SIZE.y - 4.0)
-		music_slider.position = Vector2(left, top)
-		sfx_label.position = Vector2(left + SLIDER_SIZE.x + column_gap, top - LABEL_SIZE.y - 4.0)
-		sfx_slider.position = Vector2(left + SLIDER_SIZE.x + column_gap, top)
+	settings_popup.size = SETTINGS_COMPOSITION_SIZE
+	settings_popup.position = (viewport_size - SETTINGS_COMPOSITION_SIZE * scale_factor) * 0.5
 
 func _show_save_success_toast() -> void:
 	if save_toast == null:
@@ -570,3 +486,7 @@ func _refresh_load_button_state() -> void:
 	load_button.disabled = not has_save
 	load_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	load_button.modulate = ENABLED_BUTTON_MODULATE if has_save else DISABLED_BUTTON_MODULATE
+
+
+func _on_save_created(_save_data: Dictionary) -> void:
+	_refresh_load_button_state()
