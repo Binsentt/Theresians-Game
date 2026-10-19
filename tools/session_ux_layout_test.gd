@@ -56,14 +56,20 @@ func _run() -> void:
 		})
 		var toast := manager.get_node("QuestNotificationLayer/TaskCompletePanel") as Control
 		var toast_rect := toast.get_global_rect()
-		_expect(absf(toast_rect.position.y - 12.0) < 1.5, "Quest objective is a top toast at %s" % dimensions)
+		var quest_guide := hud.find_child("QuestGuide", true, false) as Control
+		var clears_quest_guide := quest_guide == null or not quest_guide.is_visible_in_tree() \
+				or toast_rect.position.y >= quest_guide.get_global_rect().end.y + 10.0
+		_expect(clears_quest_guide, "Quest objective notification stays below the persistent Current Quest area at %s" % dimensions)
 		_expect(toast.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Quest toast is nonblocking at %s" % dimensions)
 		manager.call("_hide_all_panels_immediately")
 
 		var dialogue_panel := dialogue.get_node("DialoguePanel") as Control
 		var dialogue_rect := dialogue_panel.get_global_rect()
 		_expect(dialogue_rect.size.x >= minf(800.0, viewport.x - 300.0), "Shared dialogue is widened responsively at %s" % dimensions)
-		_expect(absf(viewport.y - dialogue_rect.end.y - 40.0) < 1.5, "Shared dialogue remains bottom-positioned at %s" % dimensions)
+		var dialogue_height_ratio := dialogue_rect.size.y / maxf(viewport.y, 1.0)
+		var dialogue_bottom_margin_ratio := (viewport.y - dialogue_rect.end.y) / maxf(viewport.y, 1.0)
+		_expect(dialogue_height_ratio >= 0.25 and dialogue_height_ratio <= 0.35, "Shared dialogue remains a compact lower-screen RPG panel at %s" % dimensions)
+		_expect(dialogue_bottom_margin_ratio >= 0.04 and dialogue_bottom_margin_ratio <= 0.06, "Shared dialogue keeps responsive bottom breathing room at %s" % dimensions)
 
 		hud.call("_on_time_limit_reached")
 		var daily_panel := hud.get_node("GameOverOverlay/PanelContainer") as Control

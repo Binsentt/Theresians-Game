@@ -83,7 +83,7 @@ func _fail(message: String) -> void:
 
 
 func _write_report() -> void:
-	var file := FileAccess.open("res://tools/load_game_save_data_compatibility_test_result.json", FileAccess.WRITE)
+	var file := FileAccess.open("user://load_game_save_data_compatibility_test_result.json", FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify({
 			"passed": _check_count - _failures.size(),

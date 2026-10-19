@@ -4,8 +4,8 @@ extends Node
 ## It exercises the real GameState serializer/loader and existing route contracts;
 ## it does not instantiate or replace any battle UI.
 
-const SAVE_DIRECTORY := "user://saves"
-const FIXTURE_PATH := SAVE_DIRECTORY + "/oakleaf_progression_fixture.json"
+const QA_SAVE_ROOT := "user://qa_local_saves"
+const FIXTURE_FILE_NAME := "oakleaf_progression_fixture.json"
 const OAKLEAF := "res://scenes/oak_leaf_village.tscn"
 const NORMAL_IDS := [
 	"oakleaf_bandits1",
@@ -24,7 +24,11 @@ const PROFILE := {
 }
 
 var _checks: Array[Dictionary] = []
-var _initial_save_paths: Dictionary = {}
+var _qa_save_directory := ""
+var _fixture_path := ""
+var _created_qa_save_directory := false
+var _previous_save_directory := ""
+var _previous_identity: Dictionary = {}
 
 
 func _ready() -> void:
@@ -37,12 +41,38 @@ func _run() -> void:
 		if live != null:
 			live.free()
 	var state := get_node("/root/GameState")
+	_previous_save_directory = String(state.get_save_directory())
+	_previous_identity = {
+		"student_id": state.student_id,
+		"parent_id": state.parent_id,
+		"device_installation_id": state.device_installation_id,
+	}
+	state.enable_local_qa_mode()
+	_qa_save_directory = "%s/oakleaf_progression_%d_%d" % [
+		QA_SAVE_ROOT,
+		OS.get_process_id(),
+		Time.get_ticks_usec(),
+	]
+	var absolute_qa_directory := ProjectSettings.globalize_path(_qa_save_directory)
+	if DirAccess.dir_exists_absolute(absolute_qa_directory):
+		push_error("Refusing to reuse an existing Oakleaf QA save directory.")
+		state.set("_save_directory", _previous_save_directory)
+		_finish()
+		return
+	if DirAccess.make_dir_recursive_absolute(absolute_qa_directory) != OK:
+		push_error("Could not create the isolated Oakleaf QA save directory.")
+		state.set("_save_directory", _previous_save_directory)
+		_finish()
+		return
+	_created_qa_save_directory = true
+	state.set("_save_directory", _qa_save_directory)
 	state.student_id = String(PROFILE.student_id)
 	state.parent_id = String(PROFILE.parent_id)
-	for save_entry in state.list_saves():
-		_initial_save_paths[String(save_entry.get("save_path", ""))] = true
+	state.device_installation_id = "oakleaf-progression-qa-device"
+	_fixture_path = _qa_save_directory + "/" + FIXTURE_FILE_NAME
 	if not _has_required_api(state):
-		_cleanup_fixture(state)
+		_cleanup_fixture()
+		_restore_qa_context(state)
 		_finish()
 		return
 	_expect(FileAccess.get_file_as_string("res://scripts/teacher_task_interaction.gd").contains("is_oakleaf_return_to_teacher_active"), "existing Teacher interaction adapter owns the Return to Teacher gate")
@@ -149,7 +179,7 @@ func _run() -> void:
 
 	var teacher_result: Dictionary = state.complete_oakleaf_teacher_return()
 	_expect(bool(teacher_result.get("changed", false)) and state.city_of_knowledge_unlocked, "Teacher return completes Oakleaf and unlocks City")
-	_expect(state.current_task_index == 6 and state.current_quest == "Go to the City of Knowledge / School", "City objective becomes the current quest")
+	_expect(state.current_task_index == 6 and state.current_quest == "Go to the City of Knowledge School.", "City objective becomes the current quest from the canonical task source")
 	var duplicate_teacher: Dictionary = state.complete_oakleaf_teacher_return()
 	_expect(not bool(duplicate_teacher.get("changed", false)), "Teacher completion emits no duplicate completion")
 
@@ -161,7 +191,8 @@ func _run() -> void:
 	_expect(state.current_task_index >= 3 and state.current_task_index <= 6, "Oakleaf progression never regresses to an earlier task")
 	_expect(state.SAVE_VERSION >= 9 and city_save.has("oakleaf_defeated_bandits") and city_save.has("oakleaf_boss_defeated") and city_save.has("oakleaf_return_to_teacher"), "only the authorized Oakleaf fields extend persistence")
 
-	_cleanup_fixture(state)
+	_cleanup_fixture()
+	_restore_qa_context(state)
 	_finish()
 
 
@@ -218,13 +249,27 @@ func _city_door_is_gated() -> bool:
 	return gated
 
 
-func _cleanup_fixture(state: Node) -> void:
-	if FileAccess.file_exists(FIXTURE_PATH):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(FIXTURE_PATH))
-	for save_entry in state.list_saves():
-		var save_path := String(save_entry.get("save_path", ""))
-		if save_path.begins_with(SAVE_DIRECTORY + "/") and not _initial_save_paths.has(save_path):
-			state.delete_save(save_path)
+func _cleanup_fixture() -> void:
+	if not _created_qa_save_directory:
+		return
+	var absolute_qa_directory := ProjectSettings.globalize_path(_qa_save_directory)
+	var directory := DirAccess.open(absolute_qa_directory)
+	if directory != null:
+		directory.list_dir_begin()
+		var file_name := directory.get_next()
+		while not file_name.is_empty():
+			if not directory.current_is_dir():
+				DirAccess.remove_absolute(absolute_qa_directory.path_join(file_name))
+			file_name = directory.get_next()
+		directory.list_dir_end()
+		DirAccess.remove_absolute(absolute_qa_directory)
+	_created_qa_save_directory = false
+
+
+func _restore_qa_context(state: Node) -> void:
+	state.set("_save_directory", _previous_save_directory)
+	for key in _previous_identity:
+		state.set(key, _previous_identity[key])
 
 
 func _expect(condition: bool, label: String) -> void:

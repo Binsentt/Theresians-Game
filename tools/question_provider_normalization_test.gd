@@ -4,6 +4,10 @@ const QuestionProviderScript = preload("res://scripts/question_provider.gd")
 
 func _init() -> void:
 	var provider := QuestionProviderScript.new()
+	if not _assert_equal(provider.has_method("get_questions"), true, "QuestionProvider must expose its loaded question pool to QuizManager"):
+		provider.free()
+		quit(1)
+		return
 	var api_question: Dictionary = provider._normalize_question({
 		"id": 91,
 		"question_id": 91,
@@ -98,6 +102,19 @@ func _init() -> void:
 		"correct_answer": "11",
 	})
 	if not _assert(unmatched_answer.is_empty(), "Unmatched answer text must be rejected"):
+		provider.free()
+		quit(1)
+		return
+	# Exact Grade/Difficulty pools must not mix in an unscoped fallback question.
+	# Use two questions from the same published pool to exercise no-repeat behavior.
+	var same_scope_question := fallback_question.duplicate(true)
+	same_scope_question["grade"] = "Grade 1"
+	same_scope_question["difficulty"] = "Easy"
+	same_scope_question["question_set_id"] = 77
+	provider._questions = [api_question, same_scope_question]
+	var first_question := provider.get_question()
+	var second_question := provider.get_question()
+	if not _assert_equal(first_question.get("id") != second_question.get("id"), true, "QuestionProvider must not immediately repeat a question while another candidate is available"):
 		provider.free()
 		quit(1)
 		return

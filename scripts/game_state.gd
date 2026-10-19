@@ -26,7 +26,7 @@ const AUTHORITATIVE_MANUAL_SNAPSHOT_KEYS: Array[String] = [
 	"encounter_context", "city_of_knowledge_unlocked", "city_first_arrival_seen",
 	"city_school_stage_complete", "city_next_path_unlocked", "city_school_stage",
 	"deep_forest_defeated_bandits", "pinehill_unlocked", "pinehill_old_man_completed",
-	"pinehill_defeated_bandits", "wizard_defeated", "return_to_city_stage",
+	"pinehill_defeated_bandits", "wizard_defeated", "wizard_thanks_complete", "return_to_city_stage",
 	"return_path_defeated_bandits", "final_teacher_defeated", "journey_complete",
 	"oakleaf_defeated_bandits", "oakleaf_boss_defeated", "oakleaf_return_to_teacher",
 	"activity_started_at", "completed_player_facing_tasks", "current_task_index",
@@ -70,6 +70,7 @@ const WIZARD_TASK_INDEX := 14
 const RETURN_CITY_TASK_INDEX := 15
 const FINAL_SCHOOL_TASK_INDEX := 16
 const FINAL_TEACHER_TASK_INDEX := 17
+# Kept for manual-save compatibility with the retired Forest wrapper scene.
 const DEEPEST_FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 
 const DEEP_FOREST_BANDIT_IDS: Array[String] = [
@@ -155,6 +156,7 @@ var pinehill_unlocked := false
 var pinehill_old_man_completed := false
 var pinehill_defeated_bandits: Dictionary = {}
 var wizard_defeated := false
+var wizard_thanks_complete := false
 var return_to_city_stage: int = 0
 var return_path_defeated_bandits: Dictionary = {}
 var final_teacher_defeated := false
@@ -416,6 +418,7 @@ func _reset_world_progression() -> void:
 	for encounter_id in PINEHILL_BANDIT_IDS:
 		pinehill_defeated_bandits[encounter_id] = false
 	wizard_defeated = false
+	wizard_thanks_complete = false
 	return_to_city_stage = 0
 	return_path_defeated_bandits.clear()
 	for encounter_id in RETURN_PATH_BANDIT_IDS:
@@ -703,6 +706,15 @@ func is_progression_encounter_defeated(encounter_id: String) -> bool:
 	if group.is_empty():
 		return false
 	return bool(_progression_defeat_map(group).get(normalized_id, false))
+
+
+func complete_wizard_thanks_event() -> void:
+	if wizard_thanks_complete or not wizard_defeated:
+		return
+	wizard_thanks_complete = true
+	# This is story-state persistence only; it does not emit an academic task or
+	# commit staged quiz results.
+	save_checkpoint()
 
 
 func are_all_progression_bandits_defeated(group: String) -> bool:
@@ -2093,11 +2105,11 @@ func _safe_game_over_location_for_task(task_index: int) -> Dictionary:
 	if task_index in [CITY_SCHOOL_TASK_INDEX, CITY_SCHOOL_TEACHER_TASK_INDEX, CITY_NEXT_PATH_TASK_INDEX]:
 		return {"scene_path": "res://scenes/city_of_knowledge.tscn", "marker_name": "spawn_from_school", "position": Vector2.ZERO}
 	if task_index == DEEP_FOREST_BANDIT_TASK_INDEX:
-		return {"scene_path": DEEPEST_FOREST_PATH, "marker_name": "spawn_from_city", "position": Vector2.ZERO}
+		return {"scene_path": "res://interiors/school.tscn", "marker_name": "PlayerSpawn", "position": Vector2.ZERO}
 	if task_index in [PINEHILL_ARRIVAL_TASK_INDEX, PINEHILL_OLD_MAN_TASK_INDEX, PINEHILL_BANDIT_TASK_INDEX, WIZARD_TASK_INDEX, RETURN_CITY_TASK_INDEX]:
 		return {"scene_path": "res://scenes/2nd Village/Pinehill Village.tscn", "marker_name": "spawn_from_city", "position": Vector2.ZERO}
 	if task_index == FINAL_SCHOOL_TASK_INDEX:
-		return {"scene_path": "res://scenes/city_of_knowledge.tscn", "marker_name": "spawn_from_deepest_forest", "position": Vector2.ZERO}
+		return {"scene_path": "res://scenes/city_of_knowledge.tscn", "marker_name": "spawn_from_pinehill", "position": Vector2.ZERO}
 	if task_index >= FINAL_TEACHER_TASK_INDEX:
 		return {"scene_path": "res://interiors/school.tscn", "marker_name": "PlayerSpawn", "position": Vector2.ZERO}
 	return {}
@@ -2110,7 +2122,7 @@ func _safe_respawn_marker_for_scene(scene_path: String) -> String:
 		"res://scenes/oak_leaf_village.tscn":
 			return "PlayerHouseExitSpawn"
 		"res://scenes/city_of_knowledge.tscn":
-			return "spawn_from_deepest_forest"
+			return "spawn_from_pinehill"
 		DEEPEST_FOREST_PATH:
 			return "spawn_from_city"
 		"res://scenes/2nd Village/Pinehill Village.tscn":
@@ -2408,6 +2420,7 @@ func build_save_data() -> Dictionary:
 		"pinehill_old_man_completed": pinehill_old_man_completed,
 		"pinehill_defeated_bandits": pinehill_defeated_bandits.duplicate(true),
 		"wizard_defeated": wizard_defeated,
+		"wizard_thanks_complete": wizard_thanks_complete,
 		"return_to_city_stage": return_to_city_stage,
 		"return_path_defeated_bandits": return_path_defeated_bandits.duplicate(true),
 		"final_teacher_defeated": final_teacher_defeated,
@@ -2680,6 +2693,7 @@ func apply_save_data(
 		data.get("pinehill_defeated_bandits", null), PINEHILL_BANDIT_IDS
 	)
 	wizard_defeated = bool(data.get("wizard_defeated", false))
+	wizard_thanks_complete = bool(data.get("wizard_thanks_complete", false))
 	return_to_city_stage = clampi(int(data.get("return_to_city_stage", 0)), 0, 2)
 	return_path_defeated_bandits = _normalize_progression_defeated_bandits(
 		data.get("return_path_defeated_bandits", null), RETURN_PATH_BANDIT_IDS

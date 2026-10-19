@@ -1,19 +1,19 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cjhhvhts1do6r"]
 
 [ext_resource type="Script" uid="uid://dvmx1dwl5axa" path="res://scripts/door.gd" id="1_door"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_city_to_pinehill"]
-size = Vector2(36, 32)
+size = Vector2(22.5, 20.5)
 
-[node name="City-of-Knowledge-to-PineHill" type="Area2D"]
+[node name="City-of-Knowledge-to-PineHill" type="Area2D" unique_id=399416445]
 script = ExtResource("1_door")
-destination_scene_path = "res://scenes/deepest_forest_path.tscn"
-destination_spawn_position = Vector2(80, 64)
-destination_spawn_marker_name = "spawn_from_city"
+destination_scene_path = "res://scenes/2nd Village/Pinehill Village.tscn"
+destination_spawn_position = Vector2(47, 19)
+destination_spawn_marker_name = "spawn_from_deepest_forest"
 destination_facing_direction = "down"
 play_fade_transition = true
-fade_duration = 2.0
 requires_city_school_completion = true
+fade_duration = 2.0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1793194042]
 shape = SubResource("RectangleShape2D_city_to_pinehill")

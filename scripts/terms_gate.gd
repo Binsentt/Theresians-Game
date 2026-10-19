@@ -234,6 +234,7 @@ func _apply_font(control: Control) -> void:
 
 
 func _apply_checkbox_icons(checkbox: CheckBox) -> void:
+	checkbox.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	checkbox.add_theme_icon_override("unchecked", _make_checkbox_icon(false, false))
 	checkbox.add_theme_icon_override("checked", _make_checkbox_icon(true, false))
 	checkbox.add_theme_icon_override("unchecked_disabled", _make_checkbox_icon(false, true))

@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://sofdexdtmqfs"]
 
-[ext_resource type="Texture2D" uid="uid://ccut3b2f3yp3j" path="res://NPC/villager-female.png" id="1_susn6"]
+[ext_resource type="Texture2D" uid="uid://bxkjke7atiydh" path="res://NPC/villager-female.png" id="1_susn6"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_4q61b"]
 atlas = ExtResource("1_susn6")
@@ -143,6 +143,7 @@ animations = [{
 }]
 
 [node name="villager-female" type="AnimatedSprite2D" unique_id=1540680081]
-scale = Vector2(0.085, 0.085)
+position = Vector2(1.1920929e-07, -5.9604645e-08)
+scale = Vector2(0.097445056, 0.09844405)
 sprite_frames = SubResource("SpriteFrames_3uf64")
 animation = &"walk_up"

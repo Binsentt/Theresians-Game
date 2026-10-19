@@ -1,7 +1,7 @@
 extends Node
 
-## Runtime adapter for the already-authored City/Pinehill actors. It mirrors
-## the Oakleaf encounter lifecycle and instantiates only the original VS scenes.
+## Runtime adapter for already-authored City/Pinehill actors. The five Forest
+## encounters are installed in the City scene only while their quest is active.
 
 const COMPONENT_NAME := "ProgressionBattleEncounter"
 const INTERACTION_RANGE := 32.0
@@ -38,6 +38,8 @@ const ROUTES := {
 		"Bandits4": {"encounter_id": "deep_forest_bandits4", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits5": {"encounter_id": "deep_forest_bandits5", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 	},
+	# Compatibility route for manual saves created while the Forest wrapper was
+	# active. New gameplay checkpoints and doors never enter this scene.
 	DEEPEST_FOREST_PATH: {
 		"Bandits": {"node_path": "ForestBackdrop/Bandits", "encounter_id": "deep_forest_bandits1", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits2": {"node_path": "ForestBackdrop/Bandits2", "encounter_id": "deep_forest_bandits2", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
@@ -73,10 +75,6 @@ static func install_for_scene(world: Node2D, component_script: Script) -> void:
 	var scene_path := world.scene_file_path
 	if not ROUTES.has(scene_path):
 		return
-	if scene_path == CITY_PATH:
-		# City is now the hub; the five authored actors are mounted in the
-		# dedicated forest wrapper instead of being encounter points here.
-		return
 	for actor_name in ROUTES[scene_path]:
 		var route: Dictionary = ROUTES[scene_path][actor_name]
 		var actor_path := String(route.get("node_path", actor_name))
@@ -87,6 +85,9 @@ static func install_for_scene(world: Node2D, component_script: Script) -> void:
 		if GameState.has_method("is_progression_encounter_defeated") \
 				and bool(GameState.call("is_progression_encounter_defeated", encounter_id)):
 			actor.queue_free()
+			continue
+		if not GameState.has_method("can_start_progression_encounter") \
+				or not bool(GameState.call("can_start_progression_encounter", encounter_id)):
 			continue
 		var encounter := component_script.new() as Node
 		if encounter == null:

@@ -100,8 +100,14 @@ func _apply_save_data(save_data: Dictionary) -> void:
 	saved_label.text = "Last Saved: %s  %s" % [save_date, save_time]
 	playtime_label.text = "Playtime: %s" % _format_playtime(int(save_data.get("total_play_time", 0)))
 	_loadable = bool(save_data.get("loadable", true))
-	availability_label.visible = not _loadable
-	availability_label.text = String(save_data.get("save_error", "This save is unavailable. Delete it or create a new save."))
+	var historical_replay := bool(save_data.get("historical_replay_mode", false))
+	availability_label.visible = not _loadable or historical_replay
+	if historical_replay:
+		availability_label.text = "Historical replay: no current-cycle academic credit."
+		availability_label.add_theme_color_override("font_color", Color(1.0, 0.78, 0.28, 1.0))
+	else:
+		availability_label.remove_theme_color_override("font_color")
+		availability_label.text = String(save_data.get("save_error", "This save is unavailable. Delete it or create a new save."))
 	load_button.disabled = not _loadable
 	delete_button.disabled = _save_kind != "manual"
 

@@ -1,8 +1,8 @@
 extends Node
 
 ## Offline contract for the friendly-civilian dialogue adapters and the
-## symmetric City <-> Deepest Forest <-> Pinehill route. No network calls or
-## gameplay writes are performed.
+## direct City -> Pinehill route plus legacy Forest-wrapper compatibility.
+## No network calls or gameplay writes are performed.
 
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
 const FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
@@ -25,6 +25,10 @@ func _expect(value: bool, label: String) -> void:
 
 
 func _run() -> void:
+	var http_api := get_node_or_null("/root/HttpApi")
+	var remote_sync := get_node_or_null("/root/RemoteSync")
+	_expect(http_api != null and bool(http_api.call("is_local_qa_mode")), "route fixture starts in local-only API mode before autoload removal")
+	_expect(remote_sync != null and bool(remote_sync.get("local_qa_only")), "route fixture starts with RemoteSync writes disabled")
 	for autoload_name in ["RemoteSync", "HttpApi"]:
 		var live := get_node_or_null("/root/" + autoload_name)
 		if live != null:
@@ -44,10 +48,10 @@ func _run() -> void:
 		"girl_npc/Visual": "I heard Pinehill Village is past the forest.",
 	}, "City")
 	_check_scene_dialogue(PINEHILL_PATH, {
-		"old_npc/Visual": "Pinehill is quiet, but the Wizard's tower worries everyone.",
-		"male-npc/Visual": "Those guards near the tower are tough. Be ready.",
-		"girl_npc/Visual": "At night, strange lights shine from the Wizard's tower.",
-		"villager-male/Visual": "If you're heading to the tower, prepare before you go.",
+		"old_npc/Visual": "Pinehill is quiet, but the Wizard worries everyone.",
+		"male-npc/Visual": "Those guards protecting the Wizard are tough. Be ready.",
+		"girl_npc/Visual": "At night, strange lights shine near the Wizard's House.",
+		"villager-male/Visual": "If you're heading to the Wizard, prepare before you go.",
 		"villager-female/Visual": "The Old Lady knows more about the Wizard than anyone here.",
 	}, "Pinehill")
 
@@ -113,23 +117,24 @@ func _check_routes() -> void:
 		return
 
 	var city_gate := city.get_node_or_null("City-of-knowlwedge-to-PineHill")
-	_expect(city_gate != null and String(city_gate.get("destination_scene_path")) == FOREST_PATH, "City gate enters Deepest Forest")
-	_expect(city_gate != null and String(city_gate.get("destination_spawn_marker_name")) == "spawn_from_city", "City gate uses the Forest city-side marker")
-	_expect(city.get_node_or_null("spawn_from_deepest_forest") != null, "City has a named Forest-return marker")
+	_expect(city_gate != null and String(city_gate.get("destination_scene_path")) == PINEHILL_PATH, "City gate enters canonical Pinehill directly")
+	_expect(city_gate != null and String(city_gate.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "City gate uses the established Pinehill arrival marker")
+	_expect(city.get_node_or_null("spawn_from_pinehill") != null, "Pinehill returns to the shared City/Forest map marker")
+	_expect(city.get_node_or_null("spawn_from_deepest_forest") != null, "Legacy wrapper saves retain their City compatibility marker")
 
 	var forest_city_gate := forest.get_node_or_null("DeepestForestToCity")
-	_expect(forest_city_gate != null and String(forest_city_gate.get("destination_scene_path")) == CITY_PATH, "Forest left exit returns to City")
-	_expect(forest_city_gate != null and String(forest_city_gate.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Forest City exit uses the City return marker")
+	_expect(forest_city_gate != null and String(forest_city_gate.get("destination_scene_path")) == CITY_PATH, "Legacy Forest-wrapper exit returns to City")
+	_expect(forest_city_gate != null and String(forest_city_gate.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Legacy wrapper exit uses its City compatibility marker")
 	var forest_pine_gate := forest.get_node_or_null("DeepestForestToPinehill")
-	_expect(forest_pine_gate != null and String(forest_pine_gate.get("destination_scene_path")) == PINEHILL_PATH, "Forest right exit enters Pinehill")
-	_expect(forest_pine_gate != null and String(forest_pine_gate.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Forest Pinehill exit uses the Pinehill entrance marker")
-	_expect(forest.get_node_or_null("spawn_from_city") != null, "Forest keeps its City-side marker")
+	_expect(forest_pine_gate != null and String(forest_pine_gate.get("destination_scene_path")) == PINEHILL_PATH, "Legacy Forest-wrapper exit enters Pinehill")
+	_expect(forest_pine_gate != null and String(forest_pine_gate.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Legacy wrapper exit uses the Pinehill arrival marker")
+	_expect(forest.get_node_or_null("spawn_from_city") != null, "Legacy wrapper keeps its City-side marker")
 
-	var pine_gate := pinehill.get_node_or_null("Pinehill-to-Deepest-Forest")
-	_expect(pine_gate != null and String(pine_gate.get("destination_scene_path")) == FOREST_PATH, "Pinehill entrance returns to Deepest Forest")
-	_expect(pine_gate != null and String(pine_gate.get("destination_spawn_marker_name")) == "spawn_from_pinehill", "Pinehill exit uses the Forest Pinehill-side marker")
-	_expect(pinehill.get_node_or_null("spawn_from_deepest_forest") != null, "Pinehill has a named Forest entrance marker")
-	_expect(pinehill.get_node_or_null("Pinehill-to-City-of-Knowledge") == null, "Pinehill no longer has a direct City gate")
+	var pine_gate := pinehill.get_node_or_null("Pinehill-to-City-of-Knowledge")
+	_expect(pine_gate != null and String(pine_gate.get("destination_scene_path")) == CITY_PATH, "Pinehill returns directly to the shared City/Forest map")
+	_expect(pine_gate != null and String(pine_gate.get("destination_spawn_marker_name")) == "spawn_from_pinehill", "Pinehill return uses the forest-side City marker")
+	_expect(pinehill.get_node_or_null("spawn_from_deepest_forest") != null, "Pinehill retains the established arrival marker used by the City passage")
+	_expect(pinehill.get_node_or_null("Pinehill-to-Deepest-Forest") == null, "Pinehill does not expose a misleading active Forest route trigger")
 
 	city.free()
 	forest.free()

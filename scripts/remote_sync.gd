@@ -143,6 +143,8 @@ func _process(delta: float) -> void:
 func _on_save_created(save_data: Dictionary) -> void:
 	if _remote_writes_blocked():
 		return
+	if GameState.historical_replay_mode or bool(save_data.get("historical_replay_mode", false)):
+		return
 	var save_kind := String(save_data.get("save_kind", ""))
 	if save_kind not in ["manual", "daily_time_limit"]:
 		return
@@ -244,7 +246,7 @@ func _on_canonical_activity_boundary(event: Dictionary) -> void:
 
 
 func _submit_canonical_task_activity(previous_index: int, current_index: int, event: Dictionary) -> void:
-	if _remote_writes_blocked():
+	if _remote_writes_blocked() or GameState.historical_replay_mode:
 		return
 	var event_type := _canonical_activity_type(GameState.safe_text_value(event.get("activity_type", event.get("type", ""))))
 	if event_type.is_empty():
@@ -404,7 +406,8 @@ func _is_learning_cycle_changed(result: Dictionary) -> bool:
 	return body is Dictionary and GameState.safe_text_value(body.get("code", "")) == "LEARNING_CYCLE_CHANGED"
 
 func _commit_academic_save_data(save_data: Dictionary) -> bool:
-	if _remote_writes_blocked():
+	if _remote_writes_blocked() or GameState.historical_replay_mode \
+			or bool(save_data.get("historical_replay_mode", false)):
 		return false
 	var save_kind := String(save_data.get("save_kind", ""))
 	if save_kind not in ["manual", "daily_time_limit"]:
@@ -584,7 +587,8 @@ func _load_pending_queue_from_path(path: String) -> Array:
 
 
 func _async_send_progress(save_data: Dictionary) -> void:
-	if _remote_writes_blocked():
+	if _remote_writes_blocked() or GameState.historical_replay_mode \
+			or bool(save_data.get("historical_replay_mode", false)):
 		return
 	# perform non-blocking via thread? We'll do simple call and rely on HttpApi's await behavior
 	var http := get_node_or_null("/root/HttpApi")
@@ -782,6 +786,7 @@ func _build_activity_log_payload(status: String, description: String, override_p
 		return {}
 	var payload := {
 		"student_id": student_id,
+		"parent_id": GameState.safe_text_value(override_payload.get("parent_id", GameState.parent_id)),
 		"student_name": GameState.safe_text_value(override_payload.get("student_name", GameState.player_name)),
 		"grade_level": GameState.safe_text_value(override_payload.get("grade_level", GameState.grade_level)),
 		"section": GameState.safe_text_value(override_payload.get("section", "")),
@@ -1087,7 +1092,8 @@ func _build_question_result_payload(question: Dictionary, is_correct: bool) -> D
 	var canonical_question_id: Variant = question.get("question_id", null)
 	if canonical_question_id is int and canonical_question_id > 0:
 		payload["question_id"] = canonical_question_id
-	var canonical_topic_id := str(question.get("topic_id", "")).strip_edges().to_lower()
+	var raw_topic_id: Variant = question.get("topic_id", null)
+	var canonical_topic_id := "" if raw_topic_id == null else str(raw_topic_id).strip_edges()
 	if not canonical_topic_id.is_empty():
 		payload["topic_id"] = canonical_topic_id
 	var question_presented_at := str(question.get("question_presented_at", "")).strip_edges()
@@ -1121,6 +1127,38 @@ func _update_progress_lease_fields(payload: Dictionary) -> void:
 	payload["learning_cycle_version"] = int(GameState.learning_cycle_version)
 
 
+func _format_outbox_failure_diagnostic(endpoint: String, result: Dictionary) -> String:
+	var status := GameState.safe_int_value(result.get("status", 0), 0)
+	var body: Variant = result.get("body", {})
+	var error_text := ""
+	var error_code := ""
+	if body is Dictionary:
+		error_text = _safe_backend_diagnostic_text(body.get("error", ""))
+		error_code = _safe_backend_diagnostic_text(body.get("code", ""))
+	var details := ""
+	if not error_code.is_empty():
+		details += " code=%s" % error_code
+	if not error_text.is_empty():
+		details += " error=%s" % error_text
+	return "RemoteSync: POST %s rejected HTTP %d%s" % [endpoint, status, details]
+
+
+func _safe_backend_diagnostic_text(value: Variant) -> String:
+	var text := str(value).strip_edges().replace("\r", " ").replace("\n", " ")
+	if text.is_empty():
+		return ""
+	if not _current_playtime_session_credential.is_empty():
+		text = text.replace(_current_playtime_session_credential, "[redacted]")
+	var secret_pattern := RegEx.new()
+	if secret_pattern.compile("(?i)(password|session[_ -]?credential|credential|authorization|token)(\\s*[:=]\\s*|\\s+)[^\\s,;]+") == OK:
+		text = secret_pattern.sub(text, "$1 [redacted]", true)
+	var lower_text := text.to_lower()
+	for internal_marker in ["sqlstate", "postgres", "database url", "stack trace", "exception:", "syntax error at"]:
+		if lower_text.contains(internal_marker):
+			return "Backend rejected the request with internal details."
+	return text.substr(0, 200)
+
+
 func _enqueue_pending_result(payload: Dictionary) -> void:
 	var event_id := String(payload.get("result_event_id", "")).strip_edges()
 	if event_id.is_empty():
@@ -1151,6 +1189,8 @@ func _enqueue_pending_result(payload: Dictionary) -> void:
 
 
 func _enqueue_pending(save_data: Dictionary) -> void:
+	if GameState.historical_replay_mode or bool(save_data.get("historical_replay_mode", false)):
+		return
 	var pending := _load_pending()
 	var queued_save := save_data.duplicate(true)
 	queued_save["environment_scope"] = _current_environment_scope()
@@ -1164,6 +1204,8 @@ func _enqueue_pending(save_data: Dictionary) -> void:
 
 
 func _enqueue_pending_activity(payload: Dictionary) -> void:
+	if GameState.historical_replay_mode:
+		return
 	var event_key := String(payload.get("event_key", "")).strip_edges()
 	var student_id := GameState.safe_text_value(GameState.student_id)
 	var parent_id := GameState.safe_text_value(GameState.parent_id)
@@ -1299,7 +1341,7 @@ func _reconcile_processed_pending_items(processed_counts: Dictionary) -> void:
 
 
 func _flush_pending(allow_lease_recovery: bool = true) -> void:
-	if _remote_writes_blocked():
+	if _remote_writes_blocked() or GameState.historical_replay_mode:
 		return
 	if _pending_flush_in_progress:
 		_pending_flush_requested = true
@@ -1400,6 +1442,8 @@ func _flush_pending(allow_lease_recovery: bool = true) -> void:
 			print("RemoteSync: removed a stale pending item from the queue.")
 			_mark_pending_item_processed(processed_counts, item)
 			continue
+		if not bool(result.get("ok", false)) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
+			print(_format_outbox_failure_diagnostic(path, result))
 		if _is_playtime_lease_rejected(result):
 			if _lease_identity_matches(sent_session_id, sent_session_credential, sent_student_id, sent_parent_id, sent_cycle_version):
 				_invalidate_playtime_lease()

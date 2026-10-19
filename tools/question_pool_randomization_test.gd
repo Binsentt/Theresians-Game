@@ -10,17 +10,21 @@ func _ready() -> void:
 
 func _run() -> void:
 	var provider := QuestionProviderScript.new()
-	var failed := false
-	failed = not _assert_single_question_cycle(provider) or failed
-	failed = not _assert_two_question_cycle(provider) or failed
-	failed = not _assert_five_question_cycle(provider) or failed
-	failed = not _assert_same_bandit_retry_uses_unused_question(provider) or failed
-	failed = not _assert_new_bandit_same_scope_shares_history(provider) or failed
-	failed = not _assert_scope_isolation(provider) or failed
-	failed = not _assert_active_set_replacement(provider) or failed
+	var scenarios: Array[Dictionary] = [
+		{"name": "single-question recycle", "passed": _assert_single_question_cycle(provider)},
+		{"name": "two-question cycle", "passed": _assert_two_question_cycle(provider)},
+		{"name": "five-question cycle", "passed": _assert_five_question_cycle(provider)},
+		{"name": "same-bandit retry uses unused question", "passed": _assert_same_bandit_retry_uses_unused_question(provider)},
+		{"name": "new bandit shares exact-scope history", "passed": _assert_new_bandit_same_scope_shares_history(provider)},
+		{"name": "scope isolation", "passed": _assert_scope_isolation(provider)},
+		{"name": "active-set replacement", "passed": _assert_active_set_replacement(provider)},
+	]
+	var passed := scenarios.filter(func(scenario: Dictionary) -> bool: return bool(scenario.get("passed", false))).size()
+	var failed := scenarios.size() - passed
 	provider.free()
-	if not failed:
-		print("[Question Pool Randomization Test] PASS")
+	print("QUESTION_POOL_RANDOMIZATION_TEST " + JSON.stringify({"passed": passed, "failed": failed, "scenarios": scenarios}))
+	# Keep a short result window so Godot MCP can capture the final assertion output.
+	await get_tree().create_timer(1.0).timeout
 	get_tree().quit(1 if failed else 0)
 
 

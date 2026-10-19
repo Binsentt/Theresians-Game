@@ -8,14 +8,22 @@ const PROFILE := {"player_name": "Continuation QA Fixture", "gender": "male", "g
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
 const FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL_PATH := "res://scenes/2nd Village/Pinehill Village.tscn"
+const APPROVED_FOREST_BANDIT_POSITIONS := [
+	Vector2(114, 487),
+	Vector2(171, 463),
+	Vector2(84, 425),
+	Vector2(265, 325),
+	Vector2(327, 237),
+]
 const ROUTER := preload("res://scripts/progression_battle_encounter.gd")
 const OLD_LADY := preload("res://scripts/progression_old_man_interaction.gd")
 
 var checks: Array[Dictionary] = []
 var qa_directory := ""
 var qa_run_id := ""
-var visible_forest_bandit_count := 0
+var visible_city_bandit_count := 0
 var visible_pinehill_guard_count := 0
+var runtime_diagnostics: Array[Dictionary] = []
 
 func _ready() -> void:
 	call_deferred("_run")
@@ -27,7 +35,6 @@ func _expect(value: bool, label: String) -> void:
 
 func _run() -> void:
 	qa_run_id = "%d_%d" % [OS.get_process_id(), Time.get_ticks_usec()]
-	_cleanup_aborted_qa_attempts()
 	var http := get_node_or_null("/root/HttpApi")
 	var remote := get_node_or_null("/root/RemoteSync")
 	var state := get_node_or_null("/root/GameState")
@@ -50,26 +57,26 @@ func _run() -> void:
 	await _check_progression_dialogue_layout()
 	_check_forest_routes()
 	_check_pinehill_routes()
-	await _run_live_city_forest_pinehill_flow()
+	await _run_live_city_pinehill_flow()
 	_check_state_and_save_load()
 
 	var failed := 0
 	for check in checks:
 		if not bool(check.get("passed", false)):
 			failed += 1
-	var report := {"passed": checks.size() - failed, "failed": failed, "visible_forest_bandits": visible_forest_bandit_count, "visible_pinehill_guards": visible_pinehill_guard_count, "live_network_calls": 0, "qa_local_only": true, "checks": checks}
+	var report := {"passed": checks.size() - failed, "failed": failed, "visible_city_bandits": visible_city_bandit_count, "visible_pinehill_guards": visible_pinehill_guard_count, "live_network_calls": 0, "qa_local_only": true, "diagnostics": runtime_diagnostics, "checks": checks}
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa_test_artifacts"))
 	var report_file := FileAccess.open("user://qa_test_artifacts/deepest_forest_pinehill_%s.json" % qa_run_id, FileAccess.WRITE)
 	if report_file != null:
 		report_file.store_string(JSON.stringify(report, "\t"))
 		report_file.close()
-	print("DEEPEST_FOREST_PINEHILL_FLOW_TEST " + JSON.stringify({"passed": report.passed, "failed": report.failed, "visible_forest_bandits": visible_forest_bandit_count, "visible_pinehill_guards": visible_pinehill_guard_count, "live_network_calls": 0, "qa_report": "user://qa_test_artifacts/deepest_forest_pinehill_%s.json" % qa_run_id}))
+	print("CITY_PINEHILL_FLOW_TEST " + JSON.stringify({"passed": report.passed, "failed": report.failed, "visible_city_bandits": visible_city_bandit_count, "visible_pinehill_guards": visible_pinehill_guard_count, "live_network_calls": 0, "qa_report": "user://qa_test_artifacts/deepest_forest_pinehill_%s.json" % qa_run_id}))
 	_cleanup_qa_directory()
 	await get_tree().create_timer(45.0).timeout
 	get_tree().quit(1 if failed else 0)
 
 
-func _run_live_city_forest_pinehill_flow() -> void:
+func _run_live_city_pinehill_flow() -> void:
 	var state := get_node_or_null("/root/GameState")
 	if state == null:
 		return
@@ -137,15 +144,24 @@ func _run_live_city_forest_pinehill_flow() -> void:
 	await _wait_for_scene(CITY_PATH)
 	city = get_tree().current_scene as Node2D
 	player = _get_live_player()
-	_expect(city != null and state.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "Returning from School activates the Forest objective through canonical City scene entry")
-	for actor_name in ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5"]:
+	_expect(city != null and state.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "Returning from School activates the Deepest Forest Bandit objective in City")
+	_expect(String(state.current_quest) == "Defeat the Bandits in the Deepest Forest.", "City entry shows the canonical active five-Bandit objective")
+	var forest_ids: Array = GameState.DEEP_FOREST_BANDIT_IDS
+	for index in range(5):
+		var actor_name := "Bandits" if index == 0 else "Bandits%d" % (index + 1)
 		var city_actor := city.get_node_or_null(actor_name) as Node2D if city != null else null
-		_expect(city_actor != null and not city_actor.is_visible_in_tree(), "Deepest Forest actor %s remains hidden in the normal City hub" % actor_name)
-	await _wait_for_physics_frames(3)
-	for actor_name in ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5"]:
-		var city_actor := city.get_node_or_null(actor_name) as Node2D if city != null else null
-		var npc_body := city_actor.get_node_or_null("NpcBodyCollision") as StaticBody2D if city_actor != null else null
-		_expect(npc_body == null or (npc_body.collision_layer == 0 and npc_body.collision_mask == 0), "Hidden City actor %s has no active gameplay collision" % actor_name)
+		var encounter := city_actor.get_node_or_null("ProgressionBattleEncounter") if city_actor != null else null
+		var route: Dictionary = encounter.get("_route") if encounter != null else {}
+		if city_actor != null and city_actor.is_visible_in_tree():
+			visible_city_bandit_count += 1
+		_expect(city_actor != null and city_actor.is_visible_in_tree(), "City Bandit %d is visible immediately after School exit" % (index + 1))
+		_expect(encounter != null, "City Bandit %d has a live progression encounter on first City entry" % (index + 1))
+		if city_actor is CollisionObject2D:
+			_expect((city_actor as CollisionObject2D).collision_layer != 0, "City Bandit %d collision is active for the objective" % (index + 1))
+		if encounter != null:
+			_expect(String(route.get("encounter_id", "")) == String(forest_ids[index]), "City Bandit %d keeps its canonical progression ID" % (index + 1))
+			_expect(String(route.get("difficulty", "")) == "Normal", "City Bandit %d uses the existing Normal battle route" % (index + 1))
+	_expect(visible_city_bandit_count == 5, "All five authored Bandits are visible on the first City visit after the Teacher quest")
 	await RenderingServer.frame_post_draw
 	var city_image := get_viewport().get_texture().get_image()
 	var city_capture_path := "user://qa_test_artifacts/city_after_school_exit_%s.png" % qa_run_id
@@ -154,105 +170,87 @@ func _run_live_city_forest_pinehill_flow() -> void:
 	if city_image != null and not city_image.is_empty():
 		city_image.save_png(city_capture_absolute)
 	print("CITY_AFTER_SCHOOL_EXIT_CAPTURE %s player=%s" % [city_capture_path, str(player.global_position) if player != null else "missing"])
-	var city_exit: Door = null
-	for candidate in city.find_children("*", "Door", true, false):
-		var candidate_door := candidate as Door
-		if candidate_door != null and candidate_door.destination_scene_path == FOREST_PATH:
-			city_exit = candidate_door
-			break
 	player = _get_live_player()
-	_expect(city_exit != null, "The canonical City exit node is present in the live City scene")
-	_expect(player != null, "A live player body exists in the City scene")
-	if city_exit == null or player == null:
-		print("CITY_RUNTIME_DIAGNOSTIC exit_found=%s player_found=%s" % [str(city_exit != null), str(player != null)])
+	var pinehill_gate := city.get_node_or_null("City-of-knowlwedge-to-PineHill") as Door if city != null else null
+	_expect(pinehill_gate != null, "The canonical City-to-Pinehill gateway is present")
+	_expect(pinehill_gate != null and pinehill_gate.destination_scene_path == PINEHILL_PATH and pinehill_gate.destination_spawn_marker_name == "spawn_from_deepest_forest", "The City forest passage leads directly to Pinehill's established forest-side arrival marker")
+	if pinehill_gate == null or player == null or city == null:
 		return
-	city_exit.play_fade_transition = false
-	var walked_into_forest_route := await _walk_player_into_door(city_exit, player)
-	_expect(walked_into_forest_route, "Player walks through the canonical City Forest entrance using gameplay movement and door physics")
-	if not walked_into_forest_route:
-		return
-	await _wait_for_scene(FOREST_PATH)
-	var forest := get_tree().current_scene as Node2D
-	_expect(forest != null and forest.scene_file_path == FOREST_PATH, "Using the City exit enters res://scenes/deepest_forest_path.tscn")
-	if forest == null or forest.scene_file_path != FOREST_PATH:
-		return
-	await _wait_for_physics_frames(8)
-	await RenderingServer.frame_post_draw
-	var forest_image := get_viewport().get_texture().get_image()
-	var forest_capture_path := "user://qa_test_artifacts/deepest_forest_first_entry_%s.png" % qa_run_id
-	var forest_capture_absolute := ProjectSettings.globalize_path(forest_capture_path)
-	DirAccess.make_dir_recursive_absolute(forest_capture_absolute.get_base_dir())
-	_expect(forest_image != null and not forest_image.is_empty() and forest_image.save_png(forest_capture_absolute) == OK, "First-entry Forest viewport capture is saved for visual inspection")
-	print("DEEPEST_FOREST_FIRST_ENTRY_CAPTURE %s" % forest_capture_path)
-	_expect(state.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "The completed Math Teacher quest activates the bandit objective on first Forest entry without a reload")
-	_expect(String(state.current_quest) == "Defeat the Bandits in the Deepest Forest.", "The first Forest entry retains the canonical active bandit objective")
-	player = _get_live_player()
-	_expect(player != null, "Forest scene creates its current live player")
-	if player == null:
-		return
-	var forest_spawn := forest.get_node_or_null("spawn_from_city") as Marker2D
-	var first_bandit := forest.get_node_or_null("ForestBackdrop/Bandits") as Node2D
-	_expect(forest_spawn != null and player.global_position.is_equal_approx(forest_spawn.global_position), "First Forest entry places the player at its dedicated City arrival marker")
-	_expect(player.global_position.x >= 220.0 and player.global_position.y > 0.0 and player.global_position.y < 640.0, "Forest entry is inside the playable map rather than at the extreme left edge")
-	_expect(first_bandit != null and player.global_position.distance_to(first_bandit.global_position) >= 80.0, "Forest entry gives the player safe space before Bandit 1")
-	_expect(forest.get_node_or_null("DeepestForestToCity") is Door and player.global_position.distance_to((forest.get_node("DeepestForestToCity") as Door).global_position) >= 80.0, "Forest entry is away from the City-return door")
-	_expect(not _blocking_body_overlaps(player, player.global_position), "Forest arrival position does not overlap a wall, tree, or actor collision")
-	var visible_forest_bandits := 0
-	for index in 5:
-		var actor_name := "Bandits" if index == 0 else "Bandits%d" % (index + 1)
-		var forest_actor := forest.get_node_or_null("ForestBackdrop/" + actor_name) as Node2D
-		var encounter_component := forest_actor.get_node_or_null("ProgressionBattleEncounter") if forest_actor != null else null
-		var visible_bandit_art := false
-		if forest_actor != null:
-			for visual in forest_actor.find_children("*", "AnimatedSprite2D", true, false):
-				if (visual as AnimatedSprite2D).is_visible_in_tree():
-					visible_bandit_art = true
-		if visible_bandit_art:
-			visible_forest_bandits += 1
-		_expect(forest_actor != null and forest_actor.is_visible_in_tree() and visible_bandit_art, "Forest actor %s is visibly rendered on first entry" % actor_name)
-		_expect(encounter_component != null, "Forest actor %s has its progression encounter enabled on first entry" % actor_name)
-	_expect(visible_forest_bandits == 5, "All five undefeated Forest Bandits are visibly present on first entry")
-	if first_bandit != null:
-		var approach_start_distance := player.global_position.distance_to(first_bandit.global_position)
-		await _walk_toward_actor(player, first_bandit, 24)
-		_expect(get_tree().current_scene == forest and player.global_position.distance_to(first_bandit.global_position) < approach_start_distance - 8.0, "Player can intentionally walk toward Bandit 1 without a reload or forced encounter")
-	var forest_exit := forest.find_child("DeepestForestToPinehill", true, false) as Door
-	_expect(forest_exit != null and not bool(state.get("pinehill_unlocked")), "Pinehill exit exists but starts locked before any Forest victories")
-	if forest_exit != null:
-		var blocked_player_position := player.global_position
-		forest_exit.call("_begin_transition", player)
-		await get_tree().process_frame
-		_expect(get_tree().current_scene == forest and state.current_scene_path == FOREST_PATH, "Attempting Pinehill before the five-bandit objective leaves the player in Deepest Forest")
-		_expect(player.global_position.is_equal_approx(blocked_player_position), "Blocked Pinehill transition preserves the valid Forest player position")
-		_expect(not bool(forest_exit.get("is_transitioning")), "Blocked Pinehill transition does not start a scene-change lifecycle")
-	var objective_save: Dictionary = state.build_save_data()
-	state.apply_save_data(objective_save, false)
-	await get_tree().process_frame
-	_expect(state.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX and not bool(state.get("pinehill_unlocked")), "Save/Load midway through the objective preserves the locked Forest stage")
-	var forest_ids: Array = GameState.DEEP_FOREST_BANDIT_IDS
+	pinehill_gate.play_fade_transition = false
+	_expect(not bool(state.get("pinehill_unlocked")), "Pinehill starts locked before any of the five City Bandits are defeated")
+	var locked_player_position := player.global_position
+	pinehill_gate._begin_transition(player)
+	await _wait_for_physics_frames(3)
+	_expect(get_tree().current_scene == city and city.scene_file_path == CITY_PATH, "Locked Pinehill transition request keeps the player in City without loading another scene")
+	_expect(not pinehill_gate.is_transitioning and not bool(state.get("pinehill_unlocked")), "Locked gateway handler returns without transitioning before 5/5")
+	_expect(player.global_position.is_equal_approx(locked_player_position) and state.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "A blocked gateway request neither moves the player nor advances the objective")
+
 	for index in range(5):
-		var actor_path := "ForestBackdrop/Bandits" if index == 0 else "ForestBackdrop/Bandits%d" % (index + 1)
-		var actor := forest.get_node_or_null(actor_path) as Node2D
-		var component := actor.get_node_or_null("ProgressionBattleEncounter") if actor != null else null
-		var route: Dictionary = component.get("_route") if component != null else {}
-		if actor != null and actor.is_visible_in_tree():
-			visible_forest_bandit_count += 1
-		_expect(actor != null and actor.is_visible_in_tree(), "Deepest Forest progression actor %d is visible in the live scene" % (index + 1))
-		_expect(component != null, "Deepest Forest progression actor %d has a live adapter" % (index + 1))
-		if component == null or actor == null:
+		var actor_name := "Bandits" if index == 0 else "Bandits%d" % (index + 1)
+		var expected_id := String(forest_ids[index])
+		var city_actor := city.get_node_or_null(actor_name) as Node2D
+		var encounter := city_actor.get_node_or_null("ProgressionBattleEncounter") if city_actor != null else null
+		var route: Dictionary = encounter.get("_route") if encounter != null else {}
+		_expect(city_actor != null and city_actor.is_visible_in_tree(), "City Bandit %d remains visible for its battle" % (index + 1))
+		_expect(encounter != null and String(route.get("encounter_id", "")) == expected_id, "City Bandit %d uses its canonical encounter adapter and ID" % (index + 1))
+		if encounter == null or city_actor == null:
 			continue
-		_expect(String(route.get("encounter_id", "")) == String(forest_ids[index]), "Deepest Forest actor %d keeps its canonical encounter ID" % (index + 1))
-		_expect(String(route.get("difficulty", "")) == "Normal" and ResourceLoader.exists(String(route.get("male_scene", ""))) and ResourceLoader.exists(String(route.get("female_scene", ""))), "Deepest Forest actor %d routes to the existing Normal battle" % (index + 1))
-		player.global_position = actor.global_position
-		_expect(bool(component.call("can_interact")), "Deepest Forest actor %d is reachable/interactable at its authored position" % (index + 1))
-		var result: Dictionary = state.call("record_progression_encounter_victory", String(forest_ids[index]), false)
-		_expect(bool(result.get("changed", false)), "QA-only victory seed records Deepest Forest actor %d" % (index + 1))
-	_expect(bool(state.get("pinehill_unlocked")), "Five seeded Deepest Forest victories unlock Pinehill")
-	_expect(forest_exit != null, "Canonical forest-to-Pinehill door exists")
-	if forest_exit == null:
-		return
-	forest_exit.play_fade_transition = false
-	forest_exit.call("_begin_transition", player)
+		_expect(String(route.get("difficulty", "")) == "Normal" and ResourceLoader.exists(String(route.get("male_scene", ""))), "City Bandit %d routes to the existing Normal battle" % (index + 1))
+		var approached_actor := await _walk_player_to_collision_safe_point(
+			player, city_actor.global_position, ROUTER.INTERACTION_RANGE, city_actor
+		)
+		if not approached_actor or player.global_position.distance_to(city_actor.global_position) > ROUTER.INTERACTION_RANGE:
+			approached_actor = await _walk_toward_moving_actor(player, city_actor, ROUTER.INTERACTION_RANGE)
+		_expect(approached_actor, "Player physically approaches live City Bandit %d from the School return route" % (index + 1))
+		if not approached_actor:
+			continue
+		var interaction_diagnostic := {
+			"encounter_id": String(route.get("encounter_id", "")),
+			"actor_position": city_actor.global_position,
+			"player_position": player.global_position,
+			"distance": player.global_position.distance_to(city_actor.global_position),
+			"task_index": state.current_task_index,
+			"game_mode": state.call("get_mode"),
+			"playtime_authorized": state.playtime_authorized,
+			"registration_valid": encounter.call("is_registration_valid"),
+			"can_start": encounter.call("_can_start_encounter"),
+			"starting": encounter.get("_starting"),
+			"can_interact": encounter.call("can_interact"),
+		}
+		runtime_diagnostics.append(interaction_diagnostic)
+		print("CITY_BANDIT_INTERACTION_DIAGNOSTIC " + JSON.stringify(interaction_diagnostic))
+		_expect(float(interaction_diagnostic.distance) <= ROUTER.INTERACTION_RANGE and bool(interaction_diagnostic.can_interact), "City Bandit %d is reachable and interactable after physical approach" % (index + 1))
+		_expect(bool(encounter.call("interact")), "Interacting with City Bandit %d starts its existing battle" % (index + 1))
+		var battle_layer: Node = null
+		for _attempt in range(120):
+			await get_tree().process_frame
+			battle_layer = city.get_node_or_null("OriginalBattlePresentation")
+			if battle_layer != null:
+				break
+		_expect(battle_layer != null and battle_layer.get_child_count() == 1, "City Bandit %d opens one existing battle scene" % (index + 1))
+		if battle_layer == null or battle_layer.get_child_count() != 1:
+			continue
+		var battle_scene := battle_layer.get_child(0)
+		_expect(String(battle_scene.scene_file_path) == "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "City Bandit %d uses the canonical male Normal battle" % (index + 1))
+		_expect(battle_scene.has_signal("battle_finished"), "City Bandit %d battle reports through the existing completion signal" % (index + 1))
+		if battle_scene.has_signal("battle_finished"):
+			battle_scene.emit_signal("battle_finished", true)
+		for _attempt in range(120):
+			await get_tree().process_frame
+			if bool(state.call("is_progression_encounter_defeated", expected_id)):
+				break
+		_expect(bool(state.call("is_progression_encounter_defeated", expected_id)), "City Bandit %d victory is recorded through the battle completion path" % (index + 1))
+		if index < 4:
+			_expect(not bool(state.get("pinehill_unlocked")) and state.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "Pinehill remains locked after only %d/5 victories" % (index + 1))
+		else:
+			for _dismiss in range(3):
+				await _tap_interact()
+			_expect(bool(state.get("pinehill_unlocked")) and state.current_task_index == GameState.PINEHILL_ARRIVAL_TASK_INDEX, "Exactly five City Bandit victories unlock Pinehill and advance the quest")
+
+	_expect(bool(state.get("pinehill_unlocked")), "All five canonical City Bandit victories unlock Pinehill")
+	player = _get_live_player()
+	var entered_pinehill := await _walk_player_into_door(pinehill_gate, player) if player != null else false
+	_expect(entered_pinehill, "After 5/5, normal movement through the same City gateway enters Pinehill")
 	await _wait_for_scene(PINEHILL_PATH)
 	var pinehill := get_tree().current_scene as Node2D
 	_expect(pinehill != null and pinehill.scene_file_path == PINEHILL_PATH, "Unlocked route enters canonical Pinehill Village")
@@ -262,8 +260,11 @@ func _run_live_city_forest_pinehill_flow() -> void:
 	_expect(player != null, "Pinehill scene creates its current live player")
 	if player == null:
 		return
+	var fixed_villager_visual := pinehill.get_node_or_null("villager-male/Visual") as Node2D
+	_expect(fixed_villager_visual != null and fixed_villager_visual.scale.is_equal_approx(Vector2.ONE), "Pinehill villager-male restores the authored sprite scale")
+	_expect(fixed_villager_visual != null and fixed_villager_visual.global_scale.x >= 0.1, "Pinehill villager-male has a visible runtime scale instead of a sub-pixel nested scale")
 	var pinehill_arrival_marker := pinehill.find_child("spawn_from_deepest_forest", true, false) as Node2D
-	_expect(pinehill_arrival_marker != null and player.global_position.is_equal_approx(pinehill_arrival_marker.global_position), "Unlocked Pinehill transition uses its canonical arrival marker")
+	_expect(pinehill_arrival_marker != null and player.global_position.is_equal_approx(pinehill_arrival_marker.global_position), "Unlocked City gateway uses Pinehill's established forest-side arrival marker")
 	await get_tree().process_frame
 	var old_lady := pinehill.get_node_or_null("old_adult_women/ProgressionOldManInteraction")
 	var old_lady_actor := pinehill.get_node_or_null("old_adult_women") as Node2D
@@ -342,42 +343,29 @@ func _run_live_city_forest_pinehill_flow() -> void:
 		var wizard_victory: Dictionary = state.call("record_encounter_victory")
 		if state.get_active_encounter_context().is_empty() and not bool(state.get("wizard_defeated")):
 			wizard_victory = state.call("record_progression_encounter_victory", "pinehill_wizard", false)
-		_expect(bool(state.get("wizard_defeated")) and int(state.get("return_to_city_stage")) == 2, "Wizard victory unlocks the canonical return route through Deepest Forest")
-		var pinehill_forest_exit := pinehill.find_child("Pinehill-to-Deepest-Forest", true, false) as Door
-		_expect(pinehill_forest_exit != null and pinehill_forest_exit.destination_scene_path == FOREST_PATH, "Pinehill returns through Deepest Forest, not directly to City")
-		if pinehill_forest_exit != null:
-			pinehill_forest_exit.play_fade_transition = false
-			player.global_position = pinehill_forest_exit.global_position
-			pinehill_forest_exit.call("_begin_transition", player)
-			await _wait_for_scene(FOREST_PATH)
-			var return_forest := get_tree().current_scene as Node2D
-			var forest_return_marker := return_forest.find_child("spawn_from_pinehill", true, false) as Node2D if return_forest != null else null
+		_expect(bool(state.get("wizard_defeated")) and int(state.get("return_to_city_stage")) == 2, "Wizard victory unlocks the direct Pinehill-to-City return")
+		var pinehill_city_exit := pinehill.find_child("Pinehill-to-City-of-Knowledge", true, false) as Door
+		_expect(pinehill_city_exit != null and pinehill_city_exit.destination_scene_path == CITY_PATH and pinehill_city_exit.destination_spawn_marker_name == "spawn_from_pinehill", "Pinehill return targets the shared City/Forest map and its forest-side marker")
+		if pinehill_city_exit != null:
+			pinehill_city_exit.play_fade_transition = false
+			player.global_position = pinehill_city_exit.global_position
+			pinehill_city_exit.call("_begin_transition", player)
+			await _wait_for_scene(CITY_PATH)
+			var returned_city := get_tree().current_scene as Node2D
+			var city_return_marker := returned_city.find_child("spawn_from_pinehill", true, false) as Node2D if returned_city != null else null
+			var city_pinehill_gateway: Door = null
+			if returned_city != null:
+				for candidate in returned_city.find_children("*", "Door", true, false):
+					var candidate_door := candidate as Door
+					if candidate_door != null and candidate_door.destination_scene_path == PINEHILL_PATH:
+						city_pinehill_gateway = candidate_door
+						break
 			player = _get_live_player()
-			_expect(return_forest != null and return_forest.scene_file_path == FOREST_PATH, "Leaving Pinehill returns to the canonical Deepest Forest")
-			_expect(forest_return_marker != null and player != null and player.global_position.is_equal_approx(forest_return_marker.global_position), "Pinehill return uses the Forest's Pinehill arrival marker")
-			var forest_city_exit := return_forest.find_child("DeepestForestToCity", true, false) as Door if return_forest != null else null
-			_expect(forest_city_exit != null and forest_city_exit.destination_scene_path == CITY_PATH and forest_city_exit.destination_spawn_marker_name == "spawn_from_deepest_forest", "Deepest Forest returns through the canonical dedicated City marker")
-			if forest_city_exit != null and player != null:
-				forest_city_exit.play_fade_transition = false
-				player.global_position = forest_city_exit.global_position
-				forest_city_exit.call("_begin_transition", player)
-				await _wait_for_scene(CITY_PATH)
-				var returned_city := get_tree().current_scene as Node2D
-				var city_return_marker := returned_city.find_child("spawn_from_deepest_forest", true, false) as Node2D if returned_city != null else null
-				var city_forest_entrance: Door = null
-				if returned_city != null:
-					for candidate in returned_city.find_children("*", "Door", true, false):
-						var candidate_door := candidate as Door
-						if candidate_door != null and candidate_door.destination_scene_path == FOREST_PATH:
-							city_forest_entrance = candidate_door
-							break
-				player = _get_live_player()
-				var entrance_shape := city_forest_entrance.find_child("CollisionShape2D", true, false) as CollisionShape2D if city_forest_entrance != null else null
-				_expect(returned_city != null and returned_city.scene_file_path == CITY_PATH, "Deepest Forest return enters City without an unintended reload")
-				_expect(city_return_marker != null and player != null and player.global_position.is_equal_approx(city_return_marker.global_position), "Forest return spawns at the dedicated lower City entrance marker, not the upper-map fallback")
-				_expect(city_forest_entrance != null and player != null and not city_forest_entrance.overlaps_body(player), "City return marker does not overlap the Forest entrance and cannot immediately retrigger it")
-				await _wait_for_physics_frames(12)
-				_expect(get_tree().current_scene == returned_city and city_forest_entrance != null and not city_forest_entrance.is_transitioning, "Player remains in City after settling at the dedicated Forest return spawn")
+			_expect(returned_city != null and returned_city.scene_file_path == CITY_PATH, "Pinehill return loads City directly without a Forest wrapper reload")
+			_expect(city_return_marker != null and player != null and player.global_position.is_equal_approx(city_return_marker.global_position), "Pinehill return spawns at the forest-side City marker")
+			_expect(city_pinehill_gateway != null and player != null and not city_pinehill_gateway.overlaps_body(player), "Pinehill return spawn does not immediately retrigger the Pinehill passage")
+			await _wait_for_physics_frames(12)
+			_expect(get_tree().current_scene == returned_city and city_pinehill_gateway != null and not city_pinehill_gateway.is_transitioning, "Player remains in City after settling at the Pinehill return spawn")
 
 
 func _complete_canonical_progression_to_city(state: Node) -> bool:
@@ -479,7 +467,12 @@ func _door_destination_reached(destination_scene_path: String) -> bool:
 	return current != null and current.scene_file_path == destination_scene_path
 
 
-func _walk_player_to_collision_safe_point(player: Node2D, target: Vector2) -> bool:
+func _walk_player_to_collision_safe_point(
+		player: Node2D,
+		target: Vector2,
+		acceptable_distance: float = 18.0,
+		moving_target: Node2D = null
+) -> bool:
 	var route := _collision_safe_grid_path(player, target, null)
 	if route.is_empty():
 		print("CITY_FOREST_WALK_DIAGNOSTIC interaction_path_unavailable start=%s target=%s" % [str(player.global_position), str(target)])
@@ -489,16 +482,31 @@ func _walk_player_to_collision_safe_point(player: Node2D, target: Vector2) -> bo
 		if get_tree().current_scene != source_scene:
 			InputManager.clear_mobile_state()
 			return false
+		if is_instance_valid(moving_target) \
+				and player.global_position.distance_to(moving_target.global_position) <= acceptable_distance:
+			InputManager.clear_mobile_state()
+			return true
 		if not await _walk_player_to_point(player, destination):
+			if is_instance_valid(moving_target) \
+					and player.global_position.distance_to(moving_target.global_position) <= acceptable_distance:
+				InputManager.clear_mobile_state()
+				return true
 			print("CITY_FOREST_WALK_DIAGNOSTIC approach_waypoint_stuck at=%s waypoint=%s target=%s" % [str(player.global_position), str(destination), str(target)])
 			InputManager.clear_mobile_state()
 			return false
+		if is_instance_valid(moving_target) \
+				and player.global_position.distance_to(moving_target.global_position) <= acceptable_distance:
+			InputManager.clear_mobile_state()
+			return true
 	# The grid goal is the nearest collision-free cell around the target; the
 	# requested point itself may be inside the Teacher's body/desk while the
 	# neighboring cell is still inside the real interaction Area2D.
 	await get_tree().physics_frame
 	InputManager.clear_mobile_state()
-	var reached_approach := get_tree().current_scene == source_scene and player.global_position.distance_to(target) <= 18.0
+	var final_target := moving_target.global_position if is_instance_valid(moving_target) else target
+	var final_distance := player.global_position.distance_to(final_target)
+	var reached_approach := get_tree().current_scene == source_scene and final_distance <= acceptable_distance
+	print("CITY_FOREST_APPROACH_DIAGNOSTIC target=%s player=%s distance=%.1f acceptable=%.1f reached=%s" % [str(target), str(player.global_position), final_distance, acceptable_distance, str(reached_approach)])
 	if not reached_approach:
 		print("CITY_FOREST_WALK_DIAGNOSTIC approach_not_reached at=%s target=%s distance=%.1f" % [str(player.global_position), str(target), player.global_position.distance_to(target)])
 	return reached_approach
@@ -698,6 +706,23 @@ func _walk_toward_actor(player: Node2D, actor: Node2D, frames: int) -> void:
 	await _wait_for_physics_frames(2)
 
 
+func _walk_toward_moving_actor(player: Node2D, actor: Node2D, interaction_range: float) -> bool:
+	var source_scene := get_tree().current_scene
+	for _frame in range(360):
+		if get_tree().current_scene != source_scene or not is_instance_valid(actor):
+			InputManager.clear_mobile_state()
+			return false
+		var offset := actor.global_position - player.global_position
+		if offset.length() <= interaction_range - 2.0:
+			break
+		_set_qa_movement(offset.normalized())
+		await get_tree().physics_frame
+	InputManager.clear_mobile_state()
+	await _wait_for_physics_frames(2)
+	return get_tree().current_scene == source_scene and is_instance_valid(actor) \
+			and player.global_position.distance_to(actor.global_position) <= interaction_range
+
+
 func _set_qa_movement(direction: Vector2) -> void:
 	InputManager.set_mobile_direction(&"left", direction.x < -0.1)
 	InputManager.set_mobile_direction(&"right", direction.x > 0.1)
@@ -782,36 +807,85 @@ func _cleanup_qa_directory() -> void:
 	DirAccess.remove_absolute(absolute_dir)
 
 func _check_forest_routes() -> void:
+	var original_task_index := GameState.current_task_index
+	var original_defeat_state := GameState.deep_forest_defeated_bandits.duplicate(true)
+	for encounter_id in GameState.DEEP_FOREST_BANDIT_IDS:
+		GameState.deep_forest_defeated_bandits[encounter_id] = false
 	var city_scene := (load(CITY_PATH) as PackedScene).instantiate() as Node2D
-	var city_return_marker := city_scene.get_node_or_null("spawn_from_deepest_forest") as Marker2D if city_scene != null else null
-	_expect(city_return_marker != null and city_return_marker.position.is_equal_approx(Vector2(128, 508)), "City has its dedicated safe return marker from Deepest Forest")
+	var city_return_marker := city_scene.get_node_or_null("spawn_from_pinehill") as Marker2D if city_scene != null else null
+	var city_gate := city_scene.get_node_or_null("City-of-knowlwedge-to-PineHill") as Door if city_scene != null else null
+	_expect(
+		city_return_marker != null and city_gate != null
+			and city_return_marker.global_position.distance_to(city_gate.global_position) > 18.0,
+		"Active Pinehill return marker is separate from the gate and will not immediately retrigger it"
+	)
+	_expect(city_scene != null and city_scene.get_node_or_null("spawn_from_deepest_forest") != null, "City keeps a separate legacy marker only for old Forest-wrapper saves")
+	if city_scene != null:
+		for index in APPROVED_FOREST_BANDIT_POSITIONS.size():
+			var actor_name := "Bandits" if index == 0 else "Bandits%d" % (index + 1)
+			var actor := city_scene.get_node_or_null(actor_name) as Node2D
+			_expect(actor != null and actor.position.is_equal_approx(APPROVED_FOREST_BANDIT_POSITIONS[index]), "Forest Bandit %d remains at its approved authored position" % (index + 1))
+		var previous_task_index := GameState.current_task_index
+		GameState.current_task_index = GameState.CITY_SCHOOL_TASK_INDEX
+		ROUTER.install_for_scene(city_scene, ROUTER)
+		for index in 5:
+			var actor_name := "Bandits" if index == 0 else "Bandits%d" % (index + 1)
+			var city_actor := city_scene.get_node_or_null(actor_name)
+			var city_component := city_actor.get_node_or_null("ProgressionBattleEncounter") if city_actor != null else null
+			_expect(city_component == null, "City Bandit %d has no interaction adapter before the Forest objective" % (index + 1))
+		GameState.current_task_index = GameState.DEEP_FOREST_BANDIT_TASK_INDEX
+		ROUTER.install_for_scene(city_scene, ROUTER)
+		for index in 5:
+			var actor_name := "Bandits" if index == 0 else "Bandits%d" % (index + 1)
+			var city_actor := city_scene.get_node_or_null(actor_name)
+			var city_component := city_actor.get_node_or_null("ProgressionBattleEncounter") if city_actor != null else null
+			_expect(city_component != null and bool(city_component.call("_can_start_encounter")), "City Bandit %d is visible-route interactable when the Forest objective is active" % (index + 1))
+			if city_component != null:
+				var city_route: Dictionary = city_component.get("_route")
+				_expect(String(city_route.get("encounter_id", "")) == "deep_forest_bandits%d" % (index + 1), "City Bandit %d retains its canonical encounter ID" % (index + 1))
+		GameState.current_task_index = previous_task_index
 	if city_scene != null:
 		city_scene.free()
+	var previous_wrapper_task_index := GameState.current_task_index
+	var previous_wrapper_defeats := GameState.deep_forest_defeated_bandits.duplicate(true)
+	GameState.current_task_index = GameState.DEEP_FOREST_BANDIT_TASK_INDEX
+	for encounter_id in GameState.DEEP_FOREST_BANDIT_IDS:
+		GameState.deep_forest_defeated_bandits[encounter_id] = false
 	var forest := (load("res://scenes/deepest_forest_path.tscn") as PackedScene).instantiate() as Node2D
-	_expect(forest != null, "Deepest Forest scene instantiates")
-	if forest == null:
-		return
-	ROUTER.install_for_scene(forest, ROUTER)
-	for index in 5:
-		var actor_path := "ForestBackdrop/Bandits" if index == 0 else "ForestBackdrop/Bandits%d" % (index + 1)
-		var actor := forest.get_node_or_null(actor_path)
-		var component := actor.get_node_or_null("ProgressionBattleEncounter") if actor != null else null
-		_expect(component != null, "deep forest trigger %d installed once" % (index + 1))
-		if component != null:
-			var route: Dictionary = component.get("_route")
-			_expect(String(route.get("encounter_id", "")) == "deep_forest_bandits%d" % (index + 1), "deep forest ID %d is stable" % (index + 1))
-			_expect(String(route.get("difficulty", "")) == "Normal", "deep forest difficulty is Normal")
-			GameState.gender = "male"
-			_expect(String(component.call("_battle_scene_path")) == "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "deep forest male route %d" % (index + 1))
-			GameState.gender = "female"
-			_expect(String(component.call("_battle_scene_path")) == "res://Battle/Battle-Enemy/female_vs_bandit.tscn", "deep forest female route %d" % (index + 1))
-	forest.free()
+	_expect(forest != null, "Legacy Forest wrapper instantiates for save compatibility")
+	if forest != null:
+		ROUTER.install_for_scene(forest, ROUTER)
+		for index in 5:
+			var actor_path := "ForestBackdrop/Bandits" if index == 0 else "ForestBackdrop/Bandits%d" % (index + 1)
+			var actor := forest.get_node_or_null(actor_path)
+			var component := actor.get_node_or_null("ProgressionBattleEncounter") if actor != null else null
+			_expect(component != null, "legacy deep forest trigger %d remains load-compatible" % (index + 1))
+			if component != null:
+				var route: Dictionary = component.get("_route")
+				_expect(String(route.get("encounter_id", "")) == "deep_forest_bandits%d" % (index + 1), "legacy deep forest ID %d is stable" % (index + 1))
+				_expect(String(route.get("difficulty", "")) == "Normal", "legacy deep forest difficulty is Normal")
+				GameState.gender = "male"
+				_expect(String(component.call("_battle_scene_path")) == "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "legacy deep forest male route %d" % (index + 1))
+				GameState.gender = "female"
+				_expect(String(component.call("_battle_scene_path")) == "res://Battle/Battle-Enemy/female_vs_bandit.tscn", "legacy deep forest female route %d" % (index + 1))
+		forest.free()
+	GameState.current_task_index = original_task_index
+	GameState.deep_forest_defeated_bandits = original_defeat_state
 
 func _check_pinehill_routes() -> void:
 	var pinehill := (load("res://scenes/2nd Village/Pinehill Village.tscn") as PackedScene).instantiate() as Node2D
 	_expect(pinehill != null, "canonical Pinehill instantiates")
 	if pinehill == null:
 		return
+	var previous_task_index := GameState.current_task_index
+	var previous_pinehill_defeats := GameState.pinehill_defeated_bandits.duplicate(true)
+	var previous_old_lady_state := GameState.pinehill_old_man_completed
+	var previous_wizard_state := GameState.wizard_defeated
+	GameState.pinehill_old_man_completed = true
+	GameState.wizard_defeated = false
+	for encounter_id in GameState.PINEHILL_BANDIT_IDS:
+		GameState.pinehill_defeated_bandits[encounter_id] = false
+	GameState.current_task_index = GameState.PINEHILL_BANDIT_TASK_INDEX
 	ROUTER.install_for_scene(pinehill, ROUTER)
 	OLD_LADY.install_for_scene(pinehill, OLD_LADY)
 	var lady := pinehill.get_node_or_null("old_adult_women")
@@ -820,6 +894,10 @@ func _check_pinehill_routes() -> void:
 		var actor_name := "Bandits" if index == 0 else "Bandits%d" % (index + 1)
 		var actor := pinehill.get_node_or_null(actor_name)
 		_expect(actor != null and actor.get_node_or_null("ProgressionBattleEncounter") != null, "Pinehill guard trigger %d installed once" % (index + 1))
+	for encounter_id in GameState.PINEHILL_BANDIT_IDS:
+		GameState.pinehill_defeated_bandits[encounter_id] = true
+	GameState.current_task_index = GameState.WIZARD_TASK_INDEX
+	ROUTER.install_for_scene(pinehill, ROUTER)
 	var house := pinehill.get_node_or_null("display-kase yung wizard sa labas lang")
 	_expect(house != null and house.get_node_or_null("ProgressionBattleEncounter") == null, "Wizard House artwork is not an encounter trigger")
 	var wizard := pinehill.get_node_or_null("Boss-Wizard") as Node2D
@@ -833,15 +911,32 @@ func _check_pinehill_routes() -> void:
 		_expect(String(wizard_component.call("_battle_scene_path")) == "res://Battle/Battle-Enemy/male_vs_wizard.tscn", "male Wizard route preserved")
 		GameState.gender = "female"
 		_expect(String(wizard_component.call("_battle_scene_path")) == "res://Battle/Battle-Enemy/female_vs_wizard1.tscn", "female Wizard route preserved")
+	GameState.current_task_index = previous_task_index
+	GameState.pinehill_defeated_bandits = previous_pinehill_defeats
+	GameState.pinehill_old_man_completed = previous_old_lady_state
+	GameState.wizard_defeated = previous_wizard_state
 	pinehill.free()
 	var wrapper := (load("res://scenes/pinehill_village.tscn") as PackedScene).instantiate() as Node2D
 	_expect(wrapper != null, "Pinehill wrapper instantiates")
 	if wrapper != null:
+		var previous_wrapper_task_index := GameState.current_task_index
+		var previous_wrapper_defeats := GameState.pinehill_defeated_bandits.duplicate(true)
+		var previous_wrapper_old_lady_state := GameState.pinehill_old_man_completed
+		var previous_wrapper_wizard_state := GameState.wizard_defeated
+		GameState.current_task_index = GameState.WIZARD_TASK_INDEX
+		GameState.pinehill_old_man_completed = true
+		for encounter_id in GameState.PINEHILL_BANDIT_IDS:
+			GameState.pinehill_defeated_bandits[encounter_id] = true
+		GameState.wizard_defeated = false
 		ROUTER.install_for_scene(wrapper, ROUTER)
 		OLD_LADY.install_for_scene(wrapper, OLD_LADY)
 		_expect(wrapper.get_node_or_null("old_adult_women/ProgressionOldManInteraction") != null, "Pinehill wrapper binds the Old Lady")
 		_expect(wrapper.get_node_or_null("Boss-Wizard/ProgressionBattleEncounter") != null, "Pinehill wrapper binds the outdoor Wizard NPC")
 		_expect(wrapper.get_node_or_null("display-kase yung wizard sa labas lang/ProgressionBattleEncounter") == null, "Pinehill wrapper leaves the Wizard House non-interactive")
+		GameState.current_task_index = previous_wrapper_task_index
+		GameState.pinehill_defeated_bandits = previous_wrapper_defeats
+		GameState.pinehill_old_man_completed = previous_wrapper_old_lady_state
+		GameState.wizard_defeated = previous_wrapper_wizard_state
 		wrapper.free()
 
 func _check_progression_dialogue_layout() -> void:
@@ -890,8 +985,8 @@ func _check_state_and_save_load() -> void:
 	state.complete_city_school_teacher()
 	state.handle_scene_entered(CITY_PATH)
 	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "Serializer fixture reaches the Forest stage through the canonical School return boundary")
-	state.handle_scene_entered("res://scenes/deepest_forest_path.tscn")
-	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "City School enters Deepest Forest task")
+	state.handle_scene_entered(FOREST_PATH)
+	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "Legacy Deepest Forest save scene remains load-compatible without advancing new City progression")
 	for encounter_id in state.DEEP_FOREST_BANDIT_IDS:
 		state.record_progression_encounter_victory(encounter_id, false)
 	_expect(state.pinehill_unlocked and state.current_task_index == state.PINEHILL_ARRIVAL_TASK_INDEX, "all five deep-forest victories unlock Pinehill")
@@ -901,8 +996,8 @@ func _check_state_and_save_load() -> void:
 	state.pinehill_unlocked = false
 	state.apply_save_data(saved, false)
 	_expect(state.pinehill_unlocked and state.deep_forest_defeated_bandits.size() == 5, "deep-forest defeated state survives load")
-	state.handle_scene_entered("res://scenes/pinehill_village.tscn")
-	_expect(state.current_task_index == state.PINEHILL_OLD_MAN_TASK_INDEX, "Pinehill wrapper advances to Old Lady task")
+	state.handle_scene_entered(PINEHILL_PATH)
+	_expect(state.current_task_index == state.PINEHILL_OLD_MAN_TASK_INDEX, "Direct City gateway arrival advances to the Pinehill Old Lady task")
 	state.complete_pinehill_old_lady()
 	_expect(state.current_task_index == state.PINEHILL_BANDIT_TASK_INDEX, "Old Lady gates the four guards")
 	for encounter_id in state.PINEHILL_BANDIT_IDS:

@@ -6,6 +6,16 @@ const OAKLEAF_BATTLE_ENCOUNTER := preload("res://scripts/oakleaf_battle_encounte
 const TEACHER_TASK_INTERACTION := preload("res://scripts/teacher_task_interaction.gd")
 const PROGRESSION_BATTLE_ENCOUNTER := preload("res://scripts/progression_battle_encounter.gd")
 const PROGRESSION_OLD_MAN_INTERACTION := preload("res://scripts/progression_old_man_interaction.gd")
+const CITY_OF_KNOWLEDGE_PATH := "res://scenes/city_of_knowledge.tscn"
+const FOREST_BANDIT_COLLISION_LAYER := 2
+const FOREST_BANDIT_COLLISION_MASK := 1
+const FOREST_BANDIT_ACTORS := [
+	{"node": "Bandits", "encounter_id": "deep_forest_bandits1"},
+	{"node": "Bandits2", "encounter_id": "deep_forest_bandits2"},
+	{"node": "Bandits3", "encounter_id": "deep_forest_bandits3"},
+	{"node": "Bandits4", "encounter_id": "deep_forest_bandits4"},
+	{"node": "Bandits5", "encounter_id": "deep_forest_bandits5"},
+]
 const NON_PHYSICAL_TRIGGER_COLLISIONS := {
 	"res://scenes/oak_leaf_village.tscn": [
 		"Bandits/BanditTaskTrigger/StaticBody2D/CollisionShape2D",
@@ -17,10 +27,25 @@ var _oakleaf_prefetch_queued := false
 
 func _ready() -> void:
 	var active_scene_path := scene_file_path
+	if HttpApi.is_local_qa_mode():
+		var actor_state: Array[String] = []
+		for actor_name in ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5"]:
+			var actor := get_node_or_null(actor_name) as Node2D
+			if actor == null:
+				actor = get_node_or_null("ForestBackdrop/" + actor_name) as Node2D
+			actor_state.append("%s:%s" % [actor_name, str(actor.is_visible_in_tree()) if actor != null else "missing"])
+		print("F5_FLOW_TRACE gameplay_ready scene=%s node=%s current=%s task=%d quest=%s actors=%s" % [
+			active_scene_path,
+			get_path(),
+			get_tree().current_scene.scene_file_path if get_tree().current_scene != null else "none",
+			GameState.current_task_index,
+			GameState.current_quest,
+			",".join(actor_state),
+		])
 	GameState.handle_scene_entered(active_scene_path)
 	MusicManager.play_for_scene(active_scene_path)
 	_disable_non_physical_trigger_collisions(active_scene_path)
-	_hide_city_deep_forest_actors(active_scene_path)
+	_sync_city_deep_forest_actors(active_scene_path)
 
 	_player = _ensure_player_instance()
 	_apply_spawn_state(_player)
@@ -28,28 +53,58 @@ func _ready() -> void:
 	_ensure_mobile_controls()
 	NpcCollisionManager.ensure_scene_collisions(self)
 	OAKLEAF_BATTLE_ENCOUNTER.install_for_scene(self, OAKLEAF_BATTLE_ENCOUNTER)
-	if active_scene_path == "res://interiors/teacher_house.tscn":
-		TEACHER_TASK_INTERACTION.install_for_scene(self, TEACHER_TASK_INTERACTION)
+	if active_scene_path == "res://interiors/teacher_house.tscn" \
+			or active_scene_path == "res://interiors/school.tscn":
+		var teacher_sensor_size := Vector2(42.0, 36.0)
+		if active_scene_path == "res://interiors/school.tscn":
+			# A player is physically stopped just beyond the Teacher's foot collider.
+			# Size this scene's sensor in world units to keep ACT reliable beside her.
+			teacher_sensor_size = Vector2(72.0, 40.0)
+		TEACHER_TASK_INTERACTION.install_for_scene(
+			self,
+			TEACHER_TASK_INTERACTION,
+			teacher_sensor_size
+		)
 	PROGRESSION_BATTLE_ENCOUNTER.install_for_scene(self, PROGRESSION_BATTLE_ENCOUNTER)
 	PROGRESSION_OLD_MAN_INTERACTION.install_for_scene(self, PROGRESSION_OLD_MAN_INTERACTION)
+	var progression_task_callback := Callable(self, "_on_progression_task_state_changed")
+	if not GameState.task_state_changed.is_connected(progression_task_callback):
+		GameState.task_state_changed.connect(progression_task_callback)
 	_connect_oakleaf_prefetch(active_scene_path)
 
 	InputManager.unlock_input("door_transition")
 
 
-func _hide_city_deep_forest_actors(active_scene_path: String) -> void:
-	# These authored actors now belong to the dedicated Deepest Forest stage.
-	# The forest wrapper reuses the map as a backdrop and therefore does not
-	# call this helper for its nested City instance.
-	if active_scene_path != "res://scenes/city_of_knowledge.tscn":
+func _on_progression_task_state_changed(_previous_index: int, _current_index: int, _event: Dictionary) -> void:
+	# Progression encounters can become available while this map stays loaded
+	# (Old Lady -> Guards -> Wizard). Refresh adapters at the canonical state
+	# boundary instead of requiring a scene reload to make the next actor usable.
+	_sync_city_deep_forest_actors(scene_file_path)
+	PROGRESSION_BATTLE_ENCOUNTER.install_for_scene(self, PROGRESSION_BATTLE_ENCOUNTER)
+	PROGRESSION_OLD_MAN_INTERACTION.install_for_scene(self, PROGRESSION_OLD_MAN_INTERACTION)
+
+
+func _sync_city_deep_forest_actors(active_scene_path: String) -> void:
+	# City and Deepest Forest are one continuous map. The teacher quest activates
+	# the five authored encounters in the forest portion without a scene change.
+	if active_scene_path != CITY_OF_KNOWLEDGE_PATH:
 		return
-	for actor_name in ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5"]:
-		var actor := get_node_or_null(actor_name)
-		if actor != null:
+	if HttpApi.is_local_qa_mode():
+		print("F5_FLOW_TRACE city_bandits scene=%s node=%s task=%d quest_active=%s" % [active_scene_path, get_path(), GameState.current_task_index, str(GameState.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX)])
+	for encounter in FOREST_BANDIT_ACTORS:
+		var actor := get_node_or_null(String(encounter.get("node", ""))) as CollisionObject2D
+		if actor == null:
+			continue
+		var can_start := GameState.has_method("can_start_progression_encounter") \
+				and bool(GameState.call("can_start_progression_encounter", String(encounter.get("encounter_id", ""))))
+		if not can_start:
 			actor.visible = false
-			if actor is CollisionObject2D:
-				(actor as CollisionObject2D).set_deferred("collision_layer", 0)
-				(actor as CollisionObject2D).set_deferred("collision_mask", 0)
+			actor.set_deferred("collision_layer", 0)
+			actor.set_deferred("collision_mask", 0)
+			continue
+		actor.visible = true
+		actor.set_deferred("collision_layer", FOREST_BANDIT_COLLISION_LAYER)
+		actor.set_deferred("collision_mask", FOREST_BANDIT_COLLISION_MASK)
 
 
 func _connect_oakleaf_prefetch(active_scene_path: String) -> void:

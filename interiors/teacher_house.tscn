@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://cdvd6on2lbsp3"]
 
-[ext_resource type="Texture2D" uid="uid://c83fju3bs52tr" path="res://Village/tilesheet_16x16-removebg-preview.png" id="1_vsvk0"]
+[ext_resource type="Texture2D" uid="uid://dwjp0ve6kci70" path="res://Village/tilesheet_16x16-removebg-preview.png" id="1_vsvk0"]
 [ext_resource type="PackedScene" uid="uid://cqroj1plp8pvv" path="res://objects/Room-Interior-Furnitures/Heater.tscn" id="2_8jiqx"]
 [ext_resource type="PackedScene" uid="uid://ixpuacp4543x" path="res://objects/Room-Interior-Furnitures/kitchen.tscn" id="3_alg3i"]
 [ext_resource type="PackedScene" uid="uid://ddougyp1cydrq" path="res://objects/Room-Interior-Furnitures/stove.tscn" id="4_1tndg"]
@@ -23,9 +23,8 @@
 [ext_resource type="PackedScene" uid="uid://c8kt3owriwm77" path="res://Door-Navigations-Scene2Scene/interior_house_door.tscn" id="21_door"]
 [ext_resource type="Script" uid="uid://mh36i4md0xaa" path="res://world/QuestUI.gd" id="23_1ru65"]
 [ext_resource type="PackedScene" uid="uid://c2qjfr4bme4ca" path="res://objects/Room-Interior-Furnitures/teacher_table.tscn" id="23_ou75j"]
-[ext_resource type="PackedScene" path="res://NPC/Teacher.tscn" id="24_bskpq"]
-[ext_resource type="Script" path="res://scripts/teacher_task_interaction.gd" id="27_teacher"]
-[ext_resource type="Script" path="res://scripts/interactable_area.gd" id="28_interactable"]
+[ext_resource type="PackedScene" uid="uid://cocxug131jbkm" path="res://NPC/Teacher.tscn" id="24_bskpq"]
+[ext_resource type="Script" uid="uid://cstiw1fsianqb" path="res://scripts/interactable_area.gd" id="28_interactable"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_16xxp"]
 texture = ExtResource("1_vsvk0")
@@ -661,24 +660,24 @@ texture = ExtResource("1_vsvk0")
 [sub_resource type="TileSet" id="TileSet_gvp1w"]
 sources/0 = SubResource("TileSetAtlasSource_5bkik")
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_vlnfo"]
-size = Vector2(76.92285, 107.692505)
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialogue_panel"]
-bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.96)
 content_margin_left = 18.0
 content_margin_top = 12.0
 content_margin_right = 18.0
 content_margin_bottom = 12.0
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.96)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.94902, 0.823529, 0.443137, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vlnfo"]
+size = Vector2(76.92285, 107.692505)
 
 [node name="Node2D" type="Node2D" unique_id=1017616658]
 script = ExtResource("18_gameplay")
@@ -738,10 +737,6 @@ position = Vector2(623, 343)
 
 [node name="Sprite2D12" parent="." unique_id=1052383583 instance=ExtResource("5_55kae")]
 position = Vector2(609, 328)
-
-[node name="Sprite2D13" parent="." unique_id=1586602410 instance=ExtResource("12_vlnfo")]
-position = Vector2(761, 305)
-scale = Vector2(0.06, 0.054)
 
 [node name="Sprite2D14" parent="." unique_id=1330472326 instance=ExtResource("13_b2bqt")]
 position = Vector2(602, 260)
@@ -842,7 +837,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="DialoguePanel" type="PanelContainer" parent="CanvasLayer"]
+[node name="DialoguePanel" type="PanelContainer" parent="CanvasLayer" unique_id=475601863]
 visible = false
 anchors_preset = -1
 anchor_left = 0.5
@@ -858,25 +853,20 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialogue_panel")
 
-[node name="DialogueLabel" type="Label" parent="CanvasLayer/DialoguePanel"]
+[node name="DialogueLabel" type="Label" parent="CanvasLayer/DialoguePanel" unique_id=1742302061]
 layout_mode = 2
-mouse_filter = 2
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="Teacher" parent="." unique_id=316579338 node_paths=PackedStringArray("quest_ui_path") instance=ExtResource("24_bskpq")]
+[node name="Teacher" parent="." unique_id=316579338 instance=ExtResource("24_bskpq")]
 position = Vector2(641, 341.11887)
-script = ExtResource("27_teacher")
-quest_ui_path = NodePath("../CanvasLayer/Panel")
 
 [node name="Area2D2" type="Area2D" parent="Teacher" unique_id=1014855883]
 position = Vector2(-15.384399, 13.555786)
 script = ExtResource("28_interactable")
 interaction_target_path = NodePath("..")
-interaction_method = &"interact"
-availability_method = &"can_interact"
 interaction_priority = 100
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Teacher/Area2D2" unique_id=533990814]

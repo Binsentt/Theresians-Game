@@ -8,6 +8,7 @@ const WIZARD_HOUSE_NODE := "display-kase yung wizard sa labas lang"
 const PROGRESSION_ROUTER := preload("res://scripts/progression_battle_encounter.gd")
 
 var _checks: Array[Dictionary] = []
+var _observed: Dictionary = {}
 
 
 class LocalQuestionProvider extends Node:
@@ -52,7 +53,7 @@ func _run() -> void:
 	GameState.enable_local_qa_mode()
 	_test_wizard_objective_and_location()
 	print("MAP_AUDIO_STAGE wizard")
-	_test_city_arrival_markers()
+	await _test_city_arrival_markers()
 	print("MAP_AUDIO_STAGE city_transition")
 	await _test_audio_routes_and_playback()
 	print("MAP_AUDIO_STAGE static_and_scene_audio")
@@ -65,6 +66,7 @@ func _run() -> void:
 		"live_network_calls": 0,
 		"production_writes": 0,
 		"checks": _checks,
+		"observed": _observed,
 	}
 	var result_directory := ProjectSettings.globalize_path("user://qa_local_saves")
 	DirAccess.make_dir_recursive_absolute(result_directory)
@@ -109,10 +111,28 @@ func _test_wizard_objective_and_location() -> void:
 			_expect(not house_blocker_bounds.has_point(wizard.global_position), "Outdoor Wizard stands outside the Wizard House blocker footprint")
 		else:
 			_expect(false, "Wizard House keeps its existing blocker footprint for outside-location verification")
+		# The adapter is intentionally installed only when the canonical task
+		# gate is open. Give this fixture the real pre-Wizard state instead of
+		# bypassing or weakening that runtime authorization.
+		var previous_task_index := int(GameState.current_task_index)
+		var previous_old_lady_complete := bool(GameState.pinehill_old_man_completed)
+		var previous_guard_defeats: Dictionary = GameState.pinehill_defeated_bandits.duplicate(true)
+		GameState.current_task_index = GameState.WIZARD_TASK_INDEX
+		GameState.pinehill_old_man_completed = true
+		GameState.pinehill_defeated_bandits = {}
+		for guard_id in GameState.PINEHILL_BANDIT_IDS:
+			GameState.pinehill_defeated_bandits[guard_id] = true
 		PROGRESSION_ROUTER.install_for_scene(pinehill, PROGRESSION_ROUTER)
 		var encounter := wizard.get_node_or_null("ProgressionBattleEncounter")
 		_expect(encounter != null, "The outdoor Wizard actor owns the encounter adapter")
 		_expect(wizard_house.get_node_or_null("ProgressionBattleEncounter") == null, "Wizard House artwork is not an interaction/battle trigger")
+		if encounter != null:
+			var route: Dictionary = encounter.get("_route")
+			_expect(String(route.get("encounter_id", "")) == "pinehill_wizard", "Outdoor Wizard owns exactly the canonical Wizard encounter")
+			_expect(String(route.get("difficulty", "")) == "Difficult", "Outdoor Wizard keeps the pushed Difficult question scope")
+		GameState.current_task_index = previous_task_index
+		GameState.pinehill_old_man_completed = previous_old_lady_complete
+		GameState.pinehill_defeated_bandits = previous_guard_defeats
 		pinehill.free()
 
 
@@ -133,12 +153,17 @@ func _test_city_arrival_markers() -> void:
 	var oakleaf_entry := city.get_node_or_null("Go-to-Oak-Leaf-Village") as Area2D
 	_expect(source_door != null, "Oakleaf scene owns the City transition")
 	_expect(arrival != null, "City has a dedicated Oakleaf arrival marker")
-	if source_door != null and arrival != null:
+	if source_door != null and arrival != null and oakleaf_entry != null:
 		_expect(String(source_door.get("destination_scene_path")) == CITY, "Oakleaf transition targets the canonical City scene")
 		_expect(String(source_door.get("destination_spawn_marker_name")) == "spawn_from_oakleaf", "Oakleaf source selects the dedicated City arrival marker")
 		_expect(String(source_door.get("destination_facing_direction")) == "left", "Oakleaf arrival faces into the City")
 		_expect(Vector2(source_door.get("destination_spawn_position")) == arrival.position, "Transition fallback agrees with its dedicated marker")
-		_expect(arrival.position == Vector2(1172, 96), "Oakleaf arrival is beside the right-side City entrance")
+		_expect(
+			arrival.position.x < oakleaf_entry.position.x
+			and arrival.position.x >= oakleaf_entry.position.x - 64.0
+			and absf(arrival.position.y - oakleaf_entry.position.y) <= 32.0,
+			"Oakleaf arrival is beside the right-side City entrance"
+		)
 	if oakleaf_entry != null and arrival != null:
 		_expect(oakleaf_entry.position == Vector2(1213, 84), "Right-side Oakleaf entrance keeps its authored City location")
 		var shape_node := oakleaf_entry.get_node_or_null("CollisionShape2D") as CollisionShape2D
@@ -151,14 +176,57 @@ func _test_city_arrival_markers() -> void:
 		_expect(clear_of_trigger, "Arrival is safely outside the right-side exit trigger bounds")
 	var pinehill_return := (load("res://Door-Navigations-Scene2Scene/pinehill_to_city_of_knowledge.tscn") as PackedScene).instantiate()
 	var forest_return := (load("res://Door-Navigations-Scene2Scene/deepest_forest_to_city.tscn") as PackedScene).instantiate()
-	_expect(String(pinehill_return.get("destination_spawn_marker_name")) == "spawn_from_pinehill", "Pinehill return retains its separate City arrival")
-	_expect(String(forest_return.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Deepest Forest return retains its separate City arrival")
-	_expect((city.get_node("spawn_from_pinehill") as Marker2D).position == Vector2(128, 508), "Pinehill marker remains unchanged")
-	_expect((city.get_node("spawn_from_deepest_forest") as Marker2D).position == Vector2(128, 508), "Deepest Forest marker remains unchanged")
+	_expect(String(pinehill_return.get("destination_scene_path")) == CITY and String(pinehill_return.get("destination_spawn_marker_name")) == "spawn_from_pinehill", "Active Pinehill-to-City return loads the shared map at its forest-side marker")
+	_expect(
+		Vector2(pinehill_return.get("destination_spawn_position")) == (city.get_node("spawn_from_pinehill") as Marker2D).position,
+		"Pinehill return fallback position matches the active spawn_from_pinehill marker"
+	)
+	_expect(String(forest_return.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Legacy Forest-wrapper return retains its City compatibility marker")
+	_expect((city.get_node("spawn_from_pinehill") as Marker2D).position == Vector2(128, 508), "Pinehill return marker remains at its authored forest-side location")
+	_expect((city.get_node("spawn_from_deepest_forest") as Marker2D).position == Vector2(128, 508), "Legacy Forest marker remains aligned for old saves")
 	pinehill_return.free()
 	forest_return.free()
 	oakleaf.free()
-	city.free()
+	add_child(city)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var live_marker := city.get_node_or_null("spawn_from_oakleaf") as Marker2D
+	var player := get_tree().get_first_node_in_group("player_character") as CharacterBody2D
+	_expect(player != null and live_marker != null, "City scene creates its real player and Oakleaf spawn marker in the physics world")
+	if player != null and live_marker != null:
+		player.set_physics_process(false)
+		player.global_position = live_marker.global_position
+		await get_tree().physics_frame
+		var stable_spawn_distance := player.global_position.distance_to(live_marker.global_position)
+		_expect(stable_spawn_distance <= 2.0, "Oakleaf arrival is not displaced by a physical collision")
+		var player_shape := player.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if player_shape != null and player_shape.shape != null:
+			var shape_query := PhysicsShapeQueryParameters2D.new()
+			shape_query.shape = player_shape.shape
+			shape_query.transform = player_shape.global_transform
+			shape_query.collision_mask = player.collision_mask
+			shape_query.collide_with_areas = false
+			shape_query.exclude = [player.get_rid()]
+			var overlaps := player.get_world_2d().direct_space_state.intersect_shape(shape_query, 16)
+			_expect(overlaps.is_empty(), "Oakleaf arrival player footprint does not overlap a physical obstacle")
+		else:
+			_expect(false, "Oakleaf arrival has a player collision shape for physical overlap verification")
+		var start_position := player.global_position
+		for _step in 24:
+			player.velocity = Vector2.LEFT * 120.0
+			player.move_and_slide()
+			await get_tree().physics_frame
+		player.velocity = Vector2.ZERO
+		var walked_into_city := start_position.x - player.global_position.x
+		_observed["oakleaf_arrival_physics"] = {
+			"start": str(start_position),
+			"end": str(player.global_position),
+			"distance_into_city": walked_into_city,
+			"stable_spawn_distance": stable_spawn_distance,
+		}
+		_expect(walked_into_city >= 24.0, "Player can walk from the Oakleaf arrival into the City without an invisible blocker")
+	city.queue_free()
+	await get_tree().process_frame
 
 
 func _test_audio_routes_and_playback() -> void:
@@ -193,10 +261,23 @@ func _test_audio_routes_and_playback() -> void:
 	_expect(vs_count == 9, "All nine canonical VS battle scenes are covered")
 	_expect(_track_source_path(music, "teacher_battle") == "res://bg-musics/Teacher-Battle.mp3", "Teacher battle track resolves to Teacher-Battle.mp3")
 	_expect(_track_source_path(music, "battle") == "res://bg-musics/battle-mus.mp3", "Other VS battle track resolves to battle-mus.mp3")
-	await _play_and_check_track(music, "res://interiors/player_house.tscn", "school_or_house", "res://bg-musics/schoolorhouse.mp3")
-	await _play_and_check_track(music, "res://Battle/Battle-Enemy/male_vs_teacher.tscn", "teacher_battle", "res://bg-musics/Teacher-Battle.mp3")
-	await _play_and_check_track(music, "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "battle", "res://bg-musics/battle-mus.mp3")
-	await _play_and_check_track(music, SCHOOL, "school_or_house", "res://bg-musics/schoolorhouse.mp3")
+	var music_bus_index := AudioServer.get_bus_index(AudioSettingsManager.MUSIC_BUS_NAME)
+	var sfx_bus_index := AudioServer.get_bus_index(AudioSettingsManager.SFX_BUS_NAME)
+	var user_music_volume := AudioSettingsManager.get_music_volume()
+	var user_sfx_volume := AudioSettingsManager.get_sfx_volume()
+	var music_bus_db := AudioServer.get_bus_volume_db(music_bus_index) if music_bus_index >= 0 else NAN
+	var sfx_bus_db := AudioServer.get_bus_volume_db(sfx_bus_index) if sfx_bus_index >= 0 else NAN
+	_expect(music_bus_index >= 0 and sfx_bus_index >= 0, "Existing Music and SFX buses are available for per-track attenuation checks")
+	await _play_and_check_track(music, OAKLEAF, "adventure", "res://bg-musics/adventure3.mp3", 0.0)
+	await _play_and_check_track(music, "res://interiors/player_house.tscn", "school_or_house", "res://bg-musics/schoolorhouse.mp3", 0.0)
+	await _play_and_check_track(music, "res://Battle/Battle-Enemy/male_vs_teacher.tscn", "teacher_battle", "res://bg-musics/Teacher-Battle.mp3", -6.0)
+	await _play_and_check_track(music, "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "battle", "res://bg-musics/battle-mus.mp3", -6.0)
+	await _play_and_check_track(music, "res://Battle/Battle-Enemy/male_vs_wizard.tscn", "battle", "res://bg-musics/battle-mus.mp3", -6.0)
+	await _play_and_check_track(music, SCHOOL, "school_or_house", "res://bg-musics/schoolorhouse.mp3", 0.0)
+	_expect(is_equal_approx(AudioSettingsManager.get_music_volume(), user_music_volume), "Per-track battle attenuation leaves the saved Music Volume setting unchanged")
+	_expect(is_equal_approx(AudioSettingsManager.get_sfx_volume(), user_sfx_volume), "Per-track battle attenuation leaves the saved SFX Volume setting unchanged")
+	_expect(music_bus_index >= 0 and is_equal_approx(AudioServer.get_bus_volume_db(music_bus_index), music_bus_db), "Per-track battle attenuation leaves the Music bus gain unchanged")
+	_expect(sfx_bus_index >= 0 and is_equal_approx(AudioServer.get_bus_volume_db(sfx_bus_index), sfx_bus_db), "Per-track battle attenuation does not change the SFX bus gain")
 	await _test_preserved_special_audio(music)
 
 
@@ -224,23 +305,30 @@ func _track_source_path(music: Node, track_key: String) -> String:
 	return stream.resource_path if stream != null else ""
 
 
-func _play_and_check_track(music: Node, scene_path: String, track_key: String, asset_path: String) -> void:
+func _play_and_check_track(music: Node, scene_path: String, track_key: String, asset_path: String, target_volume_db: float) -> void:
 	music.call("play_for_scene", scene_path)
 	var deadline := Time.get_ticks_msec() + 3000
 	var player := music.get_node_or_null("BackgroundMusicPlayer") as AudioStreamPlayer
 	while (String(music.get("_current_track_key")) != track_key
 			or player == null
 			or not player.playing
-			or player.volume_db < -0.5) and Time.get_ticks_msec() < deadline:
+			or _music_fade_is_running(music)
+			or not is_equal_approx(player.volume_db, target_volume_db)) and Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame
 	var playback_started := player != null and String(music.get("_current_track_key")) == track_key and player.playing
 	_expect(playback_started, "Scene starts its intended BGM without a restart: " + scene_path)
 	if player != null:
 		_expect(player.bus == AudioSettingsManager.MUSIC_BUS_NAME, "BGM uses the Music volume bus: " + scene_path)
 		_expect(player.stream != null, "BGM stream is loaded: " + scene_path)
+		_expect(is_equal_approx(player.volume_db, target_volume_db), "BGM reaches its per-track target of %.1f dB: %s" % [target_volume_db, scene_path])
 	_expect(_track_source_path(music, track_key) == asset_path, "BGM source asset is correct: " + scene_path)
 	var players := music.find_children("*", "AudioStreamPlayer", true, false)
 	_expect(players.size() == 1, "Exactly one background player is active after the scene switch: " + scene_path)
+
+
+func _music_fade_is_running(music: Node) -> bool:
+	var fade := music.get("_fade_tween") as Tween
+	return fade != null and fade.is_running()
 
 
 func _test_battle_music_lifecycle() -> void:
@@ -271,7 +359,7 @@ func _run_battle_music_lifecycle(scene_path: String, battle_track: String) -> vo
 	while Dictionary(battle.get("_current_question_data")).is_empty() and Time.get_ticks_msec() < question_deadline:
 		await get_tree().process_frame
 	_expect(not Dictionary(battle.get("_current_question_data")).is_empty(), "Local question fixture loads without provider/network traffic: " + scene_path)
-	await _playback_track_started(battle_track, scene_path)
+	await _playback_track_started(battle_track, scene_path, -6.0)
 	var results: Array[bool] = []
 	battle.battle_finished.connect(func(won: bool) -> void: results.append(won), CONNECT_ONE_SHOT)
 	battle.call("_finish_battle", false)
@@ -282,13 +370,18 @@ func _run_battle_music_lifecycle(scene_path: String, battle_track: String) -> vo
 		battle.queue_free()
 		await get_tree().process_frame
 	_expect(results == [false], "Battle emits one result while restoring world music: " + scene_path)
-	await _playback_track_started("school_or_house", scene_path + " return")
+	await _playback_track_started("school_or_house", scene_path + " return", 0.0)
 	GameState.encounter_context = prior_context
 
 
-func _playback_track_started(track_key: String, label: String) -> void:
+func _playback_track_started(track_key: String, label: String, target_volume_db: float) -> void:
 	var music := get_node("/root/MusicManager")
+	var player := music.get_node("BackgroundMusicPlayer") as AudioStreamPlayer
 	var deadline := Time.get_ticks_msec() + 1800
-	while (String(music.get("_current_track_key")) != track_key or not bool(music.get_node("BackgroundMusicPlayer").playing)) and Time.get_ticks_msec() < deadline:
+	while (String(music.get("_current_track_key")) != track_key
+			or not player.playing
+			or _music_fade_is_running(music)
+			or not is_equal_approx(player.volume_db, target_volume_db)) and Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame
-	_expect(String(music.get("_current_track_key")) == track_key and bool(music.get_node("BackgroundMusicPlayer").playing), "Battle lifecycle selects " + track_key + " for " + label)
+	_expect(String(music.get("_current_track_key")) == track_key and player.playing, "Battle lifecycle selects " + track_key + " for " + label)
+	_expect(is_equal_approx(player.volume_db, target_volume_db), "Battle lifecycle reaches %.1f dB for %s" % [target_volume_db, label])

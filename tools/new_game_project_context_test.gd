@@ -26,7 +26,6 @@ func _run() -> void:
 	if http_api == null or remote_sync == null or game_state == null:
 		_finish()
 		return
-
 	http_api.set_script(HttpApiStub)
 	remote_sync.set_script(RemoteSyncStub)
 	http_api.request_recorded.connect(_on_http_request_recorded)

@@ -39,12 +39,15 @@ func _run() -> void:
 	_expect(String(state.tasks[state.PINEHILL_ARRIVAL_TASK_INDEX].quest_text) == "Continue to Pinehill Village.", "Deep Forest completion points to Pinehill")
 	_expect(String(state.tasks[state.PINEHILL_OLD_MAN_TASK_INDEX].quest_text) == "Find someone who knows about the Wizard.", "Pinehill arrival points to the Old Lady")
 	_expect(String(state.tasks[state.PINEHILL_BANDIT_TASK_INDEX].quest_text) == "Defeat the Wizard's 4 Guards.", "Old Lady completion points to four guards")
-	_expect(String(state.tasks[state.WIZARD_TASK_INDEX].quest_text) == "Enter the Wizard Tower.", "Four guards completion points to Wizard Tower")
+	_expect(String(state.tasks[state.WIZARD_TASK_INDEX].quest_text) == "Talk to the Wizard", "Four guards completion points to the Wizard interaction")
 	_expect(String(state.tasks[state.RETURN_CITY_TASK_INDEX].quest_text) == "Return to the City of Knowledge.", "Wizard completion points back to City")
 	_expect(String(state.tasks[state.FINAL_SCHOOL_TASK_INDEX].quest_text) == "Return to the School.", "City return points to School")
 	_expect(String(state.tasks[state.FINAL_TEACHER_TASK_INDEX].quest_text) == "Face the Teacher's Final Challenge.", "School return points to final Teacher")
 
 	_expect(OLD_LADY.DIALOGUE_LINES.size() == 4, "Old Lady uses the four-line conversation")
+	_expect(OLD_LADY.WIZARD_THANKS_LINES == ["Old Lady: Thank you for defeating the Wizard.", "Old Lady: Good luck on the rest of your journey."], "Post-Wizard Old Lady thanks uses the two approved lines")
+	_expect(OLD_LADY.WIZARD_THANKS_TRIGGER_RANGE > OLD_LADY.INTERACTION_RANGE and OLD_LADY.WIZARD_THANKS_STOP_DISTANCE <= OLD_LADY.INTERACTION_RANGE, "Post-Wizard event starts on approach and stops at normal conversation distance")
+	_expect(String(FileAccess.get_file_as_string("res://scripts/progression_old_man_interaction.gd")).contains("body.move_and_slide()"), "Old Lady approaches by collision-aware movement instead of teleporting")
 	_expect(ROUTER.WIZARD_INTRO_DIALOGUE.size() == 3, "Wizard intro uses the short three-line conversation")
 	_expect(ROUTER.WIZARD_REVELATION_DIALOGUE.size() == 5, "Wizard revelation uses the five-line conversation")
 	_expect(ROUTER.DEEP_FOREST_COMPLETE_DIALOGUE.size() == 1, "Deep Forest completion has a short notification")
@@ -56,8 +59,8 @@ func _run() -> void:
 	state.city_school_stage_complete = true
 	state.city_next_path_unlocked = true
 	state.current_task_index = state.CITY_NEXT_PATH_TASK_INDEX
-	state.handle_scene_entered("res://scenes/deepest_forest_path.tscn")
-	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "Deep Forest stage remains gated by School completion")
+	state.handle_scene_entered("res://scenes/city_of_knowledge.tscn")
+	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "City return activates the Deepest Forest objective after School completion")
 	for encounter_id in state.DEEP_FOREST_BANDIT_IDS:
 		state.record_progression_encounter_victory(encounter_id, false)
 	_expect(state.pinehill_unlocked and state.current_task_index == state.PINEHILL_ARRIVAL_TASK_INDEX, "Five Deep Forest encounters unlock Pinehill")
@@ -67,9 +70,17 @@ func _run() -> void:
 	_expect(state.current_task_index == state.PINEHILL_BANDIT_TASK_INDEX, "Old Lady gates the four guards")
 	for encounter_id in state.PINEHILL_BANDIT_IDS:
 		state.record_progression_encounter_victory(encounter_id, false)
-	_expect(state.current_task_index == state.WIZARD_TASK_INDEX, "Four guards unlock the Wizard Tower")
+	_expect(state.current_task_index == state.WIZARD_TASK_INDEX, "Four guards unlock the outdoor Wizard challenge")
 	state.record_progression_encounter_victory("pinehill_wizard", false)
 	_expect(state.current_task_index == state.RETURN_CITY_TASK_INDEX, "Wizard victory unlocks the City return")
+	var quests_completed_before_thanks := int(state.total_quests_completed)
+	state.call("complete_wizard_thanks_event")
+	_expect(bool(state.get("wizard_thanks_complete")), "Post-Wizard Old Lady beat persists its one-time completion flag")
+	_expect(int(state.total_quests_completed) == quests_completed_before_thanks, "Post-Wizard thank-you is story state, not a fabricated academic quest completion")
+	var thanks_snapshot: Dictionary = state.call("build_save_data")
+	state.set("wizard_thanks_complete", false)
+	state.call("apply_save_data", thanks_snapshot, false)
+	_expect(bool(state.get("wizard_thanks_complete")), "Post-Wizard one-time flag survives save/load and defaults compatibly")
 	state.handle_scene_entered("res://scenes/city_of_knowledge.tscn")
 	_expect(state.current_task_index == state.FINAL_SCHOOL_TASK_INDEX, "City return opens the School stage")
 	state.handle_scene_entered("res://interiors/school.tscn")

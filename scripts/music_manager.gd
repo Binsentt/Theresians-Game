@@ -9,6 +9,7 @@ const TRACK_ENDING := "ending"
 const FADE_DURATION := 0.2
 const SILENT_VOLUME_DB := -60.0
 const TARGET_VOLUME_DB := 0.0
+const BATTLE_TARGET_VOLUME_DB := -6.0
 const MENU_STREAM := preload("res://bg-musics/menu.mp3")
 const HOME_STREAM := preload("res://bg-musics/schoolorhouse.mp3")
 const ADVENTURE_STREAM := preload("res://bg-musics/adventure3.mp3")
@@ -114,7 +115,7 @@ func _switch_to_track(track_key: String, transition_id: int) -> void:
 	_current_track_key = track_key
 
 	_fade_tween = create_tween()
-	_fade_tween.tween_property(_player, "volume_db", TARGET_VOLUME_DB, FADE_DURATION)
+	_fade_tween.tween_property(_player, "volume_db", _get_target_volume_db(track_key), FADE_DURATION)
 
 func _fade_out_and_stop(transition_id: int) -> void:
 	if _fade_tween != null:
@@ -165,3 +166,11 @@ func _get_stream_for_track(track_key: String) -> AudioStream:
 			return ENDING_STREAM
 		_:
 			return null
+
+
+func _get_target_volume_db(track_key: String) -> float:
+	match track_key:
+		TRACK_BATTLE, TRACK_TEACHER_BATTLE:
+			return BATTLE_TARGET_VOLUME_DB
+		_:
+			return TARGET_VOLUME_DB

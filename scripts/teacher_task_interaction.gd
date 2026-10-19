@@ -12,7 +12,11 @@ const TARGET_SENSOR_WORLD_SIZE := Vector2(42.0, 36.0)
 var _active: bool = false
 
 
-static func install_for_scene(world: Node2D, component_script: Script) -> void:
+static func install_for_scene(
+		world: Node2D,
+		component_script: Script,
+		sensor_world_size: Vector2 = TARGET_SENSOR_WORLD_SIZE
+) -> void:
 	if world == null or component_script == null:
 		return
 	var teacher := world.get_node_or_null("Teacher") as Node2D
@@ -44,8 +48,8 @@ static func install_for_scene(world: Node2D, component_script: Script) -> void:
 			or rectangle.size.x <= 0.0 or rectangle.size.y <= 0.0:
 		return
 	sensor.scale = Vector2(
-		TARGET_SENSOR_WORLD_SIZE.x / (rectangle.size.x * teacher_world_scale.x),
-		TARGET_SENSOR_WORLD_SIZE.y / (rectangle.size.y * teacher_world_scale.y)
+		sensor_world_size.x / (rectangle.size.x * teacher_world_scale.x),
+		sensor_world_size.y / (rectangle.size.y * teacher_world_scale.y)
 	)
 
 

@@ -519,7 +519,10 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 			normalized[key] = question.get(key)
 	var normalized_grade := str(normalized.get("grade", normalized.get("grade_level", ""))).strip_edges()
 	var normalized_topic := str(normalized.get("topic", normalized.get("math_topic", ""))).strip_edges()
-	var normalized_topic_id := str(normalized.get("topic_id", "")).strip_edges().to_lower()
+	var raw_topic_id: Variant = normalized.get("topic_id", null)
+	var normalized_topic_id := ""
+	if raw_topic_id != null:
+		normalized_topic_id = str(raw_topic_id).strip_edges()
 	if not normalized_grade.is_empty():
 		normalized["grade"] = normalized_grade
 	var normalized_difficulty := _canonical_difficulty(normalized.get("difficulty", ""))
@@ -529,6 +532,8 @@ func _normalize_question(question: Dictionary) -> Dictionary:
 		normalized["topic"] = normalized_topic
 	if not normalized_topic_id.is_empty():
 		normalized["topic_id"] = normalized_topic_id
+	else:
+		normalized.erase("topic_id")
 
 	return normalized
 

@@ -34,9 +34,15 @@ func _assert_main_menu_route() -> void:
 
 func _assert_load_game_scene_contract(scene_path: String) -> void:
 	var source := FileAccess.get_file_as_string(scene_path)
+	_assert(not source.is_empty(), "%s source is readable" % scene_path)
+	if scene_path == "res://scenes/load_game_scene.tscn":
+		_assert(
+			source.contains('path="res://load_game_scene.tscn"') and source.contains('instance=ExtResource("1_load_game")'),
+			"%s inherits the canonical Load Game scene without carrying stale verification UI" % scene_path
+		)
+		return
 	var saves_container_matcher := RegEx.new()
 	var saves_container_pattern_valid := saves_container_matcher.compile('\\[node name="SavesContainer" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content/ScrollContainer"') == OK
-	_assert(not source.is_empty(), "%s source is readable" % scene_path)
 	_assert(
 		source.contains('[node name="DeleteSaveConfirmation" type="ConfirmationDialog" parent="."]'),
 		"%s provides the DeleteSaveConfirmation required by load_game_scene.gd" % scene_path

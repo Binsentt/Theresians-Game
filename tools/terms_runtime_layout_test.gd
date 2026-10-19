@@ -3,6 +3,8 @@ extends Node
 const TERMS_GATE_SCRIPT := preload("res://scripts/terms_gate.gd")
 const MAIN_MENU_SCENE := preload("res://scenes/main_menu.tscn")
 const VIEWPORTS := [Vector2i(1134, 509), Vector2i(1215, 545), Vector2i(1280, 720), Vector2i(1920, 1080)]
+const CHECKBOX_STYLEBOX_STATES := ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]
+const CHECKBOX_ICON_STATES := ["unchecked", "checked", "unchecked_disabled", "checked_disabled"]
 const RESULT_PATH := "res://tools/terms_runtime_layout_test_result.json"
 
 var _results: Array[Dictionary] = []
@@ -108,6 +110,18 @@ func _check_gate(requested_size: Vector2i, actual_size: Vector2, gate: Control) 
 	var checkbox_image := checkbox_icon.get_image() if checkbox_icon != null else null
 	var border_pixel := checkbox_image.get_pixel(4, 14) if checkbox_image != null else Color.TRANSPARENT
 	_require(border_pixel.r > 0.85 and border_pixel.g > 0.85 and border_pixel.b > 0.85, "unchecked agreement checkbox has a visible white border", requested_size)
+	_require(checkbox.focus_mode == Control.FOCUS_ALL, "agreement checkbox retains keyboard/controller focus", requested_size)
+	for icon_state: String in CHECKBOX_ICON_STATES:
+		_require(checkbox.has_theme_icon_override(icon_state), "agreement checkbox uses its custom %s icon" % icon_state, requested_size)
+	for style_state: String in CHECKBOX_STYLEBOX_STATES:
+		var state_stylebox := checkbox.get_theme_stylebox(style_state)
+		_require(state_stylebox is StyleBoxEmpty, "agreement checkbox %s state draws no native frame" % style_state, requested_size)
+	var checked_icon := checkbox.get_theme_icon("checked") as Texture2D
+	var checked_image := checked_icon.get_image() if checked_icon != null else null
+	var checked_border_pixel := checked_image.get_pixel(4, 14) if checked_image != null else Color.TRANSPARENT
+	var check_mark_pixel := checked_image.get_pixel(12, 18) if checked_image != null else Color.TRANSPARENT
+	_require(checked_border_pixel.r > 0.85 and checked_border_pixel.g > 0.85 and checked_border_pixel.b > 0.85, "checked agreement checkbox keeps the same white border", requested_size)
+	_require(check_mark_pixel.r > 0.85 and check_mark_pixel.g < 0.8 and check_mark_pixel.b < 0.4, "checked agreement checkbox renders the gold mark inside its border", requested_size)
 	_require(continue_button.get_global_rect().end.y <= viewport_rect.end.y + 1.0, "continue button is visible", requested_size)
 	_require(cancel_button.get_global_rect().end.y <= viewport_rect.end.y + 1.0, "cancel button is visible", requested_size)
 	_require(scrollable, "terms body is scrollable", requested_size)

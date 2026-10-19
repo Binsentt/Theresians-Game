@@ -41,12 +41,15 @@ func _verify_config(config: Dictionary) -> void:
 	_expect(not production_url.to_lower().contains("example.com"), "production_url must not use example.com.")
 	_expect(not production_url.to_lower().contains("localhost"), "production_url must not use localhost.")
 	_expect(development_url == EXPECTED_DEVELOPMENT_URL, "development_url must retain the explicit local-development endpoint.")
-	var allowed_keys := ["development_url", "production_url", "timeout_ms"]
+	var allowed_keys := ["development_url", "production_url", "production_qa_enabled", "timeout_ms"]
 	for key in config.keys():
 		_expect(allowed_keys.has(String(key)), "API config must not contain API keys or other secrets.")
 
 
 func _verify_environment_resolution(config: Dictionary) -> void:
+	# Explicit local-development scenario; the canonical human QA session opts into production.
+	config = config.duplicate(true)
+	config["production_qa_enabled"] = false
 	var api: Node = HttpApiScript.new()
 	_expect(api.has_method("resolve_configured_base_url"), "HttpApi must expose environment-specific URL resolution.")
 	_expect(api.has_method("resolve_configured_base_url_for_environment"), "HttpApi must expose explicit production-smoke URL resolution.")
@@ -61,6 +64,8 @@ func _verify_environment_resolution(config: Dictionary) -> void:
 
 
 func _verify_invalid_production_config_fails_closed(config: Dictionary) -> void:
+	config = config.duplicate(true)
+	config["production_qa_enabled"] = false
 	var api: Node = HttpApiScript.new()
 	if not api.has_method("resolve_configured_base_url_for_environment"):
 		api.free()

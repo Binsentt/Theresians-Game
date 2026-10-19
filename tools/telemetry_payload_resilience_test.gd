@@ -6,9 +6,13 @@ class HttpApiStub extends Node:
 
 	func request_post(path: String, payload: Dictionary) -> Dictionary:
 		requests.append({"path": path, "payload": payload.duplicate(true)})
+		return {"ok": true, "status": 201, "body": {}}
+
+	func request_get(path: String, params: Dictionary = {}, _timeout_ms: int = -1) -> Dictionary:
+		requests.append({"method": "GET", "path": path, "params": params.duplicate(true)})
 		if path == "/api/game/leaderboard":
 			return leaderboard_response
-		return {"ok": true, "status": 201, "body": {}}
+		return {"ok": true, "status": 200, "body": {}}
 
 
 var _failures: Array[String] = []
@@ -93,6 +97,8 @@ func _run() -> void:
 	game_state.student_id = "17000087"
 	game_state.parent_id = "170001"
 	game_state.playtime_authorized = true
+	var activity_payload: Dictionary = remote.call("_build_activity_log_payload", "Playing", "QA activity", {})
+	_expect(activity_payload.get("student_id", "") == game_state.student_id and activity_payload.get("parent_id", "") == game_state.parent_id, "Immediate gameplay Activity Log payload includes the linked Parent ID required by the API contract")
 	remote.set("_current_playtime_session_id", 12)
 	remote.set("_current_playtime_session_credential", "qa-lease")
 	http_stub.leaderboard_response = {
@@ -102,6 +108,7 @@ func _run() -> void:
 	}
 	var leaderboard: Dictionary = await remote.request_game_leaderboard()
 	_expect(leaderboard.get("ok", false) and (leaderboard.get("entries", []) as Array).size() == 1, "Malformed leaderboard response remains safe and usable")
+	_expect(http_stub.requests.size() == 2 and http_stub.requests[1].get("method", "") == "GET" and http_stub.requests[1].get("path", "") == "/api/game/leaderboard", "Public leaderboard uses a read-only GET request independently of telemetry POSTs")
 
 	remote.set("local_qa_only", true)
 	http_stub.queue_free()
@@ -113,13 +120,13 @@ func _run() -> void:
 
 func _finish() -> void:
 	if _failures.is_empty():
-		print("TELEMETRY_PAYLOAD_RESILIENCE_TEST {\"failed\":0,\"passed\":7}")
+		print("TELEMETRY_PAYLOAD_RESILIENCE_TEST {\"failed\":0,\"passed\":9}")
 		await get_tree().create_timer(3.0).timeout
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	print("TELEMETRY_PAYLOAD_RESILIENCE_TEST {\"failed\":%d,\"passed\":%d}" % [_failures.size(), 7 - _failures.size()])
+	print("TELEMETRY_PAYLOAD_RESILIENCE_TEST {\"failed\":%d,\"passed\":%d}" % [_failures.size(), 9 - _failures.size()])
 	await get_tree().create_timer(3.0).timeout
 	get_tree().quit(1)
 

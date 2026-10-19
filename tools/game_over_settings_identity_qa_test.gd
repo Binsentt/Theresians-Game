@@ -50,6 +50,7 @@ func _run() -> void:
 	await _assert_battle_lives_shared_pool()
 	await _assert_linked_student_reuse()
 	_assert_teacher_quest_retry()
+	_assert_deep_forest_school_retry()
 	_assert_later_quest_retry()
 	_assert_city_quest_retry()
 	_assert_manual_save_and_student_isolation()
@@ -218,6 +219,27 @@ func _assert_later_quest_retry() -> void:
 	_assert(String(state.current_scene_path) == PINEHILL_SCENE and String(recovery.get("marker_name", "")) == "spawn_from_city" and state.player_position.is_equal_approx(pinehill_position), "Later retry returns to Pinehill's safe arrival marker, not Teacher House")
 	_assert(not state.is_progression_encounter_defeated("pinehill_bandits1"), "Failed Pinehill guard is not marked complete")
 	_assert(int(state.current_lives) == 3 and String(state.student_id) == "88001002", "Later retry restores lives and preserves Student identity")
+
+
+func _assert_deep_forest_school_retry() -> void:
+	var state := get_node("/root/GameState")
+	var school_scene := "res://interiors/school.tscn"
+	_configure_student(state, "88001009", "880109", GameState.DEEP_FOREST_BANDIT_TASK_INDEX, school_scene, Vector2(301.0, 335.0))
+	state.city_of_knowledge_unlocked = true
+	state.city_first_arrival_seen = true
+	state.deep_forest_defeated_bandits = {}
+	var expected_quest := String(state.current_quest)
+	_assert(not state.save_checkpoint().is_empty(), "Deep Forest quest accepted inside the School stores a hidden quest checkpoint")
+	state.capture_runtime("res://scenes/city_of_knowledge.tscn", Vector2(150.0, 530.0))
+	var game_over_result: Dictionary = _lose_three_encounters(state, "deep_forest_bandits1", GameState.DEEP_FOREST_BANDIT_TASK_INDEX)
+	_assert(bool(game_over_result.get("game_over", false)), "Three failed Deep Forest encounters reach Game Over")
+	var recovery: Dictionary = state.call("restore_game_over_checkpoint")
+	var school_position := _scene_marker_position(school_scene, "PlayerSpawn")
+	_assert(bool(recovery.get("ok", false)) and String(state.current_scene_path) == school_scene, "Deep Forest Game Over returns to the School where the quest began")
+	_assert(String(recovery.get("marker_name", "")) == "PlayerSpawn" and state.player_position.is_equal_approx(school_position), "Deep Forest retry restores the safe School quest-start position, not the shared forest map")
+	_assert(String(state.current_quest) == expected_quest and int(state.current_task_index) == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "Deep Forest quest remains active after School checkpoint recovery")
+	_assert(int(state.current_lives) == 3 and String(state.student_id) == "88001009" and String(state.parent_id) == "880109", "School retry restores three lives and preserves the same linked Student")
+	_assert(not state.is_progression_encounter_defeated("deep_forest_bandits1") and state.list_saves().is_empty(), "Failed Deep Forest encounter remains incomplete and no manual save slot is fabricated")
 
 
 func _assert_city_quest_retry() -> void:

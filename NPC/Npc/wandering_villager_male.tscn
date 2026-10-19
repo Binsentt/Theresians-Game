@@ -1,15 +1,15 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://ddw8crwtboier"]
 
-[ext_resource type="Script" path="res://scripts/decorative_npc_wanderer.gd" id="1_wanderer"]
-[ext_resource type="PackedScene" path="res://NPC/Npc/villager_male.tscn" id="2_visual"]
-[ext_resource type="Script" path="res://scripts/npc_greeting_dialogue.gd" id="3_greeting"]
+[ext_resource type="Script" uid="uid://ciudsdlcr5uu8" path="res://scripts/decorative_npc_wanderer.gd" id="1_wanderer"]
+[ext_resource type="PackedScene" uid="uid://cj5yx2g4qmnph" path="res://NPC/Npc/villager_male.tscn" id="2_visual"]
+[ext_resource type="Script" uid="uid://df3u0kgmlt7ih" path="res://scripts/npc_greeting_dialogue.gd" id="3_greeting"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_foot"]
 size = Vector2(10, 8)
 
-[node name="WanderingVillagerMale" type="CharacterBody2D" groups=["decorative_wanderer"]]
+[node name="WanderingVillagerMale" type="CharacterBody2D" unique_id=442305874 groups=["decorative_wanderer"]]
+position = Vector2(41, 470)
 collision_layer = 2
-collision_mask = 1
 script = ExtResource("1_wanderer")
 visual_node_path = NodePath("Visual")
 walk_down_animation = &"walk-down"
@@ -17,10 +17,11 @@ walk_left_animation = &"walk-left"
 walk_right_animation = &"walk-right"
 walk_up_animation = &"walk-up"
 
-[node name="Visual" parent="." instance=ExtResource("2_visual")]
+[node name="Visual" parent="." unique_id=1436538503 instance=ExtResource("2_visual")]
+scale = Vector2(0.11985294, 0.13851011)
+animation = &"default"
 script = ExtResource("3_greeting")
-quest_ui_path = NodePath("../../CanvasLayer/Panel")
 
-[node name="FootCollision" type="CollisionShape2D" parent="."]
+[node name="FootCollision" type="CollisionShape2D" parent="." unique_id=354676518]
 position = Vector2(0, 4)
 shape = SubResource("RectangleShape2D_foot")

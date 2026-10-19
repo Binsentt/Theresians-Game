@@ -6,6 +6,12 @@ extends Node
 const OAKLEAF_SCENE := "res://scenes/oak_leaf_village.tscn"
 const ROUTE_NODE := "OakleafBattleEncounter"
 const CHOICE_NAMES := ["ChoiceA", "ChoiceB", "ChoiceC", "ChoiceD"]
+const EXPECTED_BANDIT_CHALLENGE_LINES := {
+	"Bandits2": "Bandit: You will have to get past me first!",
+	"Bandits3": "Bandit: Let's see if your answers can beat me.",
+	"Bandits4": "Bandit: I won't let you pass!",
+	"Bandits5": "Bandit: Prove you can defeat me!",
+}
 const CASES := [
 	{"actor": "Bandits2", "encounter_id": "oakleaf_bandits2", "male": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 	{"actor": "Bandits3", "encounter_id": "oakleaf_bandits3", "male": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
@@ -68,6 +74,7 @@ func _run() -> void:
 	for case_data in CASES:
 		await _run_case(case_data, "male")
 		await _run_case(case_data, "female")
+	await _verify_boss_completion_survives_reload()
 
 	_expect(_transport.requests.size() == CASES.size() * 2, "one backend request occurs for each routed encounter")
 	for request in _transport.requests:
@@ -104,6 +111,22 @@ func _run_case(case_data: Dictionary, gender: String) -> void:
 	await _frames(2)
 	InputManager.set_mobile_interact_pressed(false)
 	_expect(not bool(encounter.call("interact")), "%s %s: repeated encounter activation is rejected" % [case_data.actor, gender])
+	var quest_ui := world.get_node_or_null("CanvasLayer/Panel")
+	var dialogue_label := world.get_node_or_null("CanvasLayer/DialoguePanel/DialogueLabel") as Label
+	var pre_battle_lines: Array = []
+	if String(case_data.actor) == "Boss-Bandit":
+		pre_battle_lines = [
+			"Boss Bandit: So, you defeated my bandits.",
+			"Boss Bandit: Now face me!",
+		]
+	else:
+		pre_battle_lines = [EXPECTED_BANDIT_CHALLENGE_LINES[String(case_data.actor)]]
+	await _wait_for_dialogue(quest_ui)
+	_expect(quest_ui != null and quest_ui.has_method("is_dialogue_active") and bool(quest_ui.call("is_dialogue_active")), "%s %s: challenge dialogue opens before battle" % [case_data.actor, gender])
+	_expect(world.get_node_or_null("OriginalBattlePresentation") == null, "%s %s: battle does not start before challenge dialogue is advanced" % [case_data.actor, gender])
+	for line_index in pre_battle_lines.size():
+		_expect(dialogue_label != null and dialogue_label.text == pre_battle_lines[line_index], "%s %s: challenge dialogue step %d is short and separate" % [case_data.actor, gender, line_index + 1])
+		await _tap_interact()
 	var battle := await _wait_for_battle(world)
 	_expect(battle != null, "%s %s: mobile ACT starts one original VS battle" % [case_data.actor, gender])
 	_expect(_battle_started_count == starts_before + 1, "%s %s: encounter trigger starts exactly one battle" % [case_data.actor, gender])
@@ -188,6 +211,11 @@ func _win_and_verify_state(battle: Node, actor: Node2D, other_actor: Node2D, tas
 	var is_boss := active_encounter_id == "oakleaf_boss_bandit"
 	battle.call("answer_selected", 2)
 	battle.call("answer_selected", 2)
+	var resolution_deadline := Time.get_ticks_msec() + 3000
+	while (GameState.get_mode() == GameState.GameMode.BATTLE or not GameState.get_active_encounter_context().is_empty()) \
+			and Time.get_ticks_msec() < resolution_deadline:
+		await get_tree().process_frame
+	await _frames(2)
 	if is_boss:
 		var quest_ui := get_tree().current_scene.get_node_or_null("CanvasLayer/Panel") if get_tree().current_scene != null else null
 		var dialogue_deadline := Time.get_ticks_msec() + 3500
@@ -198,21 +226,58 @@ func _win_and_verify_state(battle: Node, actor: Node2D, other_actor: Node2D, tas
 		var dialogue_open := quest_ui != null and quest_ui.has_method("is_dialogue_active") and bool(quest_ui.call("is_dialogue_active"))
 		var dialogue_label := get_tree().current_scene.get_node_or_null("CanvasLayer/DialoguePanel/DialogueLabel") as Label if get_tree().current_scene != null else null
 		_expect(dialogue_open and GameState.get_mode() == GameState.GameMode.DIALOGUE, label + ": Boss victory opens the shared bottom dialogue before progression completes")
-		_expect(dialogue_label != null and dialogue_label.text.to_lower().contains("defeat") and dialogue_label.text.to_lower().contains("road"), label + ": Boss defeat dialogue closes the road-blocking story beat")
-		if dialogue_open:
-			InputManager.set_mobile_interact_pressed(false)
-			await _frames(2)
-			InputManager.set_mobile_interact_pressed(true)
-			await _frames(2)
-			InputManager.set_mobile_interact_pressed(false)
-	var deadline := Time.get_ticks_msec() + 3500
-	while is_instance_valid(actor) and Time.get_ticks_msec() < deadline:
-		await get_tree().process_frame
-	await _frames(2)
-	_expect(not is_instance_valid(actor), label + ": victory defeats only this actor")
+		_expect(dialogue_label != null and dialogue_label.text.to_lower().contains("defeated"), label + ": Boss defeat dialogue begins with a concise defeat acknowledgment")
+		var expected_post_lines := [
+			"Boss Bandit: You defeated me.",
+			"Boss Bandit: My bandits will leave the road.",
+			"Boss Bandit: Return to the Teacher for your next direction.",
+		]
+		for line_index in expected_post_lines.size():
+			_expect(dialogue_label != null and dialogue_label.text == expected_post_lines[line_index], label + ": Boss post-battle dialogue step %d is independently readable" % (line_index + 1))
+			await _tap_interact()
+		var boss_deadline := Time.get_ticks_msec() + 3500
+		while is_instance_valid(actor) and Time.get_ticks_msec() < boss_deadline:
+			await get_tree().process_frame
+		await _frames(2)
+		_expect(not is_instance_valid(actor), label + ": Boss is removed after its victory dialogue")
+		for actor_name in ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5"]:
+			_expect(not is_instance_valid(get_tree().current_scene.get_node_or_null(actor_name)), label + ": Boss victory removes completed ordinary actor " + actor_name)
+	else:
+		_expect(is_instance_valid(actor) and actor.is_visible_in_tree(), label + ": defeated ordinary Bandit remains visible until Boss defeat")
+		_expect(actor.get_node_or_null(ROUTE_NODE) != null and bool(actor.get_node(ROUTE_NODE).get("_defeated")), label + ": defeated ordinary Bandit adapter remains attached but disabled")
+		_expect(not bool(actor.get_node(ROUTE_NODE).call("can_interact")), label + ": defeated ordinary Bandit cannot start a duplicate battle")
 	if other_actor != null:
-		_expect(is_instance_valid(other_actor) and other_actor.get_node_or_null(ROUTE_NODE) != null, label + ": another bandit keeps its independent encounter state")
+		_expect(is_instance_valid(other_actor) and other_actor.is_visible_in_tree() and other_actor.get_node_or_null(ROUTE_NODE) != null, label + ": another bandit remains visible with its independent encounter adapter")
 	_expect(GameState.current_task_index == task_before and GameState.get_active_encounter_context().is_empty() and GameState.get_mode() == GameState.GameMode.EXPLORATION, label + ": victory does not reset or advance quest state")
+
+
+func _verify_boss_completion_survives_reload() -> void:
+	var saved := GameState.build_save_data()
+	GameState.start_new_game({"player_name": "Oakleaf Reload Fixture", "gender": "male", "grade_level": "Grade 1"}, false)
+	GameState.apply_save_data(saved, false)
+	_expect(GameState.oakleaf_boss_defeated and GameState.are_all_oakleaf_bandits_defeated(), "boss completion and all normal defeats persist in the save model")
+	_expect(await _load_scene(OAKLEAF_SCENE), "completed Oakleaf scene reloads")
+	await _frames(3)
+	var world := get_tree().current_scene
+	for actor_name in ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5", "Boss-Bandit"]:
+		_expect(world == null or world.get_node_or_null(actor_name) == null, "completed Save/Load keeps " + actor_name + " removed")
+
+
+func _wait_for_dialogue(quest_ui: Node) -> void:
+	var deadline := Time.get_ticks_msec() + 2500
+	while Time.get_ticks_msec() < deadline:
+		if quest_ui != null and quest_ui.has_method("is_dialogue_active") and bool(quest_ui.call("is_dialogue_active")):
+			return
+		await get_tree().process_frame
+
+
+func _tap_interact() -> void:
+	InputManager.set_mobile_interact_pressed(false)
+	await _frames(2)
+	InputManager.set_mobile_interact_pressed(true)
+	await _frames(2)
+	InputManager.set_mobile_interact_pressed(false)
+	await _frames(2)
 
 
 func _wait_for_battle(world: Node) -> Node:

@@ -4,7 +4,7 @@ extends Node
 ## City, Pinehill, and School scenes. No scene is entered and no save is made.
 
 const CITY := "res://scenes/city_of_knowledge.tscn"
-const DEEPEST_FOREST := "res://scenes/deepest_forest_path.tscn"
+const LEGACY_FOREST_WRAPPER := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL := "res://scenes/2nd Village/Pinehill Village.tscn"
 const ENCOUNTER_SCRIPT := preload("res://scripts/progression_battle_encounter.gd")
 const OLD_MAN_SCRIPT := preload("res://scripts/progression_old_man_interaction.gd")
@@ -30,6 +30,10 @@ func _expect(value: bool, label: String) -> void:
 
 
 func _run() -> void:
+	var http_api := get_node_or_null("/root/HttpApi")
+	var remote_sync := get_node_or_null("/root/RemoteSync")
+	_expect(http_api != null and bool(http_api.call("is_local_qa_mode")), "routing fixture starts in local-only API mode before autoload removal")
+	_expect(remote_sync != null and bool(remote_sync.get("local_qa_only")), "routing fixture starts with RemoteSync writes disabled")
 	for autoload_name in ["RemoteSync", "HttpApi"]:
 		var live := get_node_or_null("/root/" + autoload_name)
 		if live != null:
@@ -37,15 +41,22 @@ func _run() -> void:
 	for scene_path in [NORMAL_MALE, NORMAL_FEMALE, WIZARD_MALE, WIZARD_FEMALE, TEACHER_MALE, TEACHER_FEMALE]:
 		_expect(ResourceLoader.exists(scene_path), "original VS route exists: " + scene_path)
 
+	var previous_task_index := GameState.current_task_index
+	var previous_deep_forest_state := GameState.deep_forest_defeated_bandits.duplicate(true)
+	for encounter_id in GameState.DEEP_FOREST_BANDIT_IDS:
+		GameState.deep_forest_defeated_bandits[encounter_id] = false
+	GameState.current_task_index = GameState.DEEP_FOREST_BANDIT_TASK_INDEX
 	var city := (load(CITY) as PackedScene).instantiate() as Node2D
 	_expect(city != null, "canonical City instantiates")
 	if city != null:
 		ENCOUNTER_SCRIPT.install_for_scene(city, ENCOUNTER_SCRIPT)
-		_expect(city.get_node_or_null("Bandits") == null or city.get_node("Bandits").get_node_or_null("ProgressionBattleEncounter") == null, "City hub does not install deep-forest encounter triggers")
+		var expected_city_ids := ["deep_forest_bandits1", "deep_forest_bandits2", "deep_forest_bandits3", "deep_forest_bandits4", "deep_forest_bandits5"]
+		for index in expected_city_ids.size():
+			_check_route(city, "Bandits" if index == 0 else "Bandits%d" % (index + 1), expected_city_ids[index], "Normal", NORMAL_MALE, NORMAL_FEMALE)
 		city.free()
 
-	var forest := (load(DEEPEST_FOREST) as PackedScene).instantiate() as Node2D
-	_expect(forest != null, "dedicated Deepest Forest Path instantiates")
+	var forest := (load(LEGACY_FOREST_WRAPPER) as PackedScene).instantiate() as Node2D
+	_expect(forest != null, "legacy Forest wrapper remains load-compatible")
 	if forest != null:
 		ENCOUNTER_SCRIPT.install_for_scene(forest, ENCOUNTER_SCRIPT)
 		var expected_forest_ids := ["deep_forest_bandits1", "deep_forest_bandits2", "deep_forest_bandits3", "deep_forest_bandits4", "deep_forest_bandits5"]
@@ -62,22 +73,40 @@ func _run() -> void:
 			var foot := old_lady.get_node_or_null("FootCollision") as CollisionShape2D
 			if foot != null and foot.shape is RectangleShape2D:
 				old_lady_foot_size = (foot.shape as RectangleShape2D).size
-		ENCOUNTER_SCRIPT.install_for_scene(pinehill, ENCOUNTER_SCRIPT)
+		var previous_old_lady_state := GameState.pinehill_old_man_completed
+		var previous_pinehill_state := GameState.pinehill_defeated_bandits.duplicate(true)
+		var previous_wizard_state := GameState.wizard_defeated
+		GameState.pinehill_old_man_completed = true
+		GameState.pinehill_defeated_bandits.clear()
+		for encounter_id in GameState.PINEHILL_BANDIT_IDS:
+			GameState.pinehill_defeated_bandits[encounter_id] = false
+		GameState.current_task_index = GameState.PINEHILL_BANDIT_TASK_INDEX
 		ENCOUNTER_SCRIPT.install_for_scene(pinehill, ENCOUNTER_SCRIPT)
 		OLD_MAN_SCRIPT.install_for_scene(pinehill, OLD_MAN_SCRIPT)
 		OLD_MAN_SCRIPT.install_for_scene(pinehill, OLD_MAN_SCRIPT)
 		var expected_pinehill_ids := ["pinehill_bandits1", "pinehill_bandits2", "pinehill_bandits3", "pinehill_bandits4"]
 		for index in expected_pinehill_ids.size():
 			_check_route(pinehill, "Bandits" if index == 0 else "Bandits%d" % (index + 1), expected_pinehill_ids[index], "Difficult", NORMAL_MALE, NORMAL_FEMALE)
-		_check_route(pinehill, "display-kase yung wizard sa labas lang", "pinehill_wizard", "Difficult", WIZARD_MALE, WIZARD_FEMALE)
+		for encounter_id in GameState.PINEHILL_BANDIT_IDS:
+			GameState.pinehill_defeated_bandits[encounter_id] = true
+		GameState.current_task_index = GameState.WIZARD_TASK_INDEX
+		GameState.wizard_defeated = false
+		ENCOUNTER_SCRIPT.install_for_scene(pinehill, ENCOUNTER_SCRIPT)
+		_check_route(pinehill, "Boss-Wizard", "pinehill_wizard", "Difficult", WIZARD_MALE, WIZARD_FEMALE)
 		_expect(old_lady != null and old_lady.get_children().filter(func(child: Node) -> bool: return child.name == "ProgressionOldManInteraction").size() == 1, "existing Old Lady receives one interaction adapter")
 		_expect(old_lady != null and not old_lady.is_physics_processing(), "quest-critical Old Lady is stationary")
 		var foot_after := old_lady.get_node_or_null("FootCollision") as CollisionShape2D if old_lady != null else null
 		_expect(foot_after != null and foot_after.shape is RectangleShape2D and (foot_after.shape as RectangleShape2D).size == old_lady_foot_size, "Old Lady foot collision is unchanged")
+		GameState.current_task_index = previous_task_index
+		GameState.deep_forest_defeated_bandits = previous_deep_forest_state
+		GameState.pinehill_old_man_completed = previous_old_lady_state
+		GameState.pinehill_defeated_bandits = previous_pinehill_state
+		GameState.wizard_defeated = previous_wizard_state
 		pinehill.free()
 
+	var final_teacher_task: Dictionary = GameState.tasks[GameState.FINAL_TEACHER_TASK_INDEX]
+	_expect(String(final_teacher_task.get("male_battle_scene", "")) == TEACHER_MALE and String(final_teacher_task.get("female_battle_scene", "")) == TEACHER_FEMALE, "final Teacher keeps both original gender routes")
 	var quest_source := FileAccess.get_file_as_string("res://world/QuestUI.gd")
-	_expect(quest_source.contains(TEACHER_MALE) and quest_source.contains(TEACHER_FEMALE), "final Teacher keeps both original gender routes")
 	_expect(not quest_source.to_lower().contains("questioncontainer"), "final Teacher adds no replacement question container")
 
 	var failed := 0

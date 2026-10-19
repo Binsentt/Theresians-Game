@@ -47,9 +47,20 @@ func _run() -> void:
 	var initial_guide := hud.get_node_or_null(QUEST_GUIDE_PATH) as Control
 	if initial_guide != null:
 		_layout_observations["after_add_child"] = _describe_quest_layout(hud, initial_guide)
+	_expect(
+		initial_guide != null and initial_guide.get_combined_minimum_size().y <= 100.0,
+		"QuestGuide's first combined minimum stays compact at 1215x545 instead of measuring a one-pixel wrapped label"
+	)
+	var initial_label := hud.get_node_or_null(QUEST_LABEL_PATH) as Label
+	_expect(
+		initial_label != null and initial_label.size.x >= 400.0 and initial_label.size.y <= 20.0
+			and initial_label.get_combined_minimum_size().y <= 20.0,
+		"QuestLabel receives compact content-width/height bounds before its first wrapped minimum-size measurement"
+	)
 	await get_tree().process_frame
 	if initial_guide != null:
 		_layout_observations["after_first_frame"] = _describe_quest_layout(hud, initial_guide)
+	_expect(initial_guide != null and initial_guide.size.y <= 100.0, "QuestGuide stays compact after its first runtime layout frame.")
 	await get_tree().process_frame
 	if initial_guide != null:
 		_layout_observations["after_second_frame"] = _describe_quest_layout(hud, initial_guide)
@@ -210,6 +221,23 @@ func _exercise_quest_display(hud: CanvasLayer) -> void:
 		narrow_layout = hud.call("_quest_layout_for_viewport", Vector2(844.0, 509.0), long_objective)
 	_expect(int(narrow_layout.get("line_count", 0)) >= 2, "Long objective is measured as wrapped lines at narrow game width.")
 	_expect(quest_label.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART, "Long objective uses normal word wrapping.")
+	_apply_quest_text(hud, "Defeat the Bandits in the Deepest Forest.")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var actual_quest_size := quest_guide.size
+	var actual_quest_minimum := quest_guide.get_combined_minimum_size()
+	var actual_viewport := get_viewport().get_visible_rect().size
+	_expect(
+		actual_viewport.is_equal_approx(Vector2(1215.0, 545.0))
+			and actual_quest_size.y <= 80.0
+			and actual_quest_minimum.y <= 80.0,
+		"The live Deepest Forest objective keeps QuestGuide compact at 1215x545 (size=%s minimum=%s viewport=%s)." % [str(actual_quest_size), str(actual_quest_minimum), str(actual_viewport)]
+	)
+	_expect(
+		absf(quest_guide.position.x - (actual_viewport.x - actual_quest_size.x) * 0.5) <= 1.0
+			and quest_guide.position.y <= 16.0,
+		"The compact quest indicator stays centered at the top of the live viewport."
+	)
 
 	GameState.journey_complete = true
 	GameState.current_task_index = GameState.tasks.size()
@@ -461,6 +489,7 @@ func _describe_quest_layout(hud: CanvasLayer, guide: Control) -> Dictionary:
 		"content_size": content.size if content != null else Vector2.ZERO,
 		"content_minimum": content.get_combined_minimum_size() if content != null else Vector2.ZERO,
 		"label_size": label.size if label != null else Vector2.ZERO,
+		"label_minimum": label.get_combined_minimum_size() if label != null else Vector2.ZERO,
 		"label_lines": label.get_line_count() if label != null else 0,
 		"label_text": label.text if label != null else "<missing>",
 		"calculated_layout": calculated_layout,

@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://h8q5ql1v8fl1"]
 
-[ext_resource type="Texture2D" uid="uid://di7jedsa4mvp6" path="res://NPC/civilian senior .png" id="1_r0d04"]
+[ext_resource type="Texture2D" uid="uid://n2ufyx43iokq" path="res://NPC/civilian senior .png" id="1_r0d04"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_t0myf"]
 atlas = ExtResource("1_r0d04")
@@ -143,6 +143,7 @@ animations = [{
 }]
 
 [node name="old_npc" type="AnimatedSprite2D" unique_id=207617385]
-scale = Vector2(0.07, 0.07)
+position = Vector2(-5.9604645e-08, -1.1920929e-07)
+scale = Vector2(0.081153855, 0.08468944)
 sprite_frames = SubResource("SpriteFrames_fqc8v")
 animation = &"walk_up"

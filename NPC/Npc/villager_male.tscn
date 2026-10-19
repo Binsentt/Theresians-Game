@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cj5yx2g4qmnph"]
 
-[ext_resource type="Texture2D" uid="uid://dcg7yr7n48ype" path="res://NPC/male-villager.png" id="1_l70mq"]
+[ext_resource type="Texture2D" uid="uid://c5tkuvh6ighui" path="res://NPC/male-villager.png" id="1_l70mq"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_amj55"]
 atlas = ExtResource("1_l70mq")
@@ -143,6 +143,7 @@ animations = [{
 }]
 
 [node name="villager-male" type="AnimatedSprite2D" unique_id=1399149183]
-scale = Vector2(0.075, 0.075)
+position = Vector2(2.9802322e-08, 0)
+scale = Vector2(0.10698529, 0.12481061)
 sprite_frames = SubResource("SpriteFrames_fjlmj")
 animation = &"walk-right"

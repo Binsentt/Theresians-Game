@@ -58,7 +58,39 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	# This contract test is local-only. The isolated GameState instance below
+	# receives its own temporary QA save namespace instead of user://saves.
+	var live_http := get_node_or_null("/root/HttpApi")
+	if live_http != null and live_http.has_method("enable_local_qa_mode"):
+		live_http.call("enable_local_qa_mode", "http://127.0.0.1:5000")
+	var live_remote := get_node_or_null("/root/RemoteSync")
+	if live_remote != null and live_remote.has_method("enable_local_qa_mode"):
+		live_remote.call("enable_local_qa_mode")
 	var game_state = GameStateScript.new()
+	game_state.device_installation_id = "mobile-exploration-test-%d" % Time.get_ticks_usec()
+	var qa_save_directory := "%s/mobile_exploration_%d_%d" % [
+		game_state.LOCAL_QA_SAVE_DIRECTORY,
+		OS.get_process_id(),
+		Time.get_ticks_usec(),
+	]
+	var absolute_qa_save_directory := ProjectSettings.globalize_path(qa_save_directory)
+	if DirAccess.dir_exists_absolute(absolute_qa_save_directory):
+		_failures += 1
+		push_error("refusing to reuse an existing mobile exploration QA save directory")
+		game_state.free()
+		print("MOBILE_EXPLORATION_SERVICES_TEST " + JSON.stringify({"failed": _failures}))
+		await get_tree().create_timer(45.0).timeout
+		get_tree().quit(1)
+		return
+	if DirAccess.make_dir_recursive_absolute(absolute_qa_save_directory) != OK:
+		_failures += 1
+		push_error("could not create the isolated mobile exploration QA save directory")
+		game_state.free()
+		print("MOBILE_EXPLORATION_SERVICES_TEST " + JSON.stringify({"failed": _failures}))
+		await get_tree().create_timer(45.0).timeout
+		get_tree().quit(1)
+		return
+	game_state.set("_save_directory", qa_save_directory)
 	var interaction_test_original_mode = GameState.get_mode()
 	GameState.set_mode(GameState.GameMode.EXPLORATION)
 	InputManager.clear_mobile_state()
@@ -74,9 +106,9 @@ func _run() -> void:
 	_assert_equal(trigger_source.count("advance_task_and_save"), 1, "TaskProgressTrigger advances exactly once per entry path")
 	_assert_source_order(trigger_source, "_is_valid_player", "advance_task_and_save", "trigger validates the player before advancing")
 	_assert_source_order(trigger_source, "advance_task_and_save", "_consumed = true", "trigger consumes only after a successful advancement result")
-	var game_state_source := _read_fixture("res://scripts/game_state.gd")
-	_assert_source_order(game_state_source, "current_task_index += 1", "var save_path := save_game()", "GameState increments before saving")
-	_assert_source_order(game_state_source, "var save_path := save_game()", "task_state_changed.emit", "GameState saves before emitting the task signal")
+	var game_state_source := _function_block(_read_fixture("res://scripts/game_state.gd"), "func advance_task_and_save(")
+	_assert_source_order(game_state_source, "current_task_index += 1", "var save_path := save_checkpoint()", "GameState increments before saving")
+	_assert_source_order(game_state_source, "var save_path := save_checkpoint()", "task_state_changed.emit", "GameState saves before emitting the task signal")
 
 	var teacher_source := _read_fixture("res://scripts/teacher_task_interaction.gd")
 	_assert_equal(teacher_source.is_empty(), false, "TeacherTaskInteraction fixture exists")
@@ -369,8 +401,7 @@ func _run() -> void:
 	_assert_equal(game_state.current_scene_path, "res://scenes/2nd Village/Pinehill Village.tscn", "Pinehill remains canonical")
 	_assert_equal(game_state.get_scene_fallback_spawn(game_state.current_scene_path), Vector2(176, 368), "Pinehill fallback remains unchanged")
 
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://saves"))
-	var legacy_save_path := "user://saves/mobile_exploration_legacy_scene_test_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
+	var legacy_save_path := qa_save_directory + "/mobile_exploration_legacy_scene_test.json"
 	var legacy_save_file := FileAccess.open(legacy_save_path, FileAccess.WRITE)
 	if legacy_save_file == null:
 		_failures += 1
@@ -384,14 +415,32 @@ func _run() -> void:
 			"scene_path": LEGACY_PLAYER_HOUSE_PATH
 		}))
 		legacy_save_file.close()
+		game_state.student_id = "123456"
+		game_state.parent_id = "654321"
 		var loaded_save := game_state.load_save(legacy_save_path, false)
 		_assert_equal(loaded_save.get("scene_path", ""), CANONICAL_PLAYER_HOUSE_PATH, "load_save migrates the legacy Player House scene path")
 		_assert_equal(game_state.current_scene_path, CANONICAL_PLAYER_HOUSE_PATH, "load_save applies the canonical Player House scene path")
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(legacy_save_path))
+		if legacy_save_path.begins_with(qa_save_directory + "/"):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(legacy_save_path))
 
 	loaded_game_state.free()
+	var owned_fixture_files := [
+		legacy_save_path,
+		"%s/save_123456_manual_000001.json" % qa_save_directory,
+		"%s/save_123456_current.json" % qa_save_directory,
+		"%s/save_123456_recovery.json" % qa_save_directory,
+	]
+	var safe_prefix := qa_save_directory.rstrip("/") + "/"
+	for owned_path in owned_fixture_files:
+		if not String(owned_path).begins_with(safe_prefix):
+			push_error("refusing mobile exploration QA cleanup outside its isolated directory")
+			continue
+		if FileAccess.file_exists(owned_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(owned_path))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(qa_save_directory))
 	game_state.free()
 	print("MOBILE_EXPLORATION_SERVICES_TEST " + JSON.stringify({"failed": _failures}))
+	await get_tree().create_timer(45.0).timeout
 	get_tree().quit(1 if _failures > 0 else 0)
 
 

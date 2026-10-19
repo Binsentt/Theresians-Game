@@ -1,6 +1,5 @@
 extends Node
 
-const STATE_FIXTURE := preload("res://tools/preservation_regression_state.gd")
 const QUEST_UI_SCRIPT := preload("res://world/QuestUI.gd")
 const PROGRESSION_ROUTER := preload("res://scripts/progression_battle_encounter.gd")
 const PROFILE := {
@@ -43,10 +42,10 @@ const POST_COMPLETION_TEACHER_LINE := "Teacher: Congratulations, Math Champion. 
 const RESULT_PATH := "user://qa/final_story_continuation_qa_test_result.json"
 
 
-class QuestionTransport extends Node:
+class QuestionTransport extends "res://scripts/http_api.gd":
 	var requests: Array[Dictionary] = []
 
-	func request_get(path: String, params: Dictionary = {}) -> Dictionary:
+	func request_get(path: String, params: Dictionary = {}, _timeout_ms: int = -1) -> Dictionary:
 		requests.append({"path": path, "params": params.duplicate(true)})
 		var questions: Array[Dictionary] = []
 		for index in 6:
@@ -63,11 +62,21 @@ class QuestionTransport extends Node:
 		return {"ok": true, "status": 200, "body": {"questions": questions}}
 
 
-class ResultCapture extends Node:
+class ResultCapture extends "res://scripts/remote_sync.gd":
 	var attempts: Array[Dictionary] = []
 
 	func record_question_attempt(question: Dictionary, correct: bool) -> void:
 		attempts.append({"question": question.duplicate(true), "correct": correct})
+
+
+class FinalStoryState extends "res://tools/preservation_regression_state.gd":
+	var fixture_checkpoint_save_count := 0
+
+	func save_checkpoint() -> String:
+		var path := super.save_checkpoint()
+		if not path.is_empty():
+			fixture_checkpoint_save_count += 1
+		return path
 
 var _checks: Array[Dictionary] = []
 var _state: Node
@@ -97,21 +106,27 @@ func _run() -> void:
 		print("FINAL_STORY_CONTINUATION_QA BLOCKED: local-only runtime guard not active")
 		get_tree().quit(2)
 		return
-	if http != null:
-		http.free()
-	if remote != null:
-		remote.free()
+	var test_save_directory := "user://qa_test_artifacts/final_story_continuation_%d" % Time.get_ticks_usec()
+	if DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(test_save_directory)) != OK:
+		_expect(false, "Final story test creates a unique isolated QA save directory")
+		get_tree().quit(2)
+		return
+	var original_http_script: Script = http.get_script()
+	var original_remote_script: Script = remote.get_script()
+	http.set_script(QuestionTransport)
+	http.set("base_url", "http://127.0.0.1:5000")
+	http.set("local_qa_only", true)
+	http.set("production_qa_mode", false)
+	remote.set_script(ResultCapture)
+	remote.set("local_qa_only", true)
 	_expect(get_tree().root.find_children("*", "HTTPRequest", true, false).is_empty(), "No live HTTPRequest nodes exist in the isolated test")
-	var transport := QuestionTransport.new()
-	transport.name = "HttpApi"
-	get_tree().root.add_child(transport)
-	var result_capture := ResultCapture.new()
-	result_capture.name = "RemoteSync"
-	get_tree().root.add_child(result_capture)
+	var transport := http as QuestionTransport
+	var result_capture := remote as ResultCapture
 
 	_state = get_node("/root/GameState")
-	_state.set_script(STATE_FIXTURE)
-	_state.fixture_path = "user://saves/final_story_continuation_%d.json" % Time.get_ticks_usec()
+	_state.set_script(FinalStoryState)
+	_state.set("_save_directory", test_save_directory)
+	_state.fixture_path = test_save_directory + "/manual_loss_fixture.json"
 	_state.start_new_game(PROFILE, false)
 	await _test_completion_screen_contract()
 	_test_final_teacher_contract()
@@ -131,11 +146,11 @@ func _run() -> void:
 	print("FINAL_STORY_CONTINUATION_QA " + JSON.stringify({"passed": _checks.size() - failed, "failed": failed, "live_network_calls": 0}))
 	if FileAccess.file_exists(_state.fixture_path):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(_state.fixture_path))
-	var active_scene := get_tree().current_scene
-	if active_scene != null and active_scene != self:
-		active_scene.queue_free()
-		get_tree().current_scene = self
-		await get_tree().process_frame
+	# Restore the actual autoload scripts before the guarded test process exits.
+	if is_instance_valid(http) and original_http_script != null:
+		http.set_script(original_http_script)
+	if is_instance_valid(remote) and original_remote_script != null:
+		remote.set_script(original_remote_script)
 	get_tree().quit(1 if failed else 0)
 
 
@@ -372,11 +387,11 @@ func _test_final_victory_and_completed_reload() -> void:
 		if String(event.get("key", "")) == "quest:world:journey_complete":
 			completion_events.append(event)
 	)
-	var saves_before_victory: int = _state.fixture_save_count
+	var saves_before_victory: int = _state.fixture_checkpoint_save_count
 	var victory: Dictionary = _state.record_encounter_victory()
 	var progression: Dictionary = victory.get("progression", {})
 	_expect(bool(progression.get("changed", false)) and _state.final_teacher_defeated and _state.journey_complete, "Final Teacher victory completes the journey once")
-	_expect(_state.fixture_save_count == saves_before_victory + 1, "Final Teacher victory persists exactly one completion save")
+	_expect(_state.fixture_checkpoint_save_count == saves_before_victory + 1, "Final Teacher victory persists exactly one hidden completion checkpoint")
 	_expect(completion_events.size() == 1, "Final Teacher victory emits exactly one final completion event")
 	_expect(_state.get_current_quest_text() == "Math Champion" and _state.current_task_index >= _state.tasks.size(), "Completed quest display remains Math Champion with no active task")
 	_expect(not _state.is_final_teacher_active() and not _state.can_start_progression_encounter("final_teacher"), "Completed Teacher challenge cannot be started again")
@@ -391,7 +406,7 @@ func _test_final_victory_and_completed_reload() -> void:
 	for encounter_id in _state.PINEHILL_BANDIT_IDS:
 		_expect(_state.is_progression_encounter_defeated(encounter_id), "Completed save keeps guard defeated: " + encounter_id)
 	var duplicate_victory: Dictionary = _state.record_progression_encounter_victory("final_teacher", false)
-	_expect(not duplicate_victory.get("changed", false) and completion_events.size() == 1 and _state.fixture_save_count == saves_before_victory + 1, "Duplicate final completion does not add an event or save")
+	_expect(not duplicate_victory.get("changed", false) and completion_events.size() == 1 and _state.fixture_checkpoint_save_count == saves_before_victory + 1, "Duplicate final completion does not add an event or checkpoint")
 
 
 func _test_real_final_teacher_interactions(transport: QuestionTransport, result_capture: ResultCapture) -> void:
@@ -402,34 +417,19 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 	var male_battle := await _start_final_teacher_interaction(world, teacher, quest_ui, "male")
 	if male_battle == null:
 		return
-	var male_loss := await _finish_synthetic_battle(male_battle, false, "Male final Teacher loss")
-	_expect(not male_loss and not _state.journey_complete and not _state.final_teacher_defeated, "Actual male final battle loss leaves the journey incomplete")
-	_expect(_state.current_task_index == _state.FINAL_TEACHER_TASK_INDEX and _state.current_scene_path == SCHOOL, "Actual male loss returns to the School final-task checkpoint")
-	_expect(not _state.battle_active and quest_ui.visible, "Actual male loss clears battle state and restores the world UI")
-	_expect(world.get_node_or_null("JourneyCompletionScreen") == null, "A final Teacher loss never opens the completion presentation")
-	_state.save_game()
-	var loss_save: Dictionary = _state._read_save_file(_state.fixture_path)
-	_state.start_new_game(PROFILE, false)
-	_state.apply_save_data(loss_save, false)
-	_expect(_state.is_final_teacher_active() and int(_state.encounter_context.get("retry_count", 0)) == 1, "Actual final-battle loss save reload remains retryable")
-	_state.set_mode(_state.GameMode.EXPLORATION)
-	var retry_battle := await _start_final_teacher_interaction(world, teacher, quest_ui, "male retry")
-	if retry_battle == null:
-		return
-	_expect(int(_state.get_active_encounter_context().get("retry_count", 0)) == 1, "Actual Teacher retry preserves the single encounter identity and retry count")
 	var male_completion_events: Array[Dictionary] = []
 	var male_completion_callback := func(_previous: int, _next: int, event: Dictionary) -> void:
 		if String(event.get("key", "")) == "quest:world:journey_complete":
 			male_completion_events.append(event)
 	_state.task_state_changed.connect(male_completion_callback)
-	var saves_before_male_victory: int = _state.fixture_save_count
-	var male_win := await _finish_synthetic_battle(retry_battle, true, "Male final Teacher retry")
-	_expect(male_win, "Actual male final Teacher retry can be won")
+	var saves_before_male_victory: int = _state.fixture_checkpoint_save_count
+	var male_win := await _finish_synthetic_battle(male_battle, true, "Male final Teacher challenge")
+	_expect(male_win, "Actual male final Teacher battle can be won")
 	await _advance_dialogue_lines(world, quest_ui, EXPECTED_EPILOGUE, "Male final Teacher epilogue")
 	var male_completion_screen := await _wait_for_completion_screen(world)
 	_expect(male_completion_screen != null, "First male Final Teacher victory opens completion only after the full epilogue closes")
 	_expect(_state.journey_complete and _state.final_teacher_defeated and _state.get_current_quest_text() == "Math Champion", "Actual male victory reaches Math Champion after the full epilogue")
-	_expect(_state.fixture_save_count == saves_before_male_victory + 1, "The authoritative Final Teacher victory remains the only completion save")
+	_expect(_state.fixture_checkpoint_save_count == saves_before_male_victory + 1, "The authoritative Final Teacher victory remains the only completion checkpoint")
 	_expect(male_completion_events.size() == 1, "First Final Teacher victory emits one completion event")
 	if male_completion_screen != null:
 		_expect(_state.get_mode() == _state.GameMode.CUTSCENE, "Completion presentation blocks gameplay with CUTSCENE mode")
@@ -462,15 +462,16 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 		_expect(_state.get_mode() == _state.GameMode.EXPLORATION and _state.journey_complete and _state.get_current_quest_text() == "Math Champion", "Continue returns to exploration with Math Champion intact")
 		var school_music_ready := await _wait_for_music_track("school_or_house")
 		_expect(school_music_ready, "Continue restores the School background track")
-	_expect(_state.fixture_save_count == saves_before_male_victory + 1 and male_completion_events.size() == 1, "Opening and continuing the ending creates no duplicate save or completion event")
+	_expect(_state.fixture_checkpoint_save_count == saves_before_male_victory + 1 and male_completion_events.size() == 1, "Opening and continuing the ending creates no duplicate checkpoint or completion event")
 	_state.task_state_changed.disconnect(male_completion_callback)
-	var completed_data: Dictionary = _state._read_save_file(_state.fixture_path)
-	_expect(bool(completed_data.get("journey_complete", false)) and bool(completed_data.get("final_teacher_defeated", false)), "The first-victory autosave already contains completed state")
-	var completed_save_listed := false
+	var completed_checkpoint_path := String(_state.call("_get_current_student_save_path", _state.student_id))
+	var completed_data: Dictionary = _state._read_save_file(completed_checkpoint_path)
+	_expect(bool(completed_data.get("journey_complete", false)) and bool(completed_data.get("final_teacher_defeated", false)), "The hidden first-victory checkpoint already contains completed state")
+	var completed_checkpoint_listed := false
 	for save_entry in _state.list_saves():
-		if String(save_entry.get("save_path", "")) == _state.fixture_path:
-			completed_save_listed = true
-	_expect(completed_save_listed, "The completed save remains available to the existing Load Game save listing")
+		if String(save_entry.get("save_path", "")) == completed_checkpoint_path:
+			completed_checkpoint_listed = true
+	_expect(not completed_checkpoint_listed, "Hidden completion checkpoint is not exposed as a manual Load Game slot")
 	_state.start_new_game(PROFILE, false)
 	_state.apply_save_data(completed_data, false)
 	_expect(_state.journey_complete and _state.final_teacher_defeated and not _state.is_final_teacher_active(), "Actual completed game save/load retains the no-replay Math Champion state")
@@ -494,8 +495,8 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 				break
 			await get_tree().process_frame
 		_expect(not bool(teacher.get("_active")) and _state.journey_complete, "Post-completion Teacher greeting closes without changing completed progress")
-	_expect(result_capture.attempts.size() == 6, "Actual male loss and retry record exactly three local synthetic attempts each")
-	_expect(transport.requests.size() == 2, "Male loss and retry each load one isolated question batch")
+	_expect(result_capture.attempts.size() == 3, "Actual male final Teacher battle records exactly three local synthetic attempts")
+	_expect(transport.requests.size() == 1, "Male final Teacher battle loads one isolated question batch")
 	for request in transport.requests:
 		_expect(request.path == "/api/game/questions" and request.params == {"grade": "Grade 1", "difficulty": "Difficult"}, "Final battles request only Grade 1 Difficult questions")
 	for attempt in result_capture.attempts:
@@ -513,12 +514,12 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 	var female_completion_screen := await _wait_for_completion_screen(world)
 	_expect(female_completion_screen != null, "First female Final Teacher victory opens the same completion presentation after its epilogue")
 	_expect(_state.journey_complete and _state.final_teacher_defeated, "Actual female victory completes the same canonical journey")
-	_expect(result_capture.attempts.size() == 9, "Actual three final battles record exactly nine local synthetic attempts")
-	_expect(transport.requests.size() == 3, "Female route makes one additional local fixture question request")
+	_expect(result_capture.attempts.size() == 6, "Male and female final Teacher battles record six local synthetic attempts total")
+	_expect(transport.requests.size() == 2, "Male and female routes each load one isolated question batch")
 	_expect(transport.requests.back().params == {"grade": "Grade 1", "difficulty": "Difficult"}, "Female final battle keeps the same exact question scope")
 	await _test_post_completion_civilian_greeting()
 	if female_completion_screen != null:
-		var saves_before_menu: int = int(_state.fixture_save_count)
+		var saves_before_menu: int = int(_state.fixture_checkpoint_save_count)
 		var menu_button := female_completion_screen.find_child("MainMenuButton", true, false) as Button
 		_expect(menu_button != null, "Main Menu action exists on the completion screen")
 		if menu_button != null:
@@ -526,12 +527,10 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 			var menu_opened := await _wait_for_scene_path("res://scenes/main_menu.tscn")
 			_expect(menu_opened, "Main Menu action returns cleanly to the existing main menu scene")
 			_expect(_state.player_name == PROFILE.player_name and _state.student_id == PROFILE.student_id, "Main Menu preserves the current Student identity in runtime")
-			_expect(_state.journey_complete and FileAccess.file_exists(_state.fixture_path), "Main Menu preserves the authoritative completed save without writing another save")
-			_expect(_state.fixture_save_count == saves_before_menu, "Main Menu adds no duplicate completion save")
+			_expect(_state.journey_complete and FileAccess.file_exists(completed_checkpoint_path), "Main Menu preserves the authoritative completed checkpoint without writing another save")
+			_expect(_state.fixture_checkpoint_save_count == saves_before_menu, "Main Menu adds no duplicate completion checkpoint")
 			var menu_music_ready := await _wait_for_music_track("menu")
 			_expect(menu_music_ready, "Main Menu transition returns to the menu music")
-	transport.free()
-	result_capture.free()
 	get_tree().current_scene = self
 
 

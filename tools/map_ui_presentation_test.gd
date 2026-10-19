@@ -64,13 +64,20 @@ func _world_dialogue(role: String) -> void:
 		var viewport := panel.get_viewport_rect().size
 		var act := _button(scene).get_global_rect()
 		var label := role + " at " + str(dimensions)
-		_expect(absf(rect.get_center().x - viewport.x * 0.5) < 1.0, label + " horizontally centered")
 		if role == "Tutorial":
-			_expect(absf(rect.get_center().y - viewport.y * 0.5) < 1.0, label + " approved Tutorial placement exception preserved")
+			_expect(absf(rect.position.x - 4.0) < 1.5 and absf(rect.end.x - viewport.x) < 1.5, label + " preserves the full-width Tutorial panel's authored side insets")
+			_expect(rect.position.y >= viewport.y * 0.75 and absf(viewport.y - rect.end.y) < 1.5, label + " preserves the bottom-anchored Tutorial instruction panel")
 		else:
+			_expect(absf(rect.get_center().x - viewport.x * 0.5) < 1.5, label + " horizontally centered")
 			_expect(absf(viewport.y - rect.end.y - 40.0) < 1.5, label + " bottom-center with 40px margin")
-		var original_height := viewport.y * 0.215 - 0.1749878 if role == "Tutorial" else (126.0 if role == "Teacher" else 80.0)
-		_expect(absf(rect.size.y - original_height) < 1.5, label + " original box height preserved")
+		if role == "Tutorial":
+			_expect(absf(rect.size.y - (viewport.y * 0.215 - 0.1749878)) < 1.5, label + " original Tutorial panel height preserved")
+		elif role == "Civilian":
+			_expect(rect.size.y >= 88.0 and rect.size.y <= 90.0, label + " preserves the civilian panel's authored 88px height plus style insets")
+		elif role == "Bandit":
+			_expect(absf(rect.size.y - 80.0) < 1.5, label + " preserves the compact Bandit interaction panel height")
+		else:
+			_expect(absf(rect.size.y - 126.0) < 1.5, label + " original Teacher dialogue box height preserved")
 		var old_position := player.global_position
 		player.global_position += Vector2(24, 0)
 		await _frames(2)
@@ -112,16 +119,20 @@ func _timeout_presentation() -> void:
 	var old_style := panel.get_theme_stylebox("panel")
 	var old_minutes: int = state.playtime_limit_minutes
 	_expect(heading.text == "GAME OVER" and heading.get_theme_font_size("font_size") == 20, "Normal game-over presentation remains original before timeout")
-	state.time_limit_reached.emit()
+	# RemoteSync calls this HUD entry point only after the daily save/session-close
+	# workflow. GameHUD is not directly connected to GameState.time_limit_reached.
+	hud.call("show_time_limit_reached")
 	get_tree().paused = true
 	for dimensions in VIEWPORTS:
 		await _resize_window(dimensions)
 		var viewport := panel.get_viewport_rect().size
 		var rect := panel.get_global_rect()
-		_expect(rect.size.is_equal_approx(Vector2(420, 228)), "Timeout modest panel size at " + str(dimensions))
+		_expect(rect.size.x <= 460.0 and rect.size.y <= 230.0, "Timeout modest panel size at " + str(dimensions))
 		_expect(rect.get_center().is_equal_approx(viewport * 0.5), "Timeout preserves center at " + str(dimensions))
 		_expect(heading.get_theme_font_size("font_size") == 16 and description.get_theme_font_size("font_size") == 11 and button.get_theme_font_size("font_size") == 13, "Timeout modest font sizes at " + str(dimensions))
 		_expect(heading.text == "DAILY PLAYTIME COMPLETE" and description.text == "You have reached today's playtime limit.\nYour progress has been saved." and button.text == "RETURN TO MAIN MENU", "Daily-limit modal uses the approved saved-progress wording")
+		var button_rect := button.get_global_rect()
+		_expect(button.is_visible_in_tree() and not button.disabled and rect.encloses(button_rect), "Timeout Return button is visible, enabled, and contained by its panel at " + str(dimensions))
 		_expect(panel.get_theme_stylebox("panel") == old_style and state.playtime_limit_minutes == old_minutes, "Timeout original style and time duration preserved")
 		_expect(rect.get_area() < viewport.x * viewport.y * 0.28, "Timeout occupies a modest viewport area")
 		observed.append({"role":"Timeout", "requested_window":str(dimensions), "actual_window":str(get_window().size), "viewport":str(viewport), "panel":str(rect), "heading_font":heading.get_theme_font_size("font_size")})

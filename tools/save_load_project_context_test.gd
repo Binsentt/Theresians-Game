@@ -4,6 +4,7 @@ const TEST_SCENE := "res://interiors/player_house.tscn"
 const PREVIOUS_SCHEMA_SAVE := "user://saves/project_context_previous_schema_save.json"
 
 var _failures: Array[String] = []
+var _check_count := 0
 
 
 func _ready() -> void:
@@ -89,11 +90,21 @@ func _cleanup_file(path: String) -> void:
 
 
 func _assert(condition: bool, message: String) -> void:
+	_check_count += 1
 	if not condition:
 		_failures.append(message)
 
 
 func _finish() -> void:
+	var report := {
+		"passed": _check_count - _failures.size(),
+		"failed": _failures.size(),
+		"failures": _failures,
+	}
+	var report_file := FileAccess.open("user://save_load_project_context_test_result.json", FileAccess.WRITE)
+	if report_file != null:
+		report_file.store_string(JSON.stringify(report, "\t"))
+		report_file.close()
 	if _failures.is_empty():
 		print("SAVE_LOAD_PROJECT_CONTEXT_TEST PASSED")
 		get_tree().quit(0)

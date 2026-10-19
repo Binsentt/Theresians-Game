@@ -43,6 +43,10 @@ func _ready() -> void:
 		GameState.game_over.connect(_on_game_over)
 	if not return_button.pressed.is_connected(_on_return_button_pressed):
 		return_button.pressed.connect(_on_return_button_pressed)
+	# Seed the first QuestGuide layout synchronously so its wrapping Label never
+	# exposes the one-pixel-width/full-height fallback between scene entry and
+	# the first rendered frame.
+	_layout_hud()
 	await RenderingServer.frame_post_draw
 	_layout_hud()
 
@@ -221,6 +225,21 @@ func _layout_hud() -> void:
 		return
 	var viewport_size := get_viewport().get_visible_rect().size
 	var geometry := _quest_layout_for_viewport(viewport_size, quest_label.text)
+	# A wrapping Label can report a viewport-tall minimum while its parent
+	# container is still only one pixel wide on the first layout pass. Seed its
+	# actual/minimum width from the panel's available content width before the
+	# PanelContainer measures its children, then normal container layout takes
+	# over without the transient full-height minimum.
+	var panel_style := quest_guide.get_theme_stylebox("panel")
+	var panel_horizontal_margins := panel_style.get_minimum_size().x if panel_style != null else 24.0
+	var quest_text_width := maxf(1.0, geometry.size.x - panel_horizontal_margins)
+	quest_label.custom_minimum_size.x = quest_text_width
+	var quest_font := quest_label.get_theme_font("font")
+	var quest_font_size := quest_label.get_theme_font_size("font_size")
+	var quest_line_height := quest_font.get_height(quest_font_size) if quest_font != null else 12.0
+	var quest_line_count := maxi(1, int(geometry.get("line_count", 1)))
+	quest_label.size = Vector2(quest_text_width, quest_line_height * quest_line_count)
+	quest_label.update_minimum_size()
 	quest_guide.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	quest_guide.position = geometry.position
 	quest_guide.size = geometry.size

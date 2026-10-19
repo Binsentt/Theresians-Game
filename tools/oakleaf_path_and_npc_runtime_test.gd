@@ -16,7 +16,8 @@ func _ready() -> void:
 
 func _run() -> void:
 	_promote_to_root()
-	_remove_live_services()
+	_assert(HttpApi.is_local_qa_mode(), "Runtime harness uses the guarded local-only API profile")
+	_assert(RemoteSync.local_qa_only and RemoteSync._remote_writes_blocked(), "Runtime harness keeps real sync services alive with remote writes disabled")
 	GameState.start_new_game({
 		"player_name": "Oakleaf Path QA",
 		"gender": "male",
@@ -262,13 +263,6 @@ func _load_scene(path: String) -> bool:
 func _physics_frames(count: int) -> void:
 	for _step in count:
 		await get_tree().physics_frame
-
-
-func _remove_live_services() -> void:
-	for autoload_name in ["RemoteSync", "HttpApi", "QuestionProvider"]:
-		var service := get_node_or_null("/root/" + autoload_name)
-		if service != null:
-			service.free()
 
 
 func _promote_to_root() -> void:

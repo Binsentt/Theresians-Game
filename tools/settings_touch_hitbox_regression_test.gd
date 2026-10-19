@@ -6,6 +6,7 @@ const HOVER_MODULATE := Color(1.0, 0.95, 0.78, 1.0)
 const PRESSED_MODULATE := Color(0.82, 0.82, 0.82, 1.0)
 
 var _failures: Array[String] = []
+var _checks := 0
 
 
 func _ready() -> void:
@@ -14,6 +15,10 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	if not HttpApi.is_local_qa_profile_active():
+		push_error("Settings hitbox QA refused to run without local-only startup selected before autoload initialization.")
+		get_tree().quit(1)
+		return
 	var hud := GAME_HUD_SCENE.instantiate() as CanvasLayer
 	get_tree().root.add_child(hud)
 	await get_tree().process_frame
@@ -36,13 +41,28 @@ func _run() -> void:
 	_expect(settings != null and popup != null and texture_rect != null, "Settings HUD exposes the canonical popup path.")
 	_expect(settings != null and settings.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Settings root does not intercept gameplay until its popup is opened.")
 	_expect(popup != null and popup.mouse_filter == Control.MOUSE_FILTER_STOP, "Settings popup blocks input from reaching gameplay behind it.")
-	_expect(music != null and music.size == Vector2(220.0, 30.0), "Music slider remains compact at 220x30.")
-	_expect(sfx != null and sfx.size == Vector2(220.0, 30.0), "SFX slider remains compact at 220x30.")
+	_expect(music != null and music.size == Vector2(220.0, 30.0), "Music slider hitbox matches its visible 220x30 control.")
+	_expect(sfx != null and sfx.size == Vector2(220.0, 30.0), "SFX slider hitbox matches its visible 220x30 control.")
 	for action: Button in actions:
 		_expect(action != null, "Each Settings action button exists.")
 		if action != null:
 			_expect(action.size == ACTION_BUTTON_SIZE, "%s uses the compact 220x52 interactive rectangle." % action.name)
 			_expect(action.mouse_filter == Control.MOUSE_FILTER_STOP, "%s stops touch/click input at its own rectangle." % action.name)
+			_expect(action.icon == null, "%s does not render its frame as a Button icon." % action.name)
+			var frame := action.get_node_or_null("ButtonFrame") as TextureRect
+			_expect(frame != null and frame.owner == hud.get_node("Settings-Ingame"), "%s frame is authored in the canonical Settings scene." % action.name)
+			_expect(frame != null and action.clip_contents, "%s clips visual artwork to the button hitbox." % action.name)
+			_expect(frame != null and frame.get_global_rect().is_equal_approx(action.get_global_rect()), "%s rendered frame and clickable rect match exactly." % action.name)
+			_expect(frame != null and frame.expand_mode == TextureRect.EXPAND_IGNORE_SIZE and frame.stretch_mode == TextureRect.STRETCH_SCALE, "%s uses explicit full-rect frame scaling." % action.name)
+			var label := action.get_node_or_null("Label") as Label
+			_expect(label != null and Rect2(Vector2.ZERO, action.size).encloses(label.get_rect()), "%s text stays within its rendered frame." % action.name)
+	if music != null and sfx != null:
+		_expect(music.custom_minimum_size == Vector2(220.0, 30.0), "Music authored minimum size matches its visible 220x30 control.")
+		_expect(sfx.custom_minimum_size == Vector2(220.0, 30.0), "SFX authored minimum size matches its visible 220x30 control.")
+		var music_grabber := music.get_theme_icon(&"grabber")
+		var sfx_grabber := sfx.get_theme_icon(&"grabber")
+		_expect(music_grabber != null and music_grabber.get_size() == Vector2(30.0, 29.0), "Music gold-and-blue knob is sized to remain inside the compact slider.")
+		_expect(sfx_grabber != null and sfx_grabber.get_size() == Vector2(30.0, 29.0), "SFX gold-and-blue knob is sized to remain inside the compact slider.")
 
 	if actions.all(func(action: Button) -> bool: return action != null) and music != null and sfx != null:
 		_assert_action_rects_are_isolated(actions, music, sfx)
@@ -52,12 +72,13 @@ func _run() -> void:
 	hud.queue_free()
 	await get_tree().process_frame
 	if _failures.is_empty():
-		print("settings_touch_hitbox_regression_test: PASS")
-		get_tree().quit(0)
-		return
-	for failure: String in _failures:
-		push_error(failure)
-	get_tree().quit(1)
+		print("settings_touch_hitbox_regression_test: PASS checks=%d failures=0" % _checks)
+	else:
+		for failure: String in _failures:
+			push_error(failure)
+		print("settings_touch_hitbox_regression_test: FAIL checks=%d failures=%d" % [_checks, _failures.size()])
+	await get_tree().create_timer(30.0).timeout
+	get_tree().quit(1 if not _failures.is_empty() else 0)
 
 
 func _assert_action_rects_are_isolated(actions: Array[Button], music: HSlider, sfx: HSlider) -> void:
@@ -135,5 +156,6 @@ func _buttons_at_point(actions: Array[Button], point: Vector2) -> Array[Button]:
 
 
 func _expect(condition: bool, message: String) -> void:
+	_checks += 1
 	if not condition:
 		_failures.append(message)

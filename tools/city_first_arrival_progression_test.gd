@@ -40,9 +40,9 @@ func _run() -> void:
 	_expect(ResourceLoader.exists(CITY), "canonical City scene exists")
 	_expect(ResourceLoader.exists(SCHOOL), "canonical School scene exists")
 	_expect(_city_entry_is_gated(), "existing Oakleaf-to-City door remains gated by Oakleaf unlock")
-	_expect(_pinehill_return_is_gated(), "existing Pinehill-to-City door remains gated by Oakleaf unlock")
+	_expect(_pinehill_return_is_canonical(), "Pinehill returns to the shared City/Forest map through its forest-side marker")
 	_expect(_scene_contains_school_teacher(), "existing School scene provides one Teacher and QuestUI host")
-	_expect(_city_path_is_gated(), "existing City-to-Pinehill door is gated until School completion")
+	_expect(_city_path_is_gated(), "City-to-Pinehill passage requires School unlock and all five Forest victories")
 
 	if not _has_required_api(state):
 		_cleanup_fixture(state)
@@ -77,11 +77,12 @@ func _run() -> void:
 	_expect(teacher_result.get("changed", false) == true, "School Teacher completion advances the City quest")
 	_expect(state.get("city_school_stage_complete") == true, "School stage completes exactly once")
 	_expect(state.is_city_next_path_unlocked(), "City next path unlocks after School Teacher")
-	_expect(state.get_current_quest_text() == "Go to Pinehill Village", "Current Quest becomes the next travel objective")
+	_expect(state.current_task_index == int(state.get("CITY_NEXT_PATH_TASK_INDEX")), "Teacher completion activates the City-side Forest travel objective")
+	_expect(state.get_current_quest_text() == "Go to the Deepest Forest Path.", "Current Quest directs the player toward the Forest area within City")
 	var duplicate_teacher: Dictionary = state.complete_city_school_teacher()
 	_expect(duplicate_teacher.get("changed", false) != true, "repeated School Teacher interaction does not duplicate completion")
-	state.current_task_index = int(state.get("CITY_OF_KNOWLEDGE_TASK_INDEX"))
-	_expect(state.get_current_quest_text() == "Go to Pinehill Village", "completed City School state cannot regress its authoritative quest")
+	_expect(state.current_task_index == int(state.get("CITY_NEXT_PATH_TASK_INDEX")), "duplicate Teacher completion cannot regress the active Forest objective")
+	_expect(state.get_current_quest_text() == "Go to the Deepest Forest Path.", "completed City School state keeps the Forest travel objective authoritative")
 	_expect(state.mark_city_first_arrival().get("changed", false) != true, "completed City School state cannot replay first arrival")
 
 	var saved: Dictionary = state.build_save_data()
@@ -89,7 +90,7 @@ func _run() -> void:
 	state.start_new_game(PROFILE, false)
 	state.apply_save_data(saved, false)
 	_expect(state.get("city_first_arrival_seen") == true and state.get("city_school_stage_complete") == true, "Save/Load preserves City School completion")
-	_expect(state.get("city_next_path_unlocked") == true and state.get_current_quest_text() == "Go to Pinehill Village", "Save/Load preserves the next-path objective")
+	_expect(state.get("city_next_path_unlocked") == true and state.get_current_quest_text() == "Go to the Deepest Forest Path.", "Save/Load preserves the City-to-Forest travel objective")
 
 	var legacy := {
 		"save_version": 9,
@@ -130,14 +131,16 @@ func _scene_contains_school_teacher() -> bool:
 	return result
 
 
-func _pinehill_return_is_gated() -> bool:
+func _pinehill_return_is_canonical() -> bool:
 	var packed := load("res://Door-Navigations-Scene2Scene/pinehill_to_city_of_knowledge.tscn") as PackedScene
 	if packed == null:
 		return false
 	var door := packed.instantiate()
+	var returns_to_shared_map: bool = door.get("destination_scene_path") == CITY \
+			and door.get("destination_spawn_marker_name") == "spawn_from_pinehill"
 	var gated: bool = door.get("requires_city_of_knowledge_unlock") == true
 	door.free()
-	return gated
+	return gated and returns_to_shared_map
 
 
 func _city_entry_is_gated() -> bool:
@@ -155,9 +158,12 @@ func _city_path_is_gated() -> bool:
 	if packed == null:
 		return false
 	var door := packed.instantiate()
-	var gated: bool = door.get("requires_city_school_completion") == true
+	var gated: bool = door.get("requires_city_school_completion") == true \
+			and door.get("destination_scene_path") == "res://scenes/2nd Village/Pinehill Village.tscn"
 	door.free()
-	return gated
+	var door_script := FileAccess.get_file_as_string("res://scripts/door.gd")
+	return gated and door_script.contains('destination_lower.contains("pinehill")') \
+			and door_script.contains("not GameState.is_pinehill_unlocked()")
 
 
 func _cleanup_fixture(state: Node) -> void:

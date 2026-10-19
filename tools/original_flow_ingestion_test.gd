@@ -94,21 +94,29 @@ func _run() -> void:
 	sync.set("_current_playtime_learning_cycle_version", state.learning_cycle_version)
 	var teacher_event := {"type": "quest_completed", "key": "teacher:complete"}
 	await sync._on_task_state_changed(1, 2, teacher_event)
-	_expect(http.requests.size() == 1, "Teacher completion sends one canonical activity")
-	if http.requests.size() == 1:
-		var payload: Dictionary = http.requests[0].payload
-		_expect(payload.task_id == "Talk to the Teacher", "Teacher completion labels the completed Teacher task, not the next Bandit task")
-		_expect(payload.current_quest == state.current_quest, "Canonical completion carries the authoritative post-completion Current Quest")
-		_expect(payload.event_type == "quest_completed", "Teacher completion preserves canonical event type")
+	var staged_activities: Array = state.get_pending_academic_events().get("activities", [])
+	_expect(http.requests.is_empty() and staged_activities.size() == 1, "Teacher completion stages one canonical activity locally before the Save boundary")
+	if staged_activities.size() == 1:
+		var teacher_activity: Dictionary = staged_activities[0]
+		var payload: Dictionary = teacher_activity.get("payload", {})
+		_expect(String(teacher_activity.get("path", "")) == "/api/game/activity", "Canonical activity retains its backend endpoint while staged")
+		_expect(String(payload.get("task_id", "")) == "Talk to the Teacher", "Teacher completion labels the completed Teacher task, not the next Bandit task")
+		_expect(String(payload.get("current_quest", "")) == state.current_quest, "Canonical completion carries the authoritative post-completion Current Quest")
+		_expect(String(payload.get("event_type", "")) == "quest_completed", "Teacher completion preserves canonical event type")
 		_expect(not payload.has("student_id") and not payload.has("parent_id"), "Canonical activity identity remains lease-owned")
-		_expect(http.requests[0].path == "/api/game/activity", "Canonical activity route remains unchanged")
 	await sync._on_task_state_changed(1, 2, teacher_event)
-	_expect(http.requests.size() == 1, "Acknowledged completion cannot be sent twice")
+	staged_activities = state.get_pending_academic_events().get("activities", [])
+	_expect(http.requests.is_empty() and staged_activities.size() == 1, "Repeated completion is staged idempotently and cannot create a duplicate")
 	await sync._on_task_state_changed(2, 3, {"type": "quest_completed", "key": "terminal:complete"})
-	_expect(http.requests.size() == 2, "Terminal completion is not dropped when next task does not exist")
+	staged_activities = state.get_pending_academic_events().get("activities", [])
+	_expect(http.requests.is_empty() and staged_activities.size() == 2, "Terminal completion is staged even when the next task does not exist")
 	await sync._on_canonical_activity_boundary({"type": "task_completed", "key": "tutorial:complete", "previous_index": 0, "current_index": 0, "activity": {"activity_id": "tutorial", "activity_label": "Tutorial"}})
-	_expect(http.requests.back().payload.task_id == "Tutorial", "Explicit Tutorial activity metadata is preserved")
-	_expect(http.requests.back().payload.canonical_task_id == "tutorial" and http.requests.back().payload.canonical_milestone_id == "tutorial.complete", "Tutorial emits its own canonical weighted milestone instead of colliding with Teacher House")
+	staged_activities = state.get_pending_academic_events().get("activities", [])
+	_expect(http.requests.is_empty() and staged_activities.size() == 3, "Explicit Tutorial activity is staged without an early network write")
+	if staged_activities.size() == 3:
+		var tutorial_payload: Dictionary = staged_activities[2].get("payload", {})
+		_expect(String(tutorial_payload.get("task_id", "")) == "Tutorial", "Explicit Tutorial activity metadata is preserved")
+		_expect(String(tutorial_payload.get("canonical_task_id", "")) == "tutorial" and String(tutorial_payload.get("canonical_milestone_id", "")) == "tutorial.complete", "Tutorial emits its own canonical weighted milestone instead of colliding with Teacher House")
 	await _test_answer_and_progress_serialization(state, sync, http)
 	await _test_playtime_transition_races(state, sync, http)
 	var captured_requests: Array[Dictionary] = []
@@ -126,7 +134,15 @@ func _run() -> void:
 	for check in checks:
 		if not check.passed:
 			failed += 1
-	var result := {"passed": checks.size() - failed, "failed": failed, "checks": checks, "captured_requests": captured_requests}
+	var result := {
+		"passed": checks.size() - failed,
+		"failed": failed,
+		"checks": checks,
+		"transport": "in-memory HttpStub; requests never leave the test process",
+		"live_network_calls": 0,
+		"production_writes": 0,
+		"captured_requests": captured_requests,
+	}
 	var file := FileAccess.open("res://docs/qa/2026-09-07-original-flow-ingestion-runtime.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(result, "\t"))
 	file.close()
@@ -156,57 +172,117 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 		# A stale/question-level label must never collapse every Oakleaf result to
 		# Bandit 1 when an authoritative encounter context is active.
 		"battle_id": "oakleaf_bandits1",
+		"question_id": 90101,
 		"question_set_id": 901,
+		"topic_id": "basic_addition",
 		"grade": scope.grade,
 		"difficulty": scope.difficulty,
 		"question": "1 + 1 = ?",
 		"choices": ["2", "1", "3", "4"],
 		"correct": 0,
 	}
+	state.clear_pending_academic_events()
+	var safe_diagnostic := String(sync.call("_format_outbox_failure_diagnostic", "/api/game/result", {
+		"ok": false,
+		"status": 400,
+		"body": {
+			"error": "topic_id does not match the canonical question metadata.",
+			"code": "INVALID_TOPIC_METADATA",
+			"debug": "raw database exception local-test-lease",
+		},
+	}))
+	_expect(safe_diagnostic.contains("HTTP 400") and safe_diagnostic.contains("INVALID_TOPIC_METADATA") and safe_diagnostic.contains("topic_id does not match the canonical question metadata."), "Rejected result diagnostics include endpoint status and exact safe backend validation reason")
+	_expect(not safe_diagnostic.contains("local-test-lease") and not safe_diagnostic.contains("raw database exception") and not safe_diagnostic.contains("debug="), "Rejected result diagnostics exclude credentials, raw exception/debug fields, and request payloads")
+	var credential_diagnostic := String(sync.call("_format_outbox_failure_diagnostic", "/api/game/result", {
+		"ok": false,
+		"status": 400,
+		"body": {"error": "credential local-test-lease password=private-pass", "code": "INVALID_RESULT"},
+	}))
+	_expect(not credential_diagnostic.contains("local-test-lease") and not credential_diagnostic.contains("private-pass"), "Rejected result diagnostics redact session credentials and password values embedded in backend text")
+	var legacy_question := {
+		"id": "question:local-only-hash",
+		"question": "2 + 3 = ?",
+		"difficulty": scope.difficulty,
+	}
+	var legacy_payload: Dictionary = sync._build_question_result_payload(legacy_question, true)
+	_expect(not legacy_payload.has("question_id") and not legacy_payload.has("question_set_id") and not legacy_payload.has("topic_id"), "A legacy/local question without canonical IDs does not fabricate database traceability fields")
+	_expect(not String(legacy_payload.get("result_event_id", "")).is_empty(), "A legacy question may still use a stable independent result event identity")
 	var before_results := http.requests.size()
 	await sync.record_question_attempt(question, true)
 	await sync.record_question_attempt(question, false)
-	_expect(http.requests.size() == before_results + 2, "Actual RemoteSync serializes one correct and one incorrect answer request")
+	_expect(http.requests.size() == before_results, "Answer stays locally staged and does not send academic result before Save")
+	var staged_events: Dictionary = state.get_pending_academic_events()
+	var staged_results: Array = staged_events.get("results", [])
+	_expect(staged_results.size() == 2, "Both answer results remain in the durable local staging buffer before Save")
 	var emitted_result_event_ids: Array[String] = []
-	for answer_index in 2:
-		if http.requests.size() <= before_results + answer_index:
-			continue
-		var request: Dictionary = http.requests[before_results + answer_index]
-		var payload: Dictionary = request.payload
+	for answer_index in mini(2, staged_results.size()):
+		var payload: Dictionary = staged_results[answer_index]
 		var label := "Correct result" if answer_index == 0 else "Incorrect result"
-		_expect(request.path == "/api/game/result", label + " uses the original result endpoint")
 		_expect(int(payload.get("score", -1)) == (1 if answer_index == 0 else 0) and int(payload.get("total_items", 0)) == 1, label + " preserves answered-item and correct/wrong values")
 		_expect(String(payload.get("student_id", "")) == state.student_id and String(payload.get("parent_id", "")) == state.parent_id and String(payload.get("student_name", "")) == state.player_name, label + " preserves current profile trace references")
 		_expect(String(payload.get("grade_level", "")) == "Grade 1" and String(payload.get("difficulty", "")) == "Easy", label + " carries the active Oakleaf encounter Grade and Difficulty")
-		_expect(int(payload.get("playtime_session_id", 0)) == 123 and String(payload.get("playtime_session_credential", "")) == "local-test-lease" and int(payload.get("learning_cycle_version", 0)) == 7, label + " carries active server lease and learning cycle")
-		_expect(int(payload.get("question_set_id", 0)) == 901, label + " retains question_set_id through JSON encoding")
+		_expect(int(payload.get("question_set_id", 0)) == 901 and int(payload.get("question_id", 0)) == 90101 and String(payload.get("topic_id", "")) == "basic_addition", label + " retains canonical question, set, and topic traceability")
 		_expect(String(payload.get("canonical_battle_id", "")) == "oakleaf_bandits3", label + " attributes a backend-shaped question to the active Bandit encounter")
-		_expect(not payload.has("topic_id") and not payload.has("math_topic"), label + " does not require optional Topic metadata")
 		emitted_result_event_ids.append(String(payload.get("result_event_id", "")))
 	_expect(emitted_result_event_ids.size() == 2 and not emitted_result_event_ids[0].is_empty() and emitted_result_event_ids[0] != emitted_result_event_ids[1], "Separate answers to the same question receive separate stable result event IDs")
+	var staged_activity_key := "cycle:7:task:2:3:task_completed:qa-oakleaf-task"
+	state.stage_pending_academic_activity({
+		"event_key": staged_activity_key,
+		"event_type": "task_completed",
+		"canonical_task_id": "oakleaf-bandit-1",
+		"task_id": "First Bandit",
+		"current_quest": state.current_quest,
+	}, "/api/game/activity")
+	var manual_snapshot: Dictionary = state.build_save_data()
+	manual_snapshot["save_kind"] = "manual"
+	manual_snapshot["save_commit_id"] = "manual:qa:7:1"
+	http.responses = [{"ok": false, "status": 400, "body": {"error": "topic_id does not match the canonical question metadata.", "code": "INVALID_TOPIC_METADATA"}}]
+	await sync._on_save_created(manual_snapshot)
+	var requests_after_rejection: Array = http.requests.slice(before_results)
+	_expect(requests_after_rejection.size() == 1 and requests_after_rejection[0].path == "/api/game/result", "Manual Save queues the result first and preserves FIFO ordering when the backend rejects it")
+	if not requests_after_rejection.is_empty():
+		var sent_payload: Dictionary = requests_after_rejection[0].payload
+		_expect(int(sent_payload.get("question_id", 0)) == 90101 and int(sent_payload.get("question_set_id", 0)) == 901 and String(sent_payload.get("topic_id", "")) == "basic_addition", "Saved result request matches the canonical database question contract")
+		_expect(int(sent_payload.get("playtime_session_id", 0)) == 123 and String(sent_payload.get("playtime_session_credential", "")) == "local-test-lease" and int(sent_payload.get("learning_cycle_version", 0)) == 7, "Saved result attaches the current lease and Learning Cycle")
+	var rejected_pending: Array = sync._load_pending()
+	_expect(rejected_pending.size() == 4 and rejected_pending.any(func(item: Dictionary) -> bool: return String(item.get("kind", "")) == "activity" and String(item.get("path", "")) == "/api/game/activity"), "Failed Save commit keeps result, canonical activity, and progress items retryable")
+	_expect(http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/activity").is_empty(), "Canonical task activity waits behind the failed result rather than being falsely acknowledged")
+	http.responses = []
+	await sync._flush_pending()
+	var result_requests := http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result")
+	_expect(result_requests.size() == 3, "Successful retry drains the original result plus the second staged answer")
+	if result_requests.size() == 3:
+		_expect(String(result_requests[0].payload.get("result_event_id", "")) == String(result_requests[1].payload.get("result_event_id", "")), "Rejected transport retry reuses the same idempotent result event ID")
+		_expect(String(result_requests[2].payload.get("result_event_id", "")) == emitted_result_event_ids[1], "Second staged answer keeps its own stable result event ID")
+	var canonical_activity_requests: Array = http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/activity")
+	_expect(canonical_activity_requests.size() == 1 and String(canonical_activity_requests[0].payload.get("event_key", "")) == staged_activity_key, "Save sends the canonical task completion through /api/game/activity once")
+	_expect(sync._load_pending().is_empty(), "Successful result, activity, and progress acknowledgements clear the committed outbox")
 	sync.set("_current_playtime_session_id", 0)
+	sync.set("_current_playtime_session_credential", "")
+	state.playtime_authorized = false
 	await sync.record_question_attempt(question, true)
-	_expect(http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result").size() == 2, "A graded answer is not sent before a playtime lease is available")
-	var pending_results: Array = []
-	for pending_item in sync._load_pending():
-		if pending_item is Dictionary and String(pending_item.get("kind", "")) == "result":
-			pending_results.append(pending_item)
-	_expect(pending_results.size() == 1, "A graded answer remains in the durable result outbox when the lease is unavailable")
+	_expect(http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result").size() == 3, "A new answer still stays staged without a live playtime lease")
+	var pending_results: Array = state.get_pending_academic_events().get("results", [])
+	_expect(pending_results.size() == 1, "A graded answer remains durable in hidden local staging when no lease is available")
 	var queued_result_event_id := ""
 	if pending_results.size() == 1:
-		queued_result_event_id = String((pending_results[0] as Dictionary).get("payload", {}).get("result_event_id", ""))
-		_expect(not queued_result_event_id.is_empty(), "The durable result outbox preserves a stable nonempty event ID")
+		queued_result_event_id = String((pending_results[0] as Dictionary).get("result_event_id", ""))
+		_expect(not queued_result_event_id.is_empty(), "The staged result preserves a stable nonempty event ID")
 	sync.set("_current_playtime_session_id", 123)
 	sync.set("_current_playtime_session_credential", "local-test-lease")
 	sync.set("_current_playtime_student_id", state.student_id)
 	sync.set("_current_playtime_parent_id", state.parent_id)
 	sync.set("_current_playtime_learning_cycle_version", state.learning_cycle_version)
 	state.playtime_authorized = true
+	var lease_recovery_snapshot: Dictionary = state.build_save_data()
+	lease_recovery_snapshot["save_kind"] = "manual"
+	lease_recovery_snapshot["save_commit_id"] = "manual:qa:7:2"
+	await sync._on_save_created(lease_recovery_snapshot)
 	await sync._flush_pending()
-	_expect(http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result").size() == 3, "Save/lease recovery flushes the pending graded answer exactly once")
-	var result_requests := http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result")
-	if result_requests.size() == 3:
-		_expect(String(result_requests[2].payload.get("result_event_id", "")) == queued_result_event_id, "Outbox retry reuses the original result event ID")
+	result_requests = http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result")
+	_expect(result_requests.size() == 4, "Save/lease recovery flushes the pending graded answer exactly once")
+	if result_requests.size() == 4:
+		_expect(String(result_requests[3].payload.get("result_event_id", "")) == queued_result_event_id, "Outbox retry reuses the original result event ID")
 
 	var flushing_payload: Dictionary = sync._build_question_result_payload(question, true)
 	var concurrent_payload: Dictionary = sync._build_question_result_payload(question, false)
@@ -229,6 +305,13 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 	var result_requests_before_stale := http.requests.filter(func(request: Dictionary) -> bool: return request.path == "/api/game/result").size()
 	http.responses = [{"ok": false, "status": 409, "body": {"code": "PLAYTIME_HEARTBEAT_STALE"}}]
 	await sync.record_question_attempt(question, true)
+	var stale_save: Dictionary = state.build_save_data()
+	stale_save["save_kind"] = "manual"
+	stale_save["commit_trigger"] = "manual_save"
+	stale_save["save_commit_id"] = "manual:qa:7:stale-lease"
+	http.responses.append({"ok": false, "status": 0, "body": {}, "error": "isolated offline retry"})
+	await sync._on_save_created(stale_save)
+	await get_tree().process_frame
 	var stale_pending: Array = sync._load_pending()
 	var stale_event_id := ""
 	for pending_item: Variant in stale_pending:
@@ -326,9 +409,9 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 	state.total_questions = 4
 	state.score = 3
 	state.total_play_time = 42
-	await _test_saved_progress_projection(state, http, "Active First Bandit")
+	await _test_saved_progress_projection(state, sync, http, "Active First Bandit")
 	state.apply_save_data(completed_snapshot, false)
-	await _test_saved_progress_projection(state, http, "Completed ZIP task list")
+	await _test_saved_progress_projection(state, sync, http, "Completed ZIP task list")
 
 
 func _test_playtime_transition_races(state, sync, http: HttpStub) -> void:
@@ -444,16 +527,29 @@ func _test_playtime_transition_races(state, sync, http: HttpStub) -> void:
 	http.responses = []
 
 
-func _test_saved_progress_projection(state, http: HttpStub, label: String) -> void:
+func _test_saved_progress_projection(state, sync, http: HttpStub, label: String) -> void:
 	# The existing test subclass writes only its unique fixture. Read its real
-	# serialized save, then emit the production signal consumed by RemoteSync.
-	# This avoids invoking the production save destination or user save files.
+	# serialized gameplay state, then attach the metadata an approved manual Save
+	# supplies before emitting the production signal consumed by RemoteSync. This
+	# avoids invoking the production save destination or user save files.
+	# Clear older staged activity/result fixtures so this assertion isolates the
+	# one progress projection represented by this save snapshot.
+	state.clear_pending_academic_events()
 	var fixture_path: String = state.save_game()
 	var serialized: Variant = JSON.parse_string(FileAccess.get_file_as_string(fixture_path))
 	_expect(serialized is Dictionary, label + " fixture uses the actual GameState save serializer")
 	if not (serialized is Dictionary):
 		return
 	var save_data: Dictionary = serialized
+	save_data["save_kind"] = "manual"
+	save_data["commit_trigger"] = "manual_save"
+	save_data["save_commit_id"] = "manual:qa:projection:%s:%d:%d" % [String(save_data.get("student_id", "")), int(save_data.get("learning_cycle_version", 0)), Time.get_ticks_usec()]
+	state.playtime_authorized = true
+	sync.set("_current_playtime_session_id", 123)
+	sync.set("_current_playtime_session_credential", "local-test-lease")
+	sync.set("_current_playtime_student_id", state.student_id)
+	sync.set("_current_playtime_parent_id", state.parent_id)
+	sync.set("_current_playtime_learning_cycle_version", state.learning_cycle_version)
 	var before_save := http.requests.size()
 	state.save_created.emit(save_data)
 	await get_tree().process_frame

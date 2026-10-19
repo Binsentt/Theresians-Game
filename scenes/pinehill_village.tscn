@@ -1,5 +1,19 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://d2gdlmcp1mjw6"]
 
 [ext_resource type="PackedScene" uid="uid://b7nrqn7vff7db" path="res://scenes/2nd Village/Pinehill Village.tscn" id="1_pinehill"]
 
-[node name="Pinehill Village" instance=ExtResource("1_pinehill")]
+[node name="Pinehill Village" unique_id=2082362675 instance=ExtResource("1_pinehill")]
+
+[node name="girl_npc" parent="." index="87" unique_id=244227400]
+position = Vector2(304, 338)
+
+[node name="villager-male" parent="." index="88" unique_id=1399149183]
+position = Vector2(52.000015, 469)
+
+[node name="villager-female" parent="." index="89" unique_id=1540680081]
+position = Vector2(394, 454)
+
+[editable path="old_adult_women"]
+[editable path="male-npc"]
+[editable path="girl_npc"]
+[editable path="villager-female"]
