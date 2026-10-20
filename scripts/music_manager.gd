@@ -30,7 +30,6 @@ const SCENE_TRACKS := {
 	"res://world/npc_house_outside_door.tscn": TRACK_ADVENTURE,
 	"res://world/teacher_house_outside_door.tscn": TRACK_ADVENTURE,
 	"res://scenes/city_of_knowledge.tscn": TRACK_ADVENTURE,
-	"res://scenes/pinehill_village.tscn": TRACK_ADVENTURE,
 	"res://scenes/2nd Village/Pinehill Village.tscn": TRACK_ADVENTURE,
 	"res://Battle/Battle-Enemy/male_vs_teacher.tscn": TRACK_TEACHER_BATTLE,
 	"res://Battle/Battle-Enemy/female_vs_teacher.tscn": TRACK_TEACHER_BATTLE,

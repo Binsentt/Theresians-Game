@@ -116,7 +116,7 @@ func _measure(scene: Node, actor_name: String, stage: String, expected_width: fl
 	_expect(not rect.intersects(_button(scene).get_global_rect()) and not _button(scene, "up").is_visible_in_tree(), prefix + "clear of ACT with normal dialogue D-pad lifecycle")
 
 func _silent_maps() -> void:
-	for scene_path in [CITY, "res://scenes/pinehill_village.tscn"]:
+	for scene_path in [CITY, "res://scenes/2nd Village/Pinehill Village.tscn"]:
 		var scene := await _load(scene_path)
 		var speakers := 0
 		for node in scene.find_children("*", "", true, false):

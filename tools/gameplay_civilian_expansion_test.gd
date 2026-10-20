@@ -7,7 +7,7 @@ const RESULT_PATH := "res://docs/qa/2026-09-07-civilian-expansion-runtime-tests.
 const MAP_CASES := [
 	{"path": "res://scenes/oak_leaf_village.tscn", "civilians": ["girl_npc", "NPC", "villager-female", "NPC1"], "enemies": ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5", "Boss-Bandit"]},
 	{"path": "res://scenes/city_of_knowledge.tscn", "civilians": ["adult-male_npc", "city_npc", "old_adult_women", "old_npc", "girl_npc"], "enemies": ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5"]},
-	{"path": "res://scenes/pinehill_village.tscn", "civilians": ["old_adult_women", "old_npc", "male-npc", "girl_npc", "villager-male", "villager-female"], "enemies": ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Boss-Wizard"]},
+	{"path": "res://scenes/2nd Village/Pinehill Village.tscn", "civilians": ["old_adult_women", "old_npc", "male-npc", "girl_npc", "villager-male", "villager-female"], "enemies": ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Boss-Wizard"]},
 ]
 const OUTSIDE := Vector2(-4000, -4000)
 var captured: Dictionary = {}

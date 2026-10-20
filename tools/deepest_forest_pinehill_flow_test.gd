@@ -52,7 +52,7 @@ func _run() -> void:
 	_expect(ResourceLoader.exists("res://scenes/deepest_forest_path.tscn"), "Deepest Forest scene exists")
 	_expect(ResourceLoader.exists("res://Door-Navigations-Scene2Scene/deepest_forest_to_pinehill.tscn"), "Deepest Forest exit door exists")
 	_expect(ResourceLoader.exists("res://scenes/2nd Village/Pinehill Village.tscn"), "canonical Pinehill scene exists")
-	_expect(ResourceLoader.exists("res://scenes/pinehill_village.tscn"), "Pinehill compatibility wrapper exists")
+	_expect(not ResourceLoader.exists("res://scenes/pinehill_village.tscn"), "Only the canonical Pinehill scene remains; legacy saves normalize through GameState")
 	_expect(ResourceLoader.exists("res://Door-Navigations-Scene2Scene/city_of_knowlwedge_to_pine_hill.tscn"), "legacy typo door remains present")
 	await _check_progression_dialogue_layout()
 	_check_forest_routes()
@@ -916,28 +916,6 @@ func _check_pinehill_routes() -> void:
 	GameState.pinehill_old_man_completed = previous_old_lady_state
 	GameState.wizard_defeated = previous_wizard_state
 	pinehill.free()
-	var wrapper := (load("res://scenes/pinehill_village.tscn") as PackedScene).instantiate() as Node2D
-	_expect(wrapper != null, "Pinehill wrapper instantiates")
-	if wrapper != null:
-		var previous_wrapper_task_index := GameState.current_task_index
-		var previous_wrapper_defeats := GameState.pinehill_defeated_bandits.duplicate(true)
-		var previous_wrapper_old_lady_state := GameState.pinehill_old_man_completed
-		var previous_wrapper_wizard_state := GameState.wizard_defeated
-		GameState.current_task_index = GameState.WIZARD_TASK_INDEX
-		GameState.pinehill_old_man_completed = true
-		for encounter_id in GameState.PINEHILL_BANDIT_IDS:
-			GameState.pinehill_defeated_bandits[encounter_id] = true
-		GameState.wizard_defeated = false
-		ROUTER.install_for_scene(wrapper, ROUTER)
-		OLD_LADY.install_for_scene(wrapper, OLD_LADY)
-		_expect(wrapper.get_node_or_null("old_adult_women/ProgressionOldManInteraction") != null, "Pinehill wrapper binds the Old Lady")
-		_expect(wrapper.get_node_or_null("Boss-Wizard/ProgressionBattleEncounter") != null, "Pinehill wrapper binds the outdoor Wizard NPC")
-		_expect(wrapper.get_node_or_null("display-kase yung wizard sa labas lang/ProgressionBattleEncounter") == null, "Pinehill wrapper leaves the Wizard House non-interactive")
-		GameState.current_task_index = previous_wrapper_task_index
-		GameState.pinehill_defeated_bandits = previous_wrapper_defeats
-		GameState.pinehill_old_man_completed = previous_wrapper_old_lady_state
-		GameState.wizard_defeated = previous_wrapper_wizard_state
-		wrapper.free()
 
 func _check_progression_dialogue_layout() -> void:
 	var packed := load("res://ui/progression_dialogue_overlay.tscn") as PackedScene

@@ -6,7 +6,7 @@ extends Node
 
 const CITY := "res://scenes/city_of_knowledge.tscn"
 const SCHOOL := "res://interiors/school.tscn"
-const PINEHILL := "res://scenes/pinehill_village.tscn"
+const PINEHILL := "res://scenes/2nd Village/Pinehill Village.tscn"
 const PROFILE := {
 	"player_name": "Timeline Fixture",
 	"gender": "male",
