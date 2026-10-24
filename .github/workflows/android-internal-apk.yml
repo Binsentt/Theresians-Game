@@ -283,7 +283,7 @@ jobs:
           fi
           signature_report="$RUNNER_TEMP/theresians-quest-internal-signature.txt"
           "$apksigner" verify --verbose --print-certs "$apk_path" > "$signature_report"
-          grep -qE 'Verified using v(2|3|4) scheme: true' "$signature_report"
+          grep -qE 'Verified using v(2|3|4) scheme.*: true' "$signature_report"
           packaged_fingerprint="$(grep -m1 'Signer #1 certificate SHA-256 digest:' "$signature_report" | sed 's/.*digest:[[:space:]]*//' | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
           if [[ "$packaged_fingerprint" != "$EXPECTED_DEBUG_CERT_SHA256" ]]; then
             echo "The exported APK certificate does not match the approved existing debug certificate." >&2
