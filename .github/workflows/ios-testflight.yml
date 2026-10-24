@@ -153,9 +153,8 @@ jobs:
           fi
           ci_project="$RUNNER_TEMP/theresians-quest-ios-project"
           artifact_dir="$RUNNER_TEMP/theresians-quest-ios-artifact"
-          xcode_dir="$RUNNER_TEMP/theresians-quest-ios-xcode"
-          rm -rf "$ci_project" "$artifact_dir" "$xcode_dir"
-          mkdir -p "$ci_project" "$artifact_dir" "$xcode_dir"
+          rm -rf "$ci_project" "$artifact_dir"
+          mkdir -p "$ci_project" "$artifact_dir"
           rsync -a \
             --exclude '.git/' \
             --exclude '.godot/' \
@@ -210,7 +209,6 @@ jobs:
           PY
           echo "CI_PROJECT=$ci_project" >> "$GITHUB_ENV"
           echo "ARTIFACT_DIR=$artifact_dir" >> "$GITHUB_ENV"
-          echo "XCODE_DIR=$xcode_dir" >> "$GITHUB_ENV"
           echo "IOS_BUILD_NUMBER=$build_number" >> "$GITHUB_ENV"
           echo "IOS_MARKETING_VERSION=$marketing_version" >> "$GITHUB_ENV"
 
@@ -218,15 +216,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          xcode_zip="$RUNNER_TEMP/theresians-quest-ios-export.zip"
-          "$GODOT_BIN" --headless --path "$CI_PROJECT" --export-release "$IOS_PRESET" "$xcode_zip"
-          test -s "$xcode_zip"
-          unzip -q "$xcode_zip" -d "$XCODE_DIR"
-          xcode_project="$(find "$XCODE_DIR" -maxdepth 3 -type d -name '*.xcodeproj' -print -quit)"
-          if [[ -z "$xcode_project" ]]; then
-            echo "Godot did not produce an Xcode project." >&2
-            exit 1
-          fi
+          # Godot's iOS project-only export is a loose project bundle. The
+          # output path is the project basename; Godot creates that data
+          # directory plus sibling .xcodeproj/.xcframework resources. It is
+          # not a ZIP archive, even when the path has a .zip suffix.
+          export_root="$RUNNER_TEMP/theresians-quest-ios-export"
+          rm -rf "$export_root" "$export_root.xcodeproj" "$export_root.xcframework"
+          "$GODOT_BIN" --headless --path "$CI_PROJECT" --export-release "$IOS_PRESET" "$export_root"
+          xcode_project="$export_root.xcodeproj"
+          data_pack="$export_root/data.pck"
+          release_framework="$export_root.xcframework"
+          test -d "$export_root"
+          test -d "$xcode_project"
+          test -s "$data_pack"
+          test -d "$release_framework"
+          test -s "$release_framework/ios-arm64/libgodot.a"
+          echo "Godot iOS export output:"
+          printf '  data directory: %s\n  Xcode project: %s\n  release framework: %s\n' \
+            "$export_root" "$xcode_project" "$release_framework"
           echo "XCODE_PROJECT=$xcode_project" >> "$GITHUB_ENV"
 
       - name: Validate Apple signing inputs and archive/export IPA
