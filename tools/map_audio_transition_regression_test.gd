@@ -175,17 +175,14 @@ func _test_city_arrival_markers() -> void:
 		)
 		_expect(clear_of_trigger, "Arrival is safely outside the right-side exit trigger bounds")
 	var pinehill_return := (load("res://Door-Navigations-Scene2Scene/pinehill_to_city_of_knowledge.tscn") as PackedScene).instantiate()
-	var forest_return := (load("res://Door-Navigations-Scene2Scene/deepest_forest_to_city.tscn") as PackedScene).instantiate()
 	_expect(String(pinehill_return.get("destination_scene_path")) == CITY and String(pinehill_return.get("destination_spawn_marker_name")) == "spawn_from_pinehill", "Active Pinehill-to-City return loads the shared map at its forest-side marker")
 	_expect(
 		Vector2(pinehill_return.get("destination_spawn_position")) == (city.get_node("spawn_from_pinehill") as Marker2D).position,
 		"Pinehill return fallback position matches the active spawn_from_pinehill marker"
 	)
-	_expect(String(forest_return.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Legacy Forest-wrapper return retains its City compatibility marker")
 	_expect((city.get_node("spawn_from_pinehill") as Marker2D).position == Vector2(128, 508), "Pinehill return marker remains at its authored forest-side location")
 	_expect((city.get_node("spawn_from_deepest_forest") as Marker2D).position == Vector2(128, 508), "Legacy Forest marker remains aligned for old saves")
 	pinehill_return.free()
-	forest_return.free()
 	oakleaf.free()
 	add_child(city)
 	await get_tree().physics_frame

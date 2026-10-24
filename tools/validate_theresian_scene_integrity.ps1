@@ -44,7 +44,7 @@ Require-Contains 'scenes\oak_leaf_village.tscn' '[node name="PlayerHouseExitSpaw
 Require-Contains 'scenes\oak_leaf_village.tscn' '[node name="TeacherHouseExitSpawn" type="Marker2D"' 'Village needs the Teacher House outside spawn marker.'
 Require-Contains 'scenes\oak_leaf_village.tscn' '[node name="NpcHouseExitSpawn" type="Marker2D"' 'Village needs the NPC House outside spawn marker.'
 Require-Contains 'scenes\oak_leaf_village.tscn' 'groups=["quest_ui"]' 'Village must preserve the tutorial quest UI panel.'
-Require-Contains 'scenes\oak_leaf_village.tscn' 'path="res://world/Task1.gd"' 'Village must preserve the tutorial task trigger script.'
+Require-Contains 'scenes\oak_leaf_village.tscn' 'path="res://world/task_progress_trigger.gd"' 'Village must preserve the canonical task progress trigger script.'
 Require-Contains 'scenes\oak_leaf_village.tscn' 'path="res://world/QuestUI.gd"' 'Village must preserve the tutorial quest UI script.'
 Require-NotContains 'scenes\oak_leaf_village.tscn' 'instance=ExtResource("24_h6312")' 'Village must not instantiate the Boss Bandit scene as the map substitute.'
 
@@ -67,14 +67,16 @@ Require-Contains 'Door-Navigations-Scene2Scene\city_of_knowledge_to_pine_hill.ts
 Require-Contains 'Door-Navigations-Scene2Scene\city_of_knowledge_to_pine_hill.tscn' 'destination_spawn_marker_name = "spawn_from_deepest_forest"' 'City-to-Pinehill passage must target the established Pinehill arrival marker.'
 Require-Contains 'Door-Navigations-Scene2Scene\city_of_knowledge_to_pine_hill.tscn' 'play_fade_transition = true' 'City-to-Pinehill passage must use its established fade transition.'
 Require-Contains 'Door-Navigations-Scene2Scene\city_of_knowledge_to_pine_hill.tscn' 'fade_duration = 2.0' 'City-to-Pinehill passage must retain its 2-second fade.'
-Require-Contains 'Door-Navigations-Scene2Scene\deepest_forest_to_pinehill.tscn' 'destination_scene_path = "res://scenes/2nd Village/Pinehill Village.tscn"' 'Legacy Forest-wrapper exit remains compatible with canonical Pinehill.'
-Require-Contains 'Door-Navigations-Scene2Scene\deepest_forest_to_pinehill.tscn' 'destination_spawn_marker_name = "spawn_from_deepest_forest"' 'Legacy Forest-wrapper exit targets the Pinehill arrival marker.'
 Require-Contains 'Door-Navigations-Scene2Scene\pinehill_to_city_of_knowledge.tscn' 'destination_scene_path = "res://scenes/city_of_knowledge.tscn"' 'Active Pinehill return loads the shared City/Forest map directly.'
 Require-Contains 'Door-Navigations-Scene2Scene\pinehill_to_city_of_knowledge.tscn' 'destination_spawn_marker_name = "spawn_from_pinehill"' 'Active Pinehill return uses the forest-side City marker.'
-Require-Contains 'Door-Navigations-Scene2Scene\pinehill_to_deepest_forest.tscn' 'destination_scene_path = "res://scenes/city_of_knowledge.tscn"' 'Historical Pinehill return remains load-compatible.'
-Require-Contains 'Door-Navigations-Scene2Scene\pinehill_to_deepest_forest.tscn' 'destination_spawn_marker_name = "spawn_from_pinehill"' 'Historical Pinehill return retains its established City marker.'
-Require-Contains 'Door-Navigations-Scene2Scene\deepest_forest_to_city.tscn' 'destination_scene_path = "res://scenes/city_of_knowledge.tscn"' 'Legacy Forest-wrapper return remains compatible with City of Knowledge.'
-Require-Contains 'Door-Navigations-Scene2Scene\deepest_forest_to_city.tscn' 'destination_spawn_marker_name = "spawn_from_deepest_forest"' 'Legacy wrapper return keeps its existing City compatibility marker.'
+if ((Test-Path (Join-Path $root 'scenes\deepest_forest_path.tscn')) -or
+    (Test-Path (Join-Path $root 'scripts\deepest_forest_path.gd')) -or
+    (Test-Path (Join-Path $root 'Door-Navigations-Scene2Scene\deepest_forest_to_pinehill.tscn')) -or
+    (Test-Path (Join-Path $root 'Door-Navigations-Scene2Scene\deepest_forest_to_city.tscn')) -or
+    (Test-Path (Join-Path $root 'Door-Navigations-Scene2Scene\pinehill_to_deepest_forest.tscn'))) {
+    $failures.Add('Dedicated Deepest Forest wrapper resources must remain removed.')
+}
+Require-Contains 'scripts\game_state.gd' 'DEEPEST_FOREST_PATH: "res://scenes/city_of_knowledge.tscn"' 'Legacy Forest saves normalize to the canonical City scene.'
 Require-Contains 'scripts\gameplay_scene.gd' '_sync_city_deep_forest_actors(active_scene_path)' 'City Forest actor visibility is progression-aware within the shared map.'
 Require-Contains 'scripts\progression_battle_encounter.gd' 'CITY_PATH: {' 'Shared City/Forest map owns the active Forest encounter routes.'
 Require-Contains 'scenes\city_of_knowledge.tscn' 'path="res://Door-Navigations-Scene2Scene/city_of_knowledge_to_pine_hill.tscn"' 'City scene must instance the correctly named City-to-Pinehill trigger.'

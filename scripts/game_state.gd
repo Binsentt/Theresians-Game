@@ -70,7 +70,8 @@ const WIZARD_TASK_INDEX := 14
 const RETURN_CITY_TASK_INDEX := 15
 const FINAL_SCHOOL_TASK_INDEX := 16
 const FINAL_TEACHER_TASK_INDEX := 17
-# Kept for manual-save compatibility with the retired Forest wrapper scene.
+# Kept as a legacy identifier for manual-save migration. This path is never
+# loaded as a playable scene; old saves are normalized to the shared City map.
 const DEEPEST_FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 
 const DEEP_FOREST_BANDIT_IDS: Array[String] = [
@@ -103,7 +104,6 @@ const PLAYER_SCENES := {
 const LARGE_HEART_SCENES := {
 	"res://scenes/oak_leaf_village.tscn": true,
 	"res://scenes/city_of_knowledge.tscn": true,
-	DEEPEST_FOREST_PATH: true,
 	"res://scenes/2nd Village/Pinehill Village.tscn": true
 }
 
@@ -112,14 +112,17 @@ const LEGACY_SCENE_ALIASES := {
 	"res://world/player_house_outside_door.tscn": "res://scenes/oak_leaf_village.tscn",
 	"res://world/teacher_house_outside_door.tscn": "res://scenes/oak_leaf_village.tscn",
 	"res://world/npc_house_outside_door.tscn": "res://scenes/oak_leaf_village.tscn",
-	"res://scenes/pinehill_village.tscn": "res://scenes/2nd Village/Pinehill Village.tscn"
+	"res://scenes/pinehill_village.tscn": "res://scenes/2nd Village/Pinehill Village.tscn",
+	# The retired wrapper used the City map as a backdrop. Redirect its saves
+	# into the canonical City scene while preserving the saved position and
+	# progression flags.
+	DEEPEST_FOREST_PATH: "res://scenes/city_of_knowledge.tscn"
 }
 
 const SCENE_FALLBACK_SPAWNS := {
 	"res://interiors/player_house.tscn": Vector2(297, 45),
 	"res://scenes/oak_leaf_village.tscn": Vector2(682, 286),
 	"res://scenes/city_of_knowledge.tscn": Vector2(608, 272),
-	DEEPEST_FOREST_PATH: Vector2(80, 500),
 	"res://scenes/2nd Village/Pinehill Village.tscn": Vector2(176, 368)
 }
 
@@ -1559,14 +1562,6 @@ func handle_scene_entered(scene_path: String) -> void:
 		quest_changed.emit(current_quest)
 		save_checkpoint()
 		_start_current_task_activity_after_transition(previous_scene_task_index)
-	elif current_scene_path == DEEPEST_FOREST_PATH \
-			and city_school_stage_complete and current_task_index == CITY_NEXT_PATH_TASK_INDEX:
-		current_task_index = DEEP_FOREST_BANDIT_TASK_INDEX
-		current_quest = get_current_quest_text()
-		quest_changed.emit(current_quest)
-		save_checkpoint()
-		_start_current_task_activity_after_transition(previous_scene_task_index)
-
 func get_player_scene_path() -> String:
 	return PLAYER_SCENES.get(gender, PLAYER_SCENES["male"])
 
@@ -2129,8 +2124,6 @@ func _safe_respawn_marker_for_scene(scene_path: String) -> String:
 			return "PlayerHouseExitSpawn"
 		"res://scenes/city_of_knowledge.tscn":
 			return "spawn_from_pinehill"
-		DEEPEST_FOREST_PATH:
-			return "spawn_from_city"
 		"res://scenes/2nd Village/Pinehill Village.tscn":
 			return "spawn_from_city"
 	return ""
@@ -2175,7 +2168,6 @@ func _game_over_map_name(scene_path: String) -> String:
 		"res://interiors/npc_house.tscn": return "NPC House"
 		"res://scenes/oak_leaf_village.tscn": return "Oakleaf Village"
 		"res://scenes/city_of_knowledge.tscn": return "City of Knowledge"
-		DEEPEST_FOREST_PATH: return "Deepest Forest"
 		"res://scenes/2nd Village/Pinehill Village.tscn": return "Pinehill Village"
 	return scene_path
 

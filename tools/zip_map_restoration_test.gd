@@ -2,7 +2,6 @@ extends "res://tools/preservation_restoration_test.gd"
 
 const ORIGINAL_TEXTURE := "res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2.png"
 const MAPS := [OAK, CITY, "res://scenes/2nd Village/Pinehill Village.tscn"]
-const FOREST := "res://scenes/deepest_forest_path.tscn"
 var observations: Dictionary = {}
 
 func _run() -> void:
@@ -94,8 +93,6 @@ func _doors() -> void:
 	var routes := [
 		{"id": "city_to_pinehill", "source": CITY, "door": "City-of-knowlwedge-to-PineHill", "target": "res://scenes/2nd Village/Pinehill Village.tscn"},
 		{"id": "pinehill_to_city", "source": "res://scenes/2nd Village/Pinehill Village.tscn", "door": "Pinehill-to-City-of-Knowledge", "target": CITY},
-		{"id": "legacy_forest_to_pinehill", "source": FOREST, "door": "DeepestForestToPinehill", "target": "res://scenes/2nd Village/Pinehill Village.tscn"},
-		{"id": "legacy_forest_to_city", "source": FOREST, "door": "DeepestForestToCity", "target": CITY},
 	]
 	for route in routes:
 		var source_path := String(route["source"])
@@ -130,18 +127,9 @@ func _prepare_canonical_route(route_id: String) -> void:
 			state.city_next_path_unlocked = true
 			state.pinehill_unlocked = true
 			state.current_task_index = state.PINEHILL_ARRIVAL_TASK_INDEX
-		"legacy_forest_to_pinehill":
-			# The gameplay flow suite separately proves the five-bandit gate;
-			# this fixture begins at its unlocked side to exercise the real door.
-			state.pinehill_unlocked = true
-			state.current_task_index = state.PINEHILL_ARRIVAL_TASK_INDEX
 		"pinehill_to_city":
 			state.city_of_knowledge_unlocked = true
 			state.current_task_index = state.PINEHILL_ARRIVAL_TASK_INDEX
-		"legacy_forest_to_city":
-			state.wizard_defeated = true
-			state.return_to_city_stage = 2
-			state.current_task_index = state.RETURN_CITY_TASK_INDEX
 
 func _presentation() -> void:
 	var original_window_size := get_window().size
@@ -219,7 +207,7 @@ func _stage_notification_runtime() -> void:
 	var stage_cases := [
 		{"id": "oakleaf-task-trigger", "path": OAK, "kind": "task_trigger"},
 		{"id": "city-objective-update", "path": CITY, "kind": "quest_updated"},
-		{"id": "forest-objective-update", "path": FOREST, "kind": "quest_updated"},
+		{"id": "city-forest-objective-update", "path": CITY, "kind": "quest_updated"},
 		{"id": "pinehill-objective-update", "path": "res://scenes/2nd Village/Pinehill Village.tscn", "kind": "quest_updated"},
 	]
 	for stage_case in stage_cases:

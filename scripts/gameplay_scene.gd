@@ -31,8 +31,6 @@ func _ready() -> void:
 		var actor_state: Array[String] = []
 		for actor_name in ["Bandits", "Bandits2", "Bandits3", "Bandits4", "Bandits5"]:
 			var actor := get_node_or_null(actor_name) as Node2D
-			if actor == null:
-				actor = get_node_or_null("ForestBackdrop/" + actor_name) as Node2D
 			actor_state.append("%s:%s" % [actor_name, str(actor.is_visible_in_tree()) if actor != null else "missing"])
 		print("F5_FLOW_TRACE gameplay_ready scene=%s node=%s current=%s task=%d quest=%s actors=%s" % [
 			active_scene_path,

@@ -6,7 +6,6 @@ extends Node
 
 const PROFILE := {"player_name": "Continuation QA Fixture", "gender": "male", "grade_level": "Grade 1", "student_id": "88002021", "parent_id": "880202"}
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
-const FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL_PATH := "res://scenes/2nd Village/Pinehill Village.tscn"
 const APPROVED_FOREST_BANDIT_POSITIONS := [
 	Vector2(114, 487),
@@ -49,8 +48,8 @@ func _run() -> void:
 	if remote != null:
 		remote.set("_pending_file", qa_directory + "/pending.json")
 
-	_expect(ResourceLoader.exists("res://scenes/deepest_forest_path.tscn"), "Deepest Forest scene exists")
-	_expect(ResourceLoader.exists("res://Door-Navigations-Scene2Scene/deepest_forest_to_pinehill.tscn"), "Deepest Forest exit door exists")
+	_expect(not ResourceLoader.exists("res://scenes/deepest_forest_path.tscn"), "Separate Deepest Forest scene is not part of the playable route")
+	_expect(not ResourceLoader.exists("res://Door-Navigations-Scene2Scene/deepest_forest_to_pinehill.tscn") and not ResourceLoader.exists("res://Door-Navigations-Scene2Scene/deepest_forest_to_city.tscn"), "Separate Forest transition scenes are removed")
 	_expect(ResourceLoader.exists("res://scenes/2nd Village/Pinehill Village.tscn"), "canonical Pinehill scene exists")
 	_expect(not ResourceLoader.exists("res://scenes/pinehill_village.tscn"), "Only the canonical Pinehill scene remains; legacy saves normalize through GameState")
 	_expect(ResourceLoader.exists("res://Door-Navigations-Scene2Scene/city_of_knowlwedge_to_pine_hill.tscn"), "legacy typo door remains present")
@@ -846,29 +845,6 @@ func _check_forest_routes() -> void:
 		GameState.current_task_index = previous_task_index
 	if city_scene != null:
 		city_scene.free()
-	var previous_wrapper_task_index := GameState.current_task_index
-	var previous_wrapper_defeats := GameState.deep_forest_defeated_bandits.duplicate(true)
-	GameState.current_task_index = GameState.DEEP_FOREST_BANDIT_TASK_INDEX
-	for encounter_id in GameState.DEEP_FOREST_BANDIT_IDS:
-		GameState.deep_forest_defeated_bandits[encounter_id] = false
-	var forest := (load("res://scenes/deepest_forest_path.tscn") as PackedScene).instantiate() as Node2D
-	_expect(forest != null, "Legacy Forest wrapper instantiates for save compatibility")
-	if forest != null:
-		ROUTER.install_for_scene(forest, ROUTER)
-		for index in 5:
-			var actor_path := "ForestBackdrop/Bandits" if index == 0 else "ForestBackdrop/Bandits%d" % (index + 1)
-			var actor := forest.get_node_or_null(actor_path)
-			var component := actor.get_node_or_null("ProgressionBattleEncounter") if actor != null else null
-			_expect(component != null, "legacy deep forest trigger %d remains load-compatible" % (index + 1))
-			if component != null:
-				var route: Dictionary = component.get("_route")
-				_expect(String(route.get("encounter_id", "")) == "deep_forest_bandits%d" % (index + 1), "legacy deep forest ID %d is stable" % (index + 1))
-				_expect(String(route.get("difficulty", "")) == "Normal", "legacy deep forest difficulty is Normal")
-				GameState.gender = "male"
-				_expect(String(component.call("_battle_scene_path")) == "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "legacy deep forest male route %d" % (index + 1))
-				GameState.gender = "female"
-				_expect(String(component.call("_battle_scene_path")) == "res://Battle/Battle-Enemy/female_vs_bandit.tscn", "legacy deep forest female route %d" % (index + 1))
-		forest.free()
 	GameState.current_task_index = original_task_index
 	GameState.deep_forest_defeated_bandits = original_defeat_state
 
@@ -963,8 +939,8 @@ func _check_state_and_save_load() -> void:
 	state.complete_city_school_teacher()
 	state.handle_scene_entered(CITY_PATH)
 	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "Serializer fixture reaches the Forest stage through the canonical School return boundary")
-	state.handle_scene_entered(FOREST_PATH)
-	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "Legacy Deepest Forest save scene remains load-compatible without advancing new City progression")
+	state.handle_scene_entered(GameState.DEEPEST_FOREST_PATH)
+	_expect(state.current_scene_path == CITY_PATH and state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "Legacy Deepest Forest save scene normalizes to City without advancing progression")
 	for encounter_id in state.DEEP_FOREST_BANDIT_IDS:
 		state.record_progression_encounter_victory(encounter_id, false)
 	_expect(state.pinehill_unlocked and state.current_task_index == state.PINEHILL_ARRIVAL_TASK_INDEX, "all five deep-forest victories unlock Pinehill")

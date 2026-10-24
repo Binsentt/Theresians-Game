@@ -109,7 +109,7 @@ func _run() -> void:
 	GameState.player_position = Vector2(999, 999)
 	var selected: Dictionary = GameState.load_save(first_slot, false)
 	_expect(not selected.is_empty(), "selected older manual slot loads successfully")
-	_expect(GameState.current_scene_path == GameState.DEEPEST_FOREST_PATH and GameState.current_map == "Deepest Forest", "selected slot restores its exact saved scene/map")
+	_expect(GameState.current_scene_path == "res://scenes/city_of_knowledge.tscn" and GameState.current_map == "Deepest Forest", "selected legacy Forest slot restores into the shared City scene while preserving its semantic map label")
 	_expect(GameState.player_position.is_equal_approx(Vector2(113, 227)), "selected slot restores its exact saved position")
 	_expect(GameState.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX and GameState.current_quest == String(first_snapshot.get("current_quest", "")), "selected slot restores its exact task and quest")
 	_expect(GameState.current_lives == 2 and GameState.score == 41 and GameState.correct_answers == 5 and GameState.incorrect_answers == 3 and GameState.total_questions == 8, "selected slot restores its saved lives and answer/score counters")

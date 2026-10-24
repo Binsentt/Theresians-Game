@@ -4,7 +4,6 @@ extends Node
 ## City, Pinehill, and School scenes. No scene is entered and no save is made.
 
 const CITY := "res://scenes/city_of_knowledge.tscn"
-const LEGACY_FOREST_WRAPPER := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL := "res://scenes/2nd Village/Pinehill Village.tscn"
 const ENCOUNTER_SCRIPT := preload("res://scripts/progression_battle_encounter.gd")
 const OLD_MAN_SCRIPT := preload("res://scripts/progression_old_man_interaction.gd")
@@ -54,15 +53,6 @@ func _run() -> void:
 		for index in expected_city_ids.size():
 			_check_route(city, "Bandits" if index == 0 else "Bandits%d" % (index + 1), expected_city_ids[index], "Normal", NORMAL_MALE, NORMAL_FEMALE)
 		city.free()
-
-	var forest := (load(LEGACY_FOREST_WRAPPER) as PackedScene).instantiate() as Node2D
-	_expect(forest != null, "legacy Forest wrapper remains load-compatible")
-	if forest != null:
-		ENCOUNTER_SCRIPT.install_for_scene(forest, ENCOUNTER_SCRIPT)
-		var expected_forest_ids := ["deep_forest_bandits1", "deep_forest_bandits2", "deep_forest_bandits3", "deep_forest_bandits4", "deep_forest_bandits5"]
-		for index in expected_forest_ids.size():
-			_check_route(forest, "ForestBackdrop/Bandits" if index == 0 else "ForestBackdrop/Bandits%d" % (index + 1), expected_forest_ids[index], "Normal", NORMAL_MALE, NORMAL_FEMALE)
-		forest.free()
 
 	var pinehill := (load(PINEHILL) as PackedScene).instantiate() as Node2D
 	_expect(pinehill != null, "canonical Pinehill instantiates")

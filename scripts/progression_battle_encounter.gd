@@ -31,7 +31,6 @@ const WIZARD_REVELATION_DIALOGUE: Array[String] = [
 	"Wizard: If you want to become the greatest Math Champion, return to the School and face your final challenge.",
 ]
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
-const DEEPEST_FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL_PATH := "res://scenes/2nd Village/Pinehill Village.tscn"
 
 const ROUTES := {
@@ -41,15 +40,6 @@ const ROUTES := {
 		"Bandits3": {"encounter_id": "deep_forest_bandits3", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits4": {"encounter_id": "deep_forest_bandits4", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 		"Bandits5": {"encounter_id": "deep_forest_bandits5", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
-	},
-	# Compatibility route for manual saves created while the Forest wrapper was
-	# active. New gameplay checkpoints and doors never enter this scene.
-	DEEPEST_FOREST_PATH: {
-		"Bandits": {"node_path": "ForestBackdrop/Bandits", "encounter_id": "deep_forest_bandits1", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
-		"Bandits2": {"node_path": "ForestBackdrop/Bandits2", "encounter_id": "deep_forest_bandits2", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
-		"Bandits3": {"node_path": "ForestBackdrop/Bandits3", "encounter_id": "deep_forest_bandits3", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
-		"Bandits4": {"node_path": "ForestBackdrop/Bandits4", "encounter_id": "deep_forest_bandits4", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
-		"Bandits5": {"node_path": "ForestBackdrop/Bandits5", "encounter_id": "deep_forest_bandits5", "difficulty": "Normal", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},
 	},
 	PINEHILL_PATH: {
 		"Bandits": {"encounter_id": "pinehill_bandits1", "difficulty": "Difficult", "male_scene": "res://Battle/Battle-Enemy/male_vs_bandit.tscn", "female_scene": "res://Battle/Battle-Enemy/female_vs_bandit.tscn"},

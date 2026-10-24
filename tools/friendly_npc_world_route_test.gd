@@ -5,7 +5,6 @@ extends Node
 ## No network calls or gameplay writes are performed.
 
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
-const FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL_PATH := "res://scenes/2nd Village/Pinehill Village.tscn"
 const OAKLEAF_PATH := "res://scenes/oak_leaf_village.tscn"
 const DEFAULT_GREETING := "Hello traveler! Welcome to our town."
@@ -168,10 +167,9 @@ func _check_pinehill_dialogue() -> void:
 
 func _check_routes() -> void:
 	var city := (load(CITY_PATH) as PackedScene).instantiate() as Node2D
-	var forest := (load(FOREST_PATH) as PackedScene).instantiate() as Node2D
 	var pinehill := (load(PINEHILL_PATH) as PackedScene).instantiate() as Node2D
-	_expect(city != null and forest != null and pinehill != null, "world route scenes instantiate")
-	if city == null or forest == null or pinehill == null:
+	_expect(city != null and pinehill != null, "canonical world route scenes instantiate")
+	if city == null or pinehill == null:
 		return
 
 	var city_gate := city.get_node_or_null("City-of-knowlwedge-to-PineHill")
@@ -180,14 +178,6 @@ func _check_routes() -> void:
 	_expect(city.get_node_or_null("spawn_from_pinehill") != null, "Pinehill returns to the shared City/Forest map marker")
 	_expect(city.get_node_or_null("spawn_from_deepest_forest") != null, "Legacy wrapper saves retain their City compatibility marker")
 
-	var forest_city_gate := forest.get_node_or_null("DeepestForestToCity")
-	_expect(forest_city_gate != null and String(forest_city_gate.get("destination_scene_path")) == CITY_PATH, "Legacy Forest-wrapper exit returns to City")
-	_expect(forest_city_gate != null and String(forest_city_gate.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Legacy wrapper exit uses its City compatibility marker")
-	var forest_pine_gate := forest.get_node_or_null("DeepestForestToPinehill")
-	_expect(forest_pine_gate != null and String(forest_pine_gate.get("destination_scene_path")) == PINEHILL_PATH, "Legacy Forest-wrapper exit enters Pinehill")
-	_expect(forest_pine_gate != null and String(forest_pine_gate.get("destination_spawn_marker_name")) == "spawn_from_deepest_forest", "Legacy wrapper exit uses the Pinehill arrival marker")
-	_expect(forest.get_node_or_null("spawn_from_city") != null, "Legacy wrapper keeps its City-side marker")
-
 	var pine_gate := pinehill.get_node_or_null("Pinehill-to-City-of-Knowledge")
 	_expect(pine_gate != null and String(pine_gate.get("destination_scene_path")) == CITY_PATH, "Pinehill returns directly to the shared City/Forest map")
 	_expect(pine_gate != null and String(pine_gate.get("destination_spawn_marker_name")) == "spawn_from_pinehill", "Pinehill return uses the forest-side City marker")
@@ -195,5 +185,4 @@ func _check_routes() -> void:
 	_expect(pinehill.get_node_or_null("Pinehill-to-Deepest-Forest") == null, "Pinehill does not expose a misleading active Forest route trigger")
 
 	city.free()
-	forest.free()
 	pinehill.free()

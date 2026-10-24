@@ -30,7 +30,6 @@ const EXPECTED_WIZARD_REVELATION: Array[String] = [
 	"Wizard: If you want to become the greatest Math Champion, return to the School and face your final challenge.",
 ]
 const CITY := "res://scenes/city_of_knowledge.tscn"
-const FOREST := "res://scenes/deepest_forest_path.tscn"
 const PINEHILL := "res://scenes/2nd Village/Pinehill Village.tscn"
 const SCHOOL := "res://interiors/school.tscn"
 const COMPLETION_SCREEN_PATH := "res://ui/journey_completion_screen.tscn"
@@ -330,11 +329,11 @@ func _test_return_and_retry_flow() -> void:
 	_state.apply_save_data(post_wizard_save, false)
 	_expect(_state.wizard_defeated and _state.current_task_index == _state.RETURN_CITY_TASK_INDEX, "Wizard victory save/load retains the return quest")
 
-	_state.handle_scene_entered(FOREST)
+	_state.handle_scene_entered(GameState.DEEPEST_FOREST_PATH)
 	var forest_save: Dictionary = _state.build_save_data()
 	_state.start_new_game(PROFILE, false)
 	_state.apply_save_data(forest_save, false)
-	_expect(_state.current_task_index == _state.RETURN_CITY_TASK_INDEX and _state.wizard_defeated, "Forest return save/load keeps the City objective without replay")
+	_expect(_state.current_scene_path == CITY and _state.current_task_index == _state.RETURN_CITY_TASK_INDEX and _state.wizard_defeated, "Legacy Forest save/load normalizes to City without replay")
 	for encounter_id in _state.DEEP_FOREST_BANDIT_IDS:
 		_expect(_state.is_progression_encounter_defeated(encounter_id), "Cleared Forest encounter remains defeated: " + encounter_id)
 	for encounter_id in _state.PINEHILL_BANDIT_IDS:
