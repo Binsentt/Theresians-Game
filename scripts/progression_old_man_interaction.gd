@@ -4,12 +4,13 @@ extends Node
 ## the source-supported quest conversation and state transition; it does not
 ## create another NPC or dialogue surface.
 
-const INTERACTION_RANGE := 32.0
+const INTERACTION_RANGE := 24.0
 const INTERACTION_PRIORITY := 20
 const WIZARD_THANKS_TRIGGER_RANGE := 112.0
-const WIZARD_THANKS_STOP_DISTANCE := 30.0
-const WIZARD_THANKS_WALK_SPEED := 42.0
-const WIZARD_THANKS_APPROACH_TIMEOUT := 3.0
+const WIZARD_THANKS_STOP_DISTANCE := 24.0
+const WIZARD_THANKS_WALK_SPEED := 56.0
+const WIZARD_THANKS_APPROACH_TIMEOUT := 4.5
+const WIZARD_THANKS_ARRIVAL_EPSILON := 2.0
 const DIALOGUE_OVERLAY := preload("res://ui/progression_dialogue_overlay.tscn")
 const DIALOGUE_LINES: Array[String] = [
 	"Old Lady: You must be the young traveler from the City of Knowledge.",
@@ -116,15 +117,12 @@ func _begin_wizard_thanks_event(player: Node2D) -> void:
 		return
 	var world := _actor.get_parent()
 	var first := world.get_node_or_null("WizardThanksPath/Waypoint1") as Marker2D
-	var meeting := world.get_node_or_null("WizardThanksPath/MeetingPoint") as Marker2D
-	if first == null or meeting == null:
+	if first == null:
 		push_warning("Pinehill Old Lady road waypoints are missing; thank-you event will retry safely.")
 		_wizard_thanks_cooldown = 1.0
 		return
-	_wizard_thanks_route.clear()
-	if _actor.global_position.distance_to(first.global_position) > 2.0:
-		_wizard_thanks_route.append(first.global_position)
-	_wizard_thanks_route.append(meeting.global_position)
+	_actor.visible = true
+	_wizard_thanks_route = _build_wizard_thanks_route(first.global_position, player.global_position)
 	_wizard_thanks_waypoint_index = 0
 	_active = true
 	_wizard_thanks_approaching = true
@@ -133,13 +131,40 @@ func _begin_wizard_thanks_event(player: Node2D) -> void:
 	GameState.push_mode(GameState.GameMode.CUTSCENE)
 
 
+func _build_wizard_thanks_route(road_waypoint: Vector2, player_position: Vector2) -> Array[Vector2]:
+	var route: Array[Vector2] = []
+	if _actor.global_position.distance_to(road_waypoint) > 2.0:
+		route.append(road_waypoint)
+	var stop_position := _get_wizard_thanks_stop_position(road_waypoint, player_position)
+	# Preserve cardinal walking from the authored road waypoint while allowing the
+	# last segment to end at the player's actual return location.
+	if not is_equal_approx(road_waypoint.y, stop_position.y):
+		route.append(Vector2(road_waypoint.x, stop_position.y))
+	if route.is_empty() or route.back().distance_to(stop_position) > 0.1:
+		route.append(stop_position)
+	return route
+
+
+func _get_wizard_thanks_stop_position(from_position: Vector2, player_position: Vector2) -> Vector2:
+	var toward_player := player_position - from_position
+	if toward_player.length() <= WIZARD_THANKS_STOP_DISTANCE:
+		return from_position
+	var axis := Vector2.ZERO
+	if absf(toward_player.x) >= absf(toward_player.y):
+		axis.x = signf(toward_player.x)
+	else:
+		axis.y = signf(toward_player.y)
+	return player_position - axis * WIZARD_THANKS_STOP_DISTANCE
+
+
 func _advance_wizard_thanks_approach(delta: float) -> void:
 	if _actor == null or not is_instance_valid(_wizard_thanks_player):
 		_finish_wizard_thanks_event(false)
 		return
 	_wizard_thanks_elapsed += delta
 	while _wizard_thanks_waypoint_index < _wizard_thanks_route.size() \
-			and _actor.global_position.distance_to(_wizard_thanks_route[_wizard_thanks_waypoint_index]) <= 0.1:
+			and _actor.global_position.distance_to(_wizard_thanks_route[_wizard_thanks_waypoint_index]) <= WIZARD_THANKS_ARRIVAL_EPSILON:
+		_actor.global_position = _wizard_thanks_route[_wizard_thanks_waypoint_index]
 		_wizard_thanks_waypoint_index += 1
 	if _wizard_thanks_waypoint_index >= _wizard_thanks_route.size():
 		_finish_wizard_thanks_approach()

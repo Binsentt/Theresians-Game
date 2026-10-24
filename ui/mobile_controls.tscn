@@ -1,73 +1,73 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cu12g1e1kmy7y"]
 
-[ext_resource type="Script" path="res://scripts/mobile_controls.gd" id="1_script"]
-[ext_resource type="FontFile" path="res://Font/PressStart2P.ttf" id="2_font"]
-[ext_resource type="Script" path="res://scripts/touch_hold_button.gd" id="3_touch_hold_button"]
+[ext_resource type="Script" uid="uid://cmvbq1djj53ex" path="res://scripts/mobile_controls.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://e1m7150gckir" path="res://Font/PressStart2P.ttf" id="2_font"]
+[ext_resource type="Script" uid="uid://qjr1v7ytd2nl" path="res://scripts/touch_hold_button.gd" id="3_touch_hold_button"]
 
 [sub_resource type="StyleBoxFlat" id="1_panel_style"]
 bg_color = Color(0.145098, 0.0705882, 0.0313726, 0.82)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_right = 24
-corner_radius_bottom_left = 24
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
 border_color = Color(0.847059, 0.65098, 0.368627, 0.95)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
 
 [sub_resource type="StyleBoxFlat" id="2_button_style"]
 bg_color = Color(0.321569, 0.152941, 0.0705882, 0.96)
-corner_radius_top_left = 18
-corner_radius_top_right = 18
-corner_radius_bottom_right = 18
-corner_radius_bottom_left = 18
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.913725, 0.717647, 0.423529, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
 
 [sub_resource type="StyleBoxFlat" id="3_button_pressed"]
 bg_color = Color(0.478431, 0.25098, 0.105882, 1)
-corner_radius_top_left = 18
-corner_radius_top_right = 18
-corner_radius_bottom_right = 18
-corner_radius_bottom_left = 18
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(1, 0.858824, 0.568627, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
 
 [sub_resource type="StyleBoxFlat" id="4_action_button_style"]
 bg_color = Color(0.321569, 0.152941, 0.0705882, 0.96)
-corner_radius_top_left = 56
-corner_radius_top_right = 56
-corner_radius_bottom_right = 56
-corner_radius_bottom_left = 56
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
 border_color = Color(0.913725, 0.717647, 0.423529, 1)
-
-[sub_resource type="StyleBoxFlat" id="5_action_button_pressed"]
-bg_color = Color(0.478431, 0.25098, 0.105882, 1)
 corner_radius_top_left = 56
 corner_radius_top_right = 56
 corner_radius_bottom_right = 56
 corner_radius_bottom_left = 56
+
+[sub_resource type="StyleBoxFlat" id="5_action_button_pressed"]
+bg_color = Color(0.478431, 0.25098, 0.105882, 1)
 border_width_left = 3
 border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
 border_color = Color(1, 0.858824, 0.568627, 1)
+corner_radius_top_left = 56
+corner_radius_top_right = 56
+corner_radius_bottom_right = 56
+corner_radius_bottom_left = 56
 
-[node name="MobileControls" type="CanvasLayer"]
+[node name="MobileControls" type="CanvasLayer" unique_id=504749002]
 script = ExtResource("1_script")
 
-[node name="Root" type="Control" parent="."]
+[node name="Root" type="Control" parent="." unique_id=1434650466]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -76,34 +76,35 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="MovementMargin" type="MarginContainer" parent="Root"]
-anchors_preset = 3
+[node name="MovementMargin" type="MarginContainer" parent="Root" unique_id=629516091]
+layout_mode = 1
+anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = -300.0
-offset_right = 272.0
-offset_bottom = -20.0
+offset_left = 56.0
+offset_top = -330.0
+offset_right = 286.0
+offset_bottom = -74.0
 grow_vertical = 0
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="MovementPanel" type="PanelContainer" parent="Root/MovementMargin"]
+[node name="MovementPanel" type="PanelContainer" parent="Root/MovementMargin" unique_id=210260676]
 layout_mode = 2
 theme_override_styles/panel = SubResource("1_panel_style")
 
-[node name="MovementBox" type="VBoxContainer" parent="Root/MovementMargin/MovementPanel"]
+[node name="MovementBox" type="VBoxContainer" parent="Root/MovementMargin/MovementPanel" unique_id=506590944]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="TopRow" type="HBoxContainer" parent="Root/MovementMargin/MovementPanel/MovementBox"]
+[node name="TopRow" type="HBoxContainer" parent="Root/MovementMargin/MovementPanel/MovementBox" unique_id=1575310136]
 layout_mode = 2
 alignment = 1
 
-[node name="UpButton" type="Button" parent="Root/MovementMargin/MovementPanel/MovementBox/TopRow"]
-custom_minimum_size = Vector2(76, 76)
+[node name="UpButton" type="Button" parent="Root/MovementMargin/MovementPanel/MovementBox/TopRow" unique_id=1237674544]
+custom_minimum_size = Vector2(70, 70)
 layout_mode = 2
 focus_mode = 0
 theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
@@ -117,12 +118,12 @@ theme_override_styles/hover = SubResource("3_button_pressed")
 text = "▲"
 script = ExtResource("3_touch_hold_button")
 
-[node name="MiddleRow" type="HBoxContainer" parent="Root/MovementMargin/MovementPanel/MovementBox"]
+[node name="MiddleRow" type="HBoxContainer" parent="Root/MovementMargin/MovementPanel/MovementBox" unique_id=129177186]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="LeftButton" type="Button" parent="Root/MovementMargin/MovementPanel/MovementBox/MiddleRow"]
-custom_minimum_size = Vector2(76, 76)
+[node name="LeftButton" type="Button" parent="Root/MovementMargin/MovementPanel/MovementBox/MiddleRow" unique_id=707827696]
+custom_minimum_size = Vector2(65, 65)
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
@@ -137,12 +138,12 @@ theme_override_styles/hover = SubResource("3_button_pressed")
 text = "◀"
 script = ExtResource("3_touch_hold_button")
 
-[node name="CenterSpacer" type="Control" parent="Root/MovementMargin/MovementPanel/MovementBox/MiddleRow"]
-custom_minimum_size = Vector2(30, 76)
+[node name="CenterSpacer" type="Control" parent="Root/MovementMargin/MovementPanel/MovementBox/MiddleRow" unique_id=22683657]
+custom_minimum_size = Vector2(25, 70)
 layout_mode = 2
 
-[node name="RightButton" type="Button" parent="Root/MovementMargin/MovementPanel/MovementBox/MiddleRow"]
-custom_minimum_size = Vector2(76, 76)
+[node name="RightButton" type="Button" parent="Root/MovementMargin/MovementPanel/MovementBox/MiddleRow" unique_id=1896097769]
+custom_minimum_size = Vector2(70, 70)
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
@@ -157,12 +158,12 @@ theme_override_styles/hover = SubResource("3_button_pressed")
 text = "▶"
 script = ExtResource("3_touch_hold_button")
 
-[node name="BottomRow" type="HBoxContainer" parent="Root/MovementMargin/MovementPanel/MovementBox"]
+[node name="BottomRow" type="HBoxContainer" parent="Root/MovementMargin/MovementPanel/MovementBox" unique_id=1009466165]
 layout_mode = 2
 alignment = 1
 
-[node name="DownButton" type="Button" parent="Root/MovementMargin/MovementPanel/MovementBox/BottomRow"]
-custom_minimum_size = Vector2(76, 76)
+[node name="DownButton" type="Button" parent="Root/MovementMargin/MovementPanel/MovementBox/BottomRow" unique_id=748696348]
+custom_minimum_size = Vector2(70, 70)
 layout_mode = 2
 focus_mode = 0
 theme_override_colors/font_color = Color(0.94902, 0.823529, 0.443137, 1)
@@ -176,16 +177,17 @@ theme_override_styles/hover = SubResource("3_button_pressed")
 text = "▼"
 script = ExtResource("3_touch_hold_button")
 
-[node name="ActionMargin" type="MarginContainer" parent="Root"]
+[node name="ActionMargin" type="MarginContainer" parent="Root" unique_id=748351548]
+layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -232.0
-offset_top = -192.0
-offset_right = -20.0
-offset_bottom = -20.0
+offset_left = -262.0
+offset_top = -262.0
+offset_right = -62.0
+offset_bottom = -102.0
 grow_horizontal = 0
 grow_vertical = 0
 theme_override_constants/margin_left = 10
@@ -193,11 +195,11 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="ActionPanel" type="PanelContainer" parent="Root/ActionMargin"]
+[node name="ActionPanel" type="PanelContainer" parent="Root/ActionMargin" unique_id=1273669656]
 layout_mode = 2
 theme_override_styles/panel = SubResource("1_panel_style")
 
-[node name="ActionButton" type="Button" parent="Root/ActionMargin/ActionPanel"]
+[node name="ActionButton" type="Button" parent="Root/ActionMargin/ActionPanel" unique_id=277743831]
 custom_minimum_size = Vector2(112, 112)
 layout_mode = 2
 focus_mode = 0

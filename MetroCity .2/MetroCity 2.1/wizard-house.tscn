@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://c2aqclsivqh1m"]
 
-[ext_resource type="Texture2D" uid="uid://b6ox1c8myktnq" path="res://MetroCity .2/MetroCity 2.1/wizard house.png" id="1_1k1sq"]
+[ext_resource type="Texture2D" uid="uid://by4eh1ld566hi" path="res://MetroCity .2/MetroCity 2.1/wizard house.png" id="1_1k1sq"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wizard_house"]
 size = Vector2(92, 28)
@@ -10,8 +10,8 @@ position = Vector2(-3.8146973e-06, 0)
 scale = Vector2(0.12499999, 0.12500001)
 texture = ExtResource("1_1k1sq")
 
-[node name="HouseCollision" type="StaticBody2D" parent="."]
+[node name="HouseCollision" type="StaticBody2D" parent="." unique_id=2006631693]
 position = Vector2(0, 30)
 
-[node name="BlockerShape" type="CollisionShape2D" parent="HouseCollision"]
+[node name="BlockerShape" type="CollisionShape2D" parent="HouseCollision" unique_id=100671776]
 shape = SubResource("RectangleShape2D_wizard_house")

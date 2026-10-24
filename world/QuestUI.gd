@@ -8,6 +8,7 @@ signal dialogue_closed
 const JOURNEY_COMPLETION_SCENE := preload("res://ui/journey_completion_screen.tscn")
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
 const POST_COMPLETION_TEACHER_LINE := "Teacher: Congratulations, Math Champion. Keep practicing and keep learning."
+const BATTLE_TRANSITION := preload("res://scripts/battle_transition.gd")
 
 @onready var quest_text: Label = get_node_or_null("QuestText") as Label
 @onready var dialogue_panel: Control = get_node_or_null("../DialoguePanel") as Control
@@ -104,6 +105,9 @@ func show_completed_with_dialogue() -> void:
 		var battle_scene_path: String = current_task_data["next_scene"]
 		if GameState.gender == "female" and battle_scene_path == "res://Battle/Battle-Enemy/male_vs_bandit.tscn":
 			battle_scene_path = "res://Battle/Battle-Enemy/female_vs_bandit.tscn"
+		await BATTLE_TRANSITION.play(source_scene)
+		if not is_instance_valid(source_scene):
+			return
 		var battle_scene = load(battle_scene_path).instantiate()
 		# Original VS art uses viewport coordinates. Keep it outside the world's
 		# Camera2D transform while retaining the encounter world for its return.
@@ -187,6 +191,9 @@ func play_teacher_dialogue() -> void:
 		if source_scene == null:
 			return
 		var source_position := player.global_position if player != null else GameState.player_position
+		await BATTLE_TRANSITION.play(source_scene)
+		if not is_instance_valid(source_scene):
+			return
 		GameState.begin_encounter({
 			"encounter_id": String(final_task.get("encounter_id", "final_teacher")),
 			"source_scene_path": source_scene.scene_file_path,

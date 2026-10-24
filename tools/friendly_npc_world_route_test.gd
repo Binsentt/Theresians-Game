@@ -47,13 +47,7 @@ func _run() -> void:
 		"old_npc/Visual": "The path beyond the city leads to the Deepest Forest.",
 		"girl_npc/Visual": "I heard Pinehill Village is past the forest.",
 	}, "City")
-	_check_scene_dialogue(PINEHILL_PATH, {
-		"old_npc/Visual": "Pinehill is quiet, but the Wizard worries everyone.",
-		"male-npc/Visual": "Those guards protecting the Wizard are tough. Be ready.",
-		"girl_npc/Visual": "At night, strange lights shine near the Wizard's House.",
-		"villager-male/Visual": "If you're heading to the Wizard, prepare before you go.",
-		"villager-female/Visual": "The Old Lady knows more about the Wizard than anyone here.",
-	}, "Pinehill")
+	_check_pinehill_dialogue()
 
 	_check_routes()
 
@@ -106,6 +100,70 @@ func _unique_count(values: Array[String]) -> int:
 	for value in values:
 		unique[value] = true
 	return unique.size()
+
+
+func _check_pinehill_dialogue() -> void:
+	var packed := load(PINEHILL_PATH) as PackedScene
+	var scene := packed.instantiate() as Node2D if packed != null else null
+	_expect(scene != null, "Pinehill scene instantiates")
+	if scene == null:
+		return
+	var expected := {
+		"old_npc/Visual": {
+			"before": "Please help our village. The Wizard has brought so much trouble.",
+			"after": "Thank you, young champion. Pinehill is safe because of you.",
+		},
+		"male-npc/Visual": {
+			"before": "We need someone brave enough to defeat the Wizard!",
+			"after": "You did it! We can finally live peacefully again!",
+		},
+		"girl_npc/Visual": {
+			"before": "Help us, please! Everyone is scared!",
+			"after": "Thank youuu! You're our hero!",
+		},
+		"villager-male/Visual": {
+			"before": "The guards are dangerous, but the Wizard is even stronger.",
+			"after": "Welcome back, hero! You saved our village.",
+		},
+		"villager-female/Visual": {
+			"before": "Please save Pinehill. We're counting on you!",
+			"after": "Thank you for saving all of us. We'll never forget you!",
+		},
+	}
+	var original_wizard_defeated := bool(GameState.wizard_defeated)
+	var before_lines: Array[String] = []
+	var after_lines: Array[String] = []
+	for node_path in expected:
+		var node_path_string := String(node_path)
+		var target := scene.get_node_or_null(NodePath(node_path_string))
+		var values: Dictionary = expected[node_path]
+		_expect(target != null and target.has_method("interact") and target.has_method("_resolved_greeting_message"), "Pinehill " + node_path_string + " has the shared stateful greeting interaction")
+		_expect(target != null and String(target.get("greeting_before_wizard")).strip_edges() == String(values.before), "Pinehill " + node_path_string + " has the approved pre-Wizard line")
+		_expect(target != null and String(target.get("greeting_after_wizard")).strip_edges() == String(values.after), "Pinehill " + node_path_string + " has the approved post-Wizard line")
+		var sensor := scene.get_node_or_null(NodePath(node_path_string.get_base_dir() + "/InteractableArea"))
+		_expect(sensor != null, "Pinehill " + node_path_string + " retains its existing interaction sensor")
+	GameState.wizard_defeated = false
+	for node_path in expected:
+		var target := scene.get_node_or_null(NodePath(String(node_path)))
+		var before_expected_values: Dictionary = expected[node_path]
+		if target != null and target.has_method("_resolved_greeting_message"):
+			var resolved := String(target.call("_resolved_greeting_message"))
+			before_lines.append(resolved)
+			_expect(resolved == String(before_expected_values.get("before", "")), "Pinehill " + String(node_path) + " resolves its pre-Wizard line before Wizard victory")
+	GameState.wizard_defeated = true
+	for node_path in expected:
+		var target := scene.get_node_or_null(NodePath(String(node_path)))
+		var after_expected_values: Dictionary = expected[node_path]
+		if target != null and target.has_method("_resolved_greeting_message"):
+			var resolved := String(target.call("_resolved_greeting_message"))
+			after_lines.append(resolved)
+			_expect(resolved == String(after_expected_values.get("after", "")), "Pinehill " + String(node_path) + " resolves its gratitude line after Wizard victory")
+	GameState.wizard_defeated = original_wizard_defeated
+	_expect(before_lines.size() == expected.size() and before_lines.size() == _unique_count(before_lines), "Pinehill pre-Wizard civilian dialogue is available and distinct")
+	_expect(after_lines.size() == expected.size() and after_lines.size() == _unique_count(after_lines), "Pinehill post-Wizard civilian gratitude is available and distinct")
+	var old_lady := scene.get_node_or_null("old_adult_women")
+	_expect(old_lady != null and old_lady.get_node_or_null("Visual/InteractableArea") == null, "Pinehill Old Lady has no competing generic greeting sensor")
+	scene.free()
 
 
 func _check_routes() -> void:

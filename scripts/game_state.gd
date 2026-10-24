@@ -86,6 +86,12 @@ const PINEHILL_BANDIT_IDS: Array[String] = [
 	"pinehill_bandits3",
 	"pinehill_bandits4",
 ]
+const WIZARD_COMPLETION_NOTIFICATION: Dictionary = {
+	"type": "quest_completed",
+	"key": "quest:pinehill:wizard:complete",
+	"title": "Pinehill Wizard Completed!",
+	"description": "Return to the City of Knowledge.",
+}
 const RETURN_PATH_BANDIT_IDS: Array[String] = []
 const PROGRESSION_BANDIT_IDS: Array[String] = DEEP_FOREST_BANDIT_IDS + PINEHILL_BANDIT_IDS + RETURN_PATH_BANDIT_IDS
 
@@ -329,9 +335,7 @@ var tasks = [
 			"Teacher: You overcame every challenge and continued even when the problems became difficult.",
 			"Teacher: You proved how much you have learned.",
 			"Teacher: Your journey through Theresian's Quest is complete.",
-			"Teacher: You are now a Math Champion.",
-			"THERESIAN'S QUEST COMPLETE",
-			"Congratulations! You completed your Mathematics Adventure.",
+			"Teacher: Congratulations, Math Champion. Keep practicing and keep learning.",
 		]
 	},
 ]
@@ -817,6 +821,8 @@ func record_progression_encounter_victory(encounter_id: String, persist: bool = 
 	if current_task_index != previous_index:
 		_advance_progression_checkpoint(previous_index, current_task_index,
 			"quest:world:%s" % action, action.replace("_", " ").capitalize(), get_current_quest_text())
+		if action == "wizard_complete":
+			_notify_progress(WIZARD_COMPLETION_NOTIFICATION)
 	else:
 		current_quest = get_current_quest_text()
 		quest_changed.emit(current_quest)

@@ -2,7 +2,7 @@
 
 [ext_resource type="TileSet" uid="uid://blfr2o7myt12f" path="res://scenes/ground.tres" id="1_l0qlv"]
 [ext_resource type="Texture2D" uid="uid://hkqtwm2el64a" path="res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2.png" id="2_5pri7"]
-[ext_resource type="Texture2D" uid="uid://c0kmyteqca1tc" path="res://Village/MetroCIty/Tree-Sheet.png" id="3_g52ud"]
+[ext_resource type="Texture2D" uid="uid://bngsl10xx3h56" path="res://Village/MetroCIty/Tree-Sheet.png" id="3_g52ud"]
 [ext_resource type="PackedScene" uid="uid://dy3f1j5e6jfra" path="res://objects/Outside-Object/camp1.tscn" id="5_ek7v0"]
 [ext_resource type="TileSet" uid="uid://cirnhpjafjbwf" path="res://scenes/object.tres" id="5_mm5k6"]
 [ext_resource type="PackedScene" uid="uid://cibd7bacm38wr" path="res://objects/Outside-Object/campfire-1.tscn" id="6_prk0v"]
@@ -13,7 +13,7 @@
 [ext_resource type="PackedScene" uid="uid://bchvqlyv1f2er" path="res://houses/red-house-animation.tscn" id="10_0ed2w"]
 [ext_resource type="PackedScene" uid="uid://bwxigom58ucj" path="res://objects/Outside-Object/stone-1.tscn" id="11_g0j5d"]
 [ext_resource type="PackedScene" uid="uid://cbpfus553gqdn" path="res://objects/Outside-Object/stone-3.tscn" id="12_nvql0"]
-[ext_resource type="Texture2D" uid="uid://dou875gq64uhr" path="res://Village/MetroCIty/Tiles.png" id="13_i3rgc"]
+[ext_resource type="Texture2D" uid="uid://bj4edk25alilp" path="res://Village/MetroCIty/Tiles.png" id="13_i3rgc"]
 [ext_resource type="PackedScene" path="res://NPC/Npc/wandering_girl_npc.tscn" id="14_p2u0e"]
 [ext_resource type="PackedScene" path="res://NPC/Npc/wandering_male_npc.tscn" id="17_tibnn"]
 [ext_resource type="PackedScene" path="res://NPC/Npc/wandering_old_adult_women.tscn" id="18_l6lg6"]
@@ -24,12 +24,11 @@
 [ext_resource type="Script" uid="uid://cv4g5p3cow42t" path="res://scripts/gameplay_scene.gd" id="22_gameplay"]
 [ext_resource type="PackedScene" uid="uid://cmg5xxs65s5qy" path="res://NPC/Enemy/bandits.tscn" id="23_p077x"]
 [ext_resource type="PackedScene" uid="uid://b0bf0rsjkiju2" path="res://Door-Navigations-Scene2Scene/go_to_city_of_knowledge.tscn" id="24_eu74i"]
-[ext_resource type="Script" uid="uid://c0jg3gqbauv5" path="res://world/Task1.gd" id="24_task"]
 [ext_resource type="Script" uid="uid://mh36i4md0xaa" path="res://world/QuestUI.gd" id="25_quest"]
 [ext_resource type="PackedScene" uid="uid://busg8pr7d82nu" path="res://NPC/Enemy/boss_bandit.tscn" id="27_0v1wo"]
-[ext_resource type="Script" path="res://world/task_progress_trigger.gd" id="28_teacher_trigger"]
-[ext_resource type="Script" path="res://scripts/interactable_area.gd" id="29_interactable"]
-[ext_resource type="Script" uid="uid://taskdialogadapter" path="res://scripts/task_dialogue_adapter.gd" id="30_taskdialog"]
+[ext_resource type="Script" uid="uid://pmfq273v84r2" path="res://world/task_progress_trigger.gd" id="28_teacher_trigger"]
+[ext_resource type="Script" uid="uid://cstiw1fsianqb" path="res://scripts/interactable_area.gd" id="29_interactable"]
+[ext_resource type="Script" uid="uid://cw04oqlvnqcaw" path="res://scripts/task_dialogue_adapter.gd" id="30_taskdialog"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_p077x"]
 texture = ExtResource("2_5pri7")
@@ -255,27 +254,27 @@ size = Vector2(12, 10)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bvw5x"]
 size = Vector2(92.30762, 138.46143)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_task_trigger"]
-size = Vector2(14, 8)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_teacher_house_task_trigger"]
+size = Vector2(14, 14)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialogue_panel"]
-bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.96)
 content_margin_left = 18.0
 content_margin_top = 12.0
 content_margin_right = 18.0
 content_margin_bottom = 12.0
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+bg_color = Color(0.0431373, 0.0627451, 0.141176, 0.96)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.94902, 0.823529, 0.443137, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_teacher_house_task_trigger"]
-size = Vector2(40, 28)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_task_trigger"]
+size = Vector2(14, 8)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0v1wo"]
 size = Vector2(5, 81)
@@ -342,13 +341,13 @@ play_open_animation_before_transition = true
 animation_target_path = NodePath("..")
 
 [node name="PlayerHouseExitSpawn" type="Marker2D" parent="." unique_id=1016564453]
-position = Vector2(865, 164)
+position = Vector2(865, 137)
 
 [node name="TeacherHouseExitSpawn" type="Marker2D" parent="." unique_id=1016564455]
-position = Vector2(1136, 188)
+position = Vector2(1141, 174)
 
 [node name="NpcHouseExitSpawn" type="Marker2D" parent="." unique_id=1016564454]
-position = Vector2(952, 283)
+position = Vector2(957, 268)
 
 [node name="Teacher-House" parent="." unique_id=1180724948 instance=ExtResource("9_3tjxe")]
 y_sort_enabled = true
@@ -411,23 +410,23 @@ position = Vector2(832, 136)
 
 [node name="Sprite2D7" parent="." unique_id=2091222733 instance=ExtResource("12_nvql0")]
 y_sort_enabled = true
-position = Vector2(904, 176)
+position = Vector2(902, 195)
 
 [node name="Sprite2D8" parent="." unique_id=1344787298 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(944, 152)
+position = Vector2(943, 130)
 
 [node name="Sprite2D9" parent="." unique_id=233064509 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(952, 168)
+position = Vector2(945, 183)
 
 [node name="Sprite2D10" parent="." unique_id=1138602401 instance=ExtResource("12_nvql0")]
 y_sort_enabled = true
-position = Vector2(968, 104)
+position = Vector2(931, 86)
 
 [node name="Sprite2D11" parent="." unique_id=159262670 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(982.625, 88)
+position = Vector2(1016, 98)
 scale = Vector2(0.25, 0.5)
 
 [node name="Sprite2D12" parent="." unique_id=403941407 instance=ExtResource("11_g0j5d")]
@@ -436,23 +435,23 @@ position = Vector2(1040, 160)
 
 [node name="Sprite2D13" parent="." unique_id=1400941094 instance=ExtResource("12_nvql0")]
 y_sort_enabled = true
-position = Vector2(1080, 200)
+position = Vector2(1053, 185)
 
 [node name="Sprite2D14" parent="." unique_id=1878438739 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(1096, 192)
+position = Vector2(1099, 210)
 
 [node name="Sprite2D15" parent="." unique_id=1432930414 instance=ExtResource("12_nvql0")]
 y_sort_enabled = true
-position = Vector2(1119, 184)
+position = Vector2(1158, 211)
 
 [node name="Sprite2D16" parent="." unique_id=2141062307 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(1064, 232)
+position = Vector2(1073, 238)
 
 [node name="Sprite2D17" parent="." unique_id=1358119521 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(1072, 280)
+position = Vector2(1094, 285)
 
 [node name="Sprite2D18" parent="." unique_id=1236586936 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
@@ -468,35 +467,35 @@ position = Vector2(832, 160)
 
 [node name="Sprite2D21" parent="." unique_id=589758788 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(992, 296)
+position = Vector2(983, 265)
 
 [node name="Sprite2D22" parent="." unique_id=361876276 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(912, 288)
+position = Vector2(893, 284)
 
 [node name="Sprite2D23" parent="." unique_id=781416068 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(848, 344)
+position = Vector2(837, 337)
 
 [node name="Sprite2D24" parent="." unique_id=2039639217 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(1064, 376)
+position = Vector2(1037, 354)
 
 [node name="Sprite2D25" parent="." unique_id=1303384939 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(1072, 416)
+position = Vector2(1079, 388)
 
 [node name="Sprite2D26" parent="." unique_id=1852535793 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(1008, 472)
+position = Vector2(1040, 462)
 
 [node name="Sprite2D27" parent="." unique_id=40885960 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(1072, 472)
+position = Vector2(1091, 473)
 
 [node name="Sprite2D28" parent="." unique_id=1662821395 instance=ExtResource("11_g0j5d")]
 y_sort_enabled = true
-position = Vector2(904, 480)
+position = Vector2(902, 458)
 
 [node name="Ground-Design" type="TileMapLayer" parent="." unique_id=1114100190]
 z_index = 2
@@ -507,14 +506,13 @@ tile_set = SubResource("TileSet_a6atp")
 [node name="Sprite2D29" parent="." unique_id=269989075 instance=ExtResource("11_g0j5d")]
 z_index = 1
 y_sort_enabled = true
-position = Vector2(1080, 336)
+position = Vector2(1052, 317)
 
 [node name="girl_npc" parent="." unique_id=244227400 instance=ExtResource("14_p2u0e")]
 z_index = 1
 position = Vector2(1174, 176)
 
 [node name="Visual" parent="girl_npc" index="0"]
-animation = &"walk_down"
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
 greeting_message = "Hi! The teacher's house is nearby if you need help."
@@ -528,8 +526,6 @@ shape = SubResource("RectangleShape2D_0r4je")
 [node name="InteractableArea" type="Area2D" parent="girl_npc" unique_id=995001123]
 script = ExtResource("29_interactable")
 interaction_target_path = NodePath("../Visual")
-interaction_method = &"interact"
-availability_method = &"can_interact"
 interaction_priority = 40
 
 [node name="NPC" parent="." unique_id=736401141 instance=ExtResource("17_tibnn")]
@@ -542,30 +538,27 @@ script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
 greeting_message = "Be careful on the forest road. Bandits have been seen nearby."
 
-[node name="FootCollision" parent="NPC" index="1"]
-position = Vector2(0, 7.788)
-scale = Vector2(0.477, 0.354)
-
-[node name="Area2D" type="Area2D" parent="NPC/Visual" unique_id=210634579]
+[node name="Area2D" type="Area2D" parent="NPC/Visual" index="0" unique_id=210634579]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="NPC/Visual/Area2D" unique_id=566825481]
 position = Vector2(5, 0)
 scale = Vector2(0.99999976, 0.99999976)
 shape = SubResource("RectangleShape2D_7cmds")
 
-[node name="InteractableArea" type="Area2D" parent="NPC/Visual" unique_id=995001124]
+[node name="InteractableArea" type="Area2D" parent="NPC/Visual" index="1" unique_id=995001124]
 script = ExtResource("29_interactable")
 interaction_target_path = NodePath("..")
-interaction_method = &"interact"
-availability_method = &"can_interact"
 interaction_priority = 35
+
+[node name="FootCollision" parent="NPC" index="1"]
+position = Vector2(0, 7.788)
+scale = Vector2(0.477, 0.354)
 
 [node name="villager-female" parent="." unique_id=1540680081 instance=ExtResource("19_1ef61")]
 z_index = 1
 position = Vector2(976.99994, 468.99997)
 
 [node name="Visual" parent="villager-female" index="0"]
-scale = Vector2(0.09, 0.09)
 script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
 greeting_message = "Welcome to Oakleaf. Everyone here is cheering for you."
@@ -580,8 +573,6 @@ shape = SubResource("RectangleShape2D_sbohv")
 [node name="InteractableArea" type="Area2D" parent="villager-female" unique_id=995001125]
 script = ExtResource("29_interactable")
 interaction_target_path = NodePath("../Visual")
-interaction_method = &"interact"
-availability_method = &"can_interact"
 interaction_priority = 30
 
 [node name="MapCameraBounds" type="Node2D" parent="." unique_id=1461349229]
@@ -598,30 +589,27 @@ script = ExtResource("22_0r4je")
 quest_ui_path = NodePath("../../CanvasLayer/Panel")
 greeting_message = "Take your time, young traveler. Think carefully and keep going."
 
-[node name="FootCollision" parent="NPC1" index="1"]
-position = Vector2(0, 5.0622)
-scale = Vector2(0.468, 0.2301)
-
-[node name="Area2D" type="Area2D" parent="NPC1/Visual" unique_id=718996092]
+[node name="Area2D" type="Area2D" parent="NPC1/Visual" index="0" unique_id=718996092]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="NPC1/Visual/Area2D" unique_id=259426367]
 position = Vector2(0, 23.076904)
 shape = SubResource("RectangleShape2D_bvw5x")
 
-[node name="InteractableArea" type="Area2D" parent="NPC1/Visual" unique_id=995001126]
+[node name="InteractableArea" type="Area2D" parent="NPC1/Visual" index="1" unique_id=995001126]
 script = ExtResource("29_interactable")
 interaction_target_path = NodePath("..")
-interaction_method = &"interact"
-availability_method = &"can_interact"
 interaction_priority = 25
 
+[node name="FootCollision" parent="NPC1" index="1"]
+position = Vector2(0, 5.0622)
+scale = Vector2(0.468, 0.2301)
+
 [node name="TeacherHouseTaskTrigger" type="Area2D" parent="." unique_id=314668776]
-position = Vector2(1143, 182)
+position = Vector2(1144, 182)
 script = ExtResource("28_teacher_trigger")
-notification_portrait_path = "res://Images/NPC.jpg"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="TeacherHouseTaskTrigger" unique_id=1002871873]
-position = Vector2(-1, -6)
+position = Vector2(-3, -8)
 shape = SubResource("RectangleShape2D_teacher_house_task_trigger")
 
 [node name="Go-to-City-of-Knowledge" parent="." unique_id=1204046067 instance=ExtResource("24_eu74i")]
@@ -677,7 +665,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="DialoguePanel" type="PanelContainer" parent="CanvasLayer"]
+[node name="DialoguePanel" type="PanelContainer" parent="CanvasLayer" unique_id=883696786]
 visible = false
 anchors_preset = -1
 anchor_left = 0.5
@@ -693,9 +681,8 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialogue_panel")
 
-[node name="DialogueLabel" type="Label" parent="CanvasLayer/DialoguePanel"]
+[node name="DialogueLabel" type="Label" parent="CanvasLayer/DialoguePanel" unique_id=1455599065]
 layout_mode = 2
-mouse_filter = 2
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -705,13 +692,11 @@ autowrap_mode = 2
 position = Vector2(295, 300.99997)
 animation = &"right"
 
-
-[node name="BanditTaskTrigger" type="Area2D" parent="Bandits" unique_id=1823517238 node_paths=PackedStringArray("ui_panel")]
+[node name="BanditTaskTrigger" type="Area2D" parent="Bandits" unique_id=1823517238]
 position = Vector2(0, 62.5)
 scale = Vector2(12.5, 12.5)
 script = ExtResource("29_interactable")
 interaction_target_path = NodePath("TaskDialogAdapter")
-interaction_method = &"interact"
 interaction_priority = 5
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bandits/BanditTaskTrigger" unique_id=1453769249]
@@ -760,6 +745,6 @@ animation = &"right"
 [connection signal="body_exited" from="NPC1/Visual/Area2D" to="NPC1/Visual/InteractableArea" method="_on_body_exited"]
 
 [editable path="girl_npc"]
-[editable path="villager-female"]
 [editable path="NPC"]
+[editable path="villager-female"]
 [editable path="NPC1"]

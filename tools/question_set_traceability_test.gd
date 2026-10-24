@@ -1,6 +1,7 @@
 extends Node
 
 const QuestionProviderScript = preload("res://scripts/question_provider.gd")
+const RemoteSyncScript = preload("res://scripts/remote_sync.gd")
 var _failures: Array[String] = []
 var _assertions := 0
 
@@ -62,6 +63,10 @@ func _run() -> void:
 		"canonical_topic_id": null,
 	})
 	failed = not _assert(not topic_gap_question.has("topic_id"), "A null canonical topic remains absent instead of becoming the string null") or failed
+	var remote_sync := RemoteSyncScript.new()
+	var topic_gap_result_payload: Dictionary = remote_sync.call("_build_question_result_payload", topic_gap_question, true)
+	failed = not _assert(not topic_gap_result_payload.has("topic_id"), "A question endpoint null topic remains absent from the result payload instead of becoming an invalid topic string") or failed
+	remote_sync.free()
 	failed = not _assert(provider._question_matches_scope(scoped_remote_question, exact_scope), "Remote question metadata must match the active Grade and Difficulty scope.") or failed
 	var mismatched_question := scoped_remote_question.duplicate(true)
 	mismatched_question["topic_id"] = "subtraction"

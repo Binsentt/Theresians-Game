@@ -5,9 +5,9 @@
 [ext_resource type="PackedScene" uid="uid://sdrreans0p5w" path="res://Battle/boss_bandit_battle.tscn" id="3_2xl1j"]
 [ext_resource type="PackedScene" uid="uid://c6nx67r00wkj" path="res://assets/Effects/SlashEffect.tscn" id="4_wuc0l"]
 [ext_resource type="PackedScene" uid="uid://b42kw413cgnqt" path="res://Battle/Player-male-battle.tscn" id="5_u66q0"]
-[ext_resource type="Texture2D" uid="uid://da70ungunse5q" path="res://assets/playerHp.png" id="6_pum07"]
+[ext_resource type="Texture2D" uid="uid://bheaqwak5d8g3" path="res://assets/playerHp.png" id="6_pum07"]
 [ext_resource type="Script" uid="uid://772j8jmbe7wn" path="res://Battle/Battle-Enemy/PlayerHealth.gd" id="7_ty4cb"]
-[ext_resource type="Texture2D" uid="uid://b6hhnyruov6t5" path="res://assets/hearth.png" id="8_vr1jo"]
+[ext_resource type="Texture2D" uid="uid://dpuj6rslo6a14" path="res://assets/hearth.png" id="8_vr1jo"]
 [ext_resource type="Script" uid="uid://ddpieb4ag2xuh" path="res://Battle/Battle-Enemy/EnemyHealth.gd" id="9_mir8c"]
 
 [node name="Male-vs-Boss" type="Node2D" unique_id=2010041141]
@@ -66,9 +66,9 @@ anchor_left = 0.078
 anchor_top = 0.115
 anchor_right = 0.906
 anchor_bottom = 0.924
-offset_left = -0.26200485
+offset_left = -26.262001
 offset_top = -0.065000534
-offset_right = 0.21002197
+offset_right = 34.725983
 offset_bottom = -0.044006348
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -76,34 +76,34 @@ autowrap_mode = 2
 
 [node name="ChoiceA" type="Button" parent="CanvasLayer/Panel" unique_id=1805345444 groups=["dialogue_ui", "npc"]]
 layout_mode = 0
-offset_left = 40.0
+offset_left = 38.0
 offset_top = 155.0
-offset_right = 472.0
-offset_bottom = 186.0
+offset_right = 473.0
+offset_bottom = 198.0
 text = "Next"
 
 [node name="ChoiceB" type="Button" parent="CanvasLayer/Panel" unique_id=639686116 groups=["dialogue_ui", "npc"]]
 layout_mode = 0
-offset_left = 40.0
-offset_top = 190.0
-offset_right = 472.0
-offset_bottom = 221.0
+offset_left = 38.0
+offset_top = 207.0
+offset_right = 473.0
+offset_bottom = 250.0
 text = "Next"
 
 [node name="ChoiceC" type="Button" parent="CanvasLayer/Panel" unique_id=678988720 groups=["dialogue_ui", "npc"]]
 layout_mode = 0
-offset_left = 40.0
-offset_top = 225.0
-offset_right = 472.0
-offset_bottom = 256.0
+offset_left = 38.0
+offset_top = 257.0
+offset_right = 473.0
+offset_bottom = 300.0
 text = "Next"
 
 [node name="ChoiceD" type="Button" parent="CanvasLayer/Panel" unique_id=509893750 groups=["dialogue_ui", "npc"]]
 layout_mode = 0
-offset_left = 40.0
-offset_top = 260.0
-offset_right = 472.0
-offset_bottom = 291.0
+offset_left = 38.0
+offset_top = 311.0
+offset_right = 473.0
+offset_bottom = 354.0
 text = "Next"
 
 [node name="PlayerHealth" type="Node2D" parent="." unique_id=2138523422]

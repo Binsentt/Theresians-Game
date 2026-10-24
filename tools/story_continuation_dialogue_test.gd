@@ -2,7 +2,7 @@ extends Node
 
 const ROUTER := preload("res://scripts/progression_battle_encounter.gd")
 const OLD_LADY := preload("res://scripts/progression_old_man_interaction.gd")
-const RESULT_PATH := "res://tools/story_continuation_dialogue_test_result.json"
+const RESULT_PATH := "user://qa/story_continuation_dialogue_test_result.json"
 const PROFILE := {
 	"player_name": "Story Continuation Fixture",
 	"gender": "male",
@@ -47,9 +47,16 @@ func _run() -> void:
 	_expect(OLD_LADY.DIALOGUE_LINES.size() == 4, "Old Lady uses the four-line conversation")
 	_expect(OLD_LADY.WIZARD_THANKS_LINES == ["Old Lady: Thank you for defeating the Wizard.", "Old Lady: Good luck on the rest of your journey."], "Post-Wizard Old Lady thanks uses the two approved lines")
 	_expect(OLD_LADY.WIZARD_THANKS_TRIGGER_RANGE > OLD_LADY.INTERACTION_RANGE and OLD_LADY.WIZARD_THANKS_STOP_DISTANCE <= OLD_LADY.INTERACTION_RANGE, "Post-Wizard event starts on approach and stops at normal conversation distance")
+	_expect(OLD_LADY.INTERACTION_RANGE <= 24.0 and ROUTER.INTERACTION_RANGE <= 24.0, "Progression ACT interactions require a natural close conversation distance")
 	_expect(String(FileAccess.get_file_as_string("res://scripts/progression_old_man_interaction.gd")).contains("body.move_and_slide()"), "Old Lady approaches by collision-aware movement instead of teleporting")
 	_expect(ROUTER.WIZARD_INTRO_DIALOGUE.size() == 3, "Wizard intro uses the short three-line conversation")
-	_expect(ROUTER.WIZARD_REVELATION_DIALOGUE.size() == 5, "Wizard revelation uses the five-line conversation")
+	_expect(ROUTER.WIZARD_REVELATION_DIALOGUE.size() == 3, "Wizard revelation uses the focused three-line final-challenge conversation")
+	_expect(ROUTER.WIZARD_REVELATION_DIALOGUE == ["Wizard: You have defeated me... but I am not the true Math Champion.", "Wizard: The real Math Champion is your Math Teacher.", "Wizard: If you want to become the greatest Math Champion, return to the School and face your final challenge."], "Wizard revelation directly identifies the Teacher as the final Math Champion challenge")
+	_expect(String(state.WIZARD_COMPLETION_NOTIFICATION.get("title", "")) == "Pinehill Wizard Completed!", "Wizard victory has one explicit Pinehill completion notification")
+	_expect(String(state.WIZARD_COMPLETION_NOTIFICATION.get("description", "")) == "Return to the City of Knowledge.", "Wizard completion notification points to the existing return objective")
+	_expect(ROUTER.PINEHILL_GUARD_VICTORY_DIALOGUES.size() == 4, "Each Pinehill Guard has one short post-battle acknowledgement")
+	for encounter_id in GameState.PINEHILL_BANDIT_IDS:
+		_expect(not String(ROUTER.PINEHILL_GUARD_VICTORY_DIALOGUES.get(encounter_id, "")).strip_edges().is_empty(), "Pinehill Guard acknowledgement is authored for " + encounter_id)
 	_expect(ROUTER.DEEP_FOREST_COMPLETE_DIALOGUE.size() == 1, "Deep Forest completion has a short notification")
 	_expect(ROUTER.PINEHILL_GUARDS_COMPLETE_DIALOGUE.size() == 1, "Pinehill guard completion has a short notification")
 	_expect(String(state.tasks[state.CITY_SCHOOL_TASK_INDEX].dialogue[0]) == "Teacher: You made it to the City of Knowledge.", "City Teacher opening line is canonical")
@@ -98,6 +105,7 @@ func _run() -> void:
 
 	var failed := _checks.filter(func(row: Dictionary) -> bool: return not bool(row.get("passed", false))).size()
 	var evidence := {"passed": _checks.size() - failed, "failed": failed, "checks": _checks, "live_network_calls": 0}
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa"))
 	var result_file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
 	if result_file != null:
 		result_file.store_string(JSON.stringify(evidence, "\t"))
@@ -121,6 +129,10 @@ func _verify_cutscene_dialogue_input() -> void:
 	add_child(overlay)
 	var panel := overlay.get_node("DialoguePanel") as Control
 	var label := overlay.get_node("DialoguePanel/DialogueContent/DialogueLabel") as Label
+	var viewport_size := panel.get_viewport_rect().size if panel != null else Vector2.ZERO
+	var panel_size := panel.get_global_rect().size if panel != null else Vector2.ZERO
+	var compact_panel := panel != null and panel_size.x <= viewport_size.x * 0.72 and panel_size.y <= viewport_size.y * 0.25
+	_expect(compact_panel, "Progression dialogue uses a compact readable panel instead of covering most gameplay")
 	var closed := [0]
 	overlay.dialogue_closed.connect(func() -> void: closed[0] += 1)
 	overlay.show_lines(OLD_LADY.WIZARD_THANKS_LINES)
@@ -242,30 +254,43 @@ func _verify_old_lady_road_approach() -> void:
 		marker.name = String(entry.name)
 		marker.position = entry.position
 		path.add_child(marker)
-	var actor := Node2D.new()
+	var actor := (load("res://NPC/Npc/wandering_old_adult_women.tscn") as PackedScene).instantiate() as Node2D
+	_expect(actor != null, "Post-Wizard fixture loads the authored Old Lady actor with walk animations")
+	if actor == null:
+		world.queue_free()
+		return
 	actor.position = Vector2(336, 253)
+	actor.visible = false
+	actor.set_physics_process(false)
 	world.add_child(actor)
 	var player := Node2D.new()
-	player.position = Vector2(400, 320)
+	player.position = Vector2(420, 320)
+	player.add_to_group("player_character")
 	world.add_child(player)
 	var component := OLD_LADY.new() as Node
 	component.call("configure", actor)
 	actor.add_child(component)
-	component.set_physics_process(false)
 	component.call("_begin_wizard_thanks_event", player)
-	var cardinal := true
-	var stayed_on_road := true
-	for _step in range(24):
+	_expect(actor.visible, "Old Lady becomes visible before the post-Wizard approach starts")
+	var route_is_cardinal := true
+	var previous_route_point := actor.position
+	for route_point in Array(component.get("_wizard_thanks_route")):
+		var route_delta := Vector2(route_point) - previous_route_point
+		route_is_cardinal = route_is_cardinal and (absf(route_delta.x) <= 0.01 or absf(route_delta.y) <= 0.01)
+		previous_route_point = Vector2(route_point)
+	var visited_authored_road_waypoint := false
+	var played_walk_animation := false
+	for _step in range(180):
 		if not bool(component.get("_wizard_thanks_approaching")):
 			break
-		var before := actor.position
-		component.call("_advance_wizard_thanks_approach", 0.1)
-		var change := actor.position - before
-		cardinal = cardinal and (is_zero_approx(change.x) or is_zero_approx(change.y))
-		stayed_on_road = stayed_on_road and (is_equal_approx(actor.position.x, 336.0) or is_equal_approx(actor.position.y, 288.0))
-	_expect(cardinal, "Old Lady moves along cardinal segments only")
-	_expect(stayed_on_road, "Old Lady approach stays on the Pinehill road corridor")
-	_expect(actor.position.distance_to(Vector2(384, 288)) <= 5.0, "Old Lady reaches the authored meeting point near the frozen player")
+		await get_tree().physics_frame
+		visited_authored_road_waypoint = visited_authored_road_waypoint or actor.position.distance_to(Vector2(336, 288)) <= OLD_LADY.WIZARD_THANKS_ARRIVAL_EPSILON
+		var visual := actor.get_node_or_null("Visual") as AnimatedSprite2D
+		played_walk_animation = played_walk_animation or (visual != null and visual.is_playing() and String(visual.animation).begins_with("walk_"))
+	_expect(route_is_cardinal, "Old Lady's authored approach route uses cardinal segments only")
+	_expect(visited_authored_road_waypoint, "Old Lady begins the thank-you approach from the authored Pinehill road waypoint")
+	_expect(played_walk_animation, "Old Lady plays an authored cardinal walk animation while approaching")
+	_expect(actor.position.distance_to(player.position) <= OLD_LADY.WIZARD_THANKS_STOP_DISTANCE + 4.0, "Old Lady stops at a natural conversation distance from the frozen player")
 	world.queue_free()
 	await get_tree().process_frame
 	GameState.wizard_defeated = bool(original.wizard_defeated)
@@ -279,6 +304,10 @@ func _verify_old_lady_road_approach() -> void:
 func _verify_pinehill_lamp_depth() -> void:
 	var pinehill := (load("res://scenes/2nd Village/Pinehill Village.tscn") as PackedScene).instantiate() as Node2D
 	_expect(pinehill.y_sort_enabled, "Pinehill world shares Y sorting between the player and lamps")
+	var foreground_tree := pinehill.get_node_or_null("tree") as TileMapLayer
+	var house := pinehill.get_node_or_null("House-Display") as Node2D
+	_expect(foreground_tree != null and foreground_tree.y_sort_enabled and foreground_tree.z_index == 0, "Pinehill foreground trees use world Y sorting instead of a fixed depth above the player")
+	_expect(house != null and house.y_sort_enabled and house.z_index == 0, "Pinehill houses share world Y sorting so the player is covered only when actually behind them")
 	var authored_positions := [Vector2(216, 192), Vector2(160, 192), Vector2(344, 224), Vector2(216, 16), Vector2(216, 144), Vector2(312, 16), Vector2(312, 64), Vector2(344, 304), Vector2(344, 352), Vector2(264, 176), Vector2(264, 64), Vector2(392, 216), Vector2(391.99997, 352), Vector2(344, 432)]
 	for index in range(57, 71):
 		var lamp := pinehill.get_node_or_null("Sprite2D%d" % index) as Node2D

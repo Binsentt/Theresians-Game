@@ -10,6 +10,10 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	_assert(HttpApi.is_local_qa_profile_active(), "Learning-cycle tests start in local-only mode before autoload initialization")
+	if not HttpApi.is_local_qa_profile_active():
+		_finish()
+		return
 	_assert(GameState.has_method("set_learning_cycle"), "GameState exposes authoritative learning-cycle state")
 	_assert(GameState.has_method("annotate_save_learning_cycle"), "GameState can evaluate one local save against a server cycle")
 	_assert(load("res://scripts/load_game_scene.gd") != null, "Load Game's learning-cycle gate parses")
@@ -57,11 +61,36 @@ func _run() -> void:
 		"student_id": "001234",
 		"parent_id": "009876",
 		"scene_path": GameState.START_SCENE_PATH,
+		"save_version": GameState.SAVE_VERSION,
+		"save_kind": "manual",
+		"manual_save_sequence": 1,
 		"learning_cycle_version": 1,
 		"learning_cycle_started_at": "2026-08-01T00:00:00.000Z",
+		"pending_academic_results": [{"learning_cycle_version": 1, "result_event_id": "old-result"}],
+		"pending_academic_activities": [{"learning_cycle_version": 1, "event_key": "old-activity"}],
 	}, {"version": 2, "started_at": "2026-08-25T04:00:00.000Z"})
-	_assert(not bool(previous_save.get("loadable", true)), "previous-cycle saves cannot be loaded")
-	_assert(String(previous_save.get("save_error", "")) == "Previous Learning Cycle", "previous-cycle saves use the approved clear label")
+	_assert(bool(previous_save.get("loadable", false)), "a valid prior-cycle manual save remains playable as historical replay")
+	_assert(bool(previous_save.get("historical_replay_mode", false)), "prior-cycle manual save is marked as historical replay")
+	_assert(int(previous_save.get("replay_origin_learning_cycle_version", -1)) == 1, "historical replay records the originating cycle")
+	_assert(int(previous_save.get("learning_cycle_version", -1)) == 2, "replay uses the authoritative current cycle, not the old saved cycle")
+	_assert(String(previous_save.get("learning_cycle_started_at", "")) == "2026-08-25T04:00:00.000Z", "replay uses the authoritative current cycle boundary")
+	_assert((previous_save.get("pending_academic_results", []) as Array).is_empty(), "prior-cycle answer payloads are discarded before load")
+	_assert((previous_save.get("pending_academic_activities", []) as Array).is_empty(), "prior-cycle task/activity payloads are discarded before load")
+	GameState.call("set_learning_cycle", {"version": 2, "started_at": "2026-08-25T04:00:00.000Z"})
+	GameState.apply_save_data(previous_save, false)
+	_assert(GameState.learning_cycle_version == 2, "applying a replay snapshot cannot roll the runtime cycle backward")
+	_assert(GameState.get("historical_replay_mode") == true, "applying a prior-cycle manual snapshot enables replay isolation")
+	_assert(GameState.get_pending_academic_event_count() == 0, "old pending academic payloads are not restored")
+	var replay_answer_staged: bool = GameState.stage_pending_academic_result({
+		"student_id": "001234", "parent_id": "009876", "learning_cycle_version": 2, "result_event_id": "replay-answer"
+	})
+	var replay_task_staged: bool = GameState.stage_pending_academic_activity({
+		"student_id": "001234", "parent_id": "009876", "learning_cycle_version": 2, "event_key": "replay-task"
+	})
+	_assert(not replay_answer_staged and not replay_task_staged, "historical replay answers and task events cannot enter the current academic queue")
+	_assert(GameState.get_pending_academic_event_count() == 0, "historical replay keeps the academic queue empty")
+	var prior_cycle_without_authority: Dictionary = GameState.call("annotate_save_learning_cycle", previous_save, {})
+	_assert(not bool(prior_cycle_without_authority.get("loadable", true)), "historical replay fails closed without an authoritative current-cycle descriptor")
 
 	var legacy_save: Dictionary = GameState.call("annotate_save_learning_cycle", {
 		"student_id": "001234",
@@ -77,9 +106,9 @@ func _run() -> void:
 	var load_button := entry.get_node("MarginContainer/Content/Actions/LoadButton") as Button
 	var delete_button := entry.get_node("MarginContainer/Content/Actions/DeleteButton") as Button
 	var availability_label := entry.get_node("MarginContainer/Content/Details/AvailabilityLabel") as Label
-	_assert(load_button.disabled, "previous-cycle saves disable Load")
+	_assert(not load_button.disabled, "historical replay save keeps Load enabled")
 	_assert(not delete_button.disabled, "previous-cycle saves remain manually deletable")
-	_assert(availability_label.visible and availability_label.text == "Previous Learning Cycle", "previous-cycle label is visible in the real save entry")
+	_assert(availability_label.visible and availability_label.text.contains("Historical"), "historical replay state is visible in the real save entry")
 	entry.queue_free()
 
 	GameState.call("set_learning_cycle", {"version": 0, "started_at": ""})
@@ -94,9 +123,11 @@ func _assert(condition: bool, message: String) -> void:
 func _finish() -> void:
 	if failures.is_empty():
 		print("LEARNING_CYCLE_SAVE_TEST: PASS")
+		await get_tree().create_timer(30.0).timeout
 		get_tree().quit(0)
 		return
 	for failure in failures:
 		push_error(failure)
 	print("LEARNING_CYCLE_SAVE_TEST: FAIL")
+	await get_tree().create_timer(30.0).timeout
 	get_tree().quit(1)

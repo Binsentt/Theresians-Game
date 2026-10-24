@@ -5,12 +5,14 @@ extends AnimatedSprite2D
 
 @export var quest_ui_path: NodePath = NodePath("../../CanvasLayer/Panel")
 @export_multiline var greeting_message: String = ""
+@export_multiline var greeting_before_wizard: String = ""
+@export_multiline var greeting_after_wizard: String = ""
 
 var _dialogue_active := false
 
 
 func can_interact() -> bool:
-	if _dialogue_active or greeting_message.strip_edges().is_empty() or GameState.get_mode() != GameState.GameMode.EXPLORATION:
+	if _dialogue_active or _resolved_greeting_message().is_empty() or GameState.get_mode() != GameState.GameMode.EXPLORATION:
 		return false
 	var input_manager := get_node_or_null("/root/InputManager")
 	if input_manager != null and input_manager.has_method("is_input_locked") and bool(input_manager.call("is_input_locked")):
@@ -38,8 +40,18 @@ func _run_dialogue() -> void:
 	if quest_ui == null or not quest_ui.has_method("begin_dialogue"):
 		_finish_dialogue()
 		return
-	await quest_ui.begin_dialogue([greeting_message])
+	await quest_ui.begin_dialogue([_resolved_greeting_message()])
 	_finish_dialogue()
+
+
+func _resolved_greeting_message() -> String:
+	var pre_wizard := greeting_before_wizard.strip_edges()
+	var post_wizard := greeting_after_wizard.strip_edges()
+	if bool(GameState.wizard_defeated) and not post_wizard.is_empty():
+		return post_wizard
+	if not pre_wizard.is_empty():
+		return pre_wizard
+	return greeting_message.strip_edges()
 
 
 func _finish_dialogue() -> void:

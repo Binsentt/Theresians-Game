@@ -56,10 +56,6 @@ func _ready() -> void:
 	if active_scene_path == "res://interiors/teacher_house.tscn" \
 			or active_scene_path == "res://interiors/school.tscn":
 		var teacher_sensor_size := Vector2(42.0, 36.0)
-		if active_scene_path == "res://interiors/school.tscn":
-			# A player is physically stopped just beyond the Teacher's foot collider.
-			# Size this scene's sensor in world units to keep ACT reliable beside her.
-			teacher_sensor_size = Vector2(72.0, 40.0)
 		TEACHER_TASK_INTERACTION.install_for_scene(
 			self,
 			TEACHER_TASK_INTERACTION,

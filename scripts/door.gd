@@ -67,6 +67,17 @@ func _begin_transition(body: Node2D) -> void:
 		return
 	if not _is_player(body):
 		return
+	if HttpApi.is_local_qa_mode():
+		print("F5_FLOW_TRACE door_attempt scene=%s source=%s destination=%s spawn_marker=%s player=%s task=%d quest=%s defeated=%d/5" % [
+			get_tree().current_scene.scene_file_path if get_tree().current_scene != null else "none",
+			name,
+			destination_scene_path,
+			destination_spawn_marker_name,
+			str(body.global_position),
+			GameState.current_task_index,
+			GameState.current_quest,
+			GameState.deep_forest_defeated_bandits.size(),
+		])
 	if requires_city_of_knowledge_unlock and not GameState.city_of_knowledge_unlocked:
 		return
 	if requires_city_school_completion \
@@ -78,6 +89,8 @@ func _begin_transition(body: Node2D) -> void:
 	if destination_lower.contains("pinehill") \
 			and GameState.has_method("is_pinehill_unlocked") \
 			and not GameState.is_pinehill_unlocked():
+		if HttpApi.is_local_qa_mode():
+			print("F5_FLOW_TRACE door_blocked source=%s scene=%s player=%s task=%d quest=%s defeated=%d/5" % [name, get_tree().current_scene.scene_file_path if get_tree().current_scene != null else "none", str(body.global_position), GameState.current_task_index, GameState.current_quest, GameState.deep_forest_defeated_bandits.size()])
 		return
 	if destination_lower.contains("city_of_knowledge") \
 			and GameState.has_method("is_final_teacher_active") \

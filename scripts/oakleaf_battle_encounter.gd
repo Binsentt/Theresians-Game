@@ -6,8 +6,9 @@ extends Node
 
 const OAKLEAF_SCENE_PATH := "res://scenes/oak_leaf_village.tscn"
 const COMPONENT_NAME := "OakleafBattleEncounter"
-const INTERACTION_RANGE := 32.0
+const INTERACTION_RANGE := 24.0
 const INTERACTION_PRIORITY := 10
+const BATTLE_TRANSITION := preload("res://scripts/battle_transition.gd")
 const BANDIT_CHALLENGE_DIALOGUE := {
 	"oakleaf_bandits2": ["Bandit: You will have to get past me first!"],
 	"oakleaf_bandits3": ["Bandit: Let's see if your answers can beat me."],
@@ -197,6 +198,11 @@ func _present_original_battle(world: Node2D, battle_scene_path: String) -> void:
 		_starting = false
 		GameState.record_encounter_loss()
 		push_error("Unable to instantiate original Oakleaf battle scene: %s" % battle_scene_path)
+		return
+	await BATTLE_TRANSITION.play(world)
+	if not is_instance_valid(world):
+		_starting = false
+		GameState.record_encounter_loss()
 		return
 	var battle_scene := packed_scene.instantiate()
 	var battle_layer := CanvasLayer.new()

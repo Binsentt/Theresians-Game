@@ -4,26 +4,31 @@ extends Node
 ## encounters are installed in the City scene only while their quest is active.
 
 const COMPONENT_NAME := "ProgressionBattleEncounter"
-const INTERACTION_RANGE := 32.0
+const INTERACTION_RANGE := 24.0
 const INTERACTION_PRIORITY := 10
 const DIALOGUE_OVERLAY := preload("res://ui/progression_dialogue_overlay.tscn")
+const BATTLE_TRANSITION := preload("res://scripts/battle_transition.gd")
 const DEEP_FOREST_COMPLETE_DIALOGUE: Array[String] = [
 	"The path to Pinehill Village is now clear.",
 ]
 const PINEHILL_GUARDS_COMPLETE_DIALOGUE: Array[String] = [
 	"The Wizard is ready for your challenge.",
 ]
+const PINEHILL_GUARD_VICTORY_DIALOGUES: Dictionary = {
+	"pinehill_bandits1": "Guard: You have defeated me, but the Wizard is still ahead.",
+	"pinehill_bandits2": "Guard: Your skills are stronger than I expected.",
+	"pinehill_bandits3": "Guard: The path to the Wizard is opening for you.",
+	"pinehill_bandits4": "Guard: You have beaten all of us. Face the Wizard if you dare.",
+}
 const WIZARD_INTRO_DIALOGUE: Array[String] = [
 	"Wizard: So you defeated all of my guards.",
 	"Wizard: You have come far, but knowledge alone will not be enough.",
 	"Wizard: Show me what you have learned.",
 ]
 const WIZARD_REVELATION_DIALOGUE: Array[String] = [
-	"Wizard: You are stronger than I expected.",
-	"Wizard: But I am not the one behind your greatest challenge.",
-	"Wizard: The true Math Master has been guiding you from the beginning.",
-	"Wizard: Your Teacher is waiting for you in the City of Knowledge.",
-	"Wizard: Return to the School.",
+	"Wizard: You have defeated me... but I am not the true Math Champion.",
+	"Wizard: The real Math Champion is your Math Teacher.",
+	"Wizard: If you want to become the greatest Math Champion, return to the School and face your final challenge.",
 ]
 const CITY_PATH := "res://scenes/city_of_knowledge.tscn"
 const DEEPEST_FOREST_PATH := "res://scenes/deepest_forest_path.tscn"
@@ -172,6 +177,11 @@ func _present_original_battle(world: Node2D, battle_scene_path: String) -> void:
 		return
 	if String(_route.get("encounter_id", "")) == "pinehill_wizard":
 		await _show_progression_dialogue(WIZARD_INTRO_DIALOGUE)
+	await BATTLE_TRANSITION.play(world)
+	if not is_instance_valid(world):
+		_starting = false
+		GameState.record_encounter_loss()
+		return
 	var battle_scene: Node = packed_scene.instantiate()
 	var battle_layer := CanvasLayer.new()
 	battle_layer.name = "OriginalBattlePresentation"
@@ -192,7 +202,11 @@ func _present_original_battle(world: Node2D, battle_scene_path: String) -> void:
 	_starting = false
 	if battle_won:
 		_defeated = true
+		var encounter_id := String(_route.get("encounter_id", ""))
 		var victory_result: Dictionary = GameState.record_encounter_victory()
+		var guard_victory_line := String(PINEHILL_GUARD_VICTORY_DIALOGUES.get(encounter_id, "")).strip_edges()
+		if not guard_victory_line.is_empty():
+			await _show_progression_dialogue([guard_victory_line])
 		match String(victory_result.get("action", "")):
 			"deep_forest_complete":
 				await _show_progression_dialogue(DEEP_FOREST_COMPLETE_DIALOGUE)

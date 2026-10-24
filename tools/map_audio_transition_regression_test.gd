@@ -4,7 +4,7 @@ const CITY := "res://scenes/city_of_knowledge.tscn"
 const OAKLEAF := "res://scenes/oak_leaf_village.tscn"
 const PINEHILL := "res://scenes/2nd Village/Pinehill Village.tscn"
 const SCHOOL := "res://interiors/school.tscn"
-const WIZARD_HOUSE_NODE := "display-kase yung wizard sa labas lang"
+const WIZARD_HOUSE_NODE := "wizard house"
 const PROGRESSION_ROUTER := preload("res://scripts/progression_battle_encounter.gd")
 
 var _checks: Array[Dictionary] = []
@@ -96,7 +96,7 @@ func _test_wizard_objective_and_location() -> void:
 	var pinehill_scene := load(PINEHILL) as PackedScene
 	var pinehill := pinehill_scene.instantiate() as Node2D if pinehill_scene != null else null
 	var wizard := pinehill.get_node_or_null("Boss-Wizard") as Node2D if pinehill != null else null
-	var wizard_house := pinehill.get_node_or_null(WIZARD_HOUSE_NODE) as Node2D if pinehill != null else null
+	var wizard_house := pinehill.find_child(WIZARD_HOUSE_NODE, true, false) as Node2D if pinehill != null else null
 	_expect(wizard != null, "Canonical Pinehill contains the actual outdoor Wizard actor")
 	_expect(wizard_house != null, "Canonical Pinehill contains the existing outdoor Wizard House landmark")
 	if wizard != null and wizard_house != null and pinehill != null:

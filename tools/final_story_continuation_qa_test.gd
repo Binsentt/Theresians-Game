@@ -22,16 +22,12 @@ const EXPECTED_EPILOGUE: Array[String] = [
 	"Teacher: You overcame every challenge and continued even when the problems became difficult.",
 	"Teacher: You proved how much you have learned.",
 	"Teacher: Your journey through Theresian's Quest is complete.",
-	"Teacher: You are now a Math Champion.",
-	"THERESIAN'S QUEST COMPLETE",
-	"Congratulations! You completed your Mathematics Adventure.",
+	"Teacher: Congratulations, Math Champion. Keep practicing and keep learning.",
 ]
 const EXPECTED_WIZARD_REVELATION: Array[String] = [
-	"Wizard: You are stronger than I expected.",
-	"Wizard: But I am not the one behind your greatest challenge.",
-	"Wizard: The true Math Master has been guiding you from the beginning.",
-	"Wizard: Your Teacher is waiting for you in the City of Knowledge.",
-	"Wizard: Return to the School.",
+	"Wizard: You have defeated me... but I am not the true Math Champion.",
+	"Wizard: The real Math Champion is your Math Teacher.",
+	"Wizard: If you want to become the greatest Math Champion, return to the School and face your final challenge.",
 ]
 const CITY := "res://scenes/city_of_knowledge.tscn"
 const FOREST := "res://scenes/deepest_forest_path.tscn"
@@ -161,16 +157,20 @@ func _test_completion_screen_contract() -> void:
 		"student_id": _state.student_id,
 		"parent_id": _state.parent_id,
 		"correct_answers": _state.correct_answers,
+		"incorrect_answers": _state.incorrect_answers,
 		"total_questions": _state.total_questions,
 		"progress_percentage": _state.progress_percentage,
+		"journey_complete": _state.journey_complete,
 	}
 	_state.player_name = "Synthetic Champion"
 	_state.grade_level = "Grade 3"
 	_state.student_id = "87654321"
 	_state.parent_id = "123456"
 	_state.correct_answers = 3
+	_state.incorrect_answers = 2
 	_state.total_questions = 5
 	_state.progress_percentage = 72
+	_state.journey_complete = true
 	var packed := load(COMPLETION_SCREEN_PATH) as PackedScene if ResourceLoader.exists(COMPLETION_SCREEN_PATH) else null
 	_expect(packed != null, "A dedicated journey completion presentation scene exists")
 	if packed == null:
@@ -198,7 +198,8 @@ func _test_completion_screen_contract() -> void:
 			if row_value is Dictionary:
 				labels.append(String(row_value.get("label", "")))
 		_expect(labels.has("Student") and labels.has("Grade"), "Completion summary includes the existing student name and Grade")
-	_expect(labels.has("Correct Answers") and labels.has("Questions Answered") and labels.has("Progress"), "Completion summary includes only the supplied authoritative result fields")
+	_expect(labels.has("Oak Leaf") and labels.has("City of Knowledge") and labels.has("Pinehill") and labels.has("Math Teacher"), "Completion summary shows the completed canonical campaign regions")
+	_expect(labels.has("Correct Answers") and labels.has("Incorrect Answers") and labels.has("Total Answers"), "Completion summary uses only authoritative answer totals")
 	var rendered_copy := ""
 	for label_value in screen.find_children("*", "Label", true, false):
 		rendered_copy += (label_value as Label).text + "\n"
@@ -212,10 +213,18 @@ func _test_completion_screen_contract() -> void:
 					and absf((rect.position.y * 2.0 + rect.size.y) - viewport_size.y) < 1.0
 			_expect(in_bounds and centered, "Completion panel stays centered and within %dx%d" % [int(viewport_size.x), int(viewport_size.y)])
 	var buttons := screen.find_children("*", "Button", true, false)
-	_expect(buttons.size() == 2, "Completion presentation exposes only Continue and Main Menu actions")
+	_expect(buttons.size() == 1, "Completion presentation exposes only the final Main Menu action")
+	var the_end_label := screen.find_child("TheEndLabel", true, false) as Label
+	var summary_content := screen.find_child("SummaryContent", true, false) as Control
+	_expect(the_end_label != null and the_end_label.text == "The End" and the_end_label.visible, "Completion begins with a short The End card")
+	if screen.has_method("get_end_card_duration"):
+		await get_tree().create_timer(float(screen.call("get_end_card_duration")) + 0.1).timeout
+	_expect(summary_content != null and summary_content.visible, "The End card automatically advances to the completion summary")
+	var title_label := screen.find_child("TitleLabel", true, false) as Label
+	_expect(title_label != null and title_label.text == "THERESIAN'S QUEST COMPLETE", "Completion summary follows the The End card")
 	var continue_button := screen.find_child("ContinueButton", true, false) as Button
 	var main_menu_button := screen.find_child("MainMenuButton", true, false) as Button
-	_expect(continue_button != null and main_menu_button != null, "Both explicit completion actions are available")
+	_expect(continue_button == null and main_menu_button != null, "Continue is removed after the final ending")
 	var sfx := screen.find_child("CompletionSound", true, false) as AudioStreamPlayer
 	_expect(sfx != null and sfx.bus == AudioSettingsManager.SFX_BUS_NAME and sfx.stream != null \
 			and sfx.stream.resource_path == "res://audio/completed.mp3", "Completion sting reuses the existing completion sound on the SFX bus")
@@ -224,12 +233,13 @@ func _test_completion_screen_contract() -> void:
 		while not sfx.playing and Time.get_ticks_msec() < sound_deadline:
 			await get_tree().process_frame
 		_expect(sfx.playing, "Completion sting plays once through the existing SFX bus")
-	if continue_button != null:
-		continue_button.pressed.emit()
-		continue_button.pressed.emit()
-		_expect(String(screen.get("selected_action")) == "continue", "Continue selection is stable against a duplicate button press")
+	if main_menu_button != null:
+		main_menu_button.pressed.emit()
+		main_menu_button.pressed.emit()
+		_expect(String(screen.get("selected_action")) == "main_menu", "Main Menu selection is stable against a duplicate button press")
 	var zero_result_rows: Array = []
 	_state.correct_answers = 0
+	_state.incorrect_answers = 0
 	_state.total_questions = 0
 	_state.progress_percentage = 0
 	if screen.has_method("build_summary_rows"):
@@ -238,7 +248,7 @@ func _test_completion_screen_contract() -> void:
 	for row_value in zero_result_rows:
 		if row_value is Dictionary:
 			zero_labels.append(String(row_value.get("label", "")))
-	_expect(not zero_labels.has("Correct Answers") and not zero_labels.has("Questions Answered") and not zero_labels.has("Progress"), "Untracked zero metrics are omitted rather than fabricated")
+	_expect(not zero_labels.has("Correct Answers") and not zero_labels.has("Incorrect Answers") and not zero_labels.has("Total Answers"), "Untracked zero metrics are omitted rather than fabricated")
 	screen.queue_free()
 	_restore_completion_test_state(original_values)
 	await get_tree().process_frame
@@ -251,9 +261,9 @@ func _restore_completion_test_state(values: Dictionary) -> void:
 
 func _test_final_teacher_contract() -> void:
 	var final_task: Dictionary = _state.tasks[_state.FINAL_TEACHER_TASK_INDEX]
-	_expect(PROGRESSION_ROUTER.WIZARD_REVELATION_DIALOGUE == EXPECTED_WIZARD_REVELATION, "Wizard revelation keeps the approved five lines")
+	_expect(PROGRESSION_ROUTER.WIZARD_REVELATION_DIALOGUE == EXPECTED_WIZARD_REVELATION, "Wizard revelation points directly to the Teacher's final Math Champion challenge")
 	_expect(Array(final_task.get("dialogue", [])) == EXPECTED_REVEAL, "Final Teacher reveal matches all six approved lines")
-	_expect(Array(final_task.get("victory_dialogue", [])) == EXPECTED_EPILOGUE, "Final epilogue matches all seven approved lines")
+	_expect(Array(final_task.get("victory_dialogue", [])) == EXPECTED_EPILOGUE, "Final epilogue ends with the approved Math Champion line")
 	_expect(String(final_task.get("encounter_id", "")) == "final_teacher", "Final encounter retains its canonical ID")
 	_expect(Dictionary(final_task.get("question_scope", {})).get("difficulty", "") == "Difficult", "Final encounter retains Difficult question scope")
 	var male_scene := String(final_task.get("male_battle_scene", ""))
@@ -444,25 +454,12 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 		_expect(ending_music_ready, "The existing MusicManager transitions to the ending track")
 		var background_players := get_node("/root/MusicManager").find_children("*", "AudioStreamPlayer", true, false)
 		_expect(background_players.size() == 1 and String(get_node("/root/MusicManager").get("_current_track_key")) == "ending", "Ending music replaces rather than stacks the existing background player")
-		var close_count := [0]
-		male_completion_screen.closed.connect(func() -> void: close_count[0] += 1)
 		quest_ui.call("_show_journey_completion")
 		_expect(world.get_node_or_null("JourneyCompletionScreen") == male_completion_screen, "A repeated presentation request cannot open a duplicate overlay")
 		var continue_button := male_completion_screen.find_child("ContinueButton", true, false) as Button
-		_expect(continue_button != null, "Continue action exists on the completion screen")
-		if continue_button != null:
-			continue_button.pressed.emit()
-			continue_button.pressed.emit()
-		for frame in 60:
-			if world.get_node_or_null("JourneyCompletionScreen") == null and _state.get_mode() == _state.GameMode.EXPLORATION:
-				break
-			await get_tree().process_frame
-		_expect(close_count[0] == 1 and world.get_node_or_null("JourneyCompletionScreen") == null, "Continue closes the overlay once despite a duplicate press")
-		_expect(time_panel != null and time_panel.visible and quest_panel != null and quest_panel.visible and controls_root != null and controls_root.visible, "Continue restores the existing HUD and controls")
-		_expect(_state.get_mode() == _state.GameMode.EXPLORATION and _state.journey_complete and _state.get_current_quest_text() == "Math Champion", "Continue returns to exploration with Math Champion intact")
-		var school_music_ready := await _wait_for_music_track("school_or_house")
-		_expect(school_music_ready, "Continue restores the School background track")
-	_expect(_state.fixture_checkpoint_save_count == saves_before_male_victory + 1 and male_completion_events.size() == 1, "Opening and continuing the ending creates no duplicate checkpoint or completion event")
+		var main_menu_button := male_completion_screen.find_child("MainMenuButton", true, false) as Button
+		_expect(continue_button == null and main_menu_button != null, "Final completion exposes Main Menu without a Continue path")
+	_expect(_state.fixture_checkpoint_save_count == saves_before_male_victory + 1 and male_completion_events.size() == 1, "Opening the ending creates no duplicate checkpoint or completion event")
 	_state.task_state_changed.disconnect(male_completion_callback)
 	var completed_checkpoint_path := String(_state.call("_get_current_student_save_path", _state.student_id))
 	var completed_data: Dictionary = _state._read_save_file(completed_checkpoint_path)
@@ -472,6 +469,12 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 		if String(save_entry.get("save_path", "")) == completed_checkpoint_path:
 			completed_checkpoint_listed = true
 	_expect(not completed_checkpoint_listed, "Hidden completion checkpoint is not exposed as a manual Load Game slot")
+	# This fixture remains in the School world to inspect the hidden checkpoint;
+	# a real ending leaves through Main Menu. Remove the existing presentation so
+	# the next assertion can prove load does not create a second one.
+	if male_completion_screen != null and is_instance_valid(male_completion_screen):
+		male_completion_screen.queue_free()
+		await get_tree().process_frame
 	_state.start_new_game(PROFILE, false)
 	_state.apply_save_data(completed_data, false)
 	_expect(_state.journey_complete and _state.final_teacher_defeated and not _state.is_final_teacher_active(), "Actual completed game save/load retains the no-replay Math Champion state")
@@ -479,22 +482,6 @@ func _test_real_final_teacher_interactions(transport: QuestionTransport, result_
 	_expect(_state.wizard_defeated and _state.is_progression_encounter_defeated("pinehill_wizard"), "Actual final save keeps Wizard defeated")
 	for encounter_id in _state.DEEP_FOREST_BANDIT_IDS + _state.PINEHILL_BANDIT_IDS:
 		_expect(_state.is_progression_encounter_defeated(encounter_id), "Actual final save keeps prior encounter defeated: " + encounter_id)
-	_expect(bool(teacher.call("can_interact")), "Teacher remains available for one post-completion greeting")
-	if bool(teacher.call("can_interact")):
-		_expect(bool(teacher.call("interact")), "Completed-state Teacher starts a greeting, not a battle")
-		for frame in 30:
-			if bool(quest_ui.call("is_dialogue_active")):
-				break
-			await get_tree().process_frame
-		var post_completion_label := world.get_node("CanvasLayer/DialoguePanel/DialogueLabel") as Label
-		_expect(bool(quest_ui.call("is_dialogue_active")) and post_completion_label.text == POST_COMPLETION_TEACHER_LINE, "Teacher uses the single approved Math Champion line after completion")
-		_expect(not _state.battle_active and world.get_node_or_null("JourneyCompletionScreen") == null, "Post-completion Teacher greeting starts no battle or second ending")
-		quest_ui.call("_advance_dialogue_once")
-		for frame in 30:
-			if not bool(teacher.get("_active")):
-				break
-			await get_tree().process_frame
-		_expect(not bool(teacher.get("_active")) and _state.journey_complete, "Post-completion Teacher greeting closes without changing completed progress")
 	_expect(result_capture.attempts.size() == 3, "Actual male final Teacher battle records exactly three local synthetic attempts")
 	_expect(transport.requests.size() == 1, "Male final Teacher battle loads one isolated question batch")
 	for request in transport.requests:

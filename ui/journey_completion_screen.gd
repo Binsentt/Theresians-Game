@@ -4,6 +4,7 @@ signal closed
 
 const PANEL_MAX_SIZE := Vector2(760.0, 460.0)
 const VIEWPORT_MARGIN := Vector2(32.0, 24.0)
+const END_CARD_DURATION := 1.6
 const PIXEL_FONT := preload("res://Font/PressStart2P.ttf")
 const COMPLETION_STING := preload("res://audio/completed.mp3")
 
@@ -12,6 +13,8 @@ var _action_selected := false
 var _screen_root: Control
 var _backdrop: ColorRect
 var _panel: PanelContainer
+var _the_end_card: CenterContainer
+var _summary_content: VBoxContainer
 var _summary_rows: GridContainer
 var _completion_sound: AudioStreamPlayer
 
@@ -45,33 +48,43 @@ func build_screen() -> void:
 	_panel.add_theme_stylebox_override("panel", _build_panel_style())
 	_screen_root.add_child(_panel)
 
-	var content := VBoxContainer.new()
-	content.name = "Content"
-	content.add_theme_constant_override("separation", 9)
-	_panel.add_child(content)
+	_the_end_card = CenterContainer.new()
+	_the_end_card.name = "TheEndCard"
+	_the_end_card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_the_end_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_screen_root.add_child(_the_end_card)
+	var the_end_label := _make_label("The End", 18, Color(1.0, 0.81, 0.35))
+	the_end_label.name = "TheEndLabel"
+	_the_end_card.add_child(the_end_label)
 
-	var title := _make_label("THERESIAN'S QUEST\nCOMPLETE", 18, Color(1.0, 0.81, 0.35))
+	_summary_content = VBoxContainer.new()
+	_summary_content.name = "SummaryContent"
+	_summary_content.add_theme_constant_override("separation", 9)
+	_summary_content.visible = false
+	_panel.add_child(_summary_content)
+
+	var title := _make_label("THERESIAN'S QUEST COMPLETE", 18, Color(1.0, 0.81, 0.35))
 	title.name = "TitleLabel"
-	content.add_child(title)
+	_summary_content.add_child(title)
 
 	var champion := _make_label("MATH CHAMPION", 14, Color(1.0, 0.9, 0.61))
 	champion.name = "ChampionLabel"
-	content.add_child(champion)
+	_summary_content.add_child(champion)
 
 	var player_name := String(GameState.player_name).strip_edges()
 	if player_name.is_empty():
 		player_name = "Student"
 	var congratulations := _make_label("Congratulations,\n%s" % player_name, 11, Color(0.94, 0.95, 1.0))
 	congratulations.name = "CongratulationsLabel"
-	content.add_child(congratulations)
+	_summary_content.add_child(congratulations)
 
 	var adventure_complete := _make_label("You completed your\nMathematics Adventure!", 9, Color(0.78, 0.83, 0.94))
 	adventure_complete.name = "AdventureCompleteLabel"
-	content.add_child(adventure_complete)
+	_summary_content.add_child(adventure_complete)
 
 	var divider := HSeparator.new()
 	divider.name = "SummaryDivider"
-	content.add_child(divider)
+	_summary_content.add_child(divider)
 
 	_summary_rows = GridContainer.new()
 	_summary_rows.name = "SummaryRows"
@@ -79,18 +92,15 @@ func build_screen() -> void:
 	_summary_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_summary_rows.add_theme_constant_override("h_separation", 22)
 	_summary_rows.add_theme_constant_override("v_separation", 8)
-	content.add_child(_summary_rows)
+	_summary_content.add_child(_summary_rows)
 	_populate_summary_rows()
 
 	var actions := HBoxContainer.new()
 	actions.name = "Actions"
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 16)
-	content.add_child(actions)
+	_summary_content.add_child(actions)
 
-	var continue_button := _make_button("Continue", "ContinueButton")
-	continue_button.pressed.connect(_select_action.bind("continue"))
-	actions.add_child(continue_button)
 	var main_menu_button := _make_button("Main Menu", "MainMenuButton")
 	main_menu_button.pressed.connect(_select_action.bind("main_menu"))
 	actions.add_child(main_menu_button)
@@ -111,13 +121,16 @@ func build_summary_rows() -> Array[Dictionary]:
 	var grade := String(GameState.grade_level).strip_edges()
 	if not grade.is_empty():
 		rows.append({"label": "Grade", "value": grade})
+	if GameState.journey_complete:
+		for region_name in ["Oak Leaf", "City of Knowledge", "Pinehill", "Math Teacher"]:
+			rows.append({"label": region_name, "value": "Completed"})
 	var answered := int(GameState.total_questions)
 	if answered > 0:
 		rows.append({"label": "Correct Answers", "value": str(int(GameState.correct_answers))})
-		rows.append({"label": "Questions Answered", "value": str(answered)})
-	var progress := int(GameState.progress_percentage)
-	if progress > 0:
-		rows.append({"label": "Progress", "value": "%d%%" % progress})
+		var incorrect := maxi(0, int(GameState.incorrect_answers))
+		if incorrect > 0:
+			rows.append({"label": "Incorrect Answers", "value": str(incorrect)})
+		rows.append({"label": "Total Answers", "value": str(answered)})
 	return rows
 
 
@@ -222,22 +235,30 @@ func _on_viewport_size_changed() -> void:
 
 func _play_presentation() -> void:
 	_panel.modulate.a = 0.0
+	_summary_content.visible = false
+	_the_end_card.visible = true
 	_backdrop.color.a = 0.0
 	var shade := create_tween()
 	shade.tween_property(_backdrop, "color:a", 0.92, 0.35)
-	await shade.finished
-	if not is_inside_tree():
-		return
 	if _completion_sound != null and not _completion_sound.playing:
 		_completion_sound.play()
+	await get_tree().create_timer(END_CARD_DURATION).timeout
+	if not is_inside_tree():
+		return
+	_the_end_card.visible = false
+	_summary_content.visible = true
 	var reveal := create_tween()
 	reveal.tween_property(_panel, "modulate:a", 1.0, 0.2)
+
+
+func get_end_card_duration() -> float:
+	return END_CARD_DURATION
 
 
 func _select_action(action: String) -> void:
 	if _action_selected:
 		return
-	if action not in ["continue", "main_menu"]:
+	if action != "main_menu":
 		return
 	_action_selected = true
 	selected_action = action

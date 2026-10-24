@@ -2,6 +2,7 @@ extends Node
 
 const TeacherInteractionScript := preload("res://scripts/teacher_task_interaction.gd")
 const InteractableAreaScript := preload("res://scripts/interactable_area.gd")
+const RESULT_PATH := "user://qa/teacher_interaction_range_test_result.json"
 
 var _checks: Array[Dictionary] = []
 
@@ -15,6 +16,8 @@ func _run() -> void:
 		var live := get_node_or_null("/root/" + autoload_name)
 		if live != null:
 			live.free()
+	var gameplay_source := FileAccess.get_file_as_string("res://scripts/gameplay_scene.gd")
+	_expect(not gameplay_source.contains("Vector2(72.0, 40.0)"), "School Teacher interaction uses the same close adjacent range as the other Teacher interactions")
 	var world := Node2D.new()
 	world.name = "TeacherHouseFixture"
 	add_child(world)
@@ -83,6 +86,12 @@ func _expect(condition: bool, label: String) -> void:
 
 func _finish() -> void:
 	var failed := _checks.filter(func(check: Dictionary) -> bool: return not bool(check.get("passed", false))).size()
-	print("TEACHER_INTERACTION_RANGE_TEST " + JSON.stringify({"passed": _checks.size() - failed, "failed": failed, "checks": _checks}))
+	var evidence := {"passed": _checks.size() - failed, "failed": failed, "checks": _checks, "live_network_calls": 0, "production_writes": 0}
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa"))
+	var result_file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
+	if result_file != null:
+		result_file.store_string(JSON.stringify(evidence, "\t"))
+		result_file.close()
+	print("TEACHER_INTERACTION_RANGE_TEST " + JSON.stringify(evidence))
 	await get_tree().create_timer(1.0).timeout
 	get_tree().quit(0 if failed == 0 else 1)

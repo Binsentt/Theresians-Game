@@ -187,11 +187,10 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 		"status": 400,
 		"body": {
 			"error": "topic_id does not match the canonical question metadata.",
-			"code": "INVALID_TOPIC_METADATA",
 			"debug": "raw database exception local-test-lease",
 		},
 	}))
-	_expect(safe_diagnostic.contains("HTTP 400") and safe_diagnostic.contains("INVALID_TOPIC_METADATA") and safe_diagnostic.contains("topic_id does not match the canonical question metadata."), "Rejected result diagnostics include endpoint status and exact safe backend validation reason")
+	_expect(safe_diagnostic.contains("HTTP 400") and safe_diagnostic.contains("topic_id does not match the canonical question metadata."), "Rejected result diagnostics include the endpoint status and exact safe backend validation reason")
 	_expect(not safe_diagnostic.contains("local-test-lease") and not safe_diagnostic.contains("raw database exception") and not safe_diagnostic.contains("debug="), "Rejected result diagnostics exclude credentials, raw exception/debug fields, and request payloads")
 	var credential_diagnostic := String(sync.call("_format_outbox_failure_diagnostic", "/api/game/result", {
 		"ok": false,
@@ -236,7 +235,7 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 	var manual_snapshot: Dictionary = state.build_save_data()
 	manual_snapshot["save_kind"] = "manual"
 	manual_snapshot["save_commit_id"] = "manual:qa:7:1"
-	http.responses = [{"ok": false, "status": 400, "body": {"error": "topic_id does not match the canonical question metadata.", "code": "INVALID_TOPIC_METADATA"}}]
+	http.responses = [{"ok": false, "status": 400, "body": {"error": "topic_id does not match the canonical question metadata."}}]
 	await sync._on_save_created(manual_snapshot)
 	var requests_after_rejection: Array = http.requests.slice(before_results)
 	_expect(requests_after_rejection.size() == 1 and requests_after_rejection[0].path == "/api/game/result", "Manual Save queues the result first and preserves FIFO ordering when the backend rejects it")

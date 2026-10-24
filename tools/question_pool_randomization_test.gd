@@ -2,6 +2,7 @@ extends Node
 
 const QuestionProviderScript = preload("res://scripts/question_provider.gd")
 const BASE_SCOPE := {"grade": "Grade 1", "difficulty": "Easy"}
+const RESULT_PATH := "user://qa/question_pool_randomization_test_result.json"
 
 
 func _ready() -> void:
@@ -22,7 +23,13 @@ func _run() -> void:
 	var passed := scenarios.filter(func(scenario: Dictionary) -> bool: return bool(scenario.get("passed", false))).size()
 	var failed := scenarios.size() - passed
 	provider.free()
-	print("QUESTION_POOL_RANDOMIZATION_TEST " + JSON.stringify({"passed": passed, "failed": failed, "scenarios": scenarios}))
+	var result := {"passed": passed, "failed": failed, "scenarios": scenarios}
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa"))
+	var result_file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
+	if result_file != null:
+		result_file.store_string(JSON.stringify(result, "\t"))
+		result_file.close()
+	print("QUESTION_POOL_RANDOMIZATION_TEST " + JSON.stringify(result))
 	# Keep a short result window so Godot MCP can capture the final assertion output.
 	await get_tree().create_timer(1.0).timeout
 	get_tree().quit(1 if failed else 0)

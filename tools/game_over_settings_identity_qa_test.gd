@@ -240,6 +240,13 @@ func _assert_deep_forest_school_retry() -> void:
 	_assert(String(state.current_quest) == expected_quest and int(state.current_task_index) == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "Deep Forest quest remains active after School checkpoint recovery")
 	_assert(int(state.current_lives) == 3 and String(state.student_id) == "88001009" and String(state.parent_id) == "880109", "School retry restores three lives and preserves the same linked Student")
 	_assert(not state.is_progression_encounter_defeated("deep_forest_bandits1") and state.list_saves().is_empty(), "Failed Deep Forest encounter remains incomplete and no manual save slot is fabricated")
+	for retry_cycle in range(2, 4):
+		var repeated_game_over: Dictionary = _lose_three_encounters(state, "deep_forest_bandits1", GameState.DEEP_FOREST_BANDIT_TASK_INDEX)
+		var repeated_recovery: Dictionary = state.call("restore_game_over_checkpoint")
+		_assert(bool(repeated_game_over.get("game_over", false)), "Deep Forest retry cycle %d reaches Game Over without changing campaign state" % retry_cycle)
+		_assert(bool(repeated_recovery.get("ok", false)) and String(state.current_scene_path) == school_scene and String(repeated_recovery.get("marker_name", "")) == "PlayerSpawn", "Deep Forest retry cycle %d still returns to the School quest-start checkpoint" % retry_cycle)
+		_assert(int(state.current_lives) == 3 and String(state.current_quest) == expected_quest and int(state.current_task_index) == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "Deep Forest retry cycle %d preserves the active challenge and restores lives" % retry_cycle)
+		_assert(not state.is_progression_encounter_defeated("deep_forest_bandits1") and state.list_saves().is_empty(), "Deep Forest retry cycle %d does not complete the failed battle or create a manual save" % retry_cycle)
 
 
 func _assert_city_quest_retry() -> void:

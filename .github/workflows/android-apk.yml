@@ -1,0 +1,315 @@
+name: Android APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.6.1
+  ANDROID_API_LEVEL: "35"
+  ANDROID_BUILD_TOOLS: 35.0.1
+  ANDROID_PRESET: Android
+  ANDROID_PACKAGE_ID: com.theresiansquest.game
+
+jobs:
+  export-android-apk:
+    name: Export signed Android APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out the exact triggering commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Verify source and Android preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f project.godot
+          test -f export_presets.cfg
+          actual_sha="$(git rev-parse HEAD)"
+          if [[ "$actual_sha" != "$GITHUB_SHA" ]]; then
+            echo "Checked-out commit does not match the triggering SHA." >&2
+            exit 1
+          fi
+          python3 - export_presets.cfg "$ANDROID_PACKAGE_ID" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          expected_package = sys.argv[2]
+          text = path.read_text(encoding="utf-8")
+          preset = None
+          # A preset's options are stored in the following [preset.N.options]
+          # section. Split only at the next top-level [preset.N] header so
+          # package/ABI/permission checks inspect the complete preset.
+          for block in re.split(r"(?m)(?=^\[preset\.\d+\]\r?\n)", text):
+              if 'name="Android"' in block and 'platform="Android"' in block:
+                  preset = block
+                  break
+          if preset is None:
+              raise SystemExit("The existing Android release preset was not found.")
+          if 'custom_features="android_qa"' in preset:
+              raise SystemExit("The release preset unexpectedly contains the android_qa feature.")
+          if 'package/unique_name="' + expected_package + '"' not in preset:
+              raise SystemExit("The Android release preset package ID is not the expected existing ID.")
+          print("Android release preset verified: Android / com.theresiansquest.game")
+          PY
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required Android SDK components
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager "platform-tools" "platforms;android-${ANDROID_API_LEVEL}" "build-tools;${ANDROID_BUILD_TOOLS}" >/dev/null
+
+      - name: Download and verify Godot 4.6.1 and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot_dir="$RUNNER_TEMP/godot-${GODOT_VERSION}"
+          template_dir="$RUNNER_TEMP/godot-export-templates-${GODOT_VERSION}"
+          mkdir -p "$godot_dir" "$template_dir"
+          godot_zip="$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          templates_tgz="$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          curl --fail --location --retry 3 --silent --show-error \
+            --output "$godot_zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl --fail --location --retry 3 --silent --show-error \
+            --output "$templates_tgz" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q "$godot_zip" -d "$godot_dir"
+          godot_bin="$godot_dir/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          chmod +x "$godot_bin"
+          version_output="$("$godot_bin" --version)"
+          case "$version_output" in
+            4.6.1.stable.official.*) ;;
+            *)
+              echo "Unexpected Godot version: $version_output" >&2
+              exit 1
+              ;;
+          esac
+          unzip -q "$templates_tgz" -d "$template_dir"
+          installed_templates="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$installed_templates"
+          cp -R "$template_dir/templates/." "$installed_templates/"
+          test -f "$installed_templates/version.txt"
+          grep -q "^${GODOT_VERSION}.stable" "$installed_templates/version.txt"
+          echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
+          echo "Godot version verified: $version_output"
+          echo "Matching export templates installed."
+
+      - name: Validate release signing inputs and prepare CI export copy
+        id: prepare
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_VERSION_BASE: ${{ vars.ANDROID_VERSION_BASE }}
+        run: |
+          set -euo pipefail
+          for variable_name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD ANDROID_VERSION_BASE; do
+            if [[ -z "${!variable_name:-}" ]]; then
+              echo "Required signing/version input is missing: $variable_name" >&2
+              exit 1
+            fi
+          done
+          if [[ ! "$ANDROID_VERSION_BASE" =~ ^[0-9]+$ ]] || (( ANDROID_VERSION_BASE < 1 )); then
+            echo "ANDROID_VERSION_BASE must be a positive decimal Android version code." >&2
+            exit 1
+          fi
+          if [[ "$ANDROID_KEYSTORE_PASSWORD" != "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "Godot 4.6 Android release export requires matching keystore and key passwords." >&2
+            exit 1
+          fi
+          version_code=$((ANDROID_VERSION_BASE + GITHUB_RUN_NUMBER))
+          if (( version_code > 2100000000 )); then
+            echo "Computed Android version code is outside the supported range." >&2
+            exit 1
+          fi
+          version_name="0.0.${version_code}"
+          ci_project="$RUNNER_TEMP/theresians-quest-export"
+          artifact_dir="$RUNNER_TEMP/theresians-quest-android-artifact"
+          keystore_path="$RUNNER_TEMP/theresians-quest-release.keystore"
+          rm -rf "$ci_project" "$artifact_dir"
+          mkdir -p "$ci_project" "$artifact_dir"
+          rsync -a \
+            --exclude '.git/' \
+            --exclude '.godot/' \
+            --exclude '*.apk' \
+            --exclude '*.idsig' \
+            --exclude '*.pck' \
+            --exclude '*.xcframework/' \
+            --exclude '*.xcodeproj/' \
+            ./ "$ci_project/"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+          chmod 600 "$keystore_path"
+          keytool -list -keystore "$keystore_path" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null 2>&1
+          python3 - "$ci_project/export_presets.cfg" "$version_code" "$version_name" "$ANDROID_PACKAGE_ID" <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          version_code = int(sys.argv[2])
+          version_name = sys.argv[3]
+          package_id = sys.argv[4]
+          text = path.read_text(encoding="utf-8")
+          match = None
+          for candidate in re.finditer(r"(?ms)^\[preset\.(\d+)\]\n.*?(?=^\[preset\.|\Z)", text):
+              if 'name="Android"' in candidate.group(0) and 'platform="Android"' in candidate.group(0):
+                  match = candidate
+                  break
+          if match is None:
+              raise SystemExit("The existing Android release preset was not found in the CI copy.")
+          preset_index = match.group(1)
+          options_header = f"[preset.{preset_index}.options]"
+          options_start = text.index(options_header)
+          next_section = text.find("\n[", options_start + len(options_header))
+          if next_section == -1:
+              next_section = len(text)
+          options_end = next_section
+          options = text[options_start:options_end]
+
+          def set_option(key, value):
+              global options
+              line = f"{key}={json.dumps(value)}"
+              pattern = re.compile(rf"(?m)^{re.escape(key)}=.*$")
+              if pattern.search(options):
+                  options = pattern.sub(line, options, count=1)
+              else:
+                  options = options.rstrip("\n") + "\n" + line + "\n"
+
+          set_option("version/code", version_code)
+          set_option("version/name", version_name)
+          set_option("package/unique_name", package_id)
+          set_option("package/signed", True)
+          set_option("architectures/armeabi-v7a", False)
+          set_option("architectures/arm64-v8a", True)
+          set_option("architectures/x86", False)
+          set_option("architectures/x86_64", False)
+          set_option("permissions/internet", True)
+          text = text[:options_start] + options + text[options_end:]
+          path.write_text(text, encoding="utf-8", newline="\n")
+          PY
+          echo "CI_PROJECT=$ci_project" >> "$GITHUB_ENV"
+          echo "ARTIFACT_DIR=$artifact_dir" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$version_name" >> "$GITHUB_ENV"
+
+      - name: Export the signed APK from the existing Android preset
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export ANDROID_HOME="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$KEYSTORE_PATH"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_USER="$ANDROID_KEY_ALIAS"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$ANDROID_KEY_PASSWORD"
+          apk_path="$ARTIFACT_DIR/TheresiansQuest-Android-${VERSION_CODE}.apk"
+          "$GODOT_BIN" --headless --path "$CI_PROJECT" --export-release "$ANDROID_PRESET" "$apk_path"
+          test -s "$apk_path"
+          echo "APK_PATH=$apk_path" >> "$GITHUB_ENV"
+
+      - name: Verify APK metadata, ABI, signature, and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk_path="$APK_PATH"
+          aapt="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}/aapt"
+          apksigner="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}/apksigner"
+          test -x "$aapt"
+          test -x "$apksigner"
+          badging="$RUNNER_TEMP/theresians-quest-badging.txt"
+          badging_errors="$RUNNER_TEMP/theresians-quest-badging.errors.txt"
+          aapt_status=0
+          "$aapt" dump badging "$apk_path" > "$badging" 2> "$badging_errors" || aapt_status=$?
+          if (( aapt_status != 0 )); then
+            if ! grep -F "package: name='${ANDROID_PACKAGE_ID}'" "$badging" >/dev/null; then
+              cat "$badging_errors" >&2
+              echo "aapt could not produce package metadata for the exported APK." >&2
+              exit "$aapt_status"
+            fi
+            echo "aapt returned $aapt_status while decoding a non-critical manifest attribute; package metadata is valid and verification continues."
+          fi
+          grep -F "package: name='${ANDROID_PACKAGE_ID}'" "$badging"
+          grep -F "versionCode='${VERSION_CODE}'" "$badging"
+          grep -F "versionName='${VERSION_NAME}'" "$badging"
+          if ! unzip -l "$apk_path" | grep -q 'lib/arm64-v8a/'; then
+            echo "The APK does not contain the required arm64-v8a library." >&2
+            exit 1
+          fi
+          if unzip -l "$apk_path" | grep -qE 'lib/(armeabi-v7a|x86|x86_64)/'; then
+            echo "The APK contains an unexpected non-arm64 ABI." >&2
+            exit 1
+          fi
+          signature_report="$RUNNER_TEMP/theresians-quest-signature.txt"
+          "$apksigner" verify --verbose --print-certs "$apk_path" > "$signature_report"
+          if ! grep -qE 'Verified using v(2|3|4) scheme: true' "$signature_report"; then
+            echo "APK signature verification did not report a verified modern signature scheme." >&2
+            exit 1
+          fi
+          sha256="$(sha256sum "$apk_path" | awk '{print toupper($1)}')"
+          size_bytes="$(stat -c '%s' "$apk_path")"
+          report="$ARTIFACT_DIR/build-report.txt"
+          {
+            echo "source_commit=$GITHUB_SHA"
+            echo "godot_version=$GODOT_VERSION"
+            echo "export_preset=$ANDROID_PRESET"
+            echo "package_id=$ANDROID_PACKAGE_ID"
+            echo "version_code=$VERSION_CODE"
+            echo "version_name=$VERSION_NAME"
+            echo "architecture=arm64-v8a"
+            echo "signing=release-keystore-from-github-secrets"
+            echo "apk_file=$(basename "$apk_path")"
+            echo "apk_size_bytes=$size_bytes"
+            echo "sha256=$sha256"
+          } > "$report"
+          {
+            echo "## Android APK"
+            echo "- Source commit: `$GITHUB_SHA`"
+            echo "- Godot: `$GODOT_VERSION`"
+            echo "- Preset: `$ANDROID_PRESET`"
+            echo "- Package: `$ANDROID_PACKAGE_ID`"
+            echo "- Version: `$VERSION_NAME ($VERSION_CODE)`"
+            echo "- ABI: `arm64-v8a`"
+            echo "- Signing: release keystore supplied through GitHub Secrets"
+            echo "- APK size: `$size_bytes bytes`"
+            echo "- SHA-256: `$sha256`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload verified APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TheresiansQuest-Android-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/theresians-quest-android-artifact/*.apk
+            ${{ runner.temp }}/theresians-quest-android-artifact/build-report.txt

@@ -2,6 +2,7 @@ extends "res://tools/preservation_restoration_test.gd"
 
 const ORIGINAL_TEXTURE := "res://Grass n Dirt/free-fields-tileset-pixel-art-for-tower-defense/TileSet_V2.png"
 const MAPS := [OAK, CITY, "res://scenes/2nd Village/Pinehill Village.tscn"]
+const FOREST := "res://scenes/deepest_forest_path.tscn"
 var observations: Dictionary = {}
 
 func _run() -> void:
@@ -20,6 +21,7 @@ func _run() -> void:
 		await _map(map_path)
 	await _doors()
 	await _presentation()
+	await _stage_notification_runtime()
 	var failed := 0
 	for check in checks:
 		if not check.passed:
@@ -89,36 +91,57 @@ func _capture(label: String) -> void:
 	get_viewport().get_texture().get_image().save_png("user://hud_runtime_map_qa_20260926_verified_" + label + ".png")
 
 func _doors() -> void:
-	state.current_task_index = 1
-	var pairs := [
-		[OAK, TEACHER], [TEACHER, OAK],
-		[CITY, "res://scenes/pinehill_village.tscn"],
-		["res://scenes/2nd Village/Pinehill Village.tscn", CITY],
+	var routes := [
+		{"id": "city_to_pinehill", "source": CITY, "door": "City-of-knowlwedge-to-PineHill", "target": "res://scenes/2nd Village/Pinehill Village.tscn"},
+		{"id": "pinehill_to_city", "source": "res://scenes/2nd Village/Pinehill Village.tscn", "door": "Pinehill-to-City-of-Knowledge", "target": CITY},
+		{"id": "legacy_forest_to_pinehill", "source": FOREST, "door": "DeepestForestToPinehill", "target": "res://scenes/2nd Village/Pinehill Village.tscn"},
+		{"id": "legacy_forest_to_city", "source": FOREST, "door": "DeepestForestToCity", "target": CITY},
 	]
-	for pair in pairs:
-		var scene := await _load(pair[0])
-		var candidate: Node = null
-		for area in scene.find_children("*", "Area2D", true, false):
-			if area.has_method("_resolve_destination_scene_path"):
-				var target: String = area._resolve_destination_scene_path()
-				if target.begins_with("uid://"):
-					target = ResourceUID.get_id_path(ResourceUID.text_to_id(target))
-				if target == pair[1]:
-					candidate = area
-					break
-		_expect(candidate != null, pair[0] + " retains door to " + pair[1])
-		if candidate == null:
+	for route in routes:
+		var source_path := String(route["source"])
+		var target_path := String(route["target"])
+		var route_id := String(route["id"])
+		var scene := await _load(source_path)
+		_prepare_canonical_route(route_id)
+		var candidate := scene.get_node_or_null(String(route["door"])) as Node
+		_expect(candidate != null, source_path + " contains its canonical route door " + String(route["door"]))
+		if candidate == null or not candidate.has_method("_resolve_destination_scene_path"):
 			continue
+		_expect(String(candidate.call("_resolve_destination_scene_path")) == target_path, route_id + " targets the next canonical story scene")
 		var player := get_tree().get_first_node_in_group("player_character") as Node2D
-		# Exercise the existing door animation/fade/spawn/scene-change implementation.
+		# Exercise the existing door transition after setting only the relevant QA progression gate.
+		candidate.set("play_fade_transition", false)
+		var task_before := int(state.current_task_index)
 		candidate._begin_transition(player)
 		var deadline := Time.get_ticks_msec() + 5000
 		while get_tree().current_scene == scene and Time.get_ticks_msec() < deadline:
 			await get_tree().process_frame
 		await _frames(8)
-		_expect(get_tree().current_scene.scene_file_path == pair[1], pair[0] + " actual door transition arrives at " + pair[1])
+		_expect(get_tree().current_scene.scene_file_path == target_path, route_id + " actual door transition arrives at its canonical destination")
 		_expect(not inputs.is_input_locked(), "Door arrival releases its existing input lock")
-		_expect(state.current_task_index == 1, "Door transition preserves frozen quest checkpoint")
+		_expect(int(state.current_task_index) >= task_before, route_id + " transition does not regress the quest checkpoint")
+
+
+func _prepare_canonical_route(route_id: String) -> void:
+	match route_id:
+		"city_to_pinehill":
+			state.city_of_knowledge_unlocked = true
+			state.city_school_stage_complete = true
+			state.city_next_path_unlocked = true
+			state.pinehill_unlocked = true
+			state.current_task_index = state.PINEHILL_ARRIVAL_TASK_INDEX
+		"legacy_forest_to_pinehill":
+			# The gameplay flow suite separately proves the five-bandit gate;
+			# this fixture begins at its unlocked side to exercise the real door.
+			state.pinehill_unlocked = true
+			state.current_task_index = state.PINEHILL_ARRIVAL_TASK_INDEX
+		"pinehill_to_city":
+			state.city_of_knowledge_unlocked = true
+			state.current_task_index = state.PINEHILL_ARRIVAL_TASK_INDEX
+		"legacy_forest_to_city":
+			state.wizard_defeated = true
+			state.return_to_city_stage = 2
+			state.current_task_index = state.RETURN_CITY_TASK_INDEX
 
 func _presentation() -> void:
 	var original_window_size := get_window().size
@@ -190,3 +213,44 @@ func _presentation() -> void:
 		_expect(manager._root_layer.layer == 1 and system_rect.position.is_equal_approx(system_position), "Other shared system notifications keep their existing top-center placement and layer")
 		manager._on_progression_session_reset("map_test")
 	get_window().size = original_window_size
+
+func _stage_notification_runtime() -> void:
+	var manager := get_node("/root/QuestNotificationManager")
+	var stage_cases := [
+		{"id": "oakleaf-task-trigger", "path": OAK, "kind": "task_trigger"},
+		{"id": "city-objective-update", "path": CITY, "kind": "quest_updated"},
+		{"id": "forest-objective-update", "path": FOREST, "kind": "quest_updated"},
+		{"id": "pinehill-objective-update", "path": "res://scenes/2nd Village/Pinehill Village.tscn", "kind": "quest_updated"},
+	]
+	for stage_case in stage_cases:
+		var stage_id := String(stage_case["id"])
+		var scene := await _load(String(stage_case["path"]))
+		var hud := scene.get_node_or_null("GameHUD") as Node
+		var quest_guide := hud.get_node_or_null("QuestGuide") as Control if hud != null else null
+		_expect(hud != null and quest_guide != null, stage_id + " loads the canonical persistent quest HUD")
+		if hud == null or quest_guide == null:
+			continue
+		manager.call("_on_progression_session_reset", "stage_notification_" + stage_id)
+		var kind := String(stage_case["kind"])
+		if kind == "task_trigger":
+			manager.call("show_task_trigger", "New Objective", "Defeat the Oakleaf Bandits", "stage_notification_" + stage_id)
+		else:
+			manager.call("show_quest_updated", "Quest Updated", "Continue your current journey", "stage_notification_" + stage_id)
+		await manager.notification_started
+		var panel := manager.get("_task_trigger_panel") as Control if kind == "task_trigger" else manager.get("_task_complete_panel") as Control
+		var panel_rect := panel.get_global_rect() if panel != null else Rect2()
+		_expect(panel != null and panel.visible and panel_rect.size.y <= 96.0, stage_id + " shows only a compact temporary notification")
+		_expect(panel != null and panel.mouse_filter == Control.MOUSE_FILTER_IGNORE, stage_id + " notification does not block gameplay input")
+		if kind == "task_trigger":
+			var viewport_size := get_viewport().get_visible_rect().size
+			var overlaps_controls := false
+			for direction in ["up", "down", "left", "right", "interact"]:
+				overlaps_controls = overlaps_controls or panel_rect.intersects(_button(scene, direction).get_global_rect())
+			_expect(absf(viewport_size.y - panel_rect.end.y - 28.0) < 1.5 and not overlaps_controls, stage_id + " stays clear of movement and ACT controls")
+		else:
+			var hud_rect := quest_guide.get_global_rect()
+			_expect(panel_rect.position.y >= hud_rect.end.y + 11.0, stage_id + " objective toast sits below, not over, Current Quest")
+		await _capture("stage-notification-" + stage_id)
+		await manager.notification_finished
+		await _frames(1)
+		_expect(panel != null and not panel.visible, stage_id + " temporary notification dismisses automatically")

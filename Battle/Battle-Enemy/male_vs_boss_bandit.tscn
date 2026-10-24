@@ -1,9 +1,9 @@
-[gd_scene format=3 uid="uid://cbfuk25bb15sp"]
+[gd_scene format=3 uid="uid://cmy2417vhky4e"]
 
 [ext_resource type="PackedScene" uid="uid://dagwv6q6i5o1a" path="res://Battle/Bg-battle.tscn" id="1_ihtg2"]
 [ext_resource type="PackedScene" uid="uid://sdrreans0p5w" path="res://Battle/boss_bandit_battle.tscn" id="2_68w31"]
 [ext_resource type="PackedScene" uid="uid://b42kw413cgnqt" path="res://Battle/Player-male-battle.tscn" id="3_l1n8s"]
-[ext_resource type="PackedScene" uid="uid://bcuqtpfhpay8c" path="res://ui/battle_life_display.tscn" id="4_hud"]
+[ext_resource type="PackedScene" uid="uid://tunret6tnlxb" path="res://ui/battle_life_display.tscn" id="4_hud"]
 
 [node name="male_vs_boss-bandit" type="Node2D" unique_id=1765465242]
 

@@ -26,8 +26,10 @@ func _run() -> void:
 	var saves := GameState.list_saves()
 	var legacy_save := _find_save(saves, LEGACY_SAVE_PATH)
 	var malformed_save := _find_save(saves, MALFORMED_SAVE_PATH)
-	_assert(bool(legacy_save.get("loadable", false)), "legacy saves with omitted optional metadata remain loadable")
-	_assert(String(legacy_save.get("scene_path", "")) == GameState.START_SCENE_PATH, "legacy saves default a missing scene safely")
+	# Legacy owner-proven snapshots are migrated to the hidden recovery checkpoint.
+	# Load Game intentionally lists only explicit manual/daily-limit slots, so it
+	# must not expose an ambiguous legacy file as a fake manual save.
+	_assert(legacy_save.is_empty(), "legacy snapshots without a visible save kind stay hidden from Load Game")
 	var loaded_legacy := GameState.load_save(LEGACY_SAVE_PATH, false)
 	_assert(not loaded_legacy.is_empty(), "loadable legacy saves continue through the normal load path")
 	_assert(GameState.current_scene_path == GameState.START_SCENE_PATH, "legacy load resumes at the safe default scene")

@@ -178,7 +178,7 @@ horizontal_alignment = 1
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1259421099]
 layout_mode = 1
-anchors_preset = 0
+anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -538.5
@@ -289,7 +289,6 @@ flat = true
 expand_icon = true
 
 [node name="OptionsPopup" type="Control" parent="." unique_id=1220119447]
-visible = false
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
