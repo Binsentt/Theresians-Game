@@ -271,11 +271,13 @@ jobs:
           grep -F "package: name='${ANDROID_PACKAGE_ID}'" "$badging"
           grep -F "versionCode='${VERSION_CODE}'" "$badging"
           grep -F "versionName='${VERSION_NAME}'" "$badging"
-          if ! unzip -l "$apk_path" | grep -q 'lib/arm64-v8a/'; then
+          apk_contents="$RUNNER_TEMP/theresians-quest-internal-apk-contents.txt"
+          unzip -l "$apk_path" > "$apk_contents"
+          if ! grep -q 'lib/arm64-v8a/' "$apk_contents"; then
             echo "The APK does not contain the required arm64-v8a library." >&2
             exit 1
           fi
-          if unzip -l "$apk_path" | grep -qE 'lib/(armeabi-v7a|x86|x86_64)/'; then
+          if grep -qE 'lib/(armeabi-v7a|x86|x86_64)/' "$apk_contents"; then
             echo "The APK contains an unexpected non-arm64 ABI." >&2
             exit 1
           fi
