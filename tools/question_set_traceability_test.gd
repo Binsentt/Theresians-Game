@@ -13,6 +13,12 @@ func _ready() -> void:
 func _run() -> void:
 	var failed := false
 	var provider := QuestionProviderScript.new()
+	provider.name = "QuestionProviderUnderTest"
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state != null:
+		game_state.set("encounter_context", {})
+	add_child(provider)
+	failed = not _assert(provider.is_inside_tree(), "QuestionProvider fixture is in the scene tree before absolute-root context lookups") or failed
 
 	var remote_question: Dictionary = provider._normalize_question({
 		"id": 91,
@@ -96,7 +102,7 @@ func _run() -> void:
 	failed = not _assert_quiz_manager_wiring() or failed
 
 	failed = not _assert_remote_sync_payload_contract() or failed
-	provider.free()
+	provider.queue_free()
 	var result_directory := ProjectSettings.globalize_path("user://qa_local_saves")
 	DirAccess.make_dir_recursive_absolute(result_directory)
 	var result_file := FileAccess.open("user://qa_local_saves/question_set_traceability_test_result.json", FileAccess.WRITE)

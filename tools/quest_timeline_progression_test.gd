@@ -92,10 +92,10 @@ func _run() -> void:
 	_expect(state.current_task_index == state.CITY_SCHOOL_TASK_INDEX and state.city_school_stage == 1, "City entry advances to School")
 	state.handle_scene_entered(SCHOOL)
 	_expect(state.current_task_index == state.CITY_SCHOOL_TEACHER_TASK_INDEX, "School entry exposes Math Teacher")
-	_expect(state.complete_city_school_teacher().get("changed", false), "Math Teacher unlocks Deep Forest")
-	_expect(state.current_task_index == state.CITY_NEXT_PATH_TASK_INDEX and state.get_current_quest_text() == "Go to the Deepest Forest Path.", "School completion stages the Deep Forest path")
+	_expect(state.complete_city_school_teacher().get("changed", false), "Math Teacher unlocks the City-to-Pinehill path")
+	_expect(state.current_task_index == state.CITY_NEXT_PATH_TASK_INDEX and state.get_current_quest_text() == "Go to the Pinehill Path.", "School completion stages the Pinehill path")
 	state.handle_scene_entered(CITY)
-	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX and state.get_current_quest_text() == "Defeat the Bandits in the Deepest Forest.", "City return activates Deep Forest")
+	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX and state.get_current_quest_text() == "Defeat the Five Bandits in the City of Knowledge.", "City return activates the five City Bandits")
 
 	for encounter_id in DEEP_IDS:
 		_expect(state.can_start_progression_encounter(encounter_id), "%s is available in Deep Forest" % encounter_id)

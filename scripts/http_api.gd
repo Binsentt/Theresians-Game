@@ -5,9 +5,6 @@ signal request_failed(error: String)
 
 const DEFAULT_CONFIG_PATH := "res://Data/api_config.json"
 const QA_LOCAL_PROFILE_PATH := "res://Data/api_config.qa_local.json"
-const ANDROID_QA_PROFILE_PATH := "res://Data/api_config.android_qa.json"
-const ANDROID_QA_API_BASE_URL := "https://theresians-monitoring-system-qa-owner-testing.up.railway.app"
-const PRODUCTION_API_HOST := "theresiansquest.com"
 const PRODUCTION_SMOKE_TEST_ENVIRONMENT := "THERESIANS_PRODUCTION_SMOKE_TEST"
 const QA_LOCAL_ENVIRONMENT_VARIABLE := "THERESIANS_QA_LOCAL"
 const DEFAULT_LOCAL_QA_URL := "http://127.0.0.1:5000"
@@ -26,7 +23,12 @@ func _ready() -> void:
 	var cfg: Dictionary = {}
 	android_qa_mode = OS.has_feature("android_qa")
 	qa_local_profile_active = not android_qa_mode and is_local_qa_profile_requested()
-	config_source_path = ANDROID_QA_PROFILE_PATH if android_qa_mode else (QA_LOCAL_PROFILE_PATH if qa_local_profile_active else DEFAULT_CONFIG_PATH)
+	config_source_path = QA_LOCAL_PROFILE_PATH if qa_local_profile_active else DEFAULT_CONFIG_PATH
+	if android_qa_mode:
+		_apply_android_qa_profile({}, true)
+		print("API MODE: ANDROID QA RETIRED — remote requests and writes disabled")
+		print("API CONFIG SOURCE: retired android_qa feature")
+		return
 	var config_file := FileAccess.open(config_source_path, FileAccess.READ)
 	if config_file:
 		var text := config_file.get_as_text()
@@ -34,12 +36,6 @@ func _ready() -> void:
 		var parsed_config = JSON.parse_string(text)
 		if typeof(parsed_config) == TYPE_DICTIONARY:
 			cfg = parsed_config
-	if android_qa_mode:
-		_apply_android_qa_profile(cfg, true)
-		if android_qa_config_valid:
-			print("API MODE: ANDROID QA — " + base_url)
-		print("API CONFIG SOURCE: " + config_source_path)
-		return
 	if not cfg.is_empty():
 		var debug_build := OS.is_debug_build()
 		var production_smoke_test_enabled := is_production_qa_enabled(cfg, is_production_smoke_test_enabled())
@@ -71,30 +67,19 @@ func _ready() -> void:
 	# no persistent HTTPRequest node: create per-request nodes to avoid blocking and allow concurrency
 
 
-func resolve_android_qa_profile(config: Dictionary) -> Dictionary:
-	var candidate := String(config.get("api_base_url", "")).strip_edges().trim_suffix("/")
-	var is_approved_qa_target := candidate == ANDROID_QA_API_BASE_URL
-	var targets_production := candidate.to_lower().contains(PRODUCTION_API_HOST)
-	if not is_approved_qa_target or targets_production:
-		return {
-			"profile": "android_qa",
-			"api_base_url": "",
-			"config_valid": false,
-			"remote_writes_enabled": false,
-			"error": "ANDROID_QA_CONFIGURATION_INVALID",
-		}
+func resolve_android_qa_profile(_config: Dictionary) -> Dictionary:
 	return {
 		"profile": "android_qa",
-		"api_base_url": ANDROID_QA_API_BASE_URL,
-		"config_valid": true,
-		"remote_writes_enabled": true,
-		"error": "",
+		"api_base_url": "",
+		"config_valid": false,
+		"remote_writes_enabled": false,
+		"error": "ANDROID_QA_PROFILE_RETIRED",
 	}
 
 
-func _apply_android_qa_profile(config: Dictionary, log_configuration_error: bool = false) -> Dictionary:
+func _apply_android_qa_profile(_config: Dictionary, log_configuration_error: bool = false) -> Dictionary:
 	android_qa_mode = true
-	var profile := resolve_android_qa_profile(config)
+	var profile := resolve_android_qa_profile(_config)
 	android_qa_config_valid = bool(profile.get("config_valid", false))
 	android_qa_remote_writes_enabled = bool(profile.get("remote_writes_enabled", false))
 	android_qa_configuration_error = String(profile.get("error", ""))
@@ -102,7 +87,7 @@ func _apply_android_qa_profile(config: Dictionary, log_configuration_error: bool
 	production_qa_mode = false
 	local_qa_only = false
 	if not android_qa_config_valid and log_configuration_error:
-		push_error("ANDROID_QA_CONFIGURATION_INVALID: remote requests and writes are disabled.")
+		push_error("ANDROID_QA_PROFILE_RETIRED: remote requests and writes are disabled.")
 	return profile
 
 
@@ -208,6 +193,7 @@ func is_local_qa_profile_requested() -> bool:
 			or normalized.ends_with("/oakleaf_encounter_data_integrity_test.tscn")
 			or normalized.ends_with("/question_provider_prefetch_test.tscn")
 			or normalized.ends_with("/teacher_interaction_range_test.tscn")
+			or normalized.ends_with("/teacher_house_collision_trace.tscn")
 			or normalized.ends_with("/oakleaf_story_runtime_test.tscn")
 			or normalized.ends_with("/quiz_manager_loading_state_test.tscn")
 		):
@@ -303,9 +289,7 @@ func _build_url(path: String, params: Dictionary = {}) -> String:
 
 func _qa_request_allowed() -> bool:
 	if android_qa_mode:
-		if not is_android_qa_remote_writes_enabled() or base_url.rstrip("/") != ANDROID_QA_API_BASE_URL:
-			return false
-		return true
+		return false
 	if local_qa_only and not is_loopback_url(base_url):
 		push_error("QA_LOCAL_REMOTE_BLOCKED")
 		return false

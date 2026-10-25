@@ -3,6 +3,7 @@ extends Node
 signal request_recorded(kind: String, path: String, payload: Dictionary)
 
 var requests: Array[Dictionary] = []
+var base_url := "http://127.0.0.1:1"
 var parent_result: Dictionary = {
 	"ok": true,
 	"status": 200,
@@ -22,6 +23,18 @@ var profile_result: Dictionary = {
 		},
 	},
 }
+
+
+func is_local_qa_mode() -> bool:
+	return true
+
+
+func is_local_qa_profile_active() -> bool:
+	return true
+
+
+func get_resolved_api_base_url() -> String:
+	return base_url
 
 
 func request_get(path: String, params: Dictionary = {}, _timeout_ms: int = -1) -> Dictionary:

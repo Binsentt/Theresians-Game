@@ -12,6 +12,7 @@ var _http: Node
 var _remote: Node
 var _state: Node
 var _current_student_id := ""
+var _terms_qa_acceptance_path := ""
 
 
 func _ready() -> void:
@@ -27,12 +28,31 @@ func _run() -> void:
 	if _http == null or _remote == null or _state == null:
 		_finish()
 		return
+	var local_qa_guard := bool(_http.call("is_local_qa_mode")) \
+		and bool(_remote.get("local_qa_only")) \
+		and bool(_remote.call("_remote_writes_blocked"))
+	_expect(local_qa_guard, "login contract uses local QA with all RemoteSync writes blocked")
+	if not local_qa_guard:
+		_finish()
+		return
+	_terms_qa_acceptance_path = "user://qa_test_artifacts/terms_startup_flow_test_new_game_login_%d.json" % Time.get_ticks_usec()
+	var terms_path_selected := _state.has_method("set_terms_app_acceptance_path_for_qa") \
+		and bool(_state.call("set_terms_app_acceptance_path_for_qa", _terms_qa_acceptance_path))
+	_expect(terms_path_selected, "login contract selects an isolated QA-only Terms acceptance file")
+	if not terms_path_selected:
+		_finish()
+		return
+	var terms_acceptance_recorded := bool(_state.call("record_terms_app_acceptance"))
+	_expect(terms_acceptance_recorded and bool(_state.call("has_current_terms_app_acceptance")), "login contract accepts Terms in its isolated QA profile")
+	if not terms_acceptance_recorded:
+		_finish()
+		return
 	_http.set_script(HttpApiStub)
 	_remote.set_script(RemoteSyncStub)
 
 	await _verify_current_eight_digit_pair_and_tutorial()
 	await _verify_server_authorized_pair_is_not_blocked_by_a_stale_local_save()
-	await _verify_legacy_six_digit_pair()
+	await _verify_six_digit_student_id_rejected()
 	await _verify_wrong_parent()
 	await _verify_missing_parent()
 	await _verify_archived_parent()
@@ -93,17 +113,18 @@ func _verify_server_authorized_pair_is_not_blocked_by_a_stale_local_save() -> vo
 	_expect(await _wait_for_scene(PLAYER_HOUSE, 480), "the server-authorized profile reaches the Player House tutorial")
 
 
-func _verify_legacy_six_digit_pair() -> void:
+func _verify_six_digit_student_id_rejected() -> void:
 	_current_student_id = _unused_student_id(6)
-	_set_profile_response(200, _valid_profile_body("Legacy QA Student", "Grade 2"))
 	var wizard := await _open_ids_step()
 	if wizard == null:
 		return
+	var requests_before: int = _http.requests.size()
 	_set_ids(wizard, _current_student_id, "654321")
 	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
-	_expect(await _wait_for_visible(wizard.get_node("NameGradeSelect"), 240), "valid legacy 6-digit Student plus linked Parent advances")
-	_expect(_request_matches(_current_student_id, "654321"), "legacy submit preserves the canonical route and Parent query")
-	_expect((wizard.get_node("NameGradeSelect/NameInput") as LineEdit).text == "Legacy QA Student", "legacy canonical profile is applied")
+	await _wait_for_transition(wizard)
+	_expect(wizard.get_node("StudentParentId").visible and not wizard.get_node("NameGradeSelect").visible, "six-digit Student ID remains invalid under the current eight-digit ID contract")
+	_expect(_validation_text(wizard) == "Student ID must contain exactly 8 digits.", "six-digit Student ID shows the current validation message")
+	_expect(_http.requests.size() == requests_before, "invalid six-digit Student ID is rejected before the profile endpoint")
 
 
 func _verify_wrong_parent() -> void:
@@ -351,6 +372,10 @@ func _expect(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	if _state != null and _state.has_method("reset_terms_app_acceptance_path_for_qa"):
+		_state.call("reset_terms_app_acceptance_path_for_qa")
+	if not _terms_qa_acceptance_path.is_empty() and FileAccess.file_exists(_terms_qa_acceptance_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(_terms_qa_acceptance_path))
 	var file := FileAccess.open("res://tools/new_game_login_contract_test_result.json", FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify({

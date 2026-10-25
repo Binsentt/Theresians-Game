@@ -48,6 +48,13 @@ func _assert_load_game_scene_contract(scene_path: String) -> void:
 		"%s provides the DeleteSaveConfirmation required by load_game_scene.gd" % scene_path
 	)
 	_assert(
+		source.contains('[node name="IdentityGate" type="VBoxContainer"')
+			and source.contains('name="StudentIdInput"')
+			and source.contains('name="ParentIdInput"')
+			and source.contains('name="VerifyButton"'),
+		"%s preserves the Student/Parent ownership gate required for restart-safe Load Game" % scene_path
+	)
+	_assert(
 		saves_container_pattern_valid and saves_container_matcher.search(source) != null,
 		"%s provides the save-list container required by load_game_scene.gd" % scene_path
 	)

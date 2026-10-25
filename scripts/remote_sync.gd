@@ -98,9 +98,9 @@ func enable_local_qa_mode() -> void:
 	print("RemoteSync: LOCAL QA ONLY — all telemetry/progress writes disabled")
 
 
-func configure_android_qa_mode(remote_writes_enabled: bool) -> void:
+func configure_android_qa_mode(_remote_writes_enabled: bool) -> void:
 	android_qa_mode = true
-	android_qa_remote_writes_enabled = remote_writes_enabled
+	android_qa_remote_writes_enabled = false
 	local_qa_only = false
 	_pending_file = ANDROID_QA_PENDING_FILE
 	_invalidate_playtime_lease()
@@ -110,10 +110,7 @@ func configure_android_qa_mode(remote_writes_enabled: bool) -> void:
 	_playtime_timeout_pending = false
 	_activity_requests_in_flight.clear()
 	_acknowledged_activity_keys.clear()
-	if remote_writes_enabled:
-		print("RemoteSync: ANDROID QA — isolated QA outbox enabled")
-	else:
-		print("RemoteSync: ANDROID QA CONFIG INVALID — remote writes disabled")
+	print("RemoteSync: ANDROID QA RETIRED — isolated outbox retained, remote writes disabled")
 
 
 func _remote_writes_blocked() -> bool:
@@ -1094,7 +1091,10 @@ func _build_question_result_payload(question: Dictionary, is_correct: bool) -> D
 		payload["question_id"] = canonical_question_id
 	var raw_topic_id: Variant = question.get("topic_id", null)
 	var canonical_topic_id := "" if raw_topic_id == null else str(raw_topic_id).strip_edges()
-	if not canonical_topic_id.is_empty():
+	# The backend accepts topic evidence only when it can verify the question ID
+	# against its canonical question set. Legacy/local IDs remain event identity
+	# only and must not make an otherwise valid legacy result fail validation.
+	if canonical_question_id is int and canonical_question_id > 0 and not canonical_topic_id.is_empty():
 		payload["topic_id"] = canonical_topic_id
 	var question_presented_at := str(question.get("question_presented_at", "")).strip_edges()
 	var answer_submitted_at := str(question.get("answer_submitted_at", "")).strip_edges()

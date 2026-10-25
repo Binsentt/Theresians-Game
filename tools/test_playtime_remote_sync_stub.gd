@@ -3,6 +3,7 @@ extends Node
 signal request_recorded(payload: Dictionary)
 
 var requests: Array[Dictionary] = []
+var local_qa_only := true
 var response: Dictionary = {
 	"ok": true,
 	"status": 200,
@@ -19,6 +20,10 @@ var response: Dictionary = {
 	"error": "",
 	"session_id": 42,
 }
+
+
+func _remote_writes_blocked() -> bool:
+	return true
 
 
 func request_playtime_session(override_payload: Dictionary = {}) -> Dictionary:

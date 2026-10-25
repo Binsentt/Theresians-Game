@@ -202,9 +202,10 @@ func _test_answer_and_progress_serialization(state, sync, http: HttpStub) -> voi
 		"id": "question:local-only-hash",
 		"question": "2 + 3 = ?",
 		"difficulty": scope.difficulty,
+		"topic_id": "basic_addition",
 	}
 	var legacy_payload: Dictionary = sync._build_question_result_payload(legacy_question, true)
-	_expect(not legacy_payload.has("question_id") and not legacy_payload.has("question_set_id") and not legacy_payload.has("topic_id"), "A legacy/local question without canonical IDs does not fabricate database traceability fields")
+	_expect(not legacy_payload.has("question_id") and not legacy_payload.has("question_set_id") and not legacy_payload.has("topic_id"), "A legacy/local question with unlinked topic metadata omits all database traceability fields")
 	_expect(not String(legacy_payload.get("result_event_id", "")).is_empty(), "A legacy question may still use a stable independent result event identity")
 	var before_results := http.requests.size()
 	await sync.record_question_attempt(question, true)

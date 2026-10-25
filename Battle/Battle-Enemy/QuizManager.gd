@@ -112,6 +112,7 @@ func load_question():
 	if _provider != null and _provider.has_method("get_question"):
 		var provider_question: Dictionary = _provider.call("get_question")
 		if provider_question.is_empty():
+			_show_question_load_failure()
 			return
 		_set_presented_question(provider_question)
 		question_label.text = String(provider_question.get("question", ""))
@@ -189,6 +190,8 @@ func _record_question_attempt(question: Dictionary, is_correct: bool) -> void:
 		var question_difficulty := String(question.get("difficulty", game_state.difficulty_level)).strip_edges()
 		if not question_difficulty.is_empty():
 			game_state.difficulty_level = question_difficulty
+		if game_state.has_method("record_question_attempt"):
+			game_state.call("record_question_attempt", question.duplicate(true), is_correct)
 
 	var remote_sync := get_node_or_null("/root/RemoteSync")
 	if remote_sync != null and remote_sync.has_method("record_question_attempt"):
@@ -212,6 +215,13 @@ func _show_question_load_failure() -> void:
 	for button in buttons:
 		button.text = ""
 	var error_code := String(_provider.get("last_load_error_code")) if _provider != null else ""
+	if _provider != null and _provider.get("last_selection_error_code") != null:
+		var selection_error := String(_provider.get("last_selection_error_code"))
+		if not selection_error.is_empty():
+			error_code = selection_error
+	if error_code == "pool_exhausted":
+		question_label.text = "No unused questions remain for this challenge."
+		return
 	if error_code == "network":
 		_network_retry_available = true
 		question_label.text = "Connection lost. Retry to continue this battle."

@@ -53,12 +53,7 @@ func _ready() -> void:
 	OAKLEAF_BATTLE_ENCOUNTER.install_for_scene(self, OAKLEAF_BATTLE_ENCOUNTER)
 	if active_scene_path == "res://interiors/teacher_house.tscn" \
 			or active_scene_path == "res://interiors/school.tscn":
-		var teacher_sensor_size := Vector2(42.0, 36.0)
-		TEACHER_TASK_INTERACTION.install_for_scene(
-			self,
-			TEACHER_TASK_INTERACTION,
-			teacher_sensor_size
-		)
+		TEACHER_TASK_INTERACTION.install_for_scene(self, TEACHER_TASK_INTERACTION)
 	PROGRESSION_BATTLE_ENCOUNTER.install_for_scene(self, PROGRESSION_BATTLE_ENCOUNTER)
 	PROGRESSION_OLD_MAN_INTERACTION.install_for_scene(self, PROGRESSION_OLD_MAN_INTERACTION)
 	var progression_task_callback := Callable(self, "_on_progression_task_state_changed")

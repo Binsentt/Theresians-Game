@@ -25,10 +25,10 @@ script = ExtResource("1_script")
 
 [node name="DialoguePanel" type="PanelContainer" parent="."]
 anchors_preset = -1
-anchor_left = 0.16
-anchor_top = 0.7
-anchor_right = 0.84
-anchor_bottom = 0.94
+anchor_left = 0.06
+anchor_top = 0.68
+anchor_right = 0.76
+anchor_bottom = 0.96
 offset_right = 0.0
 grow_horizontal = 2
 mouse_filter = 0

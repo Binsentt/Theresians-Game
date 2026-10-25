@@ -144,7 +144,7 @@ func _run_live_city_pinehill_flow() -> void:
 	city = get_tree().current_scene as Node2D
 	player = _get_live_player()
 	_expect(city != null and state.current_task_index == GameState.DEEP_FOREST_BANDIT_TASK_INDEX, "Returning from School activates the Deepest Forest Bandit objective in City")
-	_expect(String(state.current_quest) == "Defeat the Bandits in the Deepest Forest.", "City entry shows the canonical active five-Bandit objective")
+	_expect(String(state.current_quest) == "Defeat the Five Bandits in the City of Knowledge.", "City entry shows the canonical active five-Bandit objective")
 	var forest_ids: Array = GameState.DEEP_FOREST_BANDIT_IDS
 	for index in range(5):
 		var actor_name := "Bandits" if index == 0 else "Bandits%d" % (index + 1)
@@ -259,8 +259,9 @@ func _run_live_city_pinehill_flow() -> void:
 	_expect(player != null, "Pinehill scene creates its current live player")
 	if player == null:
 		return
+	var fixed_villager_actor := pinehill.get_node_or_null("villager-male") as Node2D
 	var fixed_villager_visual := pinehill.get_node_or_null("villager-male/Visual") as Node2D
-	_expect(fixed_villager_visual != null and fixed_villager_visual.scale.is_equal_approx(Vector2.ONE), "Pinehill villager-male restores the authored sprite scale")
+	_expect(fixed_villager_actor != null and fixed_villager_actor.scale.is_equal_approx(Vector2(0.12, 0.12)) and fixed_villager_visual != null and fixed_villager_visual.scale.is_equal_approx(Vector2.ONE), "Pinehill villager-male restores its visual scale without changing actor collision scale")
 	_expect(fixed_villager_visual != null and fixed_villager_visual.global_scale.x >= 0.1, "Pinehill villager-male has a visible runtime scale instead of a sub-pixel nested scale")
 	var pinehill_arrival_marker := pinehill.find_child("spawn_from_deepest_forest", true, false) as Node2D
 	_expect(pinehill_arrival_marker != null and player.global_position.is_equal_approx(pinehill_arrival_marker.global_position), "Unlocked City gateway uses Pinehill's established forest-side arrival marker")
@@ -304,7 +305,7 @@ func _run_live_city_pinehill_flow() -> void:
 		_expect(bool(component.call("can_interact")), "Pinehill guard %d is reachable/interactable at its authored position" % (index + 1))
 		var result: Dictionary = state.call("record_progression_encounter_victory", String(pinehill_ids[index]), false)
 		_expect(bool(result.get("changed", false)), "QA-only victory seed records Pinehill guard %d" % (index + 1))
-	var house := pinehill.get_node_or_null("display-kase yung wizard sa labas lang") as Node2D
+	var house := pinehill.get_node_or_null("wizard house") as Node2D
 	var wizard := pinehill.get_node_or_null("Boss-Wizard") as Node2D
 	var wizard_component := wizard.get_node_or_null("ProgressionBattleEncounter") if wizard != null else null
 	_expect(bool(state.call("can_start_progression_encounter", "pinehill_wizard")), "Four guard victories unlock one outdoor Wizard encounter")
@@ -874,7 +875,7 @@ func _check_pinehill_routes() -> void:
 		GameState.pinehill_defeated_bandits[encounter_id] = true
 	GameState.current_task_index = GameState.WIZARD_TASK_INDEX
 	ROUTER.install_for_scene(pinehill, ROUTER)
-	var house := pinehill.get_node_or_null("display-kase yung wizard sa labas lang")
+	var house := pinehill.get_node_or_null("wizard house")
 	_expect(house != null and house.get_node_or_null("ProgressionBattleEncounter") == null, "Wizard House artwork is not an encounter trigger")
 	var wizard := pinehill.get_node_or_null("Boss-Wizard") as Node2D
 	var wizard_component := wizard.get_node_or_null("ProgressionBattleEncounter") if wizard != null else null

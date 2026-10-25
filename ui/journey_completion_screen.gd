@@ -53,8 +53,16 @@ func build_screen() -> void:
 	_the_end_card.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_the_end_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_screen_root.add_child(_the_end_card)
-	var the_end_label := _make_label("The End", 18, Color(1.0, 0.81, 0.35))
+	var the_end_label := _make_label("THE END", 18, Color(1.0, 0.81, 0.35))
 	the_end_label.name = "TheEndLabel"
+	# The end card is a single centered title. The shared label helper enables
+	# smart wrapping for summary text, but wrapping this short title by glyph
+	# produces the reported vertical T/H/E layout on narrow Android viewports.
+	the_end_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	the_end_label.custom_minimum_size = Vector2(180.0, 48.0)
+	the_end_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	the_end_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	the_end_label.clip_text = false
 	_the_end_card.add_child(the_end_label)
 
 	_summary_content = VBoxContainer.new()

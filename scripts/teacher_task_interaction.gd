@@ -7,7 +7,7 @@ extends Node
 @export var quest_ui_path: NodePath = NodePath("../CanvasLayer/Panel")
 
 const COMPONENT_NAME := "TeacherTaskInteraction"
-const TARGET_SENSOR_WORLD_SIZE := Vector2(42.0, 36.0)
+const TARGET_SENSOR_WORLD_SIZE := Vector2(72.0, 40.0)
 
 var _active: bool = false
 
