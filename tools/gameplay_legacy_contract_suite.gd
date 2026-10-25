@@ -9,6 +9,7 @@ const CASES := [
 	"http_api_timeout_test", "leaderboard_scene_load_test",
 	"loading_completion_render_test", "load_game_scene_contract_test",
 	"question_pool_exhaustion_test", "question_provider_normalization_test",
+	"question_repetition_contract_test",
 	"quest_activity_event_test", "student_id_compatibility_test",
 	"tutorial_activity_boundary_test",
 	"main_menu_ui_layout_test", "player_speed_and_title_regression_test",

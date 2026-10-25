@@ -1110,7 +1110,7 @@ position = Vector2(809, 206)
 
 [node name="Visual" parent="old_npc" index="0"]
 animation = &"walk_down"
-greeting_message = "The path beyond the city leads to the Deepest Forest."
+greeting_message = "The path through the City of Knowledge leads to Pinehill Village."
 
 [node name="FootCollision" parent="old_npc" index="1"]
 position = Vector2(0, 4.9588)
@@ -1131,7 +1131,7 @@ position = Vector2(894, 496)
 
 [node name="Visual" parent="girl_npc" index="0"]
 animation = &"walk_right"
-greeting_message = "I heard Pinehill Village is past the forest."
+greeting_message = "I heard Pinehill Village is beyond the City of Knowledge."
 
 [node name="FootCollision" parent="girl_npc" index="1"]
 position = Vector2(0, 5.3768)

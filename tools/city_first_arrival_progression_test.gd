@@ -78,11 +78,11 @@ func _run() -> void:
 	_expect(state.get("city_school_stage_complete") == true, "School stage completes exactly once")
 	_expect(state.is_city_next_path_unlocked(), "City next path unlocks after School Teacher")
 	_expect(state.current_task_index == int(state.get("CITY_NEXT_PATH_TASK_INDEX")), "Teacher completion activates the City-side Forest travel objective")
-	_expect(state.get_current_quest_text() == "Go to the Deepest Forest Path.", "Current Quest directs the player toward the Forest area within City")
+	_expect(state.get_current_quest_text() == "Go to the Pinehill Path.", "Current Quest directs the player toward the Pinehill path through City")
 	var duplicate_teacher: Dictionary = state.complete_city_school_teacher()
 	_expect(duplicate_teacher.get("changed", false) != true, "repeated School Teacher interaction does not duplicate completion")
 	_expect(state.current_task_index == int(state.get("CITY_NEXT_PATH_TASK_INDEX")), "duplicate Teacher completion cannot regress the active Forest objective")
-	_expect(state.get_current_quest_text() == "Go to the Deepest Forest Path.", "completed City School state keeps the Forest travel objective authoritative")
+	_expect(state.get_current_quest_text() == "Go to the Pinehill Path.", "completed City School state keeps the Pinehill travel objective authoritative")
 	_expect(state.mark_city_first_arrival().get("changed", false) != true, "completed City School state cannot replay first arrival")
 
 	var saved: Dictionary = state.build_save_data()
@@ -90,7 +90,7 @@ func _run() -> void:
 	state.start_new_game(PROFILE, false)
 	state.apply_save_data(saved, false)
 	_expect(state.get("city_first_arrival_seen") == true and state.get("city_school_stage_complete") == true, "Save/Load preserves City School completion")
-	_expect(state.get("city_next_path_unlocked") == true and state.get_current_quest_text() == "Go to the Deepest Forest Path.", "Save/Load preserves the City-to-Forest travel objective")
+	_expect(state.get("city_next_path_unlocked") == true and state.get_current_quest_text() == "Go to the Pinehill Path.", "Save/Load preserves the City-to-Pinehill travel objective")
 
 	var legacy := {
 		"save_version": 9,

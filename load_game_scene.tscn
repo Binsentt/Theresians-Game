@@ -80,6 +80,52 @@ theme_override_constants/margin_bottom = 12
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="IdentityGate" type="VBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content" unique_id=302174611]
+custom_minimum_size = Vector2(0, 86)
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="IdentityPromptLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate" unique_id=302174612]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_fonts/font = ExtResource("3_4ntfu")
+theme_override_font_sizes/font_size = 10
+text = "Verify your Student ID and linked Parent ID to view saved games."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="IdentityFields" type="HBoxContainer" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate" unique_id=302174613]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StudentIdInput" type="LineEdit" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields" unique_id=302174614]
+custom_minimum_size = Vector2(190, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Student ID"
+max_length = 8
+
+[node name="ParentIdInput" type="LineEdit" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields" unique_id=302174615]
+custom_minimum_size = Vector2(150, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Parent ID"
+max_length = 6
+
+[node name="VerifyButton" type="Button" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields" unique_id=302174616]
+custom_minimum_size = Vector2(112, 32)
+layout_mode = 2
+text = "VERIFY"
+
+[node name="IdentityStatusLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content/IdentityGate" unique_id=302174617]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8980392, 0.7529412, 0.41568628, 1)
+theme_override_fonts/font = ExtResource("3_4ntfu")
+theme_override_font_sizes/font_size = 9
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
 [node name="EmptyLabel" type="Label" parent="TextureRect/SavePanel/MarginContainer/Content" unique_id=243289848]
 visible = false
 layout_mode = 2

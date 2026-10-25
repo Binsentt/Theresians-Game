@@ -13,6 +13,7 @@ var last_load_error_code := ""
 var _history_by_scope: Dictionary = {}
 var _fallback_history_by_filter: Dictionary = {}
 var _last_requested_id: String = ""
+var last_selection_error_code := ""
 var _prepared_results_by_scope: Dictionary = {}
 var _prefetch_in_flight_by_scope: Dictionary = {}
 
@@ -62,6 +63,7 @@ func load_questions(path: String = "") -> Array[Dictionary]:
 	_history_by_scope.clear()
 	_fallback_history_by_filter.clear()
 	_last_requested_id = ""
+	last_selection_error_code = ""
 	# Prefer API-backed questions when HttpApi is available; fall back to local JSON file
 	var http := get_node_or_null("/root/HttpApi")
 	if http != null:
@@ -259,6 +261,7 @@ func _question_matches_scope(question: Dictionary, scope: Dictionary) -> bool:
 
 
 func get_question(filters: Dictionary = {}) -> Dictionary:
+	last_selection_error_code = ""
 	var candidates := _filter_questions(filters)
 	if candidates.is_empty():
 		return {}
@@ -279,6 +282,7 @@ func reset_history() -> void:
 	_history_by_scope.clear()
 	_fallback_history_by_filter.clear()
 	_last_requested_id = ""
+	last_selection_error_code = ""
 
 
 func _scope_history(history_key: String) -> Array[String]:
@@ -332,16 +336,25 @@ func _select_from_scope(candidates: Array[Dictionary], scope_descriptor: Diction
 		return {}
 	var scope_key := _scope_key(scope_descriptor)
 	var history: Array = Array(_history_by_scope.get(scope_key, []))
-	var available := _unused_candidates(unique_candidates, history)
+	var available: Array[Dictionary] = []
+	var runtime_context := _has_active_encounter_context()
+	if runtime_context:
+		# The persisted GameState ledger owns cross-encounter rules. A local
+		# provider history must not prevent an incorrect question from returning
+		# in a different eligible Bandit.
+		available = _runtime_available_candidates(unique_candidates)
+	else:
+		available = _unused_candidates(unique_candidates, history)
 	if available.is_empty():
 		question_pool_exhausted.emit(scope_descriptor.duplicate(true))
-		history.clear()
-		available = unique_candidates.duplicate()
+		last_selection_error_code = "pool_exhausted"
+		return {}
 	available.shuffle()
 	var selected: Dictionary = available[0]
 	var selected_id := str(selected.get("id", ""))
-	history.append(selected_id)
-	_history_by_scope[scope_key] = history
+	if not runtime_context:
+		history.append(selected_id)
+		_history_by_scope[scope_key] = history
 	return _emit_selected_question(selected)
 
 
@@ -351,15 +364,40 @@ func _select_from_fallback(candidates: Array[Dictionary], filters: Dictionary) -
 		return {}
 	var filter_key := JSON.stringify(filters)
 	var history: Array = Array(_fallback_history_by_filter.get(filter_key, []))
-	var available := _unused_candidates(unique_candidates, history)
+	var available: Array[Dictionary] = []
+	var runtime_context := _has_active_encounter_context()
+	if runtime_context:
+		available = _runtime_available_candidates(unique_candidates)
+	else:
+		available = _unused_candidates(unique_candidates, history)
 	if available.is_empty():
-		history.clear()
-		available = unique_candidates.duplicate()
+		last_selection_error_code = "pool_exhausted"
+		return {}
 	available.shuffle()
 	var selected: Dictionary = available[0]
-	history.append(str(selected.get("id", "")))
-	_fallback_history_by_filter[filter_key] = history
+	if not runtime_context:
+		history.append(str(selected.get("id", "")))
+		_fallback_history_by_filter[filter_key] = history
 	return _emit_selected_question(selected)
+
+
+func _has_active_encounter_context() -> bool:
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state == null or not game_state.has_method("get_active_encounter_context"):
+		return false
+	var context: Variant = game_state.call("get_active_encounter_context")
+	return context is Dictionary and not context.is_empty()
+
+
+func _runtime_available_candidates(candidates: Array[Dictionary]) -> Array[Dictionary]:
+	var available: Array[Dictionary] = []
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state == null or not game_state.has_method("is_question_repetition_excluded"):
+		return candidates
+	for candidate in candidates:
+		if not bool(game_state.call("is_question_repetition_excluded", candidate)):
+			available.append(candidate)
+	return available
 
 
 func _emit_selected_question(question: Dictionary) -> Dictionary:

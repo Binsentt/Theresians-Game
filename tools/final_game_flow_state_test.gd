@@ -40,10 +40,10 @@ func _run() -> void:
 	_expect(state.current_task_index == state.CITY_SCHOOL_TEACHER_TASK_INDEX, "School teacher stage")
 	state.complete_city_school_teacher()
 	_expect(state.current_task_index == state.CITY_NEXT_PATH_TASK_INDEX, "Teacher completion leaves the City path checkpoint active")
-	_expect(state.get_current_quest_text() == "Go to the Deepest Forest Path.", "Teacher completion shows the canonical next-path objective")
+	_expect(state.get_current_quest_text() == "Go to the Pinehill Path.", "Teacher completion shows the canonical next-path objective")
 	state.handle_scene_entered("res://scenes/city_of_knowledge.tscn")
 	_expect(state.current_task_index == state.DEEP_FOREST_BANDIT_TASK_INDEX, "City return starts the Bandit objective without a Forest scene hop")
-	_expect(state.get_current_quest_text() == "Defeat the Bandits in the Deepest Forest.", "City return shows the Bandit objective")
+	_expect(state.get_current_quest_text() == "Defeat the Five Bandits in the City of Knowledge.", "City return shows the Bandit objective")
 	_roundtrip(state, "Deep Forest Save/Load", state.DEEP_FOREST_BANDIT_TASK_INDEX)
 	for encounter_id in state.DEEP_FOREST_BANDIT_IDS:
 		_expect(state.can_start_progression_encounter(encounter_id), encounter_id + " available")

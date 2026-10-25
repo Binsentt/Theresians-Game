@@ -66,7 +66,7 @@ func _run() -> void:
 			"grade": "Grade 1",
 			"difficulty": "Easy",
 		}, "The exhaustion event must describe only the exhausted Grade and Difficulty set scope.") or failed
-	failed = not _assert_equal(int(easy_new_round.get("question_set_id", 0)), 101, "A new round must stay inside the exhausted scope instead of falling back to another set.") or failed
+	failed = not _assert(easy_new_round.is_empty(), "An exhausted exact scope must report no question instead of silently recycling a prior answer.") or failed
 
 	var medium_second: Dictionary = provider.get_question(medium_scope)
 	failed = not _assert(String(medium_second.get("id", "")) != String(medium_first.get("id", "")), "Exhausting Set 101 must not clear Set 202 history.") or failed
@@ -74,7 +74,7 @@ func _run() -> void:
 	failed = not _assert_equal(_exhausted_scopes.size(), 2, "Each independently exhausted scope must emit one event for its own round.") or failed
 	if _exhausted_scopes.size() == 2:
 		failed = not _assert_equal(int(_exhausted_scopes[1].get("question_set_id", 0)), 202, "Set 202 exhaustion must not be attributed to Set 101.") or failed
-	failed = not _assert_equal(int(medium_new_round.get("question_set_id", 0)), 202, "Set 202 must restart only within its own scope.") or failed
+	failed = not _assert(medium_new_round.is_empty(), "Set 202 exhaustion must remain truthful instead of restarting the pool.") or failed
 
 	var unavailable: Dictionary = provider.get_question({
 		"question_set_id": 404,

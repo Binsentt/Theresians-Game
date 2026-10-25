@@ -143,6 +143,9 @@ var _quest_start_checkpoint: Dictionary = {}
 var _load_game_browse_context: Dictionary = {}
 var _pending_academic_results: Array[Dictionary] = []
 var _pending_academic_activities: Array[Dictionary] = []
+var _question_repetition_cycle_key := ""
+var _correct_question_identities: Dictionary = {}
+var _attempted_question_identities_by_encounter: Dictionary = {}
 
 var current_quest := DEFAULT_QUEST
 var current_lives := 3
@@ -251,7 +254,7 @@ var tasks = [
 		"dialogue": [
 			"Teacher: You made it to the City of Knowledge.",
 			"Teacher: But your journey is not over yet.",
-			"Teacher: Beyond the city is the Deepest Forest Path.",
+			"Teacher: The path through the City of Knowledge leads to Pinehill Village.",
 			"Teacher: Continue your journey and overcome the challenges ahead.",
 		],
 	},
@@ -262,19 +265,19 @@ var tasks = [
 		"dialogue": [
 			"Teacher: You made it to the City of Knowledge.",
 			"Teacher: But your journey is not over yet.",
-			"Teacher: Beyond the city is the Deepest Forest Path.",
+			"Teacher: The path through the City of Knowledge leads to Pinehill Village.",
 			"Teacher: Continue your journey and overcome the challenges ahead.",
 		]
 	},
 	{
 		"activity_id": "go-to-pinehill-village",
-		"activity_label": "Go to the Deepest Forest Path",
-		"quest_text": "Go to the Deepest Forest Path.",
+		"activity_label": "Go to the Pinehill Path",
+		"quest_text": "Go to the Pinehill Path.",
 	},
 	{
 		"activity_id": "deep-forest-bandits",
-		"activity_label": "Defeat the Deep Forest Bandits",
-		"quest_text": "Defeat the Bandits in the Deepest Forest.",
+		"activity_label": "Defeat the Five City Bandits",
+		"quest_text": "Defeat the Five Bandits in the City of Knowledge.",
 	},
 	{
 		"activity_id": "pinehill-arrival",
@@ -655,7 +658,7 @@ func complete_city_school_teacher() -> Dictionary:
 		"type": "task_completed",
 		"key": "quest:city:school-teacher:complete",
 		"title": "School Complete",
-		"description": "Go to the Deepest Forest Path.",
+		"description": "Go to the Pinehill Path.",
 		"source": "teacher_task_interaction",
 		"reason": "city_school_teacher",
 	}
@@ -863,9 +866,9 @@ func get_current_quest_text() -> String:
 	if journey_complete:
 		return "Math Champion"
 	if current_task_index == CITY_NEXT_PATH_TASK_INDEX:
-		return "Go to the Deepest Forest Path."
+		return "Go to the Pinehill Path."
 	if current_task_index == DEEP_FOREST_BANDIT_TASK_INDEX:
-		return "Defeat the Bandits in the Deepest Forest."
+		return "Defeat the Five Bandits in the City of Knowledge."
 	if current_task_index == PINEHILL_BANDIT_TASK_INDEX:
 		return "Defeat the Wizard's 4 Guards."
 	if current_task_index == WIZARD_TASK_INDEX:
@@ -1328,6 +1331,7 @@ func start_new_game(profile: Dictionary, emit_progression_session_reset: bool = 
 	encounter_context.clear()
 	_clear_battle_state()
 	_clear_resume_state()
+	clear_question_repetition_state()
 	set_mode(GameMode.EXPLORATION)
 
 	lives_changed.emit(current_lives, max_lives)
@@ -1346,7 +1350,121 @@ func set_learning_cycle(descriptor: Variant) -> bool:
 	learning_cycle_version = int(normalized_version)
 	var raw_started_at: Variant = descriptor.get("started_at", "")
 	learning_cycle_started_at = raw_started_at.strip_edges() if raw_started_at is String else ""
+	_ensure_question_repetition_context()
 	return true
+
+
+func _question_repetition_context_key() -> String:
+	return "%s|%d" % [student_id.strip_edges(), learning_cycle_version]
+
+
+func _ensure_question_repetition_context() -> void:
+	var context_key := _question_repetition_context_key()
+	if _question_repetition_cycle_key == context_key:
+		return
+	_question_repetition_cycle_key = context_key
+	_correct_question_identities.clear()
+	_attempted_question_identities_by_encounter.clear()
+
+
+func clear_question_repetition_state() -> void:
+	_question_repetition_cycle_key = _question_repetition_context_key()
+	_correct_question_identities.clear()
+	_attempted_question_identities_by_encounter.clear()
+
+
+func question_repetition_identity(question: Dictionary) -> String:
+	var normalized_grade := str(question.get("grade", question.get("grade_level", ""))).strip_edges().to_lower()
+	var normalized_difficulty := str(question.get("difficulty", "")).strip_edges().to_lower()
+	var normalized_question_set := str(question.get("question_set_id", "")).strip_edges()
+	var scope_identity := "%s|%s|%s" % [normalized_grade, normalized_difficulty, normalized_question_set]
+	var canonical_id: Variant = question.get("question_id", null)
+	if canonical_id is int and canonical_id > 0:
+		return "id:%d" % int(canonical_id)
+	if canonical_id is float and canonical_id > 0.0 and canonical_id == floor(canonical_id):
+		return "id:%d" % int(canonical_id)
+	if canonical_id is String and canonical_id.strip_edges().is_valid_int() and canonical_id.to_int() > 0:
+		return "id:%d" % canonical_id.to_int()
+	var stable_id := str(question.get("id", "")).strip_edges()
+	if not stable_id.is_empty() and not stable_id.begins_with("question:"):
+		return "id:%s" % stable_id
+	var choices: Array = question.get("choices", question.get("options", []))
+	var normalized_choices: Array[String] = []
+	for choice in choices:
+		normalized_choices.append(str(choice).strip_edges().to_lower())
+	var normalized_text := str(question.get("question", question.get("text", ""))).strip_edges().to_lower()
+	var normalized_correct := str(question.get("correct", question.get("correct_answer", ""))).strip_edges().to_lower()
+	return "fingerprint:%s" % ("%s|%s|%s|%s" % [scope_identity, normalized_text, "|".join(normalized_choices), normalized_correct]).sha256_text()
+
+
+func _question_attempt_scope_key() -> String:
+	var encounter_id := str(encounter_context.get("encounter_id", "")).strip_edges()
+	if encounter_id.is_empty():
+		return "no-encounter"
+	var retry_count := maxi(0, int(encounter_context.get("retry_count", 0)))
+	return "%s|retry:%d" % [encounter_id, retry_count]
+
+
+func is_question_repetition_excluded(question: Dictionary) -> bool:
+	_ensure_question_repetition_context()
+	var identity := question_repetition_identity(question)
+	if identity.is_empty():
+		return false
+	if _correct_question_identities.has(identity):
+		return true
+	var attempted: Array = _attempted_question_identities_by_encounter.get(_question_attempt_scope_key(), [])
+	return attempted.has(identity)
+
+
+func record_question_attempt(question: Dictionary, is_correct: bool) -> void:
+	_ensure_question_repetition_context()
+	var identity := question_repetition_identity(question)
+	if identity.is_empty():
+		return
+	var encounter_key := _question_attempt_scope_key()
+	var attempted: Array = Array(_attempted_question_identities_by_encounter.get(encounter_key, []))
+	if not attempted.has(identity):
+		attempted.append(identity)
+	_attempted_question_identities_by_encounter[encounter_key] = attempted
+	if is_correct:
+		_correct_question_identities[identity] = true
+
+
+func get_question_repetition_state() -> Dictionary:
+	_ensure_question_repetition_context()
+	return {
+		"cycle_key": _question_repetition_cycle_key,
+		"correct_question_identities": _correct_question_identities.keys(),
+		"attempted_question_identities_by_encounter": _attempted_question_identities_by_encounter.duplicate(true),
+	}
+
+
+func restore_question_repetition_state(value: Variant) -> void:
+	clear_question_repetition_state()
+	if not (value is Dictionary):
+		return
+	if str(value.get("cycle_key", "")) != _question_repetition_cycle_key:
+		return
+	var raw_correct: Variant = value.get("correct_question_identities", [])
+	if raw_correct is Array:
+		for identity in raw_correct:
+			var normalized := str(identity).strip_edges()
+			if not normalized.is_empty():
+				_correct_question_identities[normalized] = true
+	var raw_attempted: Variant = value.get("attempted_question_identities_by_encounter", {})
+	if raw_attempted is Dictionary:
+		for raw_key in raw_attempted.keys():
+			var encounter_key := str(raw_key).strip_edges()
+			if encounter_key.is_empty():
+				continue
+			var identities: Array[String] = []
+			var raw_identities: Variant = raw_attempted.get(raw_key, [])
+			if raw_identities is Array:
+				for identity in raw_identities:
+					var normalized := str(identity).strip_edges()
+					if not normalized.is_empty() and not identities.has(normalized):
+						identities.append(normalized)
+			_attempted_question_identities_by_encounter[encounter_key] = identities
 
 
 func _normalize_learning_cycle_version(raw_version: Variant) -> Variant:
@@ -2439,6 +2557,7 @@ func build_save_data() -> Dictionary:
 		"total_quests_completed": total_quests_completed,
 		"total_play_time": total_play_time,
 		"difficulty_level": difficulty_level,
+		"question_repetition_state": get_question_repetition_state(),
 		"pending_academic_results": _pending_academic_results.duplicate(true),
 		"pending_academic_activities": _pending_academic_activities.duplicate(true),
 		"save_date": save_date,
@@ -2741,6 +2860,7 @@ func apply_save_data(
 	total_play_time = int(data.get("total_play_time", 0))
 	_total_play_time_fraction = 0.0
 	difficulty_level = String(data.get("difficulty_level", "Unknown"))
+	restore_question_repetition_state(data.get("question_repetition_state", {}))
 	var loaded_quest_checkpoint: Variant = data.get("quest_start_checkpoint", {})
 	if loaded_quest_checkpoint is Dictionary and _is_game_over_checkpoint_owned_by_current_identity(loaded_quest_checkpoint):
 		_quest_start_checkpoint = loaded_quest_checkpoint.duplicate(true)

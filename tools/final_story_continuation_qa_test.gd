@@ -215,7 +215,10 @@ func _test_completion_screen_contract() -> void:
 	_expect(buttons.size() == 1, "Completion presentation exposes only the final Main Menu action")
 	var the_end_label := screen.find_child("TheEndLabel", true, false) as Label
 	var summary_content := screen.find_child("SummaryContent", true, false) as Control
-	_expect(the_end_label != null and the_end_label.text == "The End" and the_end_label.visible, "Completion begins with a short The End card")
+	_expect(the_end_label != null and the_end_label.text == "THE END" and the_end_label.visible, "Completion begins with a short THE END card")
+	if the_end_label != null:
+		_expect(the_end_label.autowrap_mode == TextServer.AUTOWRAP_OFF, "THE END stays on one horizontal line")
+		_expect(the_end_label.custom_minimum_size.x >= 180.0, "THE END reserves enough width for narrow viewports")
 	if screen.has_method("get_end_card_duration"):
 		await get_tree().create_timer(float(screen.call("get_end_card_duration")) + 0.1).timeout
 	_expect(summary_content != null and summary_content.visible, "The End card automatically advances to the completion summary")
@@ -329,7 +332,9 @@ func _test_return_and_retry_flow() -> void:
 	_state.apply_save_data(post_wizard_save, false)
 	_expect(_state.wizard_defeated and _state.current_task_index == _state.RETURN_CITY_TASK_INDEX, "Wizard victory save/load retains the return quest")
 
-	_state.handle_scene_entered(GameState.DEEPEST_FOREST_PATH)
+	# Build an authentic legacy snapshot with the retired scene path. Calling
+	# handle_scene_entered here would already normalize/advance it before saving.
+	_state.current_scene_path = GameState.DEEPEST_FOREST_PATH
 	var forest_save: Dictionary = _state.build_save_data()
 	_state.start_new_game(PROFILE, false)
 	_state.apply_save_data(forest_save, false)

@@ -103,15 +103,22 @@ func _run() -> void:
 	get_tree().current_scene = scene
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate") == null, "Load Game has no identity-entry gate")
-	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/StudentIdInput") == null, "Load Game has no Student ID input")
-	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/ParentIdInput") == null, "Load Game has no Parent ID input")
-	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/VerifyButton") == null, "Load Game has no Verify button")
-	_assert(not scene.has_method("_verify_save_owner"), "Load Game does not retain a manual verification handler")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate") != null, "Load Game exposes an identity gate when no session is active")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/StudentIdInput") != null, "Load Game provides a Student ID field")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/ParentIdInput") != null, "Load Game provides a linked Parent ID field")
+	_assert(scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/IdentityGate/IdentityFields/VerifyButton") != null, "Load Game provides a verification action")
+	_assert(scene.has_method("_verify_save_owner"), "Load Game retains the ownership verification handler")
 	_assert(_rendered_paths(scene).is_empty(), "A missing current Student session exposes no saved games")
 	var empty_message := scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/EmptyLabel") as Label
 	_assert(empty_message != null and empty_message.visible and empty_message.text.contains("New Game"), "Unauthenticated empty state directs the player to the existing sign-in flow")
-	_assert(_scenes_have_no_search_or_verification_controls(), "Both Load Game scenes contain no search or verification-style UI")
+	_assert(_scenes_have_identity_verification_controls(), "Both Load Game scenes expose the same ownership-verification UI")
+	var verification_result: Dictionary = await scene.call("_verify_save_owner", STUDENT_A, PARENT_A)
+	_assert(bool(verification_result.get("ok", false)), "A linked Student/Parent pair can verify before listing saves")
+	_assert(GameState.student_id == STUDENT_A and GameState.parent_id == PARENT_A, "Successful verification establishes the canonical local session identity")
+	scene.call("_refresh_save_list")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_assert(_rendered_paths(scene) == [_save_a], "Verified Student identity immediately reveals only its owned save")
 	var compatibility_scene := (load("res://scenes/load_game_scene.tscn") as PackedScene).instantiate() as Control
 	get_tree().root.add_child(compatibility_scene)
 	await get_tree().process_frame
@@ -120,7 +127,7 @@ func _run() -> void:
 	await get_tree().process_frame
 	var http_stub := get_node_or_null("/root/HttpApi")
 	var remote_stub := get_node_or_null("/root/RemoteSync")
-	_assert(http_stub != null and int(http_stub.get("request_count")) == 0, "Fresh Load Game does not emit a profile-check request automatically")
+	_assert(http_stub != null and int(http_stub.get("request_count")) == 1, "Load Game performs only the explicit profile check requested by the Verify action")
 	_assert(remote_stub != null and int(remote_stub.get("learning_cycle_request_count")) == 0, "Listing local saves emits no RemoteSync request")
 
 	GameState.student_id = STUDENT_A
@@ -225,12 +232,15 @@ func _rendered_paths(scene: Control) -> Array[String]:
 	return paths
 
 
-func _scenes_have_no_search_or_verification_controls() -> bool:
+func _scenes_have_identity_verification_controls() -> bool:
 	for scene_path in LOAD_GAME_SCENES:
 		var source := FileAccess.get_file_as_string(scene_path)
-		if source.is_empty() or source.contains("StudentIdInput") or source.contains("ParentIdInput") \
-				or source.contains("VerifyButton") or source.contains("IdentityGate") \
-				or source.contains("Search") or source.contains("Verify"):
+		if scene_path == "res://scenes/load_game_scene.tscn":
+			if source.is_empty() or not source.contains('path="res://load_game_scene.tscn"'):
+				return false
+			continue
+		if source.is_empty() or not source.contains("StudentIdInput") or not source.contains("ParentIdInput") \
+				or not source.contains("VerifyButton") or not source.contains("IdentityGate"):
 			return false
 	return true
 

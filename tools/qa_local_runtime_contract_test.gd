@@ -3,8 +3,8 @@ extends Node
 var _checks: Array[Dictionary] = []
 
 const QA_PROFILE_PATH := "res://Data/api_config.qa_local.json"
-const ANDROID_QA_PROFILE_PATH := "res://Data/api_config.android_qa.json"
-const ANDROID_QA_BASE_URL := "https://theresians-monitoring-system-qa-owner-testing.up.railway.app"
+const CANONICAL_LOCAL_QA_URL := "http://127.0.0.1:5000"
+const ISOLATED_QA_SINK_URL := "http://127.0.0.1:1"
 const REAL_TERMS_APP_ACCEPTANCE_PATH := "user://terms_app_acceptance.json"
 const RESULT_PATH := "user://qa_local_runtime_contract_test_result.json"
 
@@ -33,7 +33,6 @@ func _run() -> void:
 	var export_config := ConfigFile.new()
 	var export_config_error := export_config.load("res://export_presets.cfg")
 	var qa_profile: Variant = JSON.parse_string(FileAccess.get_file_as_string(QA_PROFILE_PATH)) if FileAccess.file_exists(QA_PROFILE_PATH) else null
-	var android_qa_profile: Variant = JSON.parse_string(FileAccess.get_file_as_string(ANDROID_QA_PROFILE_PATH)) if FileAccess.file_exists(ANDROID_QA_PROFILE_PATH) else null
 	_expect(http != null, "HttpApi autoload is available")
 	_expect(remote != null, "RemoteSync autoload is available")
 	_expect(game_state != null, "GameState autoload is available")
@@ -48,22 +47,21 @@ func _run() -> void:
 	_expect(menu_source.contains("get_node_or_null(\"VBoxContainer/TermsPrivacyButton\")"), "Main Menu resolves the Terms and Privacy review button at its real scene path")
 	_expect(qa_profile is Dictionary, "A dedicated QA-local profile exists before runtime startup")
 	if qa_profile is Dictionary:
-		_expect(String(qa_profile.get("api_base_url", "")) == "http://127.0.0.1:5000", "QA-local profile targets the loopback backend")
+		var qa_api_url := String(qa_profile.get("api_base_url", "")).strip_edges()
+		_expect(http_source.contains("const DEFAULT_LOCAL_QA_URL := \"" + CANONICAL_LOCAL_QA_URL + "\""), "Canonical local-QA development backend remains on loopback port 5000")
+		_expect(qa_api_url in [CANONICAL_LOCAL_QA_URL, ISOLATED_QA_SINK_URL], "QA-local profile uses the canonical port-5000 backend or the isolated closed-port sink")
+		if http != null and http.has_method("is_loopback_url"):
+			_expect(bool(http.call("is_loopback_url", qa_api_url)), "QA-local profile target must remain loopback-only")
 		_expect(qa_profile.get("production_qa_enabled", true) == false, "QA-local profile disables production QA mode")
 		_expect(qa_profile.get("qa_local_only", false) == true, "QA-local profile declares loopback-only operation")
 	_expect(http_source.contains("QA_LOCAL_PROFILE_PATH"), "HttpApi recognizes the dedicated QA-local profile before autoload requests")
 	_expect(http_source.contains("OS.has_feature(\"android_qa\")"), "Android QA is selected from the exported custom feature at startup")
-	_expect(export_presets_source.contains("name=\"Android QA\"") and export_presets_source.contains("custom_features=\"android_qa\""), "A dedicated Android QA export preset activates android_qa")
+	_expect(not export_presets_source.contains("name=\"Android QA\"") and not export_presets_source.contains("custom_features=\"android_qa\""), "The obsolete Android QA export preset is retired")
+	_expect(export_presets_source.contains("name=\"Android Legacy (Retired)\"") and export_presets_source.contains("custom_features=\"android_qa_retired\""), "The retired preset cannot activate the old android_qa feature")
 	_expect(export_config_error == OK, "Godot parses the configured export presets")
 	if export_config_error == OK:
-		_expect(String(export_config.get_value("preset.3", "name", "")) == "Android QA", "Preset 3 is the separate Android QA profile")
-		_expect(String(export_config.get_value("preset.3", "custom_features", "")) == "android_qa", "Android QA preset embeds the android_qa feature")
-		_expect(String(export_config.get_value("preset.3.options", "package/unique_name", "")) == "com.theresiansquest.game", "Android QA keeps the approved package ID")
-		_expect(int(export_config.get_value("preset.3.options", "version/code", 0)) == 1, "Android QA uses version code 1")
-		_expect(String(export_config.get_value("preset.3.options", "version/name", "")) == "0.0.0-qa", "Android QA uses version name 0.0.0-qa")
-		_expect(bool(export_config.get_value("preset.3.options", "architectures/arm64-v8a", false)), "Android QA targets arm64-v8a")
-		_expect(bool(export_config.get_value("preset.3.options", "permissions/internet", false)), "Android QA enables Internet permission")
-		_expect(bool(export_config.get_value("preset.3.options", "package/signed", false)), "Android QA export signs the debug APK")
+		_expect(String(export_config.get_value("preset.3", "name", "")) == "Android Legacy (Retired)", "Preset 3 is explicitly marked retired")
+		_expect(not bool(export_config.get_value("preset.3", "runnable", true)), "The retired Android preset cannot be run")
 	_expect(http_source.contains("leaderboard_numeric_display_regression_test.tscn"), "The focused leaderboard runtime test selects the QA-local profile before autoload requests")
 	_expect(http_source.contains("game_leaderboard_contract_test.tscn"), "The game leaderboard contract test selects the QA-local profile before autoload requests")
 	_expect(http_source.contains("leaderboard_multi_row_regression_test.tscn"), "The leaderboard refresh test selects the QA-local profile before autoload requests")
@@ -84,32 +82,18 @@ func _run() -> void:
 		_expect(not bool(http.call("is_loopback_url", "http://theresiansquest.com")), "Public hosts remain blocked by the QA resolver")
 		_expect(bool(http.get("local_qa_only")) and not bool(http.get("production_qa_mode")), "HttpApi enters local-only mode")
 	if http != null:
-		_expect(FileAccess.file_exists(ANDROID_QA_PROFILE_PATH), "A dedicated Android QA API profile exists")
-		_expect(android_qa_profile is Dictionary and String(android_qa_profile.get("api_base_url", "")) == ANDROID_QA_BASE_URL, "Android QA profile file contains only the approved Railway QA base URL")
+		_expect(not FileAccess.file_exists("res://Data/api_config.android_qa.json"), "The deleted remote Android QA API profile is absent")
 		_expect(http.has_method("resolve_android_qa_profile"), "HttpApi exposes a fail-closed Android QA profile resolver")
 		if http.has_method("resolve_android_qa_profile"):
-			var qa_config := {"api_base_url": ANDROID_QA_BASE_URL, "production_qa_enabled": true, "production_url": "https://theresiansquest.com"}
-			var valid_profile: Dictionary = http.call("resolve_android_qa_profile", qa_config)
-			_expect(String(valid_profile.get("api_base_url", "")) == ANDROID_QA_BASE_URL, "android_qa selects the approved Railway QA URL")
-			_expect(bool(valid_profile.get("config_valid", false)) and bool(valid_profile.get("remote_writes_enabled", false)), "The approved Android QA URL enables only its validated QA profile")
-			var production_profile: Dictionary = http.call("resolve_android_qa_profile", {"api_base_url": "https://theresiansquest.com", "production_url": "https://theresiansquest.com"})
-			_expect(not bool(production_profile.get("config_valid", true)) and not bool(production_profile.get("remote_writes_enabled", true)), "Production URL is rejected while resolving Android QA")
-			_expect(String(production_profile.get("api_base_url", "")) == "", "Rejected Android QA config cannot fall through to production")
-			var missing_profile: Dictionary = http.call("resolve_android_qa_profile", {})
-			_expect(not bool(missing_profile.get("config_valid", true)) and not bool(missing_profile.get("remote_writes_enabled", true)), "Missing Android QA config disables remote writes")
-			var invalid_profile: Dictionary = http.call("resolve_android_qa_profile", {"api_base_url": "http://127.0.0.1:5000"})
-			_expect(not bool(invalid_profile.get("config_valid", true)) and not bool(invalid_profile.get("remote_writes_enabled", true)), "Invalid Android QA target disables remote writes instead of using localhost")
+			var retired_profile: Dictionary = http.call("resolve_android_qa_profile", {"api_base_url": "https://theresiansquest.com"})
+			_expect(not bool(retired_profile.get("config_valid", true)) and not bool(retired_profile.get("remote_writes_enabled", true)), "Retired Android QA disables remote writes")
+			_expect(String(retired_profile.get("api_base_url", "")) == "" and String(retired_profile.get("error", "")) == "ANDROID_QA_PROFILE_RETIRED", "Retired Android QA has no endpoint and no production fallback")
 			_expect(bool(http.call("resolve_api_base_url", JSON.parse_string(FileAccess.get_file_as_string(QA_PROFILE_PATH)), true, false, true).begins_with("http://127.0.0.1")), "Local test mode continues to select localhost independently")
-			_expect(String(valid_profile.get("api_base_url", "")) != String(production_profile.get("api_base_url", "")), "Android QA has no QA-to-production fallback")
 		var api_probe = load("res://scripts/http_api.gd").new()
-		var applied_qa_profile: Dictionary = api_probe.call("_apply_android_qa_profile", {"api_base_url": ANDROID_QA_BASE_URL, "production_qa_enabled": true, "production_url": "https://theresiansquest.com"})
-		_expect(bool(applied_qa_profile.get("config_valid", false)) and bool(api_probe.get("android_qa_mode")) and String(api_probe.get("base_url")) == ANDROID_QA_BASE_URL, "Android QA profile overrides the production QA opt-in")
-		_expect(bool(api_probe.call("_qa_request_allowed")), "Only the allowlisted QA base can issue Android QA requests")
-		var rejected_profile: Dictionary = api_probe.call("_apply_android_qa_profile", {"api_base_url": "https://theresiansquest.com", "production_url": "https://theresiansquest.com"})
-		_expect(not bool(rejected_profile.get("config_valid", true)) and String(api_probe.get("base_url")) == "", "Android QA refuses an active production base and leaves no fallback URL")
+		var applied_qa_profile: Dictionary = api_probe.call("_apply_android_qa_profile", {"api_base_url": "https://theresiansquest.com"})
+		_expect(not bool(applied_qa_profile.get("config_valid", true)) and bool(api_probe.get("android_qa_mode")) and String(api_probe.get("base_url")) == "", "Retired Android QA has no active endpoint")
 		_expect(not bool(api_probe.call("_qa_request_allowed")), "HTTP request guard blocks production while Android QA mode is active")
-		var missing_applied: Dictionary = api_probe.call("_apply_android_qa_profile", {})
-		_expect(not bool(missing_applied.get("remote_writes_enabled", true)) and String(api_probe.get("base_url")) == "", "Missing Android QA URL fails closed after startup profile application")
+		_expect(not bool(applied_qa_profile.get("remote_writes_enabled", true)), "Retired Android QA disables remote writes after startup profile application")
 		api_probe.free()
 	if remote != null and remote.has_method("enable_local_qa_mode"):
 		remote.call("enable_local_qa_mode")
@@ -119,14 +103,10 @@ func _run() -> void:
 		_expect(remote.has_method("configure_android_qa_mode"), "RemoteSync exposes an isolated Android QA outbox profile")
 		if remote.has_method("configure_android_qa_mode"):
 			remote.call("configure_android_qa_mode", true)
-			_expect(bool(remote.get("android_qa_mode")) and bool(remote.get("android_qa_remote_writes_enabled")), "Validated Android QA enables QA-scoped remote sync")
-			_expect(not bool(remote.call("_remote_writes_blocked")), "Validated Android QA allows writes only through its QA profile")
+			_expect(bool(remote.get("android_qa_mode")) and not bool(remote.get("android_qa_remote_writes_enabled")), "Retired Android QA keeps remote writes disabled")
+			_expect(bool(remote.call("_remote_writes_blocked")), "Retired Android QA blocks every RemoteSync write path")
 			_expect(String(remote.get("_pending_file")).contains("android_qa"), "Android QA uses a separate outbox from production and local QA")
 			_expect(String(remote.call("_current_environment_scope")) == "android_qa", "Android QA outbox entries are scoped to the QA backend")
-			remote.call("configure_android_qa_mode", false)
-			_expect(bool(remote.get("android_qa_mode")) and not bool(remote.get("android_qa_remote_writes_enabled")), "Invalid Android QA profile keeps all remote writes disabled")
-			_expect(bool(remote.call("_remote_writes_blocked")), "Invalid Android QA configuration blocks every RemoteSync write path")
-			_expect(String(remote.get("_pending_file")).contains("android_qa"), "Invalid Android QA never opens the production outbox")
 	if game_state != null and game_state.has_method("enable_local_qa_mode"):
 		game_state.call("enable_local_qa_mode")
 		_expect(String(game_state.call("get_save_directory")).contains("qa_local"), "GameState selects the local QA save namespace")

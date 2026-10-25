@@ -214,14 +214,14 @@ func _exercise_quest_display(hud: CanvasLayer) -> void:
 	var same_quest_tween_id := same_quest_tween.get_instance_id() if same_quest_tween != null else -1
 	_expect(active_tween != null and same_quest_tween_id == active_tween_id, "Repeated identical quest signals do not restart the change animation (first tween=%d, after repeats=%d)." % [active_tween_id, same_quest_tween_id])
 
-	var long_objective := "Defeat the Bandits in the Deepest Forest, then continue to Pinehill Village and find someone who knows about the Wizard."
+	var long_objective := "Defeat the Five Bandits in the City of Knowledge, then continue to Pinehill Village and find someone who knows about the Wizard."
 	_apply_quest_text(hud, long_objective)
 	var narrow_layout: Dictionary = {}
 	if hud.has_method("_quest_layout_for_viewport"):
 		narrow_layout = hud.call("_quest_layout_for_viewport", Vector2(844.0, 509.0), long_objective)
 	_expect(int(narrow_layout.get("line_count", 0)) >= 2, "Long objective is measured as wrapped lines at narrow game width.")
 	_expect(quest_label.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART, "Long objective uses normal word wrapping.")
-	_apply_quest_text(hud, "Defeat the Bandits in the Deepest Forest.")
+	_apply_quest_text(hud, "Defeat the Five Bandits in the City of Knowledge.")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var actual_quest_size := quest_guide.size
@@ -231,7 +231,7 @@ func _exercise_quest_display(hud: CanvasLayer) -> void:
 		actual_viewport.is_equal_approx(Vector2(1215.0, 545.0))
 			and actual_quest_size.y <= 80.0
 			and actual_quest_minimum.y <= 80.0,
-		"The live Deepest Forest objective keeps QuestGuide compact at 1215x545 (size=%s minimum=%s viewport=%s)." % [str(actual_quest_size), str(actual_quest_minimum), str(actual_viewport)]
+		"The live City Bandit objective keeps QuestGuide compact at 1215x545 (size=%s minimum=%s viewport=%s)." % [str(actual_quest_size), str(actual_quest_minimum), str(actual_viewport)]
 	)
 	_expect(
 		absf(quest_guide.position.x - (actual_viewport.x - actual_quest_size.x) * 0.5) <= 1.0
@@ -266,7 +266,7 @@ func _exercise_responsive_layout(hud: CanvasLayer) -> void:
 	var dialogue_label := dialogue_overlay.get_node("DialoguePanel/DialogueContent/DialogueLabel") as Label
 	var actual_movement := mobile_controls.get_node("Root/MovementMargin") as Control
 	var actual_action := mobile_controls.get_node("Root/ActionMargin") as Control
-	dialogue_label.text = "The Elder says: The road to Pinehill winds beyond the deepest forest. Find the old guide, then return to the City of Knowledge."
+	dialogue_label.text = "The Elder says: The road to Pinehill begins through the City of Knowledge. Find the old guide, then return to the City of Knowledge."
 	dialogue_panel.visible = false
 	_expect(dialogue_overlay.layer > hud.layer, "Existing dialogue remains layered above the exploration HUD.")
 	_expect(dialogue_label.autowrap_mode != TextServer.AUTOWRAP_OFF, "Dialogue text keeps its existing word-wrap behavior.")
@@ -391,8 +391,8 @@ func _exercise_responsive_layout(hud: CanvasLayer) -> void:
 	GameState.set_mode(GameState.GameMode.EXPLORATION)
 	await get_tree().process_frame
 
-	_apply_quest_text(hud, "Defeat the Bandits in the Deepest Forest, then continue to Pinehill Village and find someone who knows about the Wizard.")
-	_apply_quest_text(hud, "Defeat the Bandits in the Deepest Forest, then continue to Pinehill Village and find someone who knows about the Wizard.")
+	_apply_quest_text(hud, "Defeat the Five Bandits in the City of Knowledge, then continue to Pinehill Village and find someone who knows about the Wizard.")
+	_apply_quest_text(hud, "Defeat the Five Bandits in the City of Knowledge, then continue to Pinehill Village and find someone who knows about the Wizard.")
 	var quest_guide := hud.get_node_or_null(QUEST_GUIDE_PATH) as PanelContainer
 	var quest_label := hud.get_node_or_null(QUEST_LABEL_PATH) as Label
 	if quest_guide != null and quest_label != null:

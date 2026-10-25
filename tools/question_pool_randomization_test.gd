@@ -11,10 +11,16 @@ func _ready() -> void:
 
 func _run() -> void:
 	var provider := QuestionProviderScript.new()
+	provider.name = "QuestionProviderUnderTest"
+	var game_state := get_node_or_null("/root/GameState")
+	if game_state != null:
+		game_state.set("encounter_context", {})
+	add_child(provider)
 	var scenarios: Array[Dictionary] = [
-		{"name": "single-question recycle", "passed": _assert_single_question_cycle(provider)},
-		{"name": "two-question cycle", "passed": _assert_two_question_cycle(provider)},
-		{"name": "five-question cycle", "passed": _assert_five_question_cycle(provider)},
+		{"name": "QuestionProvider fixture is attached to the scene tree", "passed": _assert(provider.is_inside_tree(), "QuestionProvider must be inside the scene tree before absolute-root context lookups")},
+		{"name": "single-question exhaustion", "passed": _assert_single_question_exhaustion(provider)},
+		{"name": "two-question exhaustion", "passed": _assert_two_question_exhaustion(provider)},
+		{"name": "five-question exhaustion", "passed": _assert_five_question_exhaustion(provider)},
 		{"name": "same-bandit retry uses unused question", "passed": _assert_same_bandit_retry_uses_unused_question(provider)},
 		{"name": "new bandit shares exact-scope history", "passed": _assert_new_bandit_same_scope_shares_history(provider)},
 		{"name": "scope isolation", "passed": _assert_scope_isolation(provider)},
@@ -22,7 +28,7 @@ func _run() -> void:
 	]
 	var passed := scenarios.filter(func(scenario: Dictionary) -> bool: return bool(scenario.get("passed", false))).size()
 	var failed := scenarios.size() - passed
-	provider.free()
+	provider.queue_free()
 	var result := {"passed": passed, "failed": failed, "scenarios": scenarios}
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://qa"))
 	var result_file := FileAccess.open(RESULT_PATH, FileAccess.WRITE)
@@ -35,22 +41,24 @@ func _run() -> void:
 	get_tree().quit(1 if failed else 0)
 
 
-func _assert_single_question_cycle(provider: Node) -> bool:
+func _assert_single_question_exhaustion(provider: Node) -> bool:
 	_set_pool(provider, _make_pool(BASE_SCOPE, 101, 1))
 	var first := _request(provider, BASE_SCOPE)
 	var second := _request(provider, BASE_SCOPE)
-	return _assert(_identity(first) == _identity(second), "one-question pool recycles only its single exact-scope question") \
-		and _assert_scope(second, BASE_SCOPE, "one-question recycle preserves exact scope")
+	return _assert(not first.is_empty(), "one-question pool returns its only exact-scope question once") \
+		and _assert(second.is_empty(), "one-question pool reports exhaustion instead of silently recycling")
 
 
-func _assert_two_question_cycle(provider: Node) -> bool:
+func _assert_two_question_exhaustion(provider: Node) -> bool:
 	_set_pool(provider, _make_pool(BASE_SCOPE, 102, 2))
 	var first := _request(provider, BASE_SCOPE)
 	var second := _request(provider, BASE_SCOPE)
-	return _assert(_identity(first) != _identity(second), "two-question pool uses both questions before reuse")
+	var exhausted := _request(provider, BASE_SCOPE)
+	return _assert(_identity(first) != _identity(second), "two-question pool uses both questions before exhaustion") \
+		and _assert(exhausted.is_empty(), "two-question pool does not recycle after both questions are consumed")
 
 
-func _assert_five_question_cycle(provider: Node) -> bool:
+func _assert_five_question_exhaustion(provider: Node) -> bool:
 	_set_pool(provider, _make_pool(BASE_SCOPE, 103, 5))
 	var identities: Dictionary = {}
 	var last_question: Dictionary = {}
@@ -59,7 +67,9 @@ func _assert_five_question_cycle(provider: Node) -> bool:
 		identities[_identity(last_question)] = true
 		if not _assert_scope(last_question, BASE_SCOPE, "five-question selection preserves exact scope"):
 			return false
-	return _assert(identities.size() == 5, "five-question pool uses five distinct stable identities before reuse")
+	var exhausted := _request(provider, BASE_SCOPE)
+	return _assert(identities.size() == 5, "five-question pool uses five distinct stable identities before exhaustion") \
+		and _assert(exhausted.is_empty(), "five-question pool does not recycle after all questions are consumed")
 
 
 func _assert_same_bandit_retry_uses_unused_question(provider: Node) -> bool:

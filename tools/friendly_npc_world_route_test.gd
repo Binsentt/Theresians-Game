@@ -43,8 +43,8 @@ func _run() -> void:
 		"adult-male_npc/Visual": "Welcome to the City of Knowledge. The school is just ahead.",
 		"city_npc/CityNpc": "The city is busy today. Good luck with your studies!",
 		"old_adult_women/Visual": "Every challenge teaches you something new.",
-		"old_npc/Visual": "The path beyond the city leads to the Deepest Forest.",
-		"girl_npc/Visual": "I heard Pinehill Village is past the forest.",
+		"old_npc/Visual": "The path through the City of Knowledge leads to Pinehill Village.",
+		"girl_npc/Visual": "I heard Pinehill Village is beyond the City of Knowledge.",
 	}, "City")
 	_check_pinehill_dialogue()
 

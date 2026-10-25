@@ -39,15 +39,21 @@ func _ready() -> void:
 
 func _run() -> void:
 	var real_http := get_node_or_null("/root/HttpApi")
+	var api_base := String(real_http.get("base_url")).strip_edges() if real_http != null else ""
 	var local_profile_proven := real_http != null \
 			and real_http.has_method("is_local_qa_profile_active") \
 			and bool(real_http.call("is_local_qa_profile_active")) \
-			and String(real_http.get("base_url")) == "http://127.0.0.1:5000"
+			and real_http.has_method("is_local_qa_mode") \
+			and bool(real_http.call("is_local_qa_mode")) \
+			and real_http.has_method("is_loopback_url") \
+			and bool(real_http.call("is_loopback_url", api_base))
 	_expect(local_profile_proven, "The runner enters local-only QA before autoload initialization")
 	if not local_profile_proven:
 		print("Progress commit QA stopped before fixtures because local-only startup was not proven.")
 		await _finish()
 		return
+	_expect(not bool(real_http.call("is_loopback_url", "https://theresiansquest.com")),
+		"The local QA endpoint validator rejects the public production host")
 
 	var autoload_remote := get_node_or_null("/root/RemoteSync")
 	if autoload_remote != null and autoload_remote.has_method("enable_local_qa_mode"):
