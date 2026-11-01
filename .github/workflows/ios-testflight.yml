@@ -111,26 +111,26 @@ jobs:
           fi
           echo "Manual request and repository release gates are consistent."
 
-      - name: Select and verify Xcode 16.4 and iOS 18.5 simulator runtime
+      - name: Select and verify Xcode 26.3 and iOS 26.2 simulator runtime
         shell: bash
         run: |
           set -euo pipefail
-          developer_dir="/Applications/Xcode_16.4.app/Contents/Developer"
+          developer_dir="/Applications/Xcode_26.3.app/Contents/Developer"
           if [[ ! -d "$developer_dir" ]]; then
-            echo "Required Xcode 16.4 installation was not found at $developer_dir." >&2
+            echo "Required Xcode 26.3 installation was not found at $developer_dir." >&2
             exit 1
           fi
           export DEVELOPER_DIR="$developer_dir"
           xcode_version="$(xcodebuild -version)"
           printf '%s\n' "$xcode_version"
-          if ! grep -Fxq "Xcode 16.4" <<< "$xcode_version"; then
-            echo "Expected Xcode 16.4; refusing to build with another toolchain." >&2
+          if ! grep -Fxq "Xcode 26.3" <<< "$xcode_version"; then
+            echo "Expected Xcode 26.3; refusing to build with another toolchain." >&2
             exit 1
           fi
           sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
           printf 'iOS SDK: %s\n' "$sdk_version"
-          if [[ "$sdk_version" != "18.5" ]]; then
-            echo "Expected the Xcode 16.4 iOS 18.5 SDK; got $sdk_version." >&2
+          if [[ "$sdk_version" != "26.2" ]]; then
+            echo "Expected the Xcode 26.3 iOS 26.2 SDK; got $sdk_version." >&2
             exit 1
           fi
           runtime_json="$(xcrun simctl list runtimes -j)"
@@ -140,10 +140,10 @@ jobs:
 
           runtimes = json.loads(sys.argv[1]).get("runtimes", [])
           matches = [runtime for runtime in runtimes
-                     if runtime.get("name") == "iOS 18.5"
+                     if runtime.get("name") == "iOS 26.2"
                      and runtime.get("isAvailable") is True]
           if not matches:
-              raise SystemExit("The required iOS 18.5 simulator runtime is unavailable.")
+              raise SystemExit("The required iOS 26.2 simulator runtime is unavailable.")
           print(f"iOS Simulator runtime: {matches[0]['name']} ({matches[0].get('buildversion', 'build unknown')})")
           PY
           echo "DEVELOPER_DIR=$developer_dir" >> "$GITHUB_ENV"
