@@ -26,6 +26,8 @@ concurrency:
 
 env:
   GODOT_VERSION: 4.6.1
+  GODOT_EDITOR_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
+  GODOT_TEMPLATES_SHA256: e6d372afd4fdfaae9571eb5e3568afcd96ce6db9a569244034154faf0ac69875
   IOS_PRESET: iOS
   IOS_BUNDLE_ID: com.theresiansquest.game
   IOS_TEAM_ID: 7A4H2D888M
@@ -92,43 +94,79 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
 
-      - name: Download and verify Godot 4.6.1 and iOS export templates
+      - name: Download, verify, and install official Godot 4.6.1
         shell: bash
         run: |
           set -euo pipefail
           godot_dir="$RUNNER_TEMP/godot-${GODOT_VERSION}"
           template_dir="$RUNNER_TEMP/godot-export-templates-${GODOT_VERSION}"
+          if [[ -e "$godot_dir" || -e "$template_dir" ]]; then
+            echo "Unexpected pre-existing Godot staging directory; refusing to reuse it." >&2
+            exit 1
+          fi
           mkdir -p "$godot_dir" "$template_dir"
           godot_zip="$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
           templates_tgz="$RUNNER_TEMP/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          curl --fail --location --retry 3 --silent --show-error \
-            --output "$godot_zip" \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
-          curl --fail --location --retry 3 --silent --show-error \
-            --output "$templates_tgz" \
-            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          curl --fail --location --retry 3 --silent --show-error --output "$godot_zip" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          curl --fail --location --retry 3 --silent --show-error --output "$templates_tgz" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          printf '%s  %s\n' "$GODOT_EDITOR_SHA256" "$godot_zip" | shasum -a 256 -c -
+          printf '%s  %s\n' "$GODOT_TEMPLATES_SHA256" "$templates_tgz" | shasum -a 256 -c -
+          unzip -tq "$godot_zip"
+          unzip -tq "$templates_tgz"
           unzip -q "$godot_zip" -d "$godot_dir"
-          godot_bin="$(find "$godot_dir" -type f -path '*/Contents/MacOS/Godot' -print -quit)"
-          if [[ -z "$godot_bin" ]]; then
-            godot_bin="$(find "$godot_dir" -type f -name Godot -perm -111 -print -quit)"
+          godot_app="$(find "$godot_dir" -type d -name Godot.app -print -quit)"
+          test -n "$godot_app"
+          godot_bin="$godot_app/Contents/MacOS/Godot"
+          test -x "$godot_bin"
+          codesign --verify --deep --strict --verbose=2 "$godot_app"
+          spctl --assess --type execute --verbose=4 "$godot_app"
+          echo "Godot signature and Gatekeeper checks passed before execution."
+          unzip -q "$templates_tgz" -d "$template_dir"
+          templates_root="$template_dir/templates"
+          test -s "$templates_root/version.txt"
+          template_version="$(head -n 1 "$templates_root/version.txt")"
+          case "$template_version" in
+            "$GODOT_VERSION.stable"|"$GODOT_VERSION.stable.official."*) ;;
+            *) echo "Unexpected export template version: $template_version" >&2; exit 1 ;;
+          esac
+          installed_templates="$HOME/Library/Application Support/Godot/export_templates/$GODOT_VERSION.stable"
+          if [[ -e "$installed_templates" ]]; then
+            echo "Unexpected pre-existing template directory; refusing to overwrite it." >&2
+            exit 1
           fi
-          test -n "$godot_bin"
-          chmod +x "$godot_bin"
+          mkdir -p "$installed_templates"
+          cp -R "$templates_root/." "$installed_templates/"
+          test -s "$installed_templates/ios.zip"
+          ios_template="$template_dir/ios-template"
+          mkdir -p "$ios_template"
+          unzip -q "$installed_templates/ios.zip" -d "$ios_template"
+          release_engine="$(find "$ios_template" -type f -path '*/libgodot.ios.release.xcframework/ios-arm64/libgodot.a' -print -quit)"
+          debug_engine="$(find "$ios_template" -type f -path '*/libgodot.ios.debug.xcframework/ios-arm64/libgodot.a' -print -quit)"
+          test -s "$release_engine"
+          test -s "$debug_engine"
+          release_members="$template_dir/release-engine-members.txt"
+          debug_members="$template_dir/debug-engine-members.txt"
+          /usr/bin/ar -t "$release_engine" > "$release_members"
+          /usr/bin/ar -t "$debug_engine" > "$debug_members"
+          grep -q 'ios.template_release.arm64' "$release_members"
+          grep -q 'ios.template_debug.arm64' "$debug_members"
+          if grep -q 'ios.template_debug.arm64' "$release_members"; then
+            echo "The official Release template contains debug engine objects." >&2
+            exit 1
+          fi
+          release_archs="$(xcrun lipo -archs "$release_engine")"
+          [[ "$release_archs" == "arm64" ]]
           version_output="$("$godot_bin" --version)"
           case "$version_output" in
             4.6.1.stable.official.*) ;;
             *) echo "Unexpected Godot version: $version_output" >&2; exit 1 ;;
           esac
-          unzip -q "$templates_tgz" -d "$template_dir"
-          installed_templates="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.stable"
-          mkdir -p "$installed_templates"
-          cp -R "$template_dir/templates/." "$installed_templates/"
-          test -f "$installed_templates/version.txt"
-          grep -q "^${GODOT_VERSION}.stable" "$installed_templates/version.txt"
           echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
+          echo "GODOT_TEMPLATE_VERSION=$template_version" >> "$GITHUB_ENV"
+          echo "IOS_TEMPLATE_RELEASE_ENGINE=$release_engine" >> "$GITHUB_ENV"
+          echo "IOS_TEMPLATE_RELEASE_MEMBERS=$release_members" >> "$GITHUB_ENV"
           echo "Godot version verified: $version_output"
-          echo "Matching iOS export templates installed."
-
+          echo "Matching 4.6.1 iOS Release template verified."
       - name: Prepare isolated iOS export project and build number
         shell: bash
         env:
@@ -231,10 +269,176 @@ jobs:
           test -s "$data_pack"
           test -d "$release_framework"
           test -s "$release_framework/ios-arm64/libgodot.a"
+          engine_archive="$release_framework/ios-arm64/libgodot.a"
+          exported_engine_members="$RUNNER_TEMP/theresians-quest-exported-engine-members.txt"
+          /usr/bin/ar -t "$engine_archive" > "$exported_engine_members"
+          grep -q 'ios.template_release.arm64' "$exported_engine_members"
+          if grep -q 'ios.template_debug.arm64' "$exported_engine_members"; then
+            echo "The generated Godot framework contains debug engine objects." >&2
+            exit 1
+          fi
+          exported_engine_archs="$(xcrun lipo -archs "$engine_archive")"
+          [[ "$exported_engine_archs" == "arm64" ]]
           echo "Godot iOS export output:"
           printf '  data directory: %s\n  Xcode project: %s\n  release framework: %s\n' \
             "$export_root" "$xcode_project" "$release_framework"
+          echo "EXPORT_ROOT=$export_root" >> "$GITHUB_ENV"
           echo "XCODE_PROJECT=$xcode_project" >> "$GITHUB_ENV"
+
+      - name: Verify and correct generated resource references and display names
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$EXPORT_ROOT" "$XCODE_PROJECT" "$CI_PROJECT" "$RUNNER_TEMP" <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          export_root, xcode_project, source_project, work_root = (
+              Path(value).resolve() for value in sys.argv[1:]
+          )
+          pbx = xcode_project / "project.pbxproj"
+          text = pbx.read_text(encoding="utf-8")
+          pcks = [path.resolve() for path in export_root.rglob("*.pck") if path.is_file()]
+          if len(pcks) != 1 or pcks[0].stat().st_size == 0:
+              raise SystemExit(f"Expected one non-empty exported PCK, found {len(pcks)}.")
+          manifests = [
+              path.resolve()
+              for root in (export_root, xcode_project)
+              for path in root.rglob("PrivacyInfo.xcprivacy")
+              if path.is_file()
+          ]
+          if len(manifests) > 1:
+              raise SystemExit(f"Multiple exported privacy manifests found: {manifests}")
+          if manifests:
+              privacy = manifests[0]
+          else:
+              privacy = source_project / "PrivacyInfo.xcprivacy"
+              if not privacy.is_file():
+                  raise SystemExit("No generated or source PrivacyInfo.xcprivacy was found.")
+              privacy = privacy.resolve()
+
+          uuid = r"[A-F0-9]{24}"
+          declarations = list(re.finditer(
+              rf"(?m)^\s*({uuid})(?:\s*/\*.*?\*/)?\s*=\s*\{{",
+              text,
+          ))
+
+          def body(identifier):
+              declaration = next((item for item in declarations if item.group(1) == identifier), None)
+              if declaration is None:
+                  raise SystemExit(f"Xcode object {identifier} is missing.")
+              start = declaration.end() - 1
+              depth, quoted, escaped = 0, False, False
+              for index in range(start, len(text)):
+                  char = text[index]
+                  if quoted:
+                      if escaped:
+                          escaped = False
+                      elif char == "\\":
+                          escaped = True
+                      elif char == '"':
+                          quoted = False
+                  elif char == '"':
+                      quoted = True
+                  elif char == "{":
+                      depth += 1
+                  elif char == "}":
+                      depth -= 1
+                      if depth == 0:
+                          return text[start + 1:index]
+              raise SystemExit(f"Xcode object {identifier} is unterminated.")
+
+          root = re.search(rf"(?m)^\s*rootObject = ({uuid})\b", text)
+          if root is None:
+              raise SystemExit("Xcode project root object is missing.")
+          project_body = body(root.group(1))
+          main = re.search(rf"\bmainGroup = ({uuid})\b", project_body)
+          if main is None:
+              raise SystemExit("Xcode project main group is missing.")
+          main_group = main.group(1)
+          main_body = body(main_group)
+          child_list = re.search(r"children\s*=\s*\((.*?)\);", main_body, re.S)
+          if child_list is None:
+              raise SystemExit("Xcode main group has no children.")
+          main_children = set(re.findall(uuid, child_list.group(1)))
+          group_path = re.search(r"\bpath\s*=\s*(\"[^\"]*\"|[^;]+);", main_body)
+          base = (xcode_project.parent / (group_path.group(1).strip().strip('"') if group_path else "")).resolve()
+
+          lines = text.splitlines(keepends=True)
+          pck_refs, privacy_refs = [], []
+          for index, line in enumerate(lines):
+              if "isa = PBXFileReference;" not in line:
+                  continue
+              identifier = re.match(rf"\s*({uuid})\b", line)
+              if identifier is None:
+                  continue
+              if re.search(r"(?i)\.pck\b", line):
+                  pck_refs.append((index, identifier.group(1)))
+              if "PrivacyInfo.xcprivacy" in line:
+                  privacy_refs.append((index, identifier.group(1)))
+          if len(pck_refs) != 1 or len(privacy_refs) != 1:
+              raise SystemExit(
+                  f"Expected one PCK and privacy file reference; found {len(pck_refs)} and {len(privacy_refs)}."
+              )
+
+          def fix_path(reference, target, label):
+              index, identifier = reference
+              if identifier not in main_children:
+                  raise SystemExit(f"The generated {label} file reference is not in the verified root group.")
+              line = lines[index]
+              tree = re.search(r"\bsourceTree\s*=\s*(\"[^\"]*\"|[^;]+);", line)
+              path = re.search(r"\bpath\s*=\s*(\"[^\"]*\"|[^;]+);", line)
+              if tree is None or path is None or tree.group(1).strip().strip('"') != "<group>":
+                  raise SystemExit(f"The generated {label} file reference has an unsupported form.")
+              old = path.group(1).strip().strip('"')
+              expected = os.path.relpath(target, base).replace(os.sep, "/")
+              if (base / old).resolve() != target:
+                  lines[index] = re.sub(
+                      r"\bpath\s*=\s*(\"[^\"]*\"|[^;]+);",
+                      f'path = "{expected}";',
+                      line,
+                      count=1,
+                  )
+                  print(f"Corrected {label}: {old} -> {expected}")
+              else:
+                  print(f"Verified {label}: {old}")
+              if (base / expected).resolve() != target:
+                  raise SystemExit(f"The {label} reference does not resolve to its verified file.")
+
+          fix_path(pck_refs[0], pcks[0], "PCK path")
+          fix_path(privacy_refs[0], privacy, "privacy manifest path")
+          corrected = 0
+          for index, line in enumerate(lines):
+              if re.search(r"\b(?:productName|PRODUCT_NAME)\s*=", line) or "INFOPLIST_KEY_CFBundleDisplayName" in line:
+                  replacement = line.replace("Theresian&apos;s Quest", "Theresian's Quest")
+                  if replacement != line:
+                      lines[index] = replacement
+                      corrected += 1
+          text = "".join(lines)
+          product = re.findall(r'(?m)^\s*productName\s*=\s*"([^"]*)";', text)
+          products = re.findall(r'(?m)^\s*PRODUCT_NAME\s*=\s*"([^"]*)";', text)
+          displays = re.findall(r'(?m)^\s*INFOPLIST_KEY_CFBundleDisplayName\s*=\s*"([^"]*)";', text)
+          if product != ["Theresian's Quest"]:
+              raise SystemExit(f"Unexpected productName: {product}")
+          if not products or any(value != "Theresian's Quest" for value in products):
+              raise SystemExit(f"Unexpected PRODUCT_NAME values: {products}")
+          if not displays or any(value != "Theresian's Quest" for value in displays):
+              raise SystemExit(f"Unexpected display names: {displays}")
+          if "Theresian&apos;s Quest" in text:
+              raise SystemExit("An escaped Theresian's Quest name remains in the generated Xcode project.")
+          pbx.write_text(text, encoding="utf-8")
+          (work_root / "xcode-resource-corrections.txt").write_text(
+              f"xcode_project={xcode_project}\n"
+              f"pck={pcks[0]}\n"
+              f"pck_reference={os.path.relpath(pcks[0], base)}\n"
+              f"privacy_manifest={privacy}\n"
+              f"privacy_reference={os.path.relpath(privacy, base)}\n"
+              f"escaped_name_lines_corrected={corrected}\n",
+              encoding="utf-8",
+          )
+          PY
 
       - name: Validate Apple signing inputs and archive/export IPA
         if: ${{ vars.IOS_SIGNING_ENABLED == 'true' || inputs.build_signed == true }}
@@ -278,6 +482,7 @@ jobs:
           security list-keychains -d user -s "$keychain_path" login.keychain-db
           security default-keychain -s "$keychain_path"
           scheme="$(xcodebuild -project "$XCODE_PROJECT" -list -json | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data["project"]["schemes"][0])')"
+          link_map="$RUNNER_TEMP/theresians-quest-ios-engine-link-map.txt"
           xcodebuild \
             -project "$XCODE_PROJECT" \
             -scheme "$scheme" \
@@ -288,7 +493,16 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$profile_name" \
+             LD_GENERATE_MAP_FILE=YES \
+             "LD_MAP_FILE_PATH=$link_map" \
             archive
+           test -s "$link_map"
+           grep -F 'libgodot.a(' "$link_map" >/dev/null
+           grep -E 'ios\.template_release\.arm64' "$link_map" >/dev/null
+           if grep -E 'ios\.template_debug\.arm64' "$link_map" >/dev/null; then
+             echo "The signed Release link map contains debug Godot engine objects." >&2
+             exit 1
+           fi
           python3 - "$RUNNER_TEMP/ExportOptions.plist" "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" "$profile_name" <<'PY'
           import plistlib
           import sys
@@ -339,6 +553,21 @@ jobs:
           signing_report="$RUNNER_TEMP/theresians-quest-signing-report.txt"
           codesign -dvvv "$app_path" > "$signing_report" 2>&1 || true
           grep -q 'Authority=Apple Distribution' "$signing_report"
+          pck_source="$(find "$EXPORT_ROOT" -type f -name '*.pck' -print -quit)"
+          test -s "$pck_source"
+          pck_source_count="$(find "$EXPORT_ROOT" -type f -name '*.pck' -print | wc -l | tr -d '[:space:]')"
+          [[ "$pck_source_count" == "1" ]]
+          app_pck="$(find "$app_path" -type f -name '*.pck' -print -quit)"
+          test -s "$app_pck"
+          app_pck_count="$(find "$app_path" -type f -name '*.pck' -print | wc -l | tr -d '[:space:]')"
+          [[ "$app_pck_count" == "1" ]]
+          cmp -s "$pck_source" "$app_pck"
+          privacy_source="$CI_PROJECT/PrivacyInfo.xcprivacy"
+          privacy_in_app="$app_path/PrivacyInfo.xcprivacy"
+          test -s "$privacy_source"
+          test -s "$privacy_in_app"
+          plutil -lint "$privacy_in_app"
+          cmp -s "$privacy_source" "$privacy_in_app"
           sha256="$(shasum -a 256 "$IPA_PATH" | awk '{print toupper($1)}')"
           size_bytes="$(stat -f '%z' "$IPA_PATH")"
           report="$ARTIFACT_DIR/ios-build-report.txt"
