@@ -221,9 +221,17 @@ jobs:
           )
           pbx = xcode_project / "project.pbxproj"
           text = pbx.read_text(encoding="utf-8")
-          pcks = [path.resolve() for path in export_root.rglob("*.pck") if path.is_file()]
+          pck_search_root = export_root.parent
+          pcks = [
+              path.resolve()
+              for path in pck_search_root.rglob("*.pck")
+              if path.is_file()
+          ]
           if len(pcks) != 1 or pcks[0].stat().st_size == 0:
-              raise SystemExit(f"Expected one non-empty exported PCK, found {len(pcks)}.")
+              raise SystemExit(
+                  f"Expected one non-empty exported PCK under {pck_search_root}, "
+                  f"found {len(pcks)}: {pcks}"
+              )
           manifests = [
               path.resolve()
               for root in (export_root, xcode_project)
@@ -433,7 +441,7 @@ jobs:
           test -s "$executable_path"
           app_archs="$(xcrun lipo -archs "$executable_path")"
           [[ "$app_archs" == "arm64" ]]
-          pck_path="$(find "$EXPORT_ROOT" -type f -name '*.pck' -print -quit)"
+          pck_path="$(find "$EXPORT_ROOT/.." -type f -name '*.pck' -print -quit)"
           test -s "$pck_path"
           privacy_source="$(find "$EXPORT_ROOT" "$XCODE_PROJECT" -type f -name PrivacyInfo.xcprivacy -print -quit)"
           if [[ -z "$privacy_source" ]]; then
