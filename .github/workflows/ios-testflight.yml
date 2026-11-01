@@ -1,9 +1,6 @@
 name: iOS TestFlight
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       build_signed:
@@ -21,8 +18,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-testflight-${{ github.ref }}
-  cancel-in-progress: true
+  group: ios-testflight-release-${{ github.repository }}
+  cancel-in-progress: false
 
 env:
   GODOT_VERSION: 4.6.1
@@ -35,7 +32,8 @@ env:
 jobs:
   export-ios:
     name: Export and verify iOS IPA
-    runs-on: macos-14
+    if: github.ref == 'refs/heads/main'
+    runs-on: macos-15
     timeout-minutes: 60
     steps:
       - name: Check out the exact triggering commit
@@ -86,13 +84,69 @@ jobs:
           print(f"Apple Team ID: {expected_team}")
           PY
 
-      - name: Show Xcode toolchain
+      - name: Enforce explicit signing and upload gates
+        shell: bash
+        env:
+          BUILD_SIGNED_INPUT: ${{ inputs.build_signed }}
+          UPLOAD_TESTFLIGHT_INPUT: ${{ inputs.upload_testflight }}
+          IOS_SIGNING_ENABLED: ${{ vars.IOS_SIGNING_ENABLED }}
+          IOS_TESTFLIGHT_UPLOAD_ENABLED: ${{ vars.IOS_TESTFLIGHT_UPLOAD_ENABLED }}
+        run: |
+          set -euo pipefail
+          if [[ "$BUILD_SIGNED_INPUT" == "true" && "$IOS_SIGNING_ENABLED" != "true" ]]; then
+            echo "Signed IPA requested, but IOS_SIGNING_ENABLED is not true. The signing step is blocked." >&2
+            exit 1
+          fi
+          if [[ "$UPLOAD_TESTFLIGHT_INPUT" == "true" && "$IOS_TESTFLIGHT_UPLOAD_ENABLED" != "true" ]]; then
+            echo "TestFlight upload requested, but IOS_TESTFLIGHT_UPLOAD_ENABLED is not true. The upload step is blocked." >&2
+            exit 1
+          fi
+          if [[ "$UPLOAD_TESTFLIGHT_INPUT" == "true" && "$BUILD_SIGNED_INPUT" != "true" ]]; then
+            echo "TestFlight upload requires build_signed=true in the same manual run." >&2
+            exit 1
+          fi
+          if [[ "$UPLOAD_TESTFLIGHT_INPUT" == "true" && "$GITHUB_RUN_ATTEMPT" != "1" ]]; then
+            echo "A rerun cannot upload to TestFlight; start a new manual release run to avoid duplicate uploads." >&2
+            exit 1
+          fi
+          echo "Manual request and repository release gates are consistent."
+
+      - name: Select and verify Xcode 16.4 and iOS 18.5 simulator runtime
         shell: bash
         run: |
           set -euo pipefail
-          xcode-select -p
-          xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-version
+          developer_dir="/Applications/Xcode_16.4.app/Contents/Developer"
+          if [[ ! -d "$developer_dir" ]]; then
+            echo "Required Xcode 16.4 installation was not found at $developer_dir." >&2
+            exit 1
+          fi
+          export DEVELOPER_DIR="$developer_dir"
+          xcode_version="$(xcodebuild -version)"
+          printf '%s\n' "$xcode_version"
+          if ! grep -Fxq "Xcode 16.4" <<< "$xcode_version"; then
+            echo "Expected Xcode 16.4; refusing to build with another toolchain." >&2
+            exit 1
+          fi
+          sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          printf 'iOS SDK: %s\n' "$sdk_version"
+          if [[ "$sdk_version" != "18.5" ]]; then
+            echo "Expected the Xcode 16.4 iOS 18.5 SDK; got $sdk_version." >&2
+            exit 1
+          fi
+          runtime_json="$(xcrun simctl list runtimes -j)"
+          python3 - "$runtime_json" <<'PY'
+          import json
+          import sys
+
+          runtimes = json.loads(sys.argv[1]).get("runtimes", [])
+          matches = [runtime for runtime in runtimes
+                     if runtime.get("name") == "iOS 18.5"
+                     and runtime.get("isAvailable") is True]
+          if not matches:
+              raise SystemExit("The required iOS 18.5 simulator runtime is unavailable.")
+          print(f"iOS Simulator runtime: {matches[0]['name']} ({matches[0].get('buildversion', 'build unknown')})")
+          PY
+          echo "DEVELOPER_DIR=$developer_dir" >> "$GITHUB_ENV"
 
       - name: Download, verify, and install official Godot 4.6.1
         shell: bash
@@ -172,21 +226,37 @@ jobs:
         env:
           IOS_BUILD_BASE: ${{ vars.IOS_BUILD_BASE }}
           IOS_MARKETING_VERSION: ${{ vars.IOS_MARKETING_VERSION }}
+          BUILD_SIGNED_INPUT: ${{ inputs.build_signed }}
         run: |
           set -euo pipefail
           base="${IOS_BUILD_BASE:-1}"
           if [[ ! "$base" =~ ^[0-9]+$ ]] || (( base < 1 )); then
-            echo "IOS_BUILD_BASE must be a positive decimal build number." >&2
+            echo "IOS_BUILD_BASE must be a positive decimal build-number offset; keep it unchanged or increase it between releases." >&2
             exit 1
           fi
-          build_number=$((base + GITHUB_RUN_NUMBER))
+          run_number="$GITHUB_RUN_NUMBER"
+          run_attempt="${GITHUB_RUN_ATTEMPT:-1}"
+          if [[ ! "$run_number" =~ ^[0-9]+$ ]] || (( run_number < 1 )); then
+            echo "GitHub Actions supplied an invalid workflow run number." >&2
+            exit 1
+          fi
+          if [[ ! "$run_attempt" =~ ^[0-9]+$ ]] || (( run_attempt < 1 || run_attempt > 99 )); then
+            echo "Workflow run attempt must be between 1 and 99 to reserve a unique build-number sequence." >&2
+            exit 1
+          fi
+          # Reserve 100 build numbers per run so a GitHub rerun gets a larger CFBundleVersion.
+          build_number=$((base + run_number * 100 + run_attempt))
           if (( build_number > 2147483647 )); then
             echo "Computed iOS build number is outside Apple's supported integer range." >&2
             exit 1
           fi
           marketing_version="${IOS_MARKETING_VERSION:-0.0.1}"
+          if [[ "${BUILD_SIGNED_INPUT:-false}" == "true" && -z "${IOS_MARKETING_VERSION:-}" ]]; then
+            echo "Set the IOS_MARKETING_VERSION Actions variable before requesting a signed IPA; the placeholder default is blocked for signed builds." >&2
+            exit 1
+          fi
           if [[ ! "$marketing_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "IOS_MARKETING_VERSION must use major.minor.patch format." >&2
+            echo "IOS_MARKETING_VERSION must use major.minor.patch format (for example, 1.2.3)." >&2
             exit 1
           fi
           ci_project="$RUNNER_TEMP/theresians-quest-ios-project"
@@ -453,7 +523,7 @@ jobs:
           PY
 
       - name: Validate Apple signing inputs and archive/export IPA
-        if: ${{ vars.IOS_SIGNING_ENABLED == 'true' || inputs.build_signed == true }}
+        if: ${{ vars.IOS_SIGNING_ENABLED == 'true' && inputs.build_signed == true }}
         shell: bash
         env:
           IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
@@ -475,25 +545,93 @@ jobs:
           profile_plist="$RUNNER_TEMP/appstore-profile.plist"
           archive_path="$RUNNER_TEMP/theresians-quest.xcarchive"
           export_dir="$RUNNER_TEMP/theresians-quest-ipa"
-          printf '%s' "$IOS_DISTRIBUTION_CERTIFICATE_BASE64" | base64 --decode > "$certificate_path"
-          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$profile_path"
+          if ! printf "%s" "$IOS_DISTRIBUTION_CERTIFICATE_BASE64" | base64 --decode > "$certificate_path"; then
+            echo "IOS_DISTRIBUTION_CERTIFICATE_BASE64 is not valid base64." >&2
+            exit 1
+          fi
+          if ! printf "%s" "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$profile_path"; then
+            echo "IOS_PROVISIONING_PROFILE_BASE64 is not valid base64." >&2
+            exit 1
+          fi
+          if [[ ! -s "$certificate_path" ]]; then
+            echo "The decoded Apple Distribution certificate file is empty." >&2
+            exit 1
+          fi
+          if [[ ! -s "$profile_path" ]]; then
+            echo "The decoded App Store provisioning profile is empty." >&2
+            exit 1
+          fi
           chmod 600 "$certificate_path" "$profile_path"
-          security cms -D -i "$profile_path" > "$profile_plist"
+          if ! security cms -D -i "$profile_path" > "$profile_plist"; then
+            echo "The provisioning profile could not be decoded as a signed Apple profile." >&2
+            exit 1
+          fi
           profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print:UUID' "$profile_plist")"
           profile_name="$(/usr/libexec/PlistBuddy -c 'Print:Name' "$profile_plist")"
           if [[ "$profile_name" != "$IOS_PROVISIONING_PROFILE_NAME" ]]; then
-            echo "The provisioning profile name does not match the approved GitHub secret." >&2
+            echo "IOS_PROVISIONING_PROFILE_NAME does not match the decoded profile name." >&2
             exit 1
           fi
+          python3 - "$profile_plist" "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" <<PY_PROFILE
+          import plistlib
+          import sys
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          profile_path, expected_bundle, expected_team = sys.argv[1:]
+          with Path(profile_path).open("rb") as stream:
+              profile = plistlib.load(stream)
+
+          if expected_team not in profile.get("TeamIdentifier", []):
+              raise SystemExit("The provisioning profile TeamIdentifier does not match IOS_TEAM_ID.")
+          platforms = profile.get("Platform", [])
+          if platforms and "iOS" not in platforms:
+              raise SystemExit("The provisioning profile is not an iOS profile.")
+          expiration = profile.get("ExpirationDate")
+          if not isinstance(expiration, datetime):
+              raise SystemExit("The provisioning profile has no valid ExpirationDate.")
+          if expiration.tzinfo is None:
+              expiration = expiration.replace(tzinfo=timezone.utc)
+          if expiration <= datetime.now(timezone.utc):
+              raise SystemExit("The provisioning profile is expired.")
+          entitlements = profile.get("Entitlements", {})
+          app_id = entitlements.get("application-identifier", "")
+          suffix = "." + expected_bundle
+          if not isinstance(app_id, str) or not app_id.endswith(suffix) or "*" in app_id:
+              raise SystemExit("The provisioning profile application-identifier does not exactly match IOS_BUNDLE_ID.")
+          prefix = app_id[:-len(suffix)]
+          if prefix not in profile.get("ApplicationIdentifierPrefix", []):
+              raise SystemExit("The provisioning profile application identifier has an unknown App ID prefix.")
+          if entitlements.get("get-task-allow") is not False:
+              raise SystemExit("The provisioning profile must be a distribution profile with get-task-allow=false.")
+          if "ProvisionedDevices" in profile or profile.get("ProvisionsAllDevices") is True:
+              raise SystemExit("The provisioning profile is not an App Store distribution profile.")
+          print(f"App Store profile preflight passed for {expected_bundle} and Team ID {expected_team}; expires {expiration.date()}.")
+          PY_PROFILE
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
           cp "$profile_path" "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
-          security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$keychain_path"
+          if ! security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$keychain_path"; then
+            echo "Could not create the temporary signing keychain." >&2
+            exit 1
+          fi
           security set-keychain-settings -lut 21600 "$keychain_path"
           security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$keychain_path"
-          security import "$certificate_path" -k "$keychain_path" -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          if ! security import "$certificate_path" -k "$keychain_path" -P "$IOS_DISTRIBUTION_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security >/dev/null 2>&1; then
+            echo "Could not import the Apple Distribution certificate; verify its password and PKCS#12 contents." >&2
+            exit 1
+          fi
           security list-keychains -d user -s "$keychain_path" login.keychain-db
           security default-keychain -s "$keychain_path"
+          identities="$(security find-identity -v -p codesigning "$keychain_path" 2>/dev/null || true)"
+          if ! grep -Eq "Apple Distribution: .*\(${IOS_TEAM_ID}\)" <<< "$identities"; then
+            echo "No valid Apple Distribution signing identity with a private key was found for IOS_TEAM_ID." >&2
+            exit 1
+          fi
           scheme="$(xcodebuild -project "$XCODE_PROJECT" -list -json | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data["project"]["schemes"][0])')"
+          if [[ -z "$scheme" ]]; then
+            echo "The generated Xcode project has no shared build scheme." >&2
+            exit 1
+          fi
           link_map="$RUNNER_TEMP/theresians-quest-ios-engine-link-map.txt"
           xcodebuild \
             -project "$XCODE_PROJECT" \
@@ -505,16 +643,16 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$profile_name" \
-             LD_GENERATE_MAP_FILE=YES \
-             "LD_MAP_FILE_PATH=$link_map" \
+            LD_GENERATE_MAP_FILE=YES \
+            "LD_MAP_FILE_PATH=$link_map" \
             archive
-           test -s "$link_map"
-           grep -F 'libgodot.a(' "$link_map" >/dev/null
-           grep -E 'ios\.template_release\.arm64' "$link_map" >/dev/null
-           if grep -E 'ios\.template_debug\.arm64' "$link_map" >/dev/null; then
-             echo "The signed Release link map contains debug Godot engine objects." >&2
-             exit 1
-           fi
+          test -s "$link_map"
+          grep -F 'libgodot.a(' "$link_map" >/dev/null
+          grep -E 'ios\.template_release\.arm64' "$link_map" >/dev/null
+          if grep -E 'ios\.template_debug\.arm64' "$link_map" >/dev/null; then
+            echo "The signed Release link map contains debug Godot engine objects." >&2
+            exit 1
+          fi
           python3 - "$RUNNER_TEMP/ExportOptions.plist" "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" "$profile_name" <<'PY'
           import plistlib
           import sys
@@ -540,7 +678,7 @@ jobs:
           echo "IPA_PATH=$ipa_path" >> "$GITHUB_ENV"
 
       - name: Verify IPA metadata, architecture, signature, and checksum
-        if: ${{ vars.IOS_SIGNING_ENABLED == 'true' || inputs.build_signed == true }}
+        if: ${{ vars.IOS_SIGNING_ENABLED == 'true' && inputs.build_signed == true }}
         shell: bash
         run: |
           set -euo pipefail
@@ -611,7 +749,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload verified IPA artifact
-        if: ${{ vars.IOS_SIGNING_ENABLED == 'true' || inputs.build_signed == true }}
+        if: ${{ vars.IOS_SIGNING_ENABLED == 'true' && inputs.build_signed == true }}
         uses: actions/upload-artifact@v4
         with:
           name: TheresiansQuest-iOS-${{ github.sha }}
@@ -621,7 +759,7 @@ jobs:
             ${{ runner.temp }}/theresians-quest-ios-artifact/ios-build-report.txt
 
       - name: Upload verified IPA to internal TestFlight
-        if: ${{ (vars.IOS_SIGNING_ENABLED == 'true' || inputs.build_signed == true) && (vars.IOS_TESTFLIGHT_UPLOAD_ENABLED == 'true' || inputs.upload_testflight == true) }}
+        if: ${{ vars.IOS_SIGNING_ENABLED == 'true' && inputs.build_signed == true && vars.IOS_TESTFLIGHT_UPLOAD_ENABLED == 'true' && inputs.upload_testflight == true && github.run_attempt == 1 }}
         shell: bash
         env:
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
@@ -644,14 +782,14 @@ jobs:
           echo "TestFlight upload request accepted by App Store Connect; processing remains Apple-controlled." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Explain skipped TestFlight upload
-        if: ${{ (vars.IOS_SIGNING_ENABLED == 'true' || inputs.build_signed == true) && vars.IOS_TESTFLIGHT_UPLOAD_ENABLED != 'true' && inputs.upload_testflight != true }}
+        if: ${{ vars.IOS_SIGNING_ENABLED == 'true' && inputs.build_signed == true && (vars.IOS_TESTFLIGHT_UPLOAD_ENABLED != 'true' || inputs.upload_testflight != true) }}
         shell: bash
         run: |
           echo "IPA artifact was verified and uploaded to GitHub Actions." >> "$GITHUB_STEP_SUMMARY"
           echo "TestFlight upload skipped: enable IOS_TESTFLIGHT_UPLOAD_ENABLED or use the manual workflow input after Apple credentials are configured." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Explain skipped signed IPA build
-        if: ${{ vars.IOS_SIGNING_ENABLED != 'true' && inputs.build_signed != true }}
+        if: ${{ vars.IOS_SIGNING_ENABLED != 'true' || inputs.build_signed != true }}
         shell: bash
         run: |
           echo "Unsigned iOS project export completed." >> "$GITHUB_STEP_SUMMARY"
