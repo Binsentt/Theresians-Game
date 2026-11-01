@@ -262,10 +262,16 @@ jobs:
           rm -rf "$export_root" "$export_root.xcodeproj" "$export_root.xcframework"
           "$GODOT_BIN" --headless --path "$CI_PROJECT" --export-release "$IOS_PRESET" "$export_root"
           xcode_project="$export_root.xcodeproj"
-          data_pack="$export_root/data.pck"
           release_framework="$export_root.xcframework"
           test -d "$export_root"
           test -d "$xcode_project"
+          pck_count="$(find "$export_root" -type f -name '*.pck' -print | wc -l | tr -d '[:space:]')"
+          if [[ "$pck_count" != "1" ]]; then
+            echo "Expected one exported PCK, found $pck_count." >&2
+            find "$export_root" -type f -name '*.pck' -print >&2
+            exit 1
+          fi
+          data_pack="$(find "$export_root" -type f -name '*.pck' -print -quit)"
           test -s "$data_pack"
           test -d "$release_framework"
           test -s "$release_framework/ios-arm64/libgodot.a"
