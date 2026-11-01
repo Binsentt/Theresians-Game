@@ -1,0 +1,501 @@
+name: iOS Unsigned Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-unsigned-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: "4.6.1"
+  IOS_PRESET: iOS
+  IOS_BUNDLE_ID: com.theresiansquest.game
+  IOS_TEAM_ID: 7A4H2D888M
+  GODOT_EDITOR_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
+  GODOT_TEMPLATES_SHA256: e6d372afd4fdfaae9571eb5e3568afcd96ce6db9a569244034154faf0ac69875
+
+jobs:
+  build:
+    name: Export and build unsigned iOS Release app
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - name: Check out the dispatched commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check project inputs and available disk space
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then
+            echo "This workflow only supports manual dispatch." >&2
+            exit 1
+          fi
+          test -s project.godot
+          test -s export_presets.cfg
+          free_kb="$(df -Pk "$RUNNER_TEMP" | awk 'END { print $4 }')"
+          required_kb=6291456
+          echo "Free space before downloads: $((free_kb / 1024 / 1024)) GiB"
+          if (( free_kb < required_kb )); then
+            echo "At least 6 GiB of free space is required; stopping before downloads." >&2
+            exit 1
+          fi
+          python3 - "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          bundle_id, team_id = sys.argv[1:]
+          text = Path("export_presets.cfg").read_text(encoding="utf-8")
+          blocks = re.split(r"(?m)(?=^\[preset\.\d+\]\r?$)", text)
+          ios = next((block for block in blocks
+                      if 'name="iOS"' in block and 'platform="iOS"' in block), None)
+          if ios is None:
+              raise SystemExit("The existing iOS export preset was not found.")
+          for option, expected in (
+              ("architectures/arm64", "true"),
+              ("application/bundle_identifier", f'"{bundle_id}"'),
+              ("application/app_store_team_id", f'"{team_id}"'),
+          ):
+              if not re.search(rf"(?m)^{re.escape(option)}={re.escape(expected)}\s*$", ios):
+                  raise SystemExit(f"The iOS preset does not match {option}.")
+          print(f"Existing iOS bundle identity verified: {bundle_id}")
+          PY
+
+      - name: Download, verify, and install official Godot 4.6.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          work_root="$RUNNER_TEMP/theresians-quest-ios-unsigned-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          if [[ -e "$work_root" ]]; then
+            echo "The isolated workflow directory already exists; refusing to reuse it." >&2
+            exit 1
+          fi
+          mkdir -p "$work_root/downloads" "$work_root/editor" "$work_root/template-archive"
+          editor_zip="$work_root/downloads/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          templates_tpz="$work_root/downloads/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          curl --fail --location --retry 3 --silent --show-error \
+            --output "$editor_zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          curl --fail --location --retry 3 --silent --show-error \
+            --output "$templates_tpz" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          printf '%s  %s\n' "$GODOT_EDITOR_SHA256" "$editor_zip" | shasum -a 256 -c -
+          printf '%s  %s\n' "$GODOT_TEMPLATES_SHA256" "$templates_tpz" | shasum -a 256 -c -
+          unzip -tq "$editor_zip"
+          unzip -tq "$templates_tpz"
+          unzip -q "$editor_zip" -d "$work_root/editor"
+          godot_app="$(find "$work_root/editor" -type d -name Godot.app -print -quit)"
+          test -n "$godot_app"
+          godot_bin="$godot_app/Contents/MacOS/Godot"
+          test -x "$godot_bin"
+          codesign --verify --deep --strict --verbose=2 "$godot_app"
+          spctl --assess --type execute --verbose=4 "$godot_app"
+          echo "Signature and Gatekeeper checks passed before running Godot."
+          unzip -q "$templates_tpz" -d "$work_root/template-archive"
+          templates_root="$work_root/template-archive/templates"
+          test -s "$templates_root/version.txt"
+          template_version="$(head -n 1 "$templates_root/version.txt")"
+          case "$template_version" in
+            "$GODOT_VERSION.stable"|"$GODOT_VERSION.stable.official."*) ;;
+            *) echo "Unexpected export template version: $template_version" >&2; exit 1 ;;
+          esac
+          installed_templates="$HOME/Library/Application Support/Godot/export_templates/$GODOT_VERSION.stable"
+          if [[ -e "$installed_templates" ]]; then
+            echo "Unexpected pre-existing template directory; refusing to overwrite it." >&2
+            exit 1
+          fi
+          mkdir -p "$installed_templates"
+          cp -R "$templates_root/." "$installed_templates/"
+          test -s "$installed_templates/ios.zip"
+          ios_template="$work_root/template-archive/ios-template"
+          mkdir -p "$ios_template"
+          unzip -q "$installed_templates/ios.zip" -d "$ios_template"
+          release_engine="$(find "$ios_template" -type f -path '*/libgodot.ios.release.xcframework/ios-arm64/libgodot.a' -print -quit)"
+          debug_engine="$(find "$ios_template" -type f -path '*/libgodot.ios.debug.xcframework/ios-arm64/libgodot.a' -print -quit)"
+          test -s "$release_engine"
+          test -s "$debug_engine"
+          release_members="$work_root/template-archive/release-engine-members.txt"
+          debug_members="$work_root/template-archive/debug-engine-members.txt"
+          /usr/bin/ar -t "$release_engine" > "$release_members"
+          /usr/bin/ar -t "$debug_engine" > "$debug_members"
+          grep -q 'ios.template_release.arm64' "$release_members"
+          grep -q 'ios.template_debug.arm64' "$debug_members"
+          if grep -q 'ios.template_debug.arm64' "$release_members"; then
+            echo "The official Release framework contains debug engine objects." >&2
+            exit 1
+          fi
+          xcrun lipo -info "$release_engine" | grep -q arm64
+          version_output="$("$godot_bin" --version)"
+          case "$version_output" in
+            4.6.1.stable.official.*) ;;
+            *) echo "Unexpected Godot editor version: $version_output" >&2; exit 1 ;;
+          esac
+          echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
+          echo "WORK_ROOT=$work_root" >> "$GITHUB_ENV"
+          echo "GODOT_TEMPLATE_VERSION=$template_version" >> "$GITHUB_ENV"
+          echo "IOS_TEMPLATE_RELEASE_ENGINE=$release_engine" >> "$GITHUB_ENV"
+          echo "IOS_TEMPLATE_RELEASE_MEMBERS=$release_members" >> "$GITHUB_ENV"
+          echo "Godot editor verified: $version_output"
+          echo "Matching 4.6.1 iOS Release template verified."
+
+      - name: Prepare isolated project copy and temporary iOS preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          ci_project="$WORK_ROOT/project"
+          artifact_dir="$WORK_ROOT/artifacts"
+          mkdir -p "$ci_project" "$artifact_dir"
+          rsync -a \
+            --exclude '.git/' \
+            --exclude '.godot/' \
+            --exclude 'DerivedData/' \
+            --exclude 'TQ-iOs-Export/' \
+            ./ "$ci_project/"
+          python3 - "$ci_project/export_presets.cfg" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          text = path.read_text(encoding="utf-8")
+          presets = list(re.finditer(r"(?ms)^\[preset\.(\d+)\]\r?\n.*?(?=^\[preset\.\d+\]|\Z)", text))
+          ios = next((item for item in presets
+                      if 'name="iOS"' in item.group(0) and 'platform="iOS"' in item.group(0)), None)
+          if ios is None:
+              raise SystemExit("The iOS preset is missing from the isolated copy.")
+          header = f"[preset.{ios.group(1)}.options]"
+          start = text.find(header, ios.start(), ios.end())
+          if start < 0:
+              raise SystemExit("The iOS preset options section is missing.")
+          end = text.find("\n[", start + len(header))
+          if end < 0 or end > ios.end():
+              end = ios.end()
+          options = text[start:end]
+          setting = re.compile(r"(?m)^application/export_project_only=.*$")
+          if len(setting.findall(options)) != 1:
+              raise SystemExit("Expected one export_project_only setting.")
+          options = setting.sub("application/export_project_only=true", options, count=1)
+          path.write_text(text[:start] + options + text[end:], encoding="utf-8")
+          print("Only the temporary iOS project-only setting was changed.")
+          PY
+          echo "CI_PROJECT=$ci_project" >> "$GITHUB_ENV"
+          echo "ARTIFACT_DIR=$artifact_dir" >> "$GITHUB_ENV"
+
+      - name: Export fresh iOS Xcode project with Release engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORK_ROOT/export"
+          export_root="$WORK_ROOT/export/Theresian's Quest"
+          if [[ -e "$export_root" || -e "$export_root.xcodeproj" ]]; then
+            echo "The new export destination is not clean; refusing to overwrite it." >&2
+            exit 1
+          fi
+          "$GODOT_BIN" --headless --path "$CI_PROJECT" --export-release "$IOS_PRESET" "$export_root"
+          xcode_project="$export_root.xcodeproj"
+          test -d "$export_root"
+          test -s "$xcode_project/project.pbxproj"
+          echo "EXPORT_ROOT=$export_root" >> "$GITHUB_ENV"
+          echo "XCODE_PROJECT=$xcode_project" >> "$GITHUB_ENV"
+
+      - name: Verify and correct generated resource references and display names
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$EXPORT_ROOT" "$XCODE_PROJECT" "$CI_PROJECT" "$WORK_ROOT" <<'PY'
+          import os
+          import re
+          import sys
+          from pathlib import Path
+
+          export_root, xcode_project, source_project, work_root = (
+              Path(value).resolve() for value in sys.argv[1:]
+          )
+          pbx = xcode_project / "project.pbxproj"
+          text = pbx.read_text(encoding="utf-8")
+          pcks = [path.resolve() for path in export_root.rglob("*.pck") if path.is_file()]
+          if len(pcks) != 1 or pcks[0].stat().st_size == 0:
+              raise SystemExit(f"Expected one non-empty exported PCK, found {len(pcks)}.")
+          manifests = [
+              path.resolve() for path in export_root.rglob("PrivacyInfo.xcprivacy")
+              if path.is_file()
+          ]
+          if len(manifests) > 1:
+              raise SystemExit(f"Multiple exported privacy manifests found: {manifests}")
+          if manifests:
+              privacy = manifests[0]
+          else:
+              privacy = source_project / "PrivacyInfo.xcprivacy"
+              if not privacy.is_file():
+                  raise SystemExit("No generated or source PrivacyInfo.xcprivacy was found.")
+              privacy = privacy.resolve()
+
+          uuid = r"[A-F0-9]{24}"
+          declarations = list(re.finditer(
+              rf"(?m)^\s*({uuid})(?:\s*/\*.*?\*/)?\s*=\s*\{{",
+              text,
+          ))
+
+          def body(identifier):
+              declaration = next((item for item in declarations if item.group(1) == identifier), None)
+              if declaration is None:
+                  raise SystemExit(f"Xcode object {identifier} is missing.")
+              start = declaration.end() - 1
+              depth, quoted, escaped = 0, False, False
+              for index in range(start, len(text)):
+                  char = text[index]
+                  if quoted:
+                      if escaped:
+                          escaped = False
+                      elif char == "\\":
+                          escaped = True
+                      elif char == '"':
+                          quoted = False
+                  elif char == '"':
+                      quoted = True
+                  elif char == "{":
+                      depth += 1
+                  elif char == "}":
+                      depth -= 1
+                      if depth == 0:
+                          return text[start + 1:index]
+              raise SystemExit(f"Xcode object {identifier} is unterminated.")
+
+          root = re.search(rf"(?m)^\s*rootObject = ({uuid})\b", text)
+          if root is None:
+              raise SystemExit("Xcode project root object is missing.")
+          project_body = body(root.group(1))
+          main = re.search(rf"\bmainGroup = ({uuid})\b", project_body)
+          if main is None:
+              raise SystemExit("Xcode project main group is missing.")
+          main_group = main.group(1)
+          main_body = body(main_group)
+          child_list = re.search(r"children\s*=\s*\((.*?)\);", main_body, re.S)
+          if child_list is None:
+              raise SystemExit("Xcode main group has no children.")
+          main_children = set(re.findall(uuid, child_list.group(1)))
+          group_path = re.search(r"\bpath\s*=\s*(\"[^\"]*\"|[^;]+);", main_body)
+          base = (xcode_project.parent / (group_path.group(1).strip().strip('"') if group_path else "")).resolve()
+
+          lines = text.splitlines(keepends=True)
+          pck_refs, privacy_refs = [], []
+          for index, line in enumerate(lines):
+              if "isa = PBXFileReference;" not in line:
+                  continue
+              identifier = re.match(rf"\s*({uuid})\b", line)
+              if identifier is None:
+                  continue
+              if re.search(r"(?i)\.pck\b", line):
+                  pck_refs.append((index, identifier.group(1)))
+              if "PrivacyInfo.xcprivacy" in line:
+                  privacy_refs.append((index, identifier.group(1)))
+          if len(pck_refs) != 1 or len(privacy_refs) != 1:
+              raise SystemExit(
+                  f"Expected one PCK and privacy file reference; found {len(pck_refs)} and {len(privacy_refs)}."
+              )
+
+          def fix_path(reference, target, label):
+              index, identifier = reference
+              if identifier not in main_children:
+                  raise SystemExit(f"The generated {label} file reference is not in the verified root group.")
+              line = lines[index]
+              tree = re.search(r"\bsourceTree\s*=\s*(\"[^\"]*\"|[^;]+);", line)
+              path = re.search(r"\bpath\s*=\s*(\"[^\"]*\"|[^;]+);", line)
+              if tree is None or path is None or tree.group(1).strip().strip('"') != "<group>":
+                  raise SystemExit(f"The generated {label} file reference has an unsupported form.")
+              old = path.group(1).strip().strip('"')
+              expected = os.path.relpath(target, base).replace(os.sep, "/")
+              if (base / old).resolve() != target:
+                  lines[index] = re.sub(
+                      r"\bpath\s*=\s*(\"[^\"]*\"|[^;]+);",
+                      f'path = "{expected}";',
+                      line,
+                      count=1,
+                  )
+                  print(f"Corrected {label}: {old} -> {expected}")
+              else:
+                  print(f"Verified {label}: {old}")
+              if (base / expected).resolve() != target:
+                  raise SystemExit(f"The {label} reference does not resolve to its verified file.")
+
+          fix_path(pck_refs[0], pcks[0], "PCK path")
+          fix_path(privacy_refs[0], privacy, "privacy manifest path")
+          corrected = 0
+          for index, line in enumerate(lines):
+              if re.search(r"\b(?:productName|PRODUCT_NAME)\s*=", line) or "INFOPLIST_KEY_CFBundleDisplayName" in line:
+                  replacement = line.replace("Theresian&apos;s Quest", "Theresian's Quest")
+                  if replacement != line:
+                      lines[index] = replacement
+                      corrected += 1
+          text = "".join(lines)
+          product = re.findall(r'(?m)^\s*productName\s*=\s*"([^"]*)";', text)
+          products = re.findall(r'(?m)^\s*PRODUCT_NAME\s*=\s*"([^"]*)";', text)
+          displays = re.findall(r'(?m)^\s*INFOPLIST_KEY_CFBundleDisplayName\s*=\s*"([^"]*)";', text)
+          if product != ["Theresian's Quest"]:
+              raise SystemExit(f"Unexpected productName: {product}")
+          if not products or any(value != "Theresian's Quest" for value in products):
+              raise SystemExit(f"Unexpected PRODUCT_NAME values: {products}")
+          if not displays or any(value != "Theresian's Quest" for value in displays):
+              raise SystemExit(f"Unexpected display names: {displays}")
+          if "Theresian&apos;s Quest" in text:
+              raise SystemExit("An escaped Theresian's Quest name remains in the generated Xcode project.")
+          pbx.write_text(text, encoding="utf-8")
+          (work_root / "xcode-resource-corrections.txt").write_text(
+              f"xcode_project={xcode_project}\n"
+              f"pck={pcks[0]}\n"
+              f"pck_reference={os.path.relpath(pcks[0], base)}\n"
+              f"privacy_manifest={privacy}\n"
+              f"privacy_reference={os.path.relpath(privacy, base)}\n"
+              f"escaped_name_lines_corrected={corrected}\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Build and verify unsigned Release app for arm64 device
+        shell: bash
+        run: |
+          set -euo pipefail
+          engine_framework="$EXPORT_ROOT.xcframework/ios-arm64/libgodot.a"
+          test -s "$engine_framework"
+          exported_members="$WORK_ROOT/exported-engine-members.txt"
+          /usr/bin/ar -t "$engine_framework" > "$exported_members"
+          grep -q 'ios.template_release.arm64' "$exported_members"
+          if grep -q 'ios.template_debug.arm64' "$exported_members"; then
+            echo "The generated Godot framework contains debug engine objects." >&2
+            exit 1
+          fi
+          xcrun lipo -info "$engine_framework" | grep -q arm64
+          derived_data="$WORK_ROOT/DerivedData"
+          link_map="$WORK_ROOT/engine-link-map.txt"
+          project_json="$WORK_ROOT/xcode-project-list.json"
+          xcodebuild -project "$XCODE_PROJECT" -list -json > "$project_json"
+          scheme="$(python3 - "$project_json" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              data = json.load(stream)
+          schemes = data.get("project", {}).get("schemes", [])
+          if len(schemes) != 1:
+              raise SystemExit(f"Expected one scheme, found: {schemes}")
+          print(schemes[0])
+          PY
+          )"
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$scheme" \
+            -configuration Release \
+            -destination generic/platform=iOS \
+            -sdk iphoneos \
+            -derivedDataPath "$derived_data" \
+            ARCHS=arm64 \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY= \
+            DEVELOPMENT_TEAM= \
+            PROVISIONING_PROFILE_SPECIFIER= \
+            LD_GENERATE_MAP_FILE=YES \
+            "LD_MAP_FILE_PATH=$link_map" \
+            build
+          test -s "$link_map"
+          grep -F 'libgodot.a(' "$link_map" >/dev/null
+          grep -E 'ios\.template_release\.arm64' "$link_map" >/dev/null
+          if grep -E 'ios\.template_debug\.arm64' "$link_map" >/dev/null; then
+            echo "The Release link map contains debug Godot engine objects." >&2
+            exit 1
+          fi
+          products="$derived_data/Build/Products/Release-iphoneos"
+          app_count="$(find "$products" -maxdepth 1 -type d -name '*.app' -print | wc -l | tr -d '[:space:]')"
+          if [[ "$app_count" != "1" ]]; then
+            echo "Expected one Release .app product, found $app_count." >&2
+            exit 1
+          fi
+          app_path="$(find "$products" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          test -s "$app_path/Info.plist"
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleIdentifier' "$app_path/Info.plist")"
+          display_name="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleDisplayName' "$app_path/Info.plist")"
+          executable="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleExecutable' "$app_path/Info.plist")"
+          [[ "$bundle_id" == "$IOS_BUNDLE_ID" ]]
+          [[ "$display_name" == "Theresian's Quest" ]]
+          executable_path="$app_path/$executable"
+          test -s "$executable_path"
+          app_archs="$(xcrun lipo -archs "$executable_path")"
+          [[ "$app_archs" == "arm64" ]]
+          pck_path="$(find "$EXPORT_ROOT" -type f -name '*.pck' -print -quit)"
+          test -s "$pck_path"
+          privacy_source="$(find "$EXPORT_ROOT" -type f -name PrivacyInfo.xcprivacy -print -quit)"
+          if [[ -z "$privacy_source" ]]; then
+            privacy_source="$CI_PROJECT/PrivacyInfo.xcprivacy"
+          fi
+          test -s "$privacy_source"
+          test -s "$app_path/$(basename "$pck_path")"
+          test -s "$app_path/PrivacyInfo.xcprivacy"
+          plutil -lint "$app_path/PrivacyInfo.xcprivacy"
+          pck_hash="$(shasum -a 256 "$pck_path" | awk '{print $1}')"
+          app_pck_hash="$(shasum -a 256 "$app_path/$(basename "$pck_path")" | awk '{print $1}')"
+          privacy_hash="$(shasum -a 256 "$privacy_source" | awk '{print $1}')"
+          app_privacy_hash="$(shasum -a 256 "$app_path/PrivacyInfo.xcprivacy" | awk '{print $1}')"
+          [[ "$pck_hash" == "$app_pck_hash" ]]
+          [[ "$privacy_hash" == "$app_privacy_hash" ]]
+          pck_count="$(find "$app_path" -type f -name "$(basename "$pck_path")" -print | wc -l | tr -d '[:space:]')"
+          [[ "$pck_count" == "1" ]]
+          if [[ -d "$app_path/_CodeSignature" ]]; then
+            echo "The app unexpectedly contains a code signature." >&2
+            exit 1
+          fi
+          report="$ARTIFACT_DIR/ios-unsigned-release-verification.txt"
+          {
+            echo "source_commit=$GITHUB_SHA"
+            echo "godot_editor_version=$GODOT_VERSION"
+            echo "godot_editor_sha256=$GODOT_EDITOR_SHA256"
+            echo "godot_export_template_version=$GODOT_TEMPLATE_VERSION"
+            echo "godot_export_templates_sha256=$GODOT_TEMPLATES_SHA256"
+            echo "configuration=Release"
+            echo "destination=generic/platform=iOS"
+            echo "architecture=$app_archs"
+            echo "code_signing=disabled"
+            echo "ipa_created=false"
+            echo "release_engine_template_members=$(grep -c 'ios.template_release.arm64' "$exported_members")"
+            echo "release_engine_link_map_members=$(grep -c 'ios.template_release.arm64' "$link_map")"
+            echo "godot_engine_archive_sha256=$(shasum -a 256 "$engine_framework" | awk '{print $1}')"
+            echo "bundle_identifier=$bundle_id"
+            echo "display_name=$display_name"
+            echo "app_path=$app_path"
+            echo "pck_path=$app_path/$(basename "$pck_path")"
+            echo "pck_sha256=$app_pck_hash"
+            echo "privacy_manifest_path=$app_path/PrivacyInfo.xcprivacy"
+            echo "privacy_manifest_sha256=$app_privacy_hash"
+            echo "xcode_resource_corrections=$WORK_ROOT/xcode-resource-corrections.txt"
+          } > "$report"
+          cat "$WORK_ROOT/xcode-resource-corrections.txt" >> "$report"
+          {
+            echo "## Unsigned iOS Release build verified"
+            echo "- Godot: $GODOT_VERSION"
+            echo "- Release configuration: generic iOS arm64"
+            echo "- Code signing: disabled; no IPA created"
+            echo "- Bundle ID: $bundle_id"
+            echo "- Release engine objects are present in the Xcode link map."
+            echo "- PCK and PrivacyInfo.xcprivacy are present in the .app and match their source files."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "APP_PATH=$app_path" >> "$GITHUB_ENV"
+          echo "VERIFICATION_REPORT=$report" >> "$GITHUB_ENV"
+
+      - name: Upload unsigned .app and verification report
+        uses: actions/upload-artifact@v4
+        with:
+          name: TheresiansQuest-iOS-Unsigned-Release-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/theresians-quest-ios-unsigned-${{ github.run_id }}-${{ github.run_attempt }}/DerivedData/Build/Products/Release-iphoneos/Theresian's Quest.app/
+            ${{ runner.temp }}/theresians-quest-ios-unsigned-${{ github.run_id }}-${{ github.run_attempt }}/artifacts/ios-unsigned-release-verification.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+          include-hidden-files: true
