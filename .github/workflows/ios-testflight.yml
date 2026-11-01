@@ -491,7 +491,7 @@ jobs:
           fix_path(privacy_refs[0], privacy, "privacy manifest path")
           corrected = 0
           for index, line in enumerate(lines):
-              if re.search(r"\b(?:productName|PRODUCT_NAME)\s*=", line) or "INFOPLIST_KEY_CFBundleDisplayName" in line:
+              if re.search(r"\bproductName\s*=", line) or "INFOPLIST_KEY_CFBundleDisplayName" in line:
                   replacement = line.replace("Theresian&apos;s Quest", "Theresian's Quest")
                   if replacement != line:
                       lines[index] = replacement
@@ -502,8 +502,15 @@ jobs:
           displays = re.findall(r'(?m)^\s*INFOPLIST_KEY_CFBundleDisplayName\s*=\s*"([^"]*)";', text)
           if product != ["Theresian's Quest"]:
               raise SystemExit(f"Unexpected productName: {product}")
-          if not products or any(value != "Theresian's Quest" for value in products):
-              raise SystemExit(f"Unexpected PRODUCT_NAME values: {products}")
+          # Godot derives PRODUCT_NAME from the temporary export basename.
+          # Keep it unchanged for Xcode product paths; the Home Screen label is
+          # controlled by CFBundleDisplayName below.
+          expected_product_name = export_root.name
+          if not products or any(value != expected_product_name for value in products):
+              raise SystemExit(
+                  f"Unexpected PRODUCT_NAME values: {products}; "
+                  f"expected generated product basename {expected_product_name!r}"
+              )
           if not displays or any(value != "Theresian's Quest" for value in displays):
               raise SystemExit(f"Unexpected display names: {displays}")
           if "Theresian&apos;s Quest" in text:
