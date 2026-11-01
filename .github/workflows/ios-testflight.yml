@@ -335,15 +335,12 @@ jobs:
           release_framework="$export_root.xcframework"
           test -d "$export_root"
           test -d "$xcode_project"
-          pck_search_root="$(dirname "$export_root")"
-          pck_count="$(find "$pck_search_root" -type f -name '*.pck' -print | wc -l | tr -d '[:space:]')"
-          if [[ "$pck_count" != "1" ]]; then
-            echo "Expected one exported PCK, found $pck_count." >&2
-            find "$pck_search_root" -type f -name '*.pck' -print >&2
+          data_pack="${export_root}.pck"
+          if [[ ! -s "$data_pack" ]]; then
+            echo "Expected a non-empty exported PCK at $data_pack." >&2
             exit 1
           fi
-          data_pack="$(find "$pck_search_root" -type f -name '*.pck' -print -quit)"
-          test -s "$data_pack"
+          echo "Verified exported PCK: $data_pack"
           echo "IOS_DATA_PCK=$data_pack" >> "$GITHUB_ENV"
           test -d "$release_framework"
           test -s "$release_framework/ios-arm64/libgodot.a"
@@ -367,24 +364,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - "$EXPORT_ROOT" "$XCODE_PROJECT" "$CI_PROJECT" "$RUNNER_TEMP" <<'PY'
+          python3 - "$EXPORT_ROOT" "$XCODE_PROJECT" "$CI_PROJECT" "$RUNNER_TEMP" "$IOS_DATA_PCK" <<'PY'
           import os
           import re
           import sys
           from pathlib import Path
 
-          export_root, xcode_project, source_project, work_root = (
+          export_root, xcode_project, source_project, work_root, data_pck = (
               Path(value).resolve() for value in sys.argv[1:]
           )
           pbx = xcode_project / "project.pbxproj"
           text = pbx.read_text(encoding="utf-8")
-          pck_search_root = export_root.parent
-          pcks = [path.resolve() for path in pck_search_root.rglob("*.pck") if path.is_file()]
-          if len(pcks) != 1 or pcks[0].stat().st_size == 0:
+          expected_pck = Path(f"{export_root}.pck").resolve()
+          if data_pck != expected_pck:
               raise SystemExit(
-                  f"Expected one non-empty exported PCK under {pck_search_root}, "
-                  f"found {len(pcks)}: {pcks}"
+                  f"The recorded PCK path does not match the export destination: "
+                  f"{data_pck} != {expected_pck}"
               )
+          if not data_pck.is_file() or data_pck.stat().st_size == 0:
+              raise SystemExit(f"Expected a non-empty exported PCK at {data_pck}.")
           manifests = [
               path.resolve()
               for root in (export_root, xcode_project)
@@ -489,7 +487,7 @@ jobs:
               if (base / expected).resolve() != target:
                   raise SystemExit(f"The {label} reference does not resolve to its verified file.")
 
-          fix_path(pck_refs[0], pcks[0], "PCK path")
+          fix_path(pck_refs[0], data_pck, "PCK path")
           fix_path(privacy_refs[0], privacy, "privacy manifest path")
           corrected = 0
           for index, line in enumerate(lines):
@@ -513,8 +511,8 @@ jobs:
           pbx.write_text(text, encoding="utf-8")
           (work_root / "xcode-resource-corrections.txt").write_text(
               f"xcode_project={xcode_project}\n"
-              f"pck={pcks[0]}\n"
-              f"pck_reference={os.path.relpath(pcks[0], base)}\n"
+              f"pck={data_pck}\n"
+              f"pck_reference={os.path.relpath(data_pck, base)}\n"
               f"privacy_manifest={privacy}\n"
               f"privacy_reference={os.path.relpath(privacy, base)}\n"
               f"escaped_name_lines_corrected={corrected}\n",
