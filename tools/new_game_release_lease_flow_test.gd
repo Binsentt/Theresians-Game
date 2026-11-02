@@ -9,6 +9,7 @@ var failures: Array[String] = []
 var http_api: Node
 var remote_sync: Node
 var game_state: Node
+var _terms_acceptance_path := ""
 
 
 func _initialize() -> void:
@@ -23,6 +24,21 @@ func _run() -> void:
 	_assert(remote_sync != null, "the real RemoteSync autoload is present")
 	_assert(game_state != null, "GameState autoload is present")
 	if http_api == null or remote_sync == null or game_state == null:
+		_finish()
+		return
+	_terms_acceptance_path = "user://qa_test_artifacts/terms_startup_flow_test_new_game_lease_%d_%d.json" % [OS.get_process_id(), Time.get_ticks_usec()]
+	var terms_directory := ProjectSettings.globalize_path("user://qa_test_artifacts")
+	var terms_directory_ready := DirAccess.make_dir_recursive_absolute(terms_directory) == OK
+	_assert(terms_directory_ready, "The isolated Terms QA directory is available")
+	if not terms_directory_ready:
+		_finish()
+		return
+	var terms_path_selected := game_state.has_method("set_terms_app_acceptance_path_for_qa") \
+			and bool(game_state.call("set_terms_app_acceptance_path_for_qa", _terms_acceptance_path))
+	_assert(terms_path_selected, "The playtime fixture selects an isolated Terms acceptance file")
+	var terms_accepted := terms_path_selected and bool(game_state.call("record_terms_app_acceptance"))
+	_assert(terms_accepted and bool(game_state.call("has_current_terms_app_acceptance")), "The playtime fixture accepts Terms without touching the normal user profile")
+	if not terms_accepted:
 		_finish()
 		return
 
@@ -159,6 +175,10 @@ func _assert(condition: bool, message: String) -> void:
 
 
 func _finish() -> void:
+	if game_state != null and game_state.has_method("reset_terms_app_acceptance_path_for_qa"):
+		game_state.call("reset_terms_app_acceptance_path_for_qa")
+	if not _terms_acceptance_path.is_empty() and FileAccess.file_exists(_terms_acceptance_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(_terms_acceptance_path))
 	if failures.is_empty():
 		print("NEW_GAME_RELEASE_LEASE_FLOW_TEST: PASS")
 		quit(0)
