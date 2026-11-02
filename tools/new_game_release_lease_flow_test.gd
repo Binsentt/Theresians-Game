@@ -74,7 +74,9 @@ func _verify_successful_registration_with_a_real_lease_parser() -> void:
 		return
 	var stub := http_api as Node
 	stub.set("respond_with_lease", true)
-	remote_sync.set("_current_playtime_session_id", 777)
+	# This is a clean new-registration flow. A session ID without its
+	# server-issued credential is intentionally invalid and must not be used.
+	remote_sync.set("_current_playtime_session_id", 0)
 	remote_sync.set("_current_playtime_session_credential", "")
 
 	var name_input := wizard.get_node("NameGradeSelect/NameInput") as LineEdit
