@@ -1,6 +1,6 @@
 extends Node
 
-const SAVE_DIRECTORY := "user://saves"
+const SAVE_DIRECTORY := "user://qa_local_saves"
 const STUDENT_A := "88000001"
 const STUDENT_B := "88000002"
 const PARENT_A := "880001"
@@ -88,6 +88,8 @@ func _write_save(path: String, owner_id: String, relationship_id: String, timest
 		return
 	file.store_string(JSON.stringify({
 		"save_version": GameState.SAVE_VERSION,
+		"save_kind": "manual",
+		"manual_save_sequence": timestamp,
 		"player_name": player,
 		"gender": "female",
 		"grade_level": "Grade 3",
