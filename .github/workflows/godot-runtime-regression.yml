@@ -21,7 +21,7 @@ jobs:
   runtime-regression:
     name: Godot 4.6.1 headless runtime suite
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 30
     env:
       GODOT_VERSION: 4.6.1
       GODOT_ARCHIVE_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
@@ -107,20 +107,30 @@ jobs:
             fi
 
             echo "::group::${test_path}"
-            if [[ "$mode" == "default-startup" ]]; then
-              if env -u THERESIANS_QA_LOCAL -u THERESIANS_PRODUCTION_SMOKE_TEST HOME="$isolated_home" \
-                "$godot" "${test_args[@]}" >"$test_log" 2>&1; then
-                test_status=0
-              else
-                test_status=$?
-              fi
+            if python3 -c '
+import os, subprocess, sys
+log_path, mode, isolated_home, test_path = sys.argv[1:5]
+command = sys.argv[5:]
+env = os.environ.copy()
+if mode == "default-startup":
+    env.pop("THERESIANS_QA_LOCAL", None)
+    env.pop("THERESIANS_PRODUCTION_SMOKE_TEST", None)
+else:
+    env.pop("THERESIANS_PRODUCTION_SMOKE_TEST", None)
+    env["THERESIANS_QA_LOCAL"] = "1"
+env["HOME"] = isolated_home
+try:
+    with open(log_path, "w") as log:
+        result = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=180, check=False)
+    sys.exit(result.returncode)
+except subprocess.TimeoutExpired:
+    with open(log_path, "a") as log:
+        log.write(f"TIMEOUT after 180 seconds: {test_path}\\n")
+    sys.exit(124)
+' "$test_log" "$mode" "$isolated_home" "$test_path" "$godot" "${test_args[@]}"; then
+              test_status=0
             else
-              if env -u THERESIANS_PRODUCTION_SMOKE_TEST THERESIANS_QA_LOCAL=1 HOME="$isolated_home" \
-                "$godot" "${test_args[@]}" >"$test_log" 2>&1; then
-                test_status=0
-              else
-                test_status=$?
-              fi
+              test_status=$?
             fi
             cat "$test_log"
 
