@@ -1,0 +1,304 @@
+name: Godot Runtime Regression
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/godot-runtime-regression.yml
+      - Data/api_config.json
+      - Data/api_config.qa_local.json
+      - scripts/http_api.gd
+      - scripts/remote_sync.gd
+      - tools/debug_api_startup_isolation_test.gd
+      - tools/http_api_production_config_test.gd
+      - tools/new_game_release_lease_flow_test.gd
+      - tools/per_student_save_isolation_test.gd
+      - tools/qa_local_runtime_contract_test.gd
+      - tools/remote_sync_local_qa_playtime_isolation_test.gd
+      - tools/student_id_compatibility_test.gd
+      - tools/test_remote_sync_new_game_lease.gd
+      - tools/test_http_api_new_game_lease_stub.gd
+      - tools/question_provider_normalization_test.gd
+  workflow_dispatch:
+    inputs:
+      test_ref:
+        description: Optional lowercase 40-character commit SHA; leave blank to test the selected workflow ref
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-regression:
+    name: Godot 4.6.1 headless runtime suite
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      GODOT_VERSION: 4.6.1
+      GODOT_ARCHIVE_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
+      GODOT_ARCHIVE_URL: https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_macos.universal.zip
+      GODOT_TEST_REF: ${{ inputs.test_ref || github.sha }}
+      INPUT_TEST_REF: ${{ inputs.test_ref || '' }}
+      PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number || '' }}
+      PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+
+    steps:
+      - name: Check out the exact test source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.GODOT_TEST_REF }}
+          fetch-depth: 2
+
+      - name: Validate and record tested commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_sha="$(git rev-parse HEAD)"
+          expected_sha=""
+
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              expected_pr_ref="refs/pull/${PULL_REQUEST_NUMBER}/merge"
+              if [[ -z "$PULL_REQUEST_NUMBER" || "$GITHUB_REF" != "$expected_pr_ref" ]]; then
+                echo "::error::Unexpected pull_request ref: ${GITHUB_REF} (expected ${expected_pr_ref})" >&2
+                exit 1
+              fi
+              if [[ "$GODOT_TEST_REF" != "$GITHUB_SHA" ]]; then
+                echo "::error::Pull request checkout must use the event SHA." >&2
+                exit 1
+              fi
+              if [[ ! "$PULL_REQUEST_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+                echo "::error::Pull request head SHA is missing or malformed." >&2
+                exit 1
+              fi
+              expected_sha="$GITHUB_SHA"
+              ;;
+            workflow_dispatch)
+              if [[ -n "$INPUT_TEST_REF" ]]; then
+                if [[ ! "$INPUT_TEST_REF" =~ ^[0-9a-f]{40}$ ]]; then
+                  echo "::error::Manual test_ref must be a lowercase 40-character commit SHA." >&2
+                  exit 1
+                fi
+                expected_sha="$INPUT_TEST_REF"
+                if ! git cat-file -e "${expected_sha}^{commit}"; then
+                  echo "::error::Manual test_ref is not an available commit in this checkout." >&2
+                  exit 1
+                fi
+              else
+                expected_sha="$GITHUB_SHA"
+              fi
+              ;;
+            *)
+              echo "::error::Unsupported event for runtime regression: ${GITHUB_EVENT_NAME}" >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ "$test_sha" != "$expected_sha" ]]; then
+            echo "::error::Checked-out SHA ${test_sha} does not match expected SHA ${expected_sha}." >&2
+            exit 1
+          fi
+
+          {
+            echo "### Godot runtime regression"
+            echo "- Godot: ${GODOT_VERSION}"
+            echo "- Event: ${GITHUB_EVENT_NAME}"
+            echo "- Event ref: ${GITHUB_REF}"
+            echo "- Requested test ref: ${GODOT_TEST_REF}"
+            echo "- Expected commit: ${expected_sha}"
+            echo "- Checked-out commit: ${test_sha}"
+            if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+              echo "- Pull request: #${PULL_REQUEST_NUMBER}"
+              echo "- Pull request head commit: ${PULL_REQUEST_HEAD_SHA}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Testing verified commit ${test_sha} for ${GITHUB_EVENT_NAME}."
+
+      - name: Download and verify official Godot editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="${RUNNER_TEMP}/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          install_dir="${RUNNER_TEMP}/godot-${GODOT_VERSION}"
+          app="${install_dir}/Godot.app"
+          godot="${app}/Contents/MacOS/Godot"
+
+          curl --fail --location --retry 3 --output "$archive" "$GODOT_ARCHIVE_URL"
+          printf '%s  %s\n' "$GODOT_ARCHIVE_SHA256" "$archive" | shasum -a 256 --check -
+          mkdir -p "$install_dir"
+          ditto -x -k "$archive" "$install_dir"
+
+          test -x "$godot"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          spctl --assess --verbose=4 --type execute "$app"
+
+          version="$("$godot" --headless --version)"
+          printf '%s\n' "$version"
+          if [[ "$version" != 4.6.1.stable.official* ]]; then
+            echo "Expected official Godot 4.6.1, received: $version" >&2
+            exit 1
+          fi
+
+      - name: Import project resources headlessly
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot="${RUNNER_TEMP}/godot-${GODOT_VERSION}/Godot.app/Contents/MacOS/Godot"
+          env -u THERESIANS_QA_LOCAL -u THERESIANS_PRODUCTION_SMOKE_TEST \
+            "$godot" --headless --import --path "$GITHUB_WORKSPACE"
+
+      - name: Run isolated runtime regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot="${RUNNER_TEMP}/godot-${GODOT_VERSION}/Godot.app/Contents/MacOS/Godot"
+
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            changed_paths="$(git diff --name-only "${GITHUB_SHA}^1" "$GITHUB_SHA")"
+            runtime_inputs_changed=false
+            while IFS= read -r changed_path; do
+              case "$changed_path" in
+                Data/api_config.json|Data/api_config.qa_local.json|scripts/http_api.gd|scripts/remote_sync.gd|tools/debug_api_startup_isolation_test.gd|tools/http_api_production_config_test.gd|tools/new_game_release_lease_flow_test.gd|tools/per_student_save_isolation_test.gd|tools/qa_local_runtime_contract_test.gd|tools/remote_sync_local_qa_playtime_isolation_test.gd|tools/student_id_compatibility_test.gd|tools/test_remote_sync_new_game_lease.gd|tools/test_http_api_new_game_lease_stub.gd|tools/question_provider_normalization_test.gd)
+                  runtime_inputs_changed=true
+                  ;;
+              esac
+            done <<< "$changed_paths"
+
+            if [[ "$runtime_inputs_changed" != true ]]; then
+              echo "No runtime-test source or fixture changed in this pull request; the validated checkout/import check is sufficient."
+              {
+                echo "### Runtime test results"
+                echo "- Status: not applicable; no runtime-test source or fixture changed."
+                echo "- Verified PR merge commit: ${GITHUB_SHA}"
+                echo "- PR head commit: ${PULL_REQUEST_HEAD_SHA}"
+                echo "- The 30-test suite remains required for runtime-source changes and manual runs."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+
+          passed=0
+          failed=0
+          failures=()
+
+          run_test() {
+            local test_path="$1"
+            local mode="$2"
+            local arg="res://${test_path}"
+            local isolated_home="${RUNNER_TEMP}/godot-test-home/${test_path//\//_}"
+            local test_log="${RUNNER_TEMP}/godot-test-logs/${test_path//\//_}.log"
+            local test_status=0
+            local test_args=(--headless --audio-driver Dummy --path "$GITHUB_WORKSPACE")
+            mkdir -p "$isolated_home" "$(dirname "$test_log")"
+
+            if [[ "$test_path" == *.gd ]]; then
+              test_args+=(--script "$arg")
+            else
+              test_args+=("$arg")
+            fi
+
+            echo "::group::${test_path}"
+            if python3 -c '
+          import os, subprocess, sys
+          log_path, mode, isolated_home, test_path = sys.argv[1:5]
+          command = sys.argv[5:]
+          env = os.environ.copy()
+          if mode == "default-startup":
+              env.pop("THERESIANS_QA_LOCAL", None)
+              env.pop("THERESIANS_PRODUCTION_SMOKE_TEST", None)
+          else:
+              env.pop("THERESIANS_PRODUCTION_SMOKE_TEST", None)
+              env["THERESIANS_QA_LOCAL"] = "1"
+          env["HOME"] = isolated_home
+          try:
+              with open(log_path, "w") as log:
+                  result = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=180, check=False)
+              sys.exit(result.returncode)
+          except subprocess.TimeoutExpired:
+              with open(log_path, "a") as log:
+                  log.write(f"TIMEOUT after 180 seconds: {test_path}\\n")
+              sys.exit(124)
+            ' "$test_log" "$mode" "$isolated_home" "$test_path" "$godot" "${test_args[@]}"; then
+              test_status=0
+            else
+              test_status=$?
+            fi
+            cat "$test_log"
+
+            if (( test_status == 0 )) && ! grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed loading resource|Parse Error:' "$test_log"; then
+              passed=$((passed + 1))
+              echo "PASS: ${test_path}"
+            else
+              failed=$((failed + 1))
+              if (( test_status != 0 )); then
+                failures+=("${test_path} (exit ${test_status})")
+              else
+                failures+=("${test_path} (script parse/load error)")
+              fi
+              echo "FAIL: ${test_path}"
+            fi
+            echo "::endgroup::"
+          }
+
+          tests=(
+            "tools/debug_api_startup_isolation_test.gd|default-startup"
+            "tools/remote_sync_local_qa_playtime_isolation_test.gd|local-qa"
+            "tools/activity_duration_normalization_test.tscn|local-qa"
+            "tools/device_installation_scope_test.tscn|local-qa"
+            "tools/game_hud_playtime_label_test.tscn|local-qa"
+            "tools/local_qa_boundary_test.tscn|local-qa"
+            "tools/load_game_save_delete_test.tscn|local-qa"
+            "tools/original_flow_ingestion_test.tscn|local-qa"
+            "tools/game_over_settings_identity_qa_test.tscn|local-qa"
+            "tools/http_api_production_config_test.gd|local-qa"
+            "tools/http_api_timeout_test.gd|local-qa"
+            "tools/qa_local_runtime_contract_test.tscn|local-qa"
+            "tools/remote_sync_pending_queue_test.tscn|local-qa"
+            "tools/remote_sync_reconnect_flush_test.tscn|local-qa"
+            "tools/progress_commit_boundary_test.tscn|local-qa"
+            "tools/load_game_save_data_compatibility_test.tscn|local-qa"
+            "tools/learning_cycle_save_test.tscn|local-qa"
+            "tools/current_student_save_regression_test.tscn|local-qa"
+            "tools/per_student_save_isolation_test.tscn|local-qa"
+            "tools/save_load_project_context_test.tscn|local-qa"
+            "tools/load_game_identity_gate_test.tscn|local-qa"
+            "tools/new_game_release_lease_flow_test.gd|local-qa"
+            "tools/student_id_compatibility_test.gd|local-qa"
+            "tools/quest_activity_event_test.gd|local-qa"
+            "tools/question_provider_normalization_test.gd|local-qa"
+            "tools/question_pool_randomization_test.tscn|local-qa"
+            "tools/oakleaf_progression_test.tscn|local-qa"
+            "tools/quest_timeline_progression_test.tscn|local-qa"
+            "tools/manual_save_snapshot_replay_test.tscn|local-qa"
+            "tools/question_provider_startup_context_test.tscn|local-qa"
+          )
+
+          for entry in "${tests[@]}"; do
+            test_path="${entry%%|*}"
+            if [[ ! -f "${GITHUB_WORKSPACE}/${test_path}" ]]; then
+              echo "::error::Configured runtime test is missing: ${test_path}" >&2
+              exit 1
+            fi
+          done
+
+          for entry in "${tests[@]}"; do
+            run_test "${entry%%|*}" "${entry##*|}"
+          done
+
+          {
+            echo "### Runtime test results"
+            echo "- Passed: ${passed}"
+            echo "- Failed: ${failed}"
+            echo "- Total: $((passed + failed))"
+            if (( failed > 0 )); then
+              echo "- Failures: ${failures[*]}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if (( failed > 0 )); then
+            exit 1
+          fi
+
