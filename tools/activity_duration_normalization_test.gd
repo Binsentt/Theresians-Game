@@ -19,8 +19,8 @@ func _run() -> void:
 	remote.enable_local_qa_mode()
 	game_state.enable_local_qa_mode()
 
-	var invalid_object := Node.new()
-	var invalid_object_weakref := weakref(invalid_object)
+	var invalid_object: Node = Node.new()
+	var invalid_object_weakref: WeakRef = weakref(invalid_object)
 	var cases := [
 		{"label": "integer", "value": 15, "expected": 15},
 		{"label": "zero", "value": 0, "expected": 0},
