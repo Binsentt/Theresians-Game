@@ -7,6 +7,10 @@ var profile_request_count := 0
 var last_profile_request_path := ""
 
 
+func is_local_qa_mode() -> bool:
+	return true
+
+
 func request_post(path: String, payload: Dictionary, _timeout_ms: int = -1) -> Dictionary:
 	if path == "/api/game/parent/validate":
 		return {"ok": true, "status": 200, "body": {"ok": true, "success": true}}

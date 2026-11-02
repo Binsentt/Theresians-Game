@@ -22,7 +22,10 @@ var config_source_path := DEFAULT_CONFIG_PATH
 func _ready() -> void:
 	var cfg: Dictionary = {}
 	android_qa_mode = OS.has_feature("android_qa")
+	var debug_build := OS.is_debug_build()
 	qa_local_profile_active = not android_qa_mode and is_local_qa_profile_requested()
+	# Fail closed before config parsing: RemoteSync will isolate any debug outbox.
+	local_qa_only = qa_local_profile_active or debug_build
 	config_source_path = QA_LOCAL_PROFILE_PATH if qa_local_profile_active else DEFAULT_CONFIG_PATH
 	if android_qa_mode:
 		_apply_android_qa_profile({}, true)
@@ -37,10 +40,10 @@ func _ready() -> void:
 		if typeof(parsed_config) == TYPE_DICTIONARY:
 			cfg = parsed_config
 	if not cfg.is_empty():
-		var debug_build := OS.is_debug_build()
 		var production_smoke_test_enabled := is_production_qa_enabled(cfg, is_production_smoke_test_enabled())
 		var local_qa_requested := qa_local_profile_active or is_local_qa_requested()
 		production_qa_mode = debug_build and production_smoke_test_enabled and not local_qa_requested
+		local_qa_only = should_use_local_only_mode(debug_build, production_qa_mode, local_qa_requested)
 		var configured_url := resolve_api_base_url(cfg, debug_build, production_smoke_test_enabled, local_qa_requested)
 		var requires_production_url := (not debug_build and not local_qa_requested) or (production_smoke_test_enabled and not local_qa_requested)
 		if local_qa_requested and not is_loopback_url(configured_url):
@@ -64,6 +67,9 @@ func _ready() -> void:
 			print("CANONICAL RUNTIME: pid=" + str(OS.get_process_id()) + " project=" + ProjectSettings.globalize_path("res://"))
 		if cfg.has("timeout_ms"):
 			default_timeout_ms = int(cfg.get("timeout_ms"))
+	if cfg.is_empty() and debug_build:
+		push_warning("HttpApi: API config is missing or invalid; debug requests are disabled and RemoteSync remains isolated.")
+
 	# no persistent HTTPRequest node: create per-request nodes to avoid blocking and allow concurrency
 
 
@@ -225,9 +231,13 @@ func resolve_configured_base_url_for_environment(config: Dictionary, is_debug_bu
 	return String(config.get(config_key, "")).strip_edges()
 
 
-func is_production_qa_enabled(config: Dictionary, environment_override: bool) -> bool:
-	var configured_opt_in: Variant = config.get("production_qa_enabled", false)
-	return environment_override or (configured_opt_in is bool and configured_opt_in)
+func is_production_qa_enabled(_config: Dictionary, environment_override: bool) -> bool:
+	# Only the explicit process environment variable may authorize production QA.
+	return environment_override
+
+
+func should_use_local_only_mode(is_debug_build: bool, production_qa_enabled: bool, local_qa_requested: bool) -> bool:
+	return local_qa_requested or (is_debug_build and not production_qa_enabled)
 
 
 func is_production_smoke_test_enabled() -> bool:

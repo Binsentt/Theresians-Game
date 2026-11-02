@@ -851,42 +851,48 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 	var final_result: Dictionary = {}
 	
 	result = await _send_playtime_start_request(requested_payload)
-	if result.ok and (result.status == 201 or result.status == 200):
-		var learning_cycle := _apply_learning_cycle(result.body)
-		var api_can_play := bool(result.body.get("can_play", true))
-		var is_new_registration := bool(result.body.get("is_new_registration", false))
+	var result_ok := bool(result.get("ok", false))
+	var result_status := GameState.safe_int_value(result.get("status", 0), 0)
+	var result_body: Dictionary = {}
+	var result_body_value: Variant = result.get("body", {})
+	if result_body_value is Dictionary:
+		result_body = result_body_value
+	if result_ok and (result_status == 201 or result_status == 200):
+		var learning_cycle := _apply_learning_cycle(result_body)
+		var api_can_play := bool(result_body.get("can_play", true))
+		var is_new_registration := bool(result_body.get("is_new_registration", false))
 		
 		if api_can_play == false:
-			GameState.configure_playtime_allowance(result.body, true)
+			GameState.configure_playtime_allowance(result_body, true)
 			final_result = {
 				"ok": false,
-				"status": result.status,
-				"error": String(result.body.get("error", "Daily playtime limit reached.")),
-				"message": String(result.body.get("message", "Daily playtime limit reached.")),
+				"status": result_status,
+				"error": String(result_body.get("error", "Daily playtime limit reached.")),
+				"message": String(result_body.get("message", "Daily playtime limit reached.")),
 				"should_block": true,
 				"can_play": false,
-				"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", 0), 0),
-				"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", 60), 60),
+				"remaining_minutes": GameState.safe_int_value(result_body.get("remaining_minutes", 0), 0),
+				"daily_limit_minutes": GameState.safe_int_value(result_body.get("daily_limit_minutes", 60), 60),
 			}
 		elif is_new_registration:
 			# New student registration: allow without creating session yet
-			GameState.configure_playtime_allowance(result.body, true)
+			GameState.configure_playtime_allowance(result_body, true)
 			_invalidate_playtime_lease()
 			final_result = {
 				"ok": true,
 				"session_id": 0,
 				"is_new_registration": true,
-				"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
-				"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
-				"total_playtime_today": GameState.safe_int_value(result.body.get("total_playtime_today", 0), 0),
+				"remaining_minutes": GameState.safe_int_value(result_body.get("remaining_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
+				"daily_limit_minutes": GameState.safe_int_value(result_body.get("daily_limit_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
+				"total_playtime_today": GameState.safe_int_value(result_body.get("total_playtime_today", 0), 0),
 				"can_play": true,
 				"learning_cycle": learning_cycle,
-				"message": String(result.body.get("message", "New student registration ready.")),
+				"message": String(result_body.get("message", "New student registration ready.")),
 			}
 		else:
-			GameState.configure_playtime_allowance(result.body, true)
-			_current_playtime_session_id = GameState.safe_int_value(result.body.get("session_id", 0), 0)
-			_current_playtime_session_credential = GameState.safe_text_value(result.body.get("session_credential", ""))
+			GameState.configure_playtime_allowance(result_body, true)
+			_current_playtime_session_id = GameState.safe_int_value(result_body.get("session_id", 0), 0)
+			_current_playtime_session_credential = GameState.safe_text_value(result_body.get("session_credential", ""))
 			_current_playtime_student_id = requested_student_id
 			_current_playtime_parent_id = requested_parent_id
 			_current_playtime_learning_cycle_version = int(GameState.learning_cycle_version)
@@ -897,27 +903,27 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 				final_result = {
 					"ok": true,
 					"session_id": _current_playtime_session_id,
-					"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", 60), 60),
-					"remaining_seconds": GameState.safe_int_value(result.body.get("remaining_seconds", 60 * 60), 60 * 60),
-					"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", 60), 60),
-					"total_playtime_today": GameState.safe_int_value(result.body.get("total_playtime_today", 0), 0),
+					"remaining_minutes": GameState.safe_int_value(result_body.get("remaining_minutes", 60), 60),
+					"remaining_seconds": GameState.safe_int_value(result_body.get("remaining_seconds", 60 * 60), 60 * 60),
+					"daily_limit_minutes": GameState.safe_int_value(result_body.get("daily_limit_minutes", 60), 60),
+					"total_playtime_today": GameState.safe_int_value(result_body.get("total_playtime_today", 0), 0),
 					"can_play": true,
 					"learning_cycle": learning_cycle,
-					"message": String(result.body.get("message", "Playtime session started.")),
+					"message": String(result_body.get("message", "Playtime session started.")),
 				}
 			else:
 				_invalidate_playtime_lease()
 				final_result = {"ok": false, "error": "Playtime session did not return a valid server lease", "should_block": false, "can_play": false}
 	else:
-		var error_message := "Unable to start playtime session"
-		if typeof(result.body) == TYPE_DICTIONARY and result.body.has("error"):
-			error_message = String(result.body.get("error"))
+		var error_message := String(result.get("error", "Unable to start playtime session"))
+		if result_body.has("error"):
+			error_message = String(result_body.get("error"))
 		final_result = {
 			"ok": false,
-			"status": result.status,
+			"status": result_status,
 			"error": error_message,
-			"message": String(result.body.get("message", error_message)) if typeof(result.body) == TYPE_DICTIONARY else error_message,
-			"should_block": result.status == 403,
+			"message": String(result_body.get("message", error_message)),
+			"should_block": result_status == 403,
 			"can_play": false,
 		}
 

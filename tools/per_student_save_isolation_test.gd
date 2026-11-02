@@ -1,6 +1,6 @@
 extends Node
 
-const SAVE_DIRECTORY := "user://saves"
+const SAVE_DIRECTORY := "user://qa_local_saves"
 const STUDENT_A := "88000001"
 const STUDENT_B := "88000002"
 const PARENT_A := "880001"
@@ -24,6 +24,7 @@ func _run() -> void:
 	_promote_to_root()
 	_remove_live_transport()
 	GameState.set_script(load("res://tools/load_game_ux_test_state.gd"))
+	GameState.enable_local_qa_mode()
 	GameState.fixture_paths = _fixture_paths
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SAVE_DIRECTORY))
 	_cleanup()
@@ -66,7 +67,7 @@ func _run() -> void:
 	_assert(FileAccess.file_exists(B_ONLY), "Delete All preserves another Student's save")
 	_assert(FileAccess.file_exists(OWNERLESS_LEGACY), "Delete All preserves ownerless legacy data")
 	var empty_label := load_scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/EmptyLabel") as Label
-	_assert(empty_label != null and empty_label.visible and empty_label.text == "No save data found", "Delete All refreshes Student A to the empty state")
+	_assert(empty_label != null and empty_label.visible and empty_label.text == "No saved games for this Student yet.", "Delete All refreshes Student A to the empty state")
 	load_scene.queue_free()
 	await get_tree().process_frame
 
@@ -88,6 +89,8 @@ func _write_save(path: String, owner_id: String, relationship_id: String, timest
 		return
 	file.store_string(JSON.stringify({
 		"save_version": GameState.SAVE_VERSION,
+		"save_kind": "manual",
+		"manual_save_sequence": timestamp,
 		"player_name": player,
 		"gender": "female",
 		"grade_level": "Grade 3",
