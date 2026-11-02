@@ -52,7 +52,7 @@ func _run() -> void:
 		_expect(qa_api_url in [CANONICAL_LOCAL_QA_URL, ISOLATED_QA_SINK_URL], "QA-local profile uses the canonical port-5000 backend or the isolated closed-port sink")
 		if http != null and http.has_method("is_loopback_url"):
 			_expect(bool(http.call("is_loopback_url", qa_api_url)), "QA-local profile target must remain loopback-only")
-		_expect(qa_profile.get("production_qa_enabled", true) == false, "QA-local profile disables production QA mode")
+		_expect(not qa_profile.has("production_qa_enabled"), "QA-local profile cannot configure production QA")
 		_expect(qa_profile.get("qa_local_only", false) == true, "QA-local profile declares loopback-only operation")
 	_expect(http_source.contains("QA_LOCAL_PROFILE_PATH"), "HttpApi recognizes the dedicated QA-local profile before autoload requests")
 	_expect(http_source.contains("OS.has_feature(\"android_qa\")"), "Android QA is selected from the exported custom feature at startup")
@@ -72,7 +72,15 @@ func _run() -> void:
 	_expect(http_source.contains("deepest_forest_pinehill_flow_test.tscn"), "The Forest/Pinehill runtime test selects the QA-local profile before autoload requests")
 	if http != null and http.has_method("resolve_api_base_url"):
 		var config := JSON.parse_string(FileAccess.get_file_as_string("res://Data/api_config.json")) as Dictionary
-		_expect(String(http.call("resolve_api_base_url", config, true, false, false)) == String(config.get("production_url", "")), "Normal production-QA resolution remains unchanged")
+		_expect(not config.has("production_qa_enabled"), "Committed API config has no production QA enable flag")
+		_expect(
+			String(http.call("resolve_api_base_url", config, true, false, false)) == String(config.get("development_url", "")),
+			"Ordinary debug sessions resolve to the local-development endpoint."
+		)
+		_expect(
+			String(http.call("resolve_api_base_url", config, true, true, false)) == String(config.get("production_url", "")),
+			"Explicit production smoke-test opt-in resolves to HTTPS production."
+		)
 		var local_candidate := String(http.call("resolve_api_base_url", config, true, false, true))
 		_expect(local_candidate.begins_with("http://localhost") or local_candidate.begins_with("http://127.0.0.1"), "Local QA resolution returns loopback only")
 		_expect(not bool(http.call("is_loopback_url", "http://127.0.0.1.evil")), "QA loopback validation rejects a lookalike host")
