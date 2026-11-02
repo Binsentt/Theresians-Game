@@ -4,6 +4,7 @@ const NEW_GAME_SCENE := "res://scenes/new_game_scene.tscn"
 const LOADING_SCENE := "res://scenes/loading_screen.tscn"
 const PLAYER_HOUSE_SCENE := "res://interiors/player_house.tscn"
 const LeaseHttpApi := preload("res://tools/test_http_api_new_game_lease_stub.gd")
+const LeaseRemoteSync := preload("res://tools/test_remote_sync_new_game_lease.gd")
 
 var failures: Array[String] = []
 var http_api: Node
@@ -43,6 +44,9 @@ func _run() -> void:
 		return
 
 	http_api.set_script(LeaseHttpApi)
+	# The HTTP autoload is now an in-memory stub; the derived RemoteSync keeps
+	# its real lease parsing while allowing this isolated fixture to exercise it.
+	remote_sync.set_script(LeaseRemoteSync)
 	await _verify_successful_registration_with_a_real_lease_parser()
 	await _verify_failed_lease_stays_on_the_form()
 	_finish()
