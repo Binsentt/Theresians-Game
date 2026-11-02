@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 17167)
+Total output lines: 1471
+
 ﻿extends Node
 
 const PRODUCTION_PENDING_FILE := "user://pending_syncs.json"
@@ -622,195 +625,7 @@ func _async_send_progress(save_data: Dictionary) -> void:
 		"playtime_session_credential": _current_playtime_session_credential,
 		"save_status": "saved"
 	}
-	var result: Dictionary = await http.request_post("/api/game/progress", payload)
-	if _is_learning_cycle_changed(result):
-		print("RemoteSync: discarded a previous-learning-cycle progress write.")
-		return
-	if not result.ok:
-		print("RemoteSync: progress sync failed, queuing: %s" % str(result))
-		_enqueue_pending(save_data)
-		return
-	if result.status >= 200 and result.status < 300:
-		print("RemoteSync: progress synced")
-		# try flushing pending
-		_flush_pending()
-	else:
-		print("RemoteSync: unexpected status %s" % str(result))
-		_enqueue_pending(save_data)
-
-func _build_playtime_start_payload(override_payload: Dictionary = {}) -> Dictionary:
-	var payload := {
-		"student_id": GameState.safe_text_value(override_payload.get("student_id", GameState.student_id)),
-		"parent_id": GameState.safe_text_value(override_payload.get("parent_id", GameState.parent_id)),
-		"student_name": GameState.safe_text_value(override_payload.get("student_name", GameState.player_name)),
-		"grade_level": GameState.safe_text_value(override_payload.get("grade_level", GameState.grade_level)),
-		"section": GameState.safe_text_value(override_payload.get("section", ""))
-	}
-	return payload
-
-func _send_playtime_start_request(override_payload: Dictionary = {}) -> Dictionary:
-	if _remote_writes_blocked():
-		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
-	var http := get_node_or_null("/root/HttpApi")
-	if http == null:
-		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
-
-	var payload := _build_playtime_start_payload(override_payload)
-	if not GameState.is_valid_existing_student_id(payload.get("student_id", "")) or not GameState.is_valid_six_digit_id(payload.get("parent_id", "")):
-		return {"ok": false, "error": "Invalid student or parent ID", "should_block": false}
-
-	return await http.request_post("/api/playtime/start", payload)
-
-func _send_playtime_end_request(lease: Dictionary = {}) -> Dictionary:
-	if _remote_writes_blocked():
-		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
-	var http := get_node_or_null("/root/HttpApi")
-	if http == null:
-		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
-
-	var session_id := GameState.safe_int_value(lease.get("session_id", _current_playtime_session_id), 0)
-	var session_credential := GameState.safe_text_value(lease.get("session_credential", _current_playtime_session_credential))
-	if session_id == 0 or session_credential.is_empty():
-		return {"ok": false, "error": "No active server playtime lease", "should_block": false}
-	var payload := {
-		"session_id": session_id,
-		"session_credential": session_credential,
-		"status": "Timed Out" if not GameState.playtime_authorized else "Completed",
-	}
-
-	return await http.request_post("/api/playtime/end", payload)
-
-
-func _send_playtime_heartbeat_request(lease: Dictionary = {}) -> Dictionary:
-	if _remote_writes_blocked():
-		return {"ok": false, "error": "Local QA mode disables playtime writes", "should_block": false}
-	var http := get_node_or_null("/root/HttpApi")
-	if http == null:
-		return {"ok": false, "error": "Playtime service unavailable", "should_block": false}
-	var session_id := GameState.safe_int_value(lease.get("session_id", _current_playtime_session_id), 0)
-	var session_credential := GameState.safe_text_value(lease.get("session_credential", _current_playtime_session_credential))
-	if session_id == 0 or session_credential.is_empty():
-		return {"ok": false, "error": "No active server playtime lease", "should_block": false}
-	return await http.request_post("/api/playtime/heartbeat", {
-		"session_id": session_id,
-		"session_credential": session_credential,
-	})
-
-
-func _refresh_playtime_lease() -> void:
-	if _playtime_heartbeat_in_progress or not _has_active_playtime_lease():
-		return
-	_playtime_heartbeat_in_progress = true
-	var lease := _capture_playtime_lease_identity()
-	var result := await _send_playtime_heartbeat_request(lease)
-	if not _lease_snapshot_matches_current(lease):
-		_playtime_heartbeat_in_progress = false
-		return
-	if _is_learning_cycle_changed(result):
-		GameState.configure_playtime_allowance({
-			"daily_limit_minutes": PLAYTIME_DAILY_LIMIT_MINUTES,
-			"remaining_seconds": 0,
-			"can_play": false,
-		}, false)
-		_playtime_heartbeat_in_progress = false
-		return
-	if _is_stale_playtime_lease(result):
-		_invalidate_playtime_lease()
-		_playtime_heartbeat_in_progress = false
-		return
-	var response_body: Variant = result.get("body", null)
-	var response_status := GameState.safe_int_value(result.get("status", 0), 0)
-	if (
-		bool(result.get("ok", false))
-		and response_status >= 200
-		and response_status < 300
-		and response_body is Dictionary
-		and not response_body.is_empty()
-	):
-		GameState.configure_playtime_allowance(response_body, false)
-	if result.ok and result.status >= 200 and result.status < 300:
-		_playtime_timeout_handled = false
-		# A successful heartbeat is the reconnect signal for this active Student.
-		# Resume durable progress/result/activity writes without blocking the heartbeat.
-		_flush_pending.call_deferred()
-	else:
-		# A 403 is a server-authoritative expiry. Other transport failures keep
-		# the previously issued lease until the next heartbeat rather than making
-		# a client-side decision about remaining time.
-		if result.status == 403:
-			GameState.configure_playtime_allowance({
-				"daily_limit_minutes": PLAYTIME_DAILY_LIMIT_MINUTES,
-				"remaining_seconds": 0,
-				"can_play": false,
-			}, false)
-	_playtime_heartbeat_in_progress = false
-
-func _create_activity_log(status: String, description: String, override_payload: Dictionary = {}) -> void:
-	if _remote_writes_blocked():
-		return
-	if status not in ["Playing", "Offline"]:
-		_stage_academic_activity_log(status, description, override_payload)
-		return
-	var http := get_node_or_null("/root/HttpApi")
-	if http == null:
-		return
-	var payload := _build_activity_log_payload(status, description, override_payload)
-	if payload.is_empty():
-		return
-	var result: Dictionary = await http.request_post("/api/activity-logs", payload)
-	if not result.ok:
-		print("RemoteSync: activity log failed: %s" % str(result.error))
-
-
-func _stage_academic_activity_log(status: String, description: String, override_payload: Dictionary = {}) -> void:
-	if _remote_writes_blocked():
-		return
-	var payload := _build_activity_log_payload(status, description, override_payload)
-	if payload.is_empty():
-		return
-	var event_key := "cycle:%d:app:%s:%s:%d" % [
-		int(GameState.learning_cycle_version), status.to_lower().replace(" ", "_"),
-		GameState.safe_text_value(payload.get("student_id", "")), Time.get_ticks_usec()
-	]
-	payload["event_key"] = event_key
-	payload["activity_event_id"] = event_key
-	GameState.stage_pending_academic_activity(payload, "/api/activity-logs")
-
-
-func _build_activity_log_payload(status: String, description: String, override_payload: Dictionary) -> Dictionary:
-	var student_id := GameState.safe_text_value(override_payload.get("student_id", GameState.student_id))
-	if not GameState.is_valid_existing_student_id(student_id):
-		return {}
-	var payload := {
-		"student_id": student_id,
-		"parent_id": GameState.safe_text_value(override_payload.get("parent_id", GameState.parent_id)),
-		"student_name": GameState.safe_text_value(override_payload.get("student_name", GameState.player_name)),
-		"grade_level": GameState.safe_text_value(override_payload.get("grade_level", GameState.grade_level)),
-		"section": GameState.safe_text_value(override_payload.get("section", "")),
-		"current_quest": GameState.safe_text_value(override_payload.get("current_quest", "")),
-		"save_status": "playing" if status == "Playing" else "saved",
-		"total_play_time": 0,
-		"quest_progress": GameState.safe_int_value(override_payload.get("quest_progress", 0), 0),
-		"role": "Student",
-		"status": status,
-		"activity_description": description
-	}
-	return payload
-
-func _finish_playtime_start_transition() -> void:
-	_session_start_in_progress = false
-	if _playtime_timeout_pending and not GameState.playtime_authorized:
-		_playtime_timeout_pending = false
-		_on_time_limit_reached.call_deferred()
-
-
-func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
-	var requested_payload := _build_playtime_start_payload(override_payload)
-	var requested_student_id := GameState.safe_text_value(requested_payload.get("student_id", ""))
-	var requested_parent_id := GameState.safe_text_value(requested_payload.get("parent_id", ""))
-	var requested_cycle_version := int(GameState.learning_cycle_version)
-	var force_refresh := bool(override_payload.get("_force_refresh", false))
-	if not force_refresh and _lease_matches_context(requested_student_id, requested_parent_id, requested_cycle_version):
+	var result: Dictionary = await …2167 tokens truncated…requested_parent_id, requested_cycle_version):
 		return {
 			"ok": true,
 			"session_id": _current_playtime_session_id,
@@ -851,42 +666,48 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 	var final_result: Dictionary = {}
 	
 	result = await _send_playtime_start_request(requested_payload)
-	if result.ok and (result.status == 201 or result.status == 200):
-		var learning_cycle := _apply_learning_cycle(result.body)
-		var api_can_play := bool(result.body.get("can_play", true))
-		var is_new_registration := bool(result.body.get("is_new_registration", false))
+	var result_ok := bool(result.get("ok", false))
+	var result_status := GameState.safe_int_value(result.get("status", 0), 0)
+	var result_body: Dictionary = {}
+	var result_body_value: Variant = result.get("body", {})
+	if result_body_value is Dictionary:
+		result_body = result_body_value
+	if result_ok and (result_status == 201 or result_status == 200):
+		var learning_cycle := _apply_learning_cycle(result_body)
+		var api_can_play := bool(result_body.get("can_play", true))
+		var is_new_registration := bool(result_body.get("is_new_registration", false))
 		
 		if api_can_play == false:
-			GameState.configure_playtime_allowance(result.body, true)
+			GameState.configure_playtime_allowance(result_body, true)
 			final_result = {
 				"ok": false,
-				"status": result.status,
-				"error": String(result.body.get("error", "Daily playtime limit reached.")),
-				"message": String(result.body.get("message", "Daily playtime limit reached.")),
+				"status": result_status,
+				"error": String(result_body.get("error", "Daily playtime limit reached.")),
+				"message": String(result_body.get("message", "Daily playtime limit reached.")),
 				"should_block": true,
 				"can_play": false,
-				"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", 0), 0),
-				"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", 60), 60),
+				"remaining_minutes": GameState.safe_int_value(result_body.get("remaining_minutes", 0), 0),
+				"daily_limit_minutes": GameState.safe_int_value(result_body.get("daily_limit_minutes", 60), 60),
 			}
 		elif is_new_registration:
 			# New student registration: allow without creating session yet
-			GameState.configure_playtime_allowance(result.body, true)
+			GameState.configure_playtime_allowance(result_body, true)
 			_invalidate_playtime_lease()
 			final_result = {
 				"ok": true,
 				"session_id": 0,
 				"is_new_registration": true,
-				"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
-				"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
-				"total_playtime_today": GameState.safe_int_value(result.body.get("total_playtime_today", 0), 0),
+				"remaining_minutes": GameState.safe_int_value(result_body.get("remaining_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
+				"daily_limit_minutes": GameState.safe_int_value(result_body.get("daily_limit_minutes", PLAYTIME_DAILY_LIMIT_MINUTES), PLAYTIME_DAILY_LIMIT_MINUTES),
+				"total_playtime_today": GameState.safe_int_value(result_body.get("total_playtime_today", 0), 0),
 				"can_play": true,
 				"learning_cycle": learning_cycle,
-				"message": String(result.body.get("message", "New student registration ready.")),
+				"message": String(result_body.get("message", "New student registration ready.")),
 			}
 		else:
-			GameState.configure_playtime_allowance(result.body, true)
-			_current_playtime_session_id = GameState.safe_int_value(result.body.get("session_id", 0), 0)
-			_current_playtime_session_credential = GameState.safe_text_value(result.body.get("session_credential", ""))
+			GameState.configure_playtime_allowance(result_body, true)
+			_current_playtime_session_id = GameState.safe_int_value(result_body.get("session_id", 0), 0)
+			_current_playtime_session_credential = GameState.safe_text_value(result_body.get("session_credential", ""))
 			_current_playtime_student_id = requested_student_id
 			_current_playtime_parent_id = requested_parent_id
 			_current_playtime_learning_cycle_version = int(GameState.learning_cycle_version)
@@ -897,27 +718,27 @@ func _start_playtime_session(override_payload: Dictionary = {}) -> Dictionary:
 				final_result = {
 					"ok": true,
 					"session_id": _current_playtime_session_id,
-					"remaining_minutes": GameState.safe_int_value(result.body.get("remaining_minutes", 60), 60),
-					"remaining_seconds": GameState.safe_int_value(result.body.get("remaining_seconds", 60 * 60), 60 * 60),
-					"daily_limit_minutes": GameState.safe_int_value(result.body.get("daily_limit_minutes", 60), 60),
-					"total_playtime_today": GameState.safe_int_value(result.body.get("total_playtime_today", 0), 0),
+					"remaining_minutes": GameState.safe_int_value(result_body.get("remaining_minutes", 60), 60),
+					"remaining_seconds": GameState.safe_int_value(result_body.get("remaining_seconds", 60 * 60), 60 * 60),
+					"daily_limit_minutes": GameState.safe_int_value(result_body.get("daily_limit_minutes", 60), 60),
+					"total_playtime_today": GameState.safe_int_value(result_body.get("total_playtime_today", 0), 0),
 					"can_play": true,
 					"learning_cycle": learning_cycle,
-					"message": String(result.body.get("message", "Playtime session started.")),
+					"message": String(result_body.get("message", "Playtime session started.")),
 				}
 			else:
 				_invalidate_playtime_lease()
 				final_result = {"ok": false, "error": "Playtime session did not return a valid server lease", "should_block": false, "can_play": false}
 	else:
-		var error_message := "Unable to start playtime session"
-		if typeof(result.body) == TYPE_DICTIONARY and result.body.has("error"):
-			error_message = String(result.body.get("error"))
+		var error_message := String(result.get("error", "Unable to start playtime session"))
+		if result_body.has("error"):
+			error_message = String(result_body.get("error"))
 		final_result = {
 			"ok": false,
-			"status": result.status,
+			"status": result_status,
 			"error": error_message,
-			"message": String(result.body.get("message", error_message)) if typeof(result.body) == TYPE_DICTIONARY else error_message,
-			"should_block": result.status == 403,
+			"message": String(result_body.get("message", error_message)),
+			"should_block": result_status == 403,
 			"can_play": false,
 		}
 
