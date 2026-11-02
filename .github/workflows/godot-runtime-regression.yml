@@ -12,7 +12,7 @@ on:
         description: Branch, tag, or commit to test
         required: false
         type: string
-        default: 9e5e76654750f0d6cbc61f158c5ab8b192cdd640
+        default: 3bd5a2c393b6b5999bfc26b2bd4d0fe8217fd1a5
 
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
       GODOT_VERSION: 4.6.1
       GODOT_ARCHIVE_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
       GODOT_ARCHIVE_URL: https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_macos.universal.zip
-      GODOT_TEST_REF: ${{ github.event_name == 'pull_request' && '9e5e76654750f0d6cbc61f158c5ab8b192cdd640' || github.event.inputs.test_ref || '9e5e76654750f0d6cbc61f158c5ab8b192cdd640' }}
+      GODOT_TEST_REF: ${{ github.event_name == 'pull_request' && '3bd5a2c393b6b5999bfc26b2bd4d0fe8217fd1a5' || github.event.inputs.test_ref || '3bd5a2c393b6b5999bfc26b2bd4d0fe8217fd1a5' }}
 
     steps:
       - name: Check out the exact test source
