@@ -26,10 +26,10 @@ func _init() -> void:
 	quit(1)
 
 
-func _load_config() -> Variant:
-	var config_file := FileAccess.open(CONFIG_PATH, FileAccess.READ)
+func _load_config(path: String = CONFIG_PATH) -> Variant:
+	var config_file := FileAccess.open(path, FileAccess.READ)
 	if config_file == null:
-		failures.append("Unable to open " + CONFIG_PATH + ".")
+		failures.append("Unable to open " + path + ".")
 		return null
 	var parsed: Variant = JSON.parse_string(config_file.get_as_text())
 	config_file.close()
