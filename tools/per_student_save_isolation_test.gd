@@ -67,7 +67,7 @@ func _run() -> void:
 	_assert(FileAccess.file_exists(B_ONLY), "Delete All preserves another Student's save")
 	_assert(FileAccess.file_exists(OWNERLESS_LEGACY), "Delete All preserves ownerless legacy data")
 	var empty_label := load_scene.get_node_or_null("TextureRect/SavePanel/MarginContainer/Content/EmptyLabel") as Label
-	_assert(empty_label != null and empty_label.visible and empty_label.text == "No save data found", "Delete All refreshes Student A to the empty state")
+	_assert(empty_label != null and empty_label.visible and empty_label.text == "No saved games for this Student yet.", "Delete All refreshes Student A to the empty state")
 	load_scene.queue_free()
 	await get_tree().process_frame
 
