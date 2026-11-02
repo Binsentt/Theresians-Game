@@ -2,8 +2,13 @@ extends SceneTree
 
 const QuestionProviderScript = preload("res://scripts/question_provider.gd")
 
-func _init() -> void:
+func _initialize() -> void:
+	call_deferred("_run")
+
+
+func _run() -> void:
 	var provider := QuestionProviderScript.new()
+	get_root().add_child(provider)
 	if not _assert_equal(provider.has_method("get_questions"), true, "QuestionProvider must expose its loaded question pool to QuizManager"):
 		provider.free()
 		quit(1)
