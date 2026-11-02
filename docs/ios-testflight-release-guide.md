@@ -1,83 +1,102 @@
 # Theresian's Quest iOS TestFlight Release Guide
 
-Source snapshot: `main` at `f333035c75a1ae9e1f77325ab13db67b33f0092e` (2026-11-02).
+Source audited: GitHub main at f333035c75a1ae9e1f77325ab13db67b33f0092e (2026-11-02). This document records source inspection only. No live game API, production database, Apple account, signing secret, or TestFlight service was accessed. No release workflow was dispatched and no physical-device test is claimed.
 
-This guide records the manual release path and static QA findings. No Apple credentials were accessed, no signed build or upload was run, and no physical-device test is claimed.
+## Release controls and identity
 
-## Release invariants
+- Preserve bundle ID com.theresiansquest.game, Apple Team ID 7A4H2D888M, and display name Theresian's Quest.
+- The iOS TestFlight workflow is manual-only, restricted to main, and requires both the workflow input and repository gate for signing or uploading. Ordinary pushes to main do not sign or upload to TestFlight.
+- The workflow uses Godot 4.6.1 and matching templates, Xcode 26.3, and the iOS 26.2 SDK/runtime. It overrides the committed preset's iOS minimum of 14.0 with 15.0 in a temporary CI copy; the accepted CI distribution minimum is iOS 15.
+- The iOS preset selects arm64 and Godot device-family value 2. In the Godot 4.6.1 exporter, value 2 maps to Xcode device families 1,2 (iPhone and iPad). The game viewport is 1215×545 with canvas_items scaling. No orientation key is set in project.godot; Godot 4.6 defaults the mobile orientation to landscape (value 0), which matches the landscape viewport.
+- project.godot points to Images/Application-Logo.png. The iOS-specific icon fields are blank, and Godot 4.6 documents that blank icon fields fall back to the project icon. The icon asset was not visually checked in a current iOS build.
+- Release version and build values are supplied to a temporary preset by workflow variables; the committed preset is not changed.
 
-- Keep the bundle ID `com.theresiansquest.game`, Team ID `7A4H2D888M`, and displayed name `Theresian's Quest`.
-- The CI-generated distribution build targets iOS 15.0 or later. The committed preset still says 14.0; the iOS TestFlight workflow changes this only in its temporary CI copy.
-- Use the `iOS TestFlight` workflow on `main`. It is `workflow_dispatch` only; pushes to `main` do not sign or upload to TestFlight.
-- Godot 4.6.1, its matching iOS Release template, Xcode 26.3, and iOS 26.2 SDK/runtime are verified by the workflow before export/build.
-- Keep saves under the existing app identity. Never change the bundle ID for an update, and test an update over an installed copy instead of uninstalling it.
+## Game data flow verified in source
+
+The game uses HTTPS at https://theresiansquest.com for release API traffic. The inspected client routes and persisted payloads are:
+
+| Client request | Data sent or returned | Backend effect visible in source |
+| --- | --- | --- |
+| GET game profile check | Student ID and Parent ID in the path/query. The response can include the linked student's name, grade, section, and learning-cycle descriptor. | Checks that the active parent is linked to the student and whether a game profile already exists. |
+| GET game questions | Grade and difficulty; no student or parent ID in this request. | Returns published questions. The backend also updates last_fetched_at for served question sets, so this GET has a small database side effect. |
+| GET learning cycle | Student ID and Parent ID. | Returns the student's current learning-cycle version after checking the relationship. |
+| POST playtime start | Student ID, Parent ID, player name, grade, and section. | Creates a playtime session with identity, status, server timestamps, and learning-cycle version. A random session credential is returned to the game; only its SHA-256 hash is stored in the session row. |
+| POST heartbeat/end | Session ID and the session credential; end also reports completion/timeout status. | Updates heartbeat, end time, status, and playtime totals. |
+| POST game progress | Student/Parent IDs, player name, grade, gender, quest and scene/map state, progress, score/correct/incorrect/total counts, playtime, save timestamps, learning-cycle version, and a save commit ID. | Upserts student_game_progress and writes a save/activity row to activity_logs. |
+| POST game result | Student/Parent IDs, player name, grade, difficulty, one answer's score, question totals, canonical question/set/topic and quest/map identifiers when available, session/cycle identifiers, result event ID, and question/answer timing fields when available. | Stores game_results for reporting and learning analytics. |
+| POST game activity or activity log | Task/quest/app activity types, stable event IDs, quest/map/difficulty metadata, durations/timestamps, and current playtime-session context. | Stores activity_logs and, for canonical quest events, student_quest_milestones. |
+
+The project also keeps saves and a pending sync queue in the app's user data directory. Local save data includes the student/parent identity, player profile, progress, counters, scene/map, and question-repetition state. A device installation ID is used for local save/terms scoping. A scan of all 73 non-test GDScript files found that identifier in local save and terms code, not in the game's HTTP request payloads. This does not account for network metadata generated by iOS, Godot, or hosting infrastructure.
+
+## Backend handling, access, and retry behavior
+
+- The backend uses PostgreSQL through node-postgres. Its connection settings come from DATABASE_URL or PG* environment variables. The repository includes a Railway deployment configuration, but the live database provider, region, backups, and production settings are not accessible from source.
+- Game routes do not require a website bearer token when none is supplied. They validate the six-digit Parent ID, the Student ID, the active parent/student relationship, and—where gameplay writes require it—a current playtime lease. The lease credential is 32 random bytes, is sent for session-bound writes, and is stored server-side as a hash. Confirm the intended protection against guessing or abuse of the short numeric Parent ID; no game-route rate-limit middleware was found in the inspected server source. Hosting-layer controls were not accessible.
+- The client keeps pending academic events locally and flushes after an authorized save/session boundary or reconnection. Activity events and result events use stable IDs with backend uniqueness checks, which makes those event inserts idempotent.
+- Confirmed retry gap: the client includes save_commit_id in the progress request, but the backend progress route does not read or enforce it. A repeated progress POST can therefore write another save/activity log row after an ambiguous timeout even though the progress row is updated. This needs a backend-side idempotency fix and a regression test. The backend repository was inspected read-only and was not changed.
+- The backend stores progress, game results, activity records, and playtime sessions in persistent tables. Learning-cycle changes delete the current student_game_progress row and invalidate old-cycle sessions. Administrators can archive and permanently delete individual playtime records through a confirmed deletion flow. No general retention period or automatic deletion schedule for game_results and activity_logs was found in the inspected game routes/migrations; database backup retention and broader account deletion behavior require the backend owner to confirm.
+- The backend has OpenAI API integrations for lesson-question generation and grounded student insights. The insight provider payload builder omits direct Student/Parent IDs and names, but sends grade, learning-cycle version/start time, performance/progress metrics, topic/task evidence, playtime, and summarized quest evidence to OpenAI when that feature runs. This remains potentially linkable educational data. Lesson-question generation sends lesson source material to OpenAI. The backend also uses Resend or SMTP for account email/verification messages; the game client does not send gameplay payloads through that email path. Actual provider settings and retention terms were not inspected.
+- The current Terms screen says educational progress and screen-time/activity data may be recorded and refers to the school's applicable privacy policy. It also says AI-supported questions and insights may be used. No public privacy-policy URL is present in that screen. Apple requires a public privacy-policy URL in App Store Connect and an accessible in-app policy; the owner must supply and verify the actual policy and third-party disclosures.
+
+## Privacy declaration blocker
+
+The checked-in PrivacyInfo.xcprivacy parses as a property list, declares tracking false, and lists required-reason API categories/reasons for file timestamps, system boot time, and disk space. It has no NSPrivacyCollectedDataTypes. The committed iOS preset also marks every collected-data category as not collected. That conflicts with the client and backend source showing ongoing student-linked progress, quiz, activity, and playtime data stored beyond an individual request.
+
+Apple defines collection to include off-device transmission where the app or partner can access the data longer than needed to service the request. Before App Store submission, the app owner/privacy lead must map the actual data to Apple's categories, purposes, linked-to-user and tracking answers, then update the Godot preset/PrivacyInfo and App Store Connect answers consistently. Do not infer these legal classifications from field names alone. Confirm the declared required-reason API codes against the actual Godot release engine as well. No privacy declaration was changed in this guide update.
+
+Owner/privacy review should cover student and parent identifiers, names/grade/section, gameplay and educational results, playtime/activity, OpenAI processing, account email providers, hosting/database operators, consent, retention, deletion requests, and any processing involving children. Apple sources: [App Privacy Details](https://developer.apple.com/app-store/app-privacy-details/), [privacy manifest data collection guidance](https://developer.apple.com/documentation/technotes/tn3184-adding-data-collection-details-to-your-privacy-manifest), and [App Review Guidelines, section 5.1.1](https://developer.apple.com/app-store/review/guidelines/).
+
+## Production and local QA boundaries
+
+- Data/api_config.json contains production_url https://theresiansquest.com and production_qa_enabled true. Release builds resolve to production. A normal debug build also resolves to production while that flag is true, unless the explicit local QA override is requested. RemoteSync writes are disabled in local QA, but are enabled in normal production QA mode.
+- The existing HTTP API config test duplicates the config and forces production_qa_enabled false before testing URL resolution, so it does not catch the current debug default. Do not run production smoke tests or normal debug gameplay with real student records.
+- THERESIANS_QA_LOCAL=1 selects Data/api_config.qa_local.json, whose API host is 127.0.0.1 and whose RemoteSync boundary blocks writes. On a physical iPhone, 127.0.0.1 is the phone itself, not a development Mac. No staging endpoint is configured in the inspected game config. Use a separately configured staging service and synthetic test accounts for device network tests.
+- No production endpoint or database was contacted during this audit.
+
+## Existing QA coverage and verification limits
+
+The game repository contains Godot test scenes/scripts for HTTP config and timeout behavior, local-QA isolation, pending-queue/reconnect handling, playtime leases, profile isolation, save/load compatibility, math-question selection/retries, quest/progression, and UI/layout contracts. The backend contains node:test suites for progress, results, activity logs, and playtime; the relevant server tests replace the database pool with mocks. The backend package has no test script, and the backend checkout/dependencies are not installed in this workspace.
+
+No Godot executable is available in PATH, so no GDScript test was run. The restored local folder is not a Git checkout and its project.godot, export_presets.cfg, and iOS workflow differ from GitHub main; it was not used as the test source. The local api_config.json and PrivacyInfo.xcprivacy match the GitHub main blobs and both parse successfully as JSON/property list. Static inspection of the GitHub workflow confirms its manual trigger, main-branch gate, and signing/upload gate conditions. No workflow, Xcode build, or signed export was run.
+
+## Physical-device checklist (not yet run)
+
+- [ ] Install the CI build on iOS 15+ iPhone hardware; test iPad as well because the preset supports both.
+- [ ] Check launch, app icon/name, landscape orientation, safe areas, touch controls, sound, pause/resume, and foreground/background transitions.
+- [ ] Start new and loaded profiles using synthetic staging accounts; confirm parent/student pairing and that two students on one device do not see each other's saves or progress.
+- [ ] Complete mathematics encounters with correct and incorrect answers, retry questions, complete a quest, and verify resulting progress.
+- [ ] Traverse menu, world/interior, battle, and return transitions; test interruption during a scene change.
+- [ ] Save, quit, relaunch, and load; verify location, quest state, counters, settings, and pending sync. Install an update over the existing app and repeat without uninstalling.
+- [ ] Exercise stable network, offline play, timeout, reconnect, retry, duplicate-event handling, and failed/expired playtime lease behavior against staging.
+- [ ] Background and foreground the app during an active session; force quit only in a test profile and check session finalization and local-save recovery.
+- [ ] Record the device model/iOS version and keep logs free of real student/parent IDs or session credentials.
+
+## First signed IPA and TestFlight procedure
+
+1. Complete the one-time Apple/GitHub setup below and the privacy-policy/data declaration review above.
+2. In App Store Connect, confirm the app record uses com.theresiansquest.game and inspect build history for the selected marketing version. Set IOS_BUILD_BASE above the highest previously uploaded build for that version.
+3. Confirm the environment secrets and reviewer gate are configured, then enable the two repository variables only for an explicitly approved release window.
+4. On main, manually dispatch iOS TestFlight with build_signed=true and upload_testflight=true. Approve the protected ios-appstore-release environment. The workflow archives Release arm64, verifies signing/profile/entitlements/resources/IPA, and only then uploads. A failed preflight must stop the run before later steps.
+5. Check the workflow summary and artifact, then App Store Connect > TestFlight > Build Uploads for processing status and any warnings. Upload acceptance is not processing completion.
+6. Add the processed build to an internal tester group. Enable automatic distribution only for that group if each subsequently approved build should be offered to those testers.
+
+The build number is IOS_BUILD_BASE + (GitHub run number × 100) + run attempt. Choose IOS_BUILD_BASE above App Store Connect history. Use a new run after a failed attempt; upload is blocked on reruns to reduce duplicate submissions.
 
 ## One-time Apple and GitHub setup
 
-1. In Apple Developer account, verify Team ID `7A4H2D888M` and register or confirm the explicit App ID `com.theresiansquest.game`.
-2. Use an Apple Distribution certificate with its matching private key, exported as a password-protected PKCS#12 file. Create an App Store Connect provisioning profile for that exact App ID and certificate; record its exact profile name.
-3. In App Store Connect, confirm the app record exists for the same bundle ID and the account agreements are current. Choose the first marketing version to ship.
-4. Create an App Store Connect team API key with an upload-capable role. Secure the downloaded private key; it must not be committed or pasted into chat.
-5. In GitHub repository Settings > Environments, configure `ios-appstore-release`, restrict deployment to `main`, and add an independent required reviewer. Put the signing and upload credentials in this environment so its approval gates access.
-6. Add these environment secrets: `IOS_DISTRIBUTION_CERTIFICATE_BASE64`, `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD`, `IOS_PROVISIONING_PROFILE_BASE64`, `IOS_PROVISIONING_PROFILE_NAME`, `IOS_KEYCHAIN_PASSWORD`, `APPSTORE_ISSUER_ID`, `APPSTORE_KEY_ID`, and `APPSTORE_API_PRIVATE_KEY`.
-7. Add repository Actions variables `IOS_MARKETING_VERSION` and `IOS_BUILD_BASE`. Keep `IOS_SIGNING_ENABLED` and `IOS_TESTFLIGHT_UPLOAD_ENABLED` false until the release is fully prepared and explicitly approved.
+1. Confirm Team ID 7A4H2D888M and the explicit App ID com.theresiansquest.game in the Apple Developer account.
+2. Create/confirm an Apple Distribution certificate and private key; export as password-protected PKCS#12. Create an App Store provisioning profile for that App ID and certificate.
+3. Confirm the App Store Connect app record, agreements, first marketing version, privacy answers, and public privacy-policy URL.
+4. Create an App Store Connect API key with upload permission. Keep its private key secure and out of chat/repository.
+5. In GitHub, configure protected environment ios-appstore-release, allow main, and require an independent reviewer.
+6. Add environment secrets IOS_DISTRIBUTION_CERTIFICATE_BASE64, IOS_DISTRIBUTION_CERTIFICATE_PASSWORD, IOS_PROVISIONING_PROFILE_BASE64, IOS_PROVISIONING_PROFILE_NAME, IOS_KEYCHAIN_PASSWORD, APPSTORE_ISSUER_ID, APPSTORE_KEY_ID, and APPSTORE_API_PRIVATE_KEY. Add repository variables IOS_MARKETING_VERSION and IOS_BUILD_BASE.
+7. Keep IOS_SIGNING_ENABLED and IOS_TESTFLIGHT_UPLOAD_ENABLED false until setup is confirmed and the release run is separately approved.
 
-## First signed IPA and TestFlight upload
+## Internal testers, future updates, failure recovery, and Android
 
-The intended first release is one sequential manual run after setup is complete:
+- In App Store Connect > TestFlight, create an internal tester group and add eligible App Store Connect users. Automatic distribution for that group makes each processed build available to group members; testers install/update through TestFlight. It does not publish a new build automatically.
+- Keep release creation manual. For each update, preserve bundle ID, increment the marketing version when appropriate, choose a new build number above App Store Connect history, review the diff, and dispatch the approved workflow. Ordinary pushes to main cannot publish a build.
+- If export, archive, signing, verification, or upload fails, inspect the first failing step and stop. Fix the cause, use a new manual run, and verify App Store processing before another upload. Do not rerun an upload attempt.
+- The Android Internal Testing workflow is separate and unchanged. Android run #19 succeeded; this documentation update changes no Android workflow, preset, or signing configuration.
+- Keep the same bundle ID and install updates over the existing app to preserve local saves. Never uninstall when checking update migration.
 
-1. Confirm the current `main` commit, version, build-number base, required secrets, and protected environment. Confirm the two release gates are enabled only for the approved release window.
-2. Open Actions > iOS TestFlight, select `main`, and run with `build_signed=true` and `upload_testflight=true`.
-3. Approve the `ios-appstore-release` environment when prompted. The workflow exports Godot's Xcode project, verifies PCK/privacy references, archives Release arm64, checks that the Release Godot engine is linked, signs and exports the IPA, then validates bundle/version/build/signature/entitlements/resources before upload. A failed check stops later steps.
-4. Review the workflow summary and verified IPA artifact. Upload acceptance is not the same as Apple processing completion; check App Store Connect > TestFlight > Build Uploads until the build is processed and review any warnings/errors.
-
-Do not use an ordinary push or rerun as a release mechanism. The workflow is manual-only, and TestFlight upload is blocked on attempts after the first.
-
-## Version and build numbers
-
-Set `IOS_MARKETING_VERSION` to the planned numeric `major.minor.patch` value. Check App Store Connect build history for that version and set `IOS_BUILD_BASE` above its highest uploaded build number. The workflow computes:
-
-`build number = IOS_BUILD_BASE + (GitHub run number × 100) + run attempt`
-
-Use the next iOS TestFlight workflow run number at dispatch time; unsigned/manual validation runs also advance that number. Do not reuse a build number. If a release run fails, start a new run after fixing the cause rather than rerunning an upload attempt. If Apple is still processing an accepted upload, wait for its status before starting another release.
-
-## Internal testers and future updates
-
-In App Store Connect > TestFlight, create an internal group, add eligible App Store Connect users, and attach the processed build. Enable automatic distribution for that group if testers should receive each later approved build automatically. Apple makes the processed build available to the group; the GitHub workflow does not assign groups or publish on every push. Keep release creation manual and approved. For each update, select the intended version, use a unique build number, run the workflow on `main`, then confirm processing and group availability.
-
-Before testing an update, create a save on the device, install the new build over the existing app, and verify load/resume. Do not uninstall the app during this preservation check.
-
-## Physical-device QA checklist
-
-This is a checklist for a future test; it has not been run.
-
-- [ ] Install and launch on supported iOS 15+ iPhone hardware; also test iPad if it is in the intended device family.
-- [ ] Verify launch screen, app icon/name, landscape layout, safe areas, touch controls, audio, pause/resume, and return from background.
-- [ ] Start mathematics encounters at representative difficulty levels; test correct and incorrect answers, completion, retry, and resulting progress.
-- [ ] Follow scene transitions through menus, world/interior scenes, encounters, and return paths without a blank or stuck scene.
-- [ ] Create a save, quit/relaunch, load it, and verify location, quest/task state, and settings. Repeat after installing an update over the same app.
-- [ ] Test login/session setup, progress fetch/commit, and sync on a stable network. Test offline interruption, reconnect, retry, and duplicate-event behavior.
-- [ ] Verify progress remains associated with the correct test student/parent profile and is not mixed between accounts.
-- [ ] Use approved synthetic test accounts for production-backed testing; do not submit real student data from a debug build.
-
-## Static QA findings to resolve before distribution
-
-- `Data/api_config.json` points to `https://theresiansquest.com` and sets `production_qa_enabled` to true. In debug builds this selects the production endpoint unless local QA is explicitly requested; normal remote-sync writes are not disabled in that mode. Use only approved synthetic accounts for production-backed checks.
-- `THERESIANS_QA_LOCAL=1` selects the local QA profile, whose URL is `127.0.0.1`. On an iPhone, that address means the phone itself, not a development Mac. No network endpoint was contacted during this review.
-- The privacy manifest declares tracking false and required-reason APIs, but has no collected-data entries. The game source sends student/parent identifiers, session fields, and gameplay/progression data to the configured API. The repository does not establish backend retention, access, or privacy purposes, so the manifest and App Store privacy answers need an owner/privacy review before upload. The declared disk-space/file-timestamp reasons also need to be checked against actual app and Godot-template API use. No privacy declaration was changed here.
-
-## Failed release recovery and Android preservation
-
-- Read the first failed step and full logs. A failed archive, signature, or IPA verification must stop before upload.
-- For a new upload attempt, correct the cause and start a new manual workflow run so it gets a new run number. Do not rerun an upload attempt; the workflow blocks uploads on reruns to avoid duplicates.
-- After upload acceptance, wait for Apple's processing result before deciding whether another build is needed.
-- Android Internal Testing remains a separate workflow. Run #19 succeeded after the PR #14 merge; this guide does not change Android presets, workflows, or signing.
-
-## References
-
-- [Godot 4.6 iOS export guide](https://docs.godotengine.org/en/4.6/tutorials/export/exporting_for_ios.html)
-- [Godot iOS export options](https://docs.godotengine.org/en/4.6/classes/class_editorexportplatformios.html)
-- [Apple required-reason API privacy manifest guidance](https://developer.apple.com/documentation/technotes/tn3183-adding-required-reason-api-entries-to-your-privacy-manifest)
-- [Apple privacy manifest files](https://developer.apple.com/documentation/bundleresources/privacy-manifest-files)
-- [Apple upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds)
-- [Apple internal TestFlight testers](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers)
