@@ -23,10 +23,10 @@ on:
   workflow_dispatch:
     inputs:
       test_ref:
-        description: Branch, tag, or commit to test
+        description: Optional lowercase 40-character commit SHA; leave blank to test the selected workflow ref
         required: false
         type: string
-        default: codex/debug-api-production-opt-in-20261102
+        default: ""
 
 permissions:
   contents: read
@@ -40,7 +40,10 @@ jobs:
       GODOT_VERSION: 4.6.1
       GODOT_ARCHIVE_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
       GODOT_ARCHIVE_URL: https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_macos.universal.zip
-      GODOT_TEST_REF: ${{ github.event_name == 'pull_request' && 'codex/debug-api-production-opt-in-20261102' || github.event.inputs.test_ref || 'codex/debug-api-production-opt-in-20261102' }}
+      GODOT_TEST_REF: ${{ inputs.test_ref || github.sha }}
+      INPUT_TEST_REF: ${{ inputs.test_ref || '' }}
+      PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number || '' }}
+      PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
 
     steps:
       - name: Check out the exact test source
@@ -49,18 +52,70 @@ jobs:
           ref: ${{ env.GODOT_TEST_REF }}
           fetch-depth: 1
 
-      - name: Record tested commit
+      - name: Validate and record tested commit
         shell: bash
         run: |
           set -euo pipefail
           test_sha="$(git rev-parse HEAD)"
+          expected_sha=""
+
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              expected_pr_ref="refs/pull/${PULL_REQUEST_NUMBER}/merge"
+              if [[ -z "$PULL_REQUEST_NUMBER" || "$GITHUB_REF" != "$expected_pr_ref" ]]; then
+                echo "::error::Unexpected pull_request ref: ${GITHUB_REF} (expected ${expected_pr_ref})" >&2
+                exit 1
+              fi
+              if [[ "$GODOT_TEST_REF" != "$GITHUB_SHA" ]]; then
+                echo "::error::Pull request checkout must use the event SHA." >&2
+                exit 1
+              fi
+              if [[ ! "$PULL_REQUEST_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+                echo "::error::Pull request head SHA is missing or malformed." >&2
+                exit 1
+              fi
+              expected_sha="$GITHUB_SHA"
+              ;;
+            workflow_dispatch)
+              if [[ -n "$INPUT_TEST_REF" ]]; then
+                if [[ ! "$INPUT_TEST_REF" =~ ^[0-9a-f]{40}$ ]]; then
+                  echo "::error::Manual test_ref must be a lowercase 40-character commit SHA." >&2
+                  exit 1
+                fi
+                expected_sha="$INPUT_TEST_REF"
+                if ! git cat-file -e "${expected_sha}^{commit}"; then
+                  echo "::error::Manual test_ref is not an available commit in this checkout." >&2
+                  exit 1
+                fi
+              else
+                expected_sha="$GITHUB_SHA"
+              fi
+              ;;
+            *)
+              echo "::error::Unsupported event for runtime regression: ${GITHUB_EVENT_NAME}" >&2
+              exit 1
+              ;;
+          esac
+
+          if [[ "$test_sha" != "$expected_sha" ]]; then
+            echo "::error::Checked-out SHA ${test_sha} does not match expected SHA ${expected_sha}." >&2
+            exit 1
+          fi
+
           {
             echo "### Godot runtime regression"
             echo "- Godot: ${GODOT_VERSION}"
-            echo "- Requested ref: ${GODOT_TEST_REF}"
+            echo "- Event: ${GITHUB_EVENT_NAME}"
+            echo "- Event ref: ${GITHUB_REF}"
+            echo "- Requested test ref: ${GODOT_TEST_REF}"
+            echo "- Expected commit: ${expected_sha}"
             echo "- Checked-out commit: ${test_sha}"
+            if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+              echo "- Pull request: #${PULL_REQUEST_NUMBER}"
+              echo "- Pull request head commit: ${PULL_REQUEST_HEAD_SHA}"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "Testing commit ${test_sha} from ${GODOT_TEST_REF}"
+          echo "Testing verified commit ${test_sha} for ${GITHUB_EVENT_NAME}."
 
       - name: Download and verify official Godot editor
         shell: bash
@@ -148,7 +203,7 @@ jobs:
             fi
             cat "$test_log"
 
-            if (( test_status == 0 )) && ! grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|Parse Error:' "$test_log"; then
+            if (( test_status == 0 )) && ! grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed loading resource|Parse Error:' "$test_log"; then
               passed=$((passed + 1))
               echo "PASS: ${test_path}"
             else
@@ -195,6 +250,14 @@ jobs:
             "tools/manual_save_snapshot_replay_test.tscn|local-qa"
             "tools/question_provider_startup_context_test.tscn|local-qa"
           )
+
+          for entry in "${tests[@]}"; do
+            test_path="${entry%%|*}"
+            if [[ ! -f "${GITHUB_WORKSPACE}/${test_path}" ]]; then
+              echo "::error::Configured runtime test is missing: ${test_path}" >&2
+              exit 1
+            fi
+          done
 
           for entry in "${tests[@]}"; do
             run_test "${entry%%|*}" "${entry##*|}"
