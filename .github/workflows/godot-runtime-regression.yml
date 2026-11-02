@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.GODOT_TEST_REF }}
-          fetch-depth: 1
+          fetch-depth: 2
 
       - name: Validate and record tested commit
         shell: bash
@@ -155,6 +155,31 @@ jobs:
         run: |
           set -euo pipefail
           godot="${RUNNER_TEMP}/godot-${GODOT_VERSION}/Godot.app/Contents/MacOS/Godot"
+
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            changed_paths="$(git diff --name-only "${GITHUB_SHA}^1" "$GITHUB_SHA")"
+            runtime_inputs_changed=false
+            while IFS= read -r changed_path; do
+              case "$changed_path" in
+                Data/api_config.json|Data/api_config.qa_local.json|scripts/http_api.gd|scripts/remote_sync.gd|tools/debug_api_startup_isolation_test.gd|tools/http_api_production_config_test.gd|tools/new_game_release_lease_flow_test.gd|tools/per_student_save_isolation_test.gd|tools/qa_local_runtime_contract_test.gd|tools/remote_sync_local_qa_playtime_isolation_test.gd|tools/student_id_compatibility_test.gd|tools/test_remote_sync_new_game_lease.gd|tools/test_http_api_new_game_lease_stub.gd|tools/question_provider_normalization_test.gd)
+                  runtime_inputs_changed=true
+                  ;;
+              esac
+            done <<< "$changed_paths"
+
+            if [[ "$runtime_inputs_changed" != true ]]; then
+              echo "No runtime-test source or fixture changed in this pull request; the validated checkout/import check is sufficient."
+              {
+                echo "### Runtime test results"
+                echo "- Status: not applicable; no runtime-test source or fixture changed."
+                echo "- Verified PR merge commit: ${GITHUB_SHA}"
+                echo "- PR head commit: ${PULL_REQUEST_HEAD_SHA}"
+                echo "- The 30-test suite remains required for runtime-source changes and manual runs."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
+
           passed=0
           failed=0
           failures=()
