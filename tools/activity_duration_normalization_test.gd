@@ -19,6 +19,8 @@ func _run() -> void:
 	remote.enable_local_qa_mode()
 	game_state.enable_local_qa_mode()
 
+	var invalid_object: Node = Node.new()
+	var invalid_object_weakref: WeakRef = weakref(invalid_object)
 	var cases := [
 		{"label": "integer", "value": 15, "expected": 15},
 		{"label": "zero", "value": 0, "expected": 0},
@@ -29,7 +31,7 @@ func _run() -> void:
 		{"label": "missing", "missing": true, "expected": null},
 		{"label": "dictionary", "value": {}, "expected": null},
 		{"label": "array", "value": [], "expected": null},
-		{"label": "object", "value": Node.new(), "expected": null},
+		{"label": "object", "value": invalid_object, "expected": null},
 	]
 	for case in cases:
 		var event := {
@@ -42,6 +44,8 @@ func _run() -> void:
 		var result: Dictionary = game_state.build_canonical_activity_event(event, 0, "task_completed")
 		var actual: Variant = result.get("duration_seconds", null)
 		_expect(actual == case.expected, "%s duration normalizes to %s, got %s" % [case.label, str(case.expected), str(actual)])
+	invalid_object.free()
+	_expect(invalid_object_weakref.get_ref() == null, "Object normalization fixture is freed after validation")
 
 	var profile := {
 		"student_id": "17000087",
@@ -60,13 +64,13 @@ func _run() -> void:
 
 func _finish() -> void:
 	if _failures.is_empty():
-		print("ACTIVITY_DURATION_NORMALIZATION_TEST {\"failed\":0,\"passed\":13}")
+		print("ACTIVITY_DURATION_NORMALIZATION_TEST {\"failed\":0,\"passed\":14}")
 		await get_tree().create_timer(3.0).timeout
 		get_tree().quit(0)
 		return
 	for failure in _failures:
 		push_error(failure)
-	print("ACTIVITY_DURATION_NORMALIZATION_TEST {\"failed\":%d,\"passed\":%d}" % [_failures.size(), 13 - _failures.size()])
+	print("ACTIVITY_DURATION_NORMALIZATION_TEST {\"failed\":%d,\"passed\":%d}" % [_failures.size(), 14 - _failures.size()])
 	await get_tree().create_timer(3.0).timeout
 	get_tree().quit(1)
 
