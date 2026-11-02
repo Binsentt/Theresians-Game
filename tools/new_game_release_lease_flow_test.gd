@@ -75,7 +75,7 @@ func _verify_successful_registration_with_a_real_lease_parser() -> void:
 
 	_assert(int(stub.get("start_request_count")) == 1, "Start cannot issue duplicate playtime-start requests while a lease request is pending")
 	var start_payload := stub.get("last_start_payload") as Dictionary
-	_assert(String(start_payload.get("student_id", "")) == "001234", "Start sends the Student ID as a six-character string")
+	_assert(String(start_payload.get("student_id", "")) == "00123456", "Start sends the Student ID as an eight-character string")
 	_assert(String(start_payload.get("parent_id", "")) == "654321", "Start sends the Parent ID as a six-character string")
 	_assert(String(start_payload.get("student_name", "")) == "Ava Santos", "Start sends the canonical student name rather than a player-entered replacement")
 	_assert(String(start_payload.get("grade_level", "")) == "Grade 3", "Start sends the canonical Grade rather than a player-entered replacement")
@@ -85,7 +85,7 @@ func _verify_successful_registration_with_a_real_lease_parser() -> void:
 	_assert(await _wait_for_scene(PLAYER_HOUSE_SCENE, 480), "a valid lease reaches Player House")
 	_assert(int(remote_sync.get("_current_playtime_session_id")) == 9001, "RemoteSync retains the server-issued session ID")
 	_assert(not String(remote_sync.get("_current_playtime_session_credential")).is_empty(), "RemoteSync retains the server-issued lease credential")
-	_assert(String(game_state.get("student_id")) == "001234", "GameState finalizes the validated Student ID")
+	_assert(String(game_state.get("student_id")) == "00123456", "GameState finalizes the validated Student ID")
 	_assert(String(game_state.get("parent_id")) == "654321", "GameState finalizes the validated Parent ID")
 	_assert(int(game_state.get("learning_cycle_version")) == 2, "New Game retains the newer playtime-start learning-cycle version instead of the earlier profile-check version")
 	_assert(String(game_state.get("learning_cycle_started_at")) == "2030-01-01T00:00:00.000Z", "New Game retains the playtime-start learning-cycle boundary through finalization")
@@ -121,7 +121,7 @@ func _open_name_grade_step() -> Node:
 	await _press(wizard.get_node("GenderSelect/MaleBtn") as BaseButton)
 	await _press(wizard.get_node("GenderSelect/GenderContinue") as BaseButton)
 	await _wait_for_transition(wizard)
-	_set_line_edit_text(wizard.get_node("StudentParentId/StudentIdInput") as LineEdit, "001234")
+	_set_line_edit_text(wizard.get_node("StudentParentId/StudentIdInput") as LineEdit, "00123456")
 	_set_line_edit_text(wizard.get_node("StudentParentId/ParentIdInput") as LineEdit, "654321")
 	await _press(wizard.get_node("StudentParentId/NextBtn") as BaseButton)
 	await _wait_for_transition(wizard)
