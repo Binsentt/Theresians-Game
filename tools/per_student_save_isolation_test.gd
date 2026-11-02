@@ -24,6 +24,7 @@ func _run() -> void:
 	_promote_to_root()
 	_remove_live_transport()
 	GameState.set_script(load("res://tools/load_game_ux_test_state.gd"))
+	GameState.enable_local_qa_mode()
 	GameState.fixture_paths = _fixture_paths
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SAVE_DIRECTORY))
 	_cleanup()
