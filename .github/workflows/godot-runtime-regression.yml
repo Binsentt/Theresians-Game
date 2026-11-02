@@ -6,20 +6,30 @@ on:
       - main
     paths:
       - .github/workflows/godot-runtime-regression.yml
-      - Data/api_config.json
-      - Data/api_config.qa_local.json
-      - scripts/http_api.gd
-      - scripts/remote_sync.gd
-      - tools/debug_api_startup_isolation_test.gd
-      - tools/http_api_production_config_test.gd
-      - tools/new_game_release_lease_flow_test.gd
-      - tools/per_student_save_isolation_test.gd
-      - tools/qa_local_runtime_contract_test.gd
-      - tools/remote_sync_local_qa_playtime_isolation_test.gd
-      - tools/student_id_compatibility_test.gd
-      - tools/test_remote_sync_new_game_lease.gd
-      - tools/test_http_api_new_game_lease_stub.gd
-      - tools/question_provider_normalization_test.gd
+      - project.godot
+      - export_presets.cfg
+      - Data/**
+      - Questions/**
+      - '**/*.gd'
+      - '**/*.tscn'
+      - '**/*.scn'
+      - '**/*.tres'
+      - '**/*.res'
+      - '**/*.import'
+      - '**/*.uid'
+      - '**/*.gdshader'
+      - '**/*.png'
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.webp'
+      - '**/*.gif'
+      - '**/*.svg'
+      - '**/*.mp3'
+      - '**/*.wav'
+      - '**/*.ogg'
+      - '**/*.m4a'
+      - '**/*.ttf'
+      - '**/*.otf'
   workflow_dispatch:
     inputs:
       test_ref:
@@ -161,7 +171,7 @@ jobs:
             runtime_inputs_changed=false
             while IFS= read -r changed_path; do
               case "$changed_path" in
-                Data/api_config.json|Data/api_config.qa_local.json|scripts/http_api.gd|scripts/remote_sync.gd|tools/debug_api_startup_isolation_test.gd|tools/http_api_production_config_test.gd|tools/new_game_release_lease_flow_test.gd|tools/per_student_save_isolation_test.gd|tools/qa_local_runtime_contract_test.gd|tools/remote_sync_local_qa_playtime_isolation_test.gd|tools/student_id_compatibility_test.gd|tools/test_remote_sync_new_game_lease.gd|tools/test_http_api_new_game_lease_stub.gd|tools/question_provider_normalization_test.gd)
+                .github/workflows/godot-runtime-regression.yml|project.godot|export_presets.cfg|Data/*|Questions/*|*.gd|*.tscn|*.scn|*.tres|*.res|*.import|*.uid|*.gdshader|*.png|*.jpg|*.jpeg|*.webp|*.gif|*.svg|*.mp3|*.wav|*.ogg|*.m4a|*.ttf|*.otf)
                   runtime_inputs_changed=true
                   ;;
               esac
