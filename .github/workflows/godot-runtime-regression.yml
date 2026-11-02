@@ -18,6 +18,7 @@ on:
       - tools/remote_sync_local_qa_playtime_isolation_test.gd
       - tools/student_id_compatibility_test.gd
       - tools/test_remote_sync_new_game_lease.gd
+      - tools/test_http_api_new_game_lease_stub.gd
       - tools/question_provider_normalization_test.gd
   workflow_dispatch:
     inputs:
