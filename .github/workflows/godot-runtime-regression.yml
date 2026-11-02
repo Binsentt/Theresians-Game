@@ -12,7 +12,7 @@ on:
         description: Branch, tag, or commit to test
         required: false
         type: string
-        default: 2306691d9af5beb87f2976731daef303a9cc4d0e
+        default: 9e5e76654750f0d6cbc61f158c5ab8b192cdd640
 
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
       GODOT_VERSION: 4.6.1
       GODOT_ARCHIVE_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
       GODOT_ARCHIVE_URL: https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_macos.universal.zip
-      GODOT_TEST_REF: ${{ github.event_name == 'pull_request' && '2306691d9af5beb87f2976731daef303a9cc4d0e' || github.event.inputs.test_ref || '2306691d9af5beb87f2976731daef303a9cc4d0e' }}
+      GODOT_TEST_REF: ${{ github.event_name == 'pull_request' && '9e5e76654750f0d6cbc61f158c5ab8b192cdd640' || github.event.inputs.test_ref || '9e5e76654750f0d6cbc61f158c5ab8b192cdd640' }}
 
     steps:
       - name: Check out the exact test source
@@ -95,41 +95,46 @@ jobs:
             local mode="$2"
             local arg="res://${test_path}"
             local isolated_home="${RUNNER_TEMP}/godot-test-home/${test_path//\//_}"
-            mkdir -p "$isolated_home"
+            local test_log="${RUNNER_TEMP}/godot-test-logs/${test_path//\//_}.log"
+            local test_status=0
+            local test_args=(--headless --audio-driver Dummy --path "$GITHUB_WORKSPACE")
+            mkdir -p "$isolated_home" "$(dirname "$test_log")"
+
+            if [[ "$test_path" == *.gd ]]; then
+              test_args+=(--script "$arg")
+            else
+              test_args+=("$arg")
+            fi
 
             echo "::group::${test_path}"
-            if [[ "$test_path" == *.gd ]]; then
-              if [[ "$mode" == "default-startup" ]]; then
-                if env -u THERESIANS_QA_LOCAL -u THERESIANS_PRODUCTION_SMOKE_TEST HOME="$isolated_home" \
-                  "$godot" --headless --audio-driver Dummy --path "$GITHUB_WORKSPACE" --script "$arg"; then
-                  passed=$((passed + 1))
-                  echo "PASS: ${test_path}"
-                else
-                  failed=$((failed + 1))
-                  failures+=("$test_path")
-                  echo "FAIL: ${test_path}"
-                fi
+            if [[ "$mode" == "default-startup" ]]; then
+              if env -u THERESIANS_QA_LOCAL -u THERESIANS_PRODUCTION_SMOKE_TEST HOME="$isolated_home" \
+                "$godot" "${test_args[@]}" >"$test_log" 2>&1; then
+                test_status=0
               else
-                if env -u THERESIANS_PRODUCTION_SMOKE_TEST THERESIANS_QA_LOCAL=1 HOME="$isolated_home" \
-                  "$godot" --headless --audio-driver Dummy --path "$GITHUB_WORKSPACE" --script "$arg"; then
-                  passed=$((passed + 1))
-                  echo "PASS: ${test_path}"
-                else
-                  failed=$((failed + 1))
-                  failures+=("$test_path")
-                  echo "FAIL: ${test_path}"
-                fi
+                test_status=$?
               fi
             else
               if env -u THERESIANS_PRODUCTION_SMOKE_TEST THERESIANS_QA_LOCAL=1 HOME="$isolated_home" \
-                "$godot" --headless --audio-driver Dummy --path "$GITHUB_WORKSPACE" "$arg"; then
-                passed=$((passed + 1))
-                echo "PASS: ${test_path}"
+                "$godot" "${test_args[@]}" >"$test_log" 2>&1; then
+                test_status=0
               else
-                failed=$((failed + 1))
-                failures+=("$test_path")
-                echo "FAIL: ${test_path}"
+                test_status=$?
               fi
+            fi
+            cat "$test_log"
+
+            if (( test_status == 0 )) && ! grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|Parse Error:' "$test_log"; then
+              passed=$((passed + 1))
+              echo "PASS: ${test_path}"
+            else
+              failed=$((failed + 1))
+              if (( test_status != 0 )); then
+                failures+=("${test_path} (exit ${test_status})")
+              else
+                failures+=("${test_path} (script parse/load error)")
+              fi
+              echo "FAIL: ${test_path}"
             fi
             echo "::endgroup::"
           }
@@ -183,3 +188,4 @@ jobs:
           if (( failed > 0 )); then
             exit 1
           fi
+
