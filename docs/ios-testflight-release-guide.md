@@ -112,7 +112,7 @@ The unsafe default is a confirmed issue on the audited main commit, not a change
 - Non-debug Release builds still resolve to the production URL. Android release workflow, bundle identity, save serialization, and save formats are unchanged by the proposed diff. Android debug builds also receive the safe debug default; the Android QA mode itself is left as implemented.
 - The change reuses the existing local-QA pending queue, so local save serialization and existing production queue data are not migrated or overwritten.
 
-PR #16 changes only Data/api_config.json, Data/api_config.qa_local.json, scripts/http_api.gd, tools/http_api_production_config_test.gd, and tools/qa_local_runtime_contract_test.gd. GitHub reports it open and mergeable at head 86e482668cd3021c464ca663f4e2182842724c9e. Do not treat it as resolved on main until merged and runtime tests pass. No production endpoint was contacted.
+PR #16 currently changes 12 files: Data/api_config.json, Data/api_config.qa_local.json, scripts/http_api.gd, scripts/remote_sync.gd, tools/debug_api_startup_isolation_test.gd, tools/http_api_production_config_test.gd, tools/new_game_release_lease_flow_test.gd, tools/per_student_save_isolation_test.gd, tools/qa_local_runtime_contract_test.gd, tools/remote_sync_local_qa_playtime_isolation_test.gd, tools/student_id_compatibility_test.gd, and tools/test_remote_sync_new_game_lease.gd. GitHub reports it open and mergeable at head 5e813ac5b4cc5d178a98f4638475d8d1a4840ea1. The focused missing-response-body guard and related regression test are included. Hosted run #7 is pending; do not treat the PR as runtime-verified until that run completes. No production endpoint was contacted.
 
 ## Apple privacy disclosure evidence matrix
 
