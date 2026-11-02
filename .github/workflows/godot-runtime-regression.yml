@@ -1,0 +1,185 @@
+name: Godot Runtime Regression
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/godot-runtime-regression.yml
+  workflow_dispatch:
+    inputs:
+      test_ref:
+        description: Branch, tag, or commit to test
+        required: false
+        type: string
+        default: 2306691d9af5beb87f2976731daef303a9cc4d0e
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-regression:
+    name: Godot 4.6.1 headless runtime suite
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      GODOT_VERSION: 4.6.1
+      GODOT_ARCHIVE_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
+      GODOT_ARCHIVE_URL: https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_macos.universal.zip
+      GODOT_TEST_REF: ${{ github.event_name == 'pull_request' && '2306691d9af5beb87f2976731daef303a9cc4d0e' || github.event.inputs.test_ref || '2306691d9af5beb87f2976731daef303a9cc4d0e' }}
+
+    steps:
+      - name: Check out the exact test source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.GODOT_TEST_REF }}
+          fetch-depth: 1
+
+      - name: Record tested commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_sha="$(git rev-parse HEAD)"
+          {
+            echo "### Godot runtime regression"
+            echo "- Godot: ${GODOT_VERSION}"
+            echo "- Requested ref: ${GODOT_TEST_REF}"
+            echo "- Checked-out commit: ${test_sha}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Testing commit ${test_sha} from ${GODOT_TEST_REF}"
+
+      - name: Download and verify official Godot editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="${RUNNER_TEMP}/Godot_v${GODOT_VERSION}-stable_macos.universal.zip"
+          install_dir="${RUNNER_TEMP}/godot-${GODOT_VERSION}"
+          app="${install_dir}/Godot.app"
+          godot="${app}/Contents/MacOS/Godot"
+
+          curl --fail --location --retry 3 --output "$archive" "$GODOT_ARCHIVE_URL"
+          printf '%s  %s\n' "$GODOT_ARCHIVE_SHA256" "$archive" | shasum -a 256 --check -
+          mkdir -p "$install_dir"
+          ditto -x -k "$archive" "$install_dir"
+
+          test -x "$godot"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          spctl --assess --verbose=4 --type execute "$app"
+
+          version="$("$godot" --headless --version)"
+          printf '%s\n' "$version"
+          if [[ "$version" != 4.6.1.stable.official* ]]; then
+            echo "Expected official Godot 4.6.1, received: $version" >&2
+            exit 1
+          fi
+
+      - name: Import project resources headlessly
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot="${RUNNER_TEMP}/godot-${GODOT_VERSION}/Godot.app/Contents/MacOS/Godot"
+          env -u THERESIANS_QA_LOCAL -u THERESIANS_PRODUCTION_SMOKE_TEST \
+            "$godot" --headless --import --path "$GITHUB_WORKSPACE"
+
+      - name: Run isolated runtime regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot="${RUNNER_TEMP}/godot-${GODOT_VERSION}/Godot.app/Contents/MacOS/Godot"
+          passed=0
+          failed=0
+          failures=()
+
+          run_test() {
+            local test_path="$1"
+            local mode="$2"
+            local arg="res://${test_path}"
+            local isolated_home="${RUNNER_TEMP}/godot-test-home/${test_path//\//_}"
+            mkdir -p "$isolated_home"
+
+            echo "::group::${test_path}"
+            if [[ "$test_path" == *.gd ]]; then
+              if [[ "$mode" == "default-startup" ]]; then
+                if env -u THERESIANS_QA_LOCAL -u THERESIANS_PRODUCTION_SMOKE_TEST HOME="$isolated_home" \
+                  "$godot" --headless --audio-driver Dummy --path "$GITHUB_WORKSPACE" --script "$arg"; then
+                  passed=$((passed + 1))
+                  echo "PASS: ${test_path}"
+                else
+                  failed=$((failed + 1))
+                  failures+=("$test_path")
+                  echo "FAIL: ${test_path}"
+                fi
+              else
+                if env -u THERESIANS_PRODUCTION_SMOKE_TEST THERESIANS_QA_LOCAL=1 HOME="$isolated_home" \
+                  "$godot" --headless --audio-driver Dummy --path "$GITHUB_WORKSPACE" --script "$arg"; then
+                  passed=$((passed + 1))
+                  echo "PASS: ${test_path}"
+                else
+                  failed=$((failed + 1))
+                  failures+=("$test_path")
+                  echo "FAIL: ${test_path}"
+                fi
+              fi
+            else
+              if env -u THERESIANS_PRODUCTION_SMOKE_TEST THERESIANS_QA_LOCAL=1 HOME="$isolated_home" \
+                "$godot" --headless --audio-driver Dummy --path "$GITHUB_WORKSPACE" "$arg"; then
+                passed=$((passed + 1))
+                echo "PASS: ${test_path}"
+              else
+                failed=$((failed + 1))
+                failures+=("$test_path")
+                echo "FAIL: ${test_path}"
+              fi
+            fi
+            echo "::endgroup::"
+          }
+
+          tests=(
+            "tools/debug_api_startup_isolation_test.gd|default-startup"
+            "tools/activity_duration_normalization_test.tscn|local-qa"
+            "tools/device_installation_scope_test.tscn|local-qa"
+            "tools/game_hud_playtime_label_test.tscn|local-qa"
+            "tools/local_qa_boundary_test.tscn|local-qa"
+            "tools/load_game_save_delete_test.tscn|local-qa"
+            "tools/original_flow_ingestion_test.tscn|local-qa"
+            "tools/game_over_settings_identity_qa_test.tscn|local-qa"
+            "tools/http_api_production_config_test.gd|local-qa"
+            "tools/http_api_timeout_test.gd|local-qa"
+            "tools/qa_local_runtime_contract_test.tscn|local-qa"
+            "tools/remote_sync_pending_queue_test.tscn|local-qa"
+            "tools/remote_sync_reconnect_flush_test.tscn|local-qa"
+            "tools/progress_commit_boundary_test.tscn|local-qa"
+            "tools/load_game_save_data_compatibility_test.tscn|local-qa"
+            "tools/learning_cycle_save_test.tscn|local-qa"
+            "tools/current_student_save_regression_test.tscn|local-qa"
+            "tools/per_student_save_isolation_test.tscn|local-qa"
+            "tools/save_load_project_context_test.tscn|local-qa"
+            "tools/load_game_identity_gate_test.tscn|local-qa"
+            "tools/new_game_release_lease_flow_test.gd|local-qa"
+            "tools/student_id_compatibility_test.gd|local-qa"
+            "tools/quest_activity_event_test.gd|local-qa"
+            "tools/question_provider_normalization_test.gd|local-qa"
+            "tools/question_pool_randomization_test.tscn|local-qa"
+            "tools/oakleaf_progression_test.tscn|local-qa"
+            "tools/quest_timeline_progression_test.tscn|local-qa"
+            "tools/manual_save_snapshot_replay_test.tscn|local-qa"
+            "tools/question_provider_startup_context_test.tscn|local-qa"
+          )
+
+          for entry in "${tests[@]}"; do
+            run_test "${entry%%|*}" "${entry##*|}"
+          done
+
+          {
+            echo "### Runtime test results"
+            echo "- Passed: ${passed}"
+            echo "- Failed: ${failed}"
+            echo "- Total: $((passed + failed))"
+            if (( failed > 0 )); then
+              echo "- Failures: ${failures[*]}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if (( failed > 0 )); then
+            exit 1
+          fi
