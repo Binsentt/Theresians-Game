@@ -4,7 +4,6 @@ const NEW_GAME_SCENE := "res://scenes/new_game_scene.tscn"
 const LOADING_SCENE := "res://scenes/loading_screen.tscn"
 const PLAYER_HOUSE_SCENE := "res://interiors/player_house.tscn"
 const LeaseHttpApi := preload("res://tools/test_http_api_new_game_lease_stub.gd")
-const LeaseRemoteSync := preload("res://tools/test_remote_sync_new_game_lease.gd")
 
 var failures: Array[String] = []
 var http_api: Node
@@ -44,9 +43,26 @@ func _run() -> void:
 		return
 
 	http_api.set_script(LeaseHttpApi)
-	# The HTTP autoload is now an in-memory stub; the derived RemoteSync keeps
-	# its real lease parsing while allowing this isolated fixture to exercise it.
-	remote_sync.set_script(LeaseRemoteSync)
+	# Confirm the autoload is an in-memory stub before permitting the test-only
+	# RemoteSync override; this fixture cannot reach any external API.
+	var http_stub_loaded := http_api.get_script() == LeaseHttpApi
+	_assert(http_stub_loaded, "the playtime fixture installs its in-memory HTTP stub")
+	if not http_stub_loaded:
+		_finish()
+		return
+	# Load this override only after autoload initialization. Preloading the real
+	# RemoteSync parent at script parse time cannot resolve the GameState autoload.
+	var lease_remote_sync_script := load("res://tools/test_remote_sync_new_game_lease.gd") as Script
+	_assert(lease_remote_sync_script != null, "the isolated RemoteSync override loads after autoload initialization")
+	if lease_remote_sync_script == null:
+		_finish()
+		return
+	remote_sync.set_script(lease_remote_sync_script)
+	var lease_method_available := remote_sync.has_method("request_playtime_session")
+	_assert(lease_method_available, "the isolated RemoteSync override preserves the playtime request method")
+	if not lease_method_available:
+		_finish()
+		return
 	await _verify_successful_registration_with_a_real_lease_parser()
 	await _verify_failed_lease_stays_on_the_form()
 	_finish()
