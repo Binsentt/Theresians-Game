@@ -3,7 +3,11 @@
 const PRODUCTION_PENDING_FILE := "user://pending_syncs.json"
 const LOCAL_QA_PENDING_FILE := "user://pending_syncs_local_qa.json"
 const ANDROID_QA_PENDING_FILE := "user://pending_syncs_android_qa.json"
+const PRODUCTION_CONFLICT_FILE := "user://pending_sync_conflicts.json"
+const LOCAL_QA_CONFLICT_FILE := "user://pending_sync_conflicts_local_qa.json"
+const ANDROID_QA_CONFLICT_FILE := "user://pending_sync_conflicts_android_qa.json"
 var _pending_file := PRODUCTION_PENDING_FILE
+var _conflict_file := PRODUCTION_CONFLICT_FILE
 
 var _current_playtime_session_id: int = 0
 var _current_playtime_session_credential: String = ""
@@ -88,6 +92,7 @@ func enable_local_qa_mode() -> void:
 	android_qa_remote_writes_enabled = false
 	local_qa_only = true
 	_pending_file = LOCAL_QA_PENDING_FILE
+	_conflict_file = LOCAL_QA_CONFLICT_FILE
 	_invalidate_playtime_lease()
 	_session_start_in_progress = false
 	_playtime_end_in_progress = false
@@ -103,6 +108,7 @@ func configure_android_qa_mode(_remote_writes_enabled: bool) -> void:
 	android_qa_remote_writes_enabled = false
 	local_qa_only = false
 	_pending_file = ANDROID_QA_PENDING_FILE
+	_conflict_file = ANDROID_QA_CONFLICT_FILE
 	_invalidate_playtime_lease()
 	_session_start_in_progress = false
 	_playtime_end_in_progress = false
@@ -570,6 +576,118 @@ func _persist_pending_queue(queue: Array) -> bool:
 	if had_existing and FileAccess.file_exists(backup_path):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
 	return true
+
+
+func _is_save_commit_id_reused(result: Dictionary) -> bool:
+	if GameState.safe_int_value(result.get("status", 0), 0) != 409:
+		return false
+	var body: Variant = result.get("body", {})
+	return body is Dictionary and GameState.safe_text_value(body.get("code", "")) == "SAVE_COMMIT_ID_REUSED"
+
+
+func _is_valid_conflict_journal(value: Variant) -> bool:
+	if not (value is Dictionary) or int(value.get("schema_version", 0)) != 1:
+		return false
+	var items: Variant = value.get("items", null)
+	if not (items is Array):
+		return false
+	for item: Variant in items:
+		if not (item is Dictionary) or not (item.get("original_event", null) is Dictionary) \
+				or not (item.get("diagnostic", null) is Dictionary):
+			return false
+	return true
+
+
+func _load_conflict_journal() -> Dictionary:
+	if not FileAccess.file_exists(_conflict_file):
+		return {"schema_version": 1, "items": []}
+	var file := FileAccess.open(_conflict_file, FileAccess.READ)
+	if file == null:
+		push_error("RemoteSync: unable to read the save-conflict journal; the pending save remains queued.")
+		return {}
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	if not _is_valid_conflict_journal(parsed):
+		push_error("RemoteSync: save-conflict journal is malformed; it will not be overwritten.")
+		return {}
+	return parsed
+
+
+func _persist_conflict_journal(journal: Dictionary) -> bool:
+	if not _is_valid_conflict_journal(journal):
+		return false
+	var directory := _conflict_file.get_base_dir()
+	if directory.is_empty():
+		return false
+	var absolute_directory := ProjectSettings.globalize_path(directory)
+	if not DirAccess.dir_exists_absolute(absolute_directory) \
+			and DirAccess.make_dir_recursive_absolute(absolute_directory) != OK:
+		return false
+	var nonce := str(Time.get_ticks_usec())
+	var temporary_path := "%s.%s.tmp" % [_conflict_file, nonce]
+	var backup_path := "%s.%s.backup" % [_conflict_file, nonce]
+	var file := FileAccess.open(temporary_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string(JSON.stringify(journal))
+	file.flush()
+	var write_error := file.get_error()
+	file.close()
+	if write_error != OK or not _is_valid_conflict_journal(_load_conflict_journal_from_path(temporary_path)):
+		if FileAccess.file_exists(temporary_path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
+		return false
+	var had_existing := FileAccess.file_exists(_conflict_file)
+	if had_existing and DirAccess.rename_absolute(ProjectSettings.globalize_path(_conflict_file), ProjectSettings.globalize_path(backup_path)) != OK:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
+		return false
+	if DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary_path), ProjectSettings.globalize_path(_conflict_file)) != OK:
+		if had_existing:
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(_conflict_file))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
+		return false
+	if had_existing and FileAccess.file_exists(backup_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
+	return true
+
+
+func _load_conflict_journal_from_path(path: String) -> Variant:
+	if not FileAccess.file_exists(path):
+		return null
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return null
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	return parsed
+
+
+func _preserve_save_commit_conflict(item: Dictionary, result: Dictionary) -> bool:
+	var journal := _load_conflict_journal()
+	if not _is_valid_conflict_journal(journal):
+		return false
+	var body: Variant = result.get("body", {})
+	var error_text := _safe_backend_diagnostic_text(body.get("error", "")) if body is Dictionary else ""
+	var entry := {
+		"original_event": item.duplicate(true),
+		"diagnostic": {
+			"status": GameState.safe_int_value(result.get("status", 409), 409),
+			"code": "SAVE_COMMIT_ID_REUSED",
+			"error": error_text,
+			"recorded_at_unix": int(Time.get_unix_time_from_system()),
+		},
+	}
+	var entries: Array = journal.get("items", [])
+	for existing: Variant in entries:
+		if not (existing is Dictionary):
+			continue
+		var existing_diagnostic: Variant = existing.get("diagnostic", {})
+		if existing.get("original_event", {}) == item and existing_diagnostic is Dictionary \
+				and GameState.safe_text_value(existing_diagnostic.get("code", "")) == "SAVE_COMMIT_ID_REUSED":
+			return true
+	entries.append(entry)
+	journal["items"] = entries
+	return _persist_conflict_journal(journal)
 
 
 func _load_pending_queue_from_path(path: String) -> Array:
@@ -1340,10 +1458,8 @@ func _reconcile_processed_pending_items(processed_counts: Dictionary) -> void:
 			processed_counts[identity] = processed_count - 1
 			continue
 		reconciled.append(item)
-	var file := FileAccess.open(_pending_file, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(reconciled))
-		file.close()
+	if not _persist_pending_queue(reconciled):
+		push_error("RemoteSync: processed outbox items could not be durably reconciled; the existing queue was retained.")
 
 
 func _flush_pending(allow_lease_recovery: bool = true) -> void:
@@ -1448,6 +1564,13 @@ func _flush_pending(allow_lease_recovery: bool = true) -> void:
 			print("RemoteSync: removed a stale pending item from the queue.")
 			_mark_pending_item_processed(processed_counts, item)
 			continue
+		if item_kind == "progress_commit" and _is_save_commit_id_reused(result):
+			if _preserve_save_commit_conflict(item, result):
+				push_warning("RemoteSync: save commit ID conflict preserved at %s; later independent events will continue syncing." % _conflict_file)
+				_mark_pending_item_processed(processed_counts, item)
+				continue
+			push_error("RemoteSync: could not safely preserve a save commit ID conflict; the event remains queued and later items are blocked.")
+			break
 		if not bool(result.get("ok", false)) or int(result.get("status", 0)) < 200 or int(result.get("status", 0)) >= 300:
 			print(_format_outbox_failure_diagnostic(path, result))
 		if _is_playtime_lease_rejected(result):

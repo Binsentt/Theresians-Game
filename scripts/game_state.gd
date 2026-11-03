@@ -1871,7 +1871,11 @@ func save_manual_game() -> String:
 	data["save_kind"] = "manual"
 	data["manual_save_sequence"] = sequence
 	data["commit_trigger"] = "manual_save"
-	data["save_commit_id"] = "manual:%s:%d:%d" % [owner_id, learning_cycle_version, sequence]
+	var save_commit_id := _generate_save_commit_id()
+	if save_commit_id.is_empty():
+		push_error("Unable to generate a secure identifier for the manual save.")
+		return ""
+	data["save_commit_id"] = save_commit_id
 	var temporary_path := _get_manual_save_temporary_path(owner_id, sequence)
 	if not _write_verified_save_temporary(temporary_path, data):
 		push_error("Unable to write and verify the manual save.")
@@ -1932,7 +1936,11 @@ func save_daily_time_limit_game() -> String:
 	var date_key := String(data.get("save_date", ""))
 	data["save_kind"] = "daily_time_limit"
 	data["commit_trigger"] = "daily_time_limit"
-	data["save_commit_id"] = "daily-limit:%s:%s" % [owner_id, date_key]
+	var save_commit_id := _generate_save_commit_id()
+	if save_commit_id.is_empty():
+		push_error("Unable to generate a secure identifier for the daily time-limit save.")
+		return ""
+	data["save_commit_id"] = save_commit_id
 	data["forced_save_date"] = date_key
 	data["manual_save_sequence"] = 0
 	var save_path := _get_daily_time_limit_save_path(owner_id)
@@ -3276,6 +3284,13 @@ func get_device_installation_id() -> String:
 			created.store_string(device_installation_id)
 			created.close()
 	return device_installation_id
+
+
+func _generate_save_commit_id() -> String:
+	var random_bytes := Crypto.new().generate_random_bytes(16)
+	if random_bytes.size() != 16:
+		return ""
+	return "save:%s" % random_bytes.hex_encode()
 
 
 func has_current_terms_acceptance(for_student_id: String = "") -> bool:
