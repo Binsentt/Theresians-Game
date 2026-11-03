@@ -103,9 +103,12 @@ func _run() -> void:
 	for item: Variant in matching_progress:
 		if not (item is Dictionary):
 			continue
-		legacy_preserved = legacy_preserved or _same_content(item, legacy_queue_item)
+		if String(item.get("save_commit_id", "")) == String(legacy_queue_item.get("save_commit_id", "")):
+			legacy_preserved = _same_content(legacy_queue_item, item)
+			if not legacy_preserved:
+				print("SAVE_COMMIT_CONTENT_MISMATCH " + JSON.stringify({"label": "legacy queue preservation", "expected": _canonicalize(legacy_queue_item), "actual": _canonicalize(item)}))
 		generated_preserved = generated_preserved or String(item.get("save_commit_id", "")) == manual_id
-	_expect(legacy_preserved, "existing queued IDs remain byte-for-byte equivalent at the event level")
+	_expect(legacy_preserved, "existing queued events retain every field and value")
 	_expect(generated_preserved, "queued save uses the exact ID persisted in its save file")
 	remote_sync.free()
 

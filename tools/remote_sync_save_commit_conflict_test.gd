@@ -63,7 +63,7 @@ func _run() -> void:
 	]
 	await offline_remote.call("_flush_pending")
 	var after_offline: Array = offline_remote.call("_load_pending")
-	_expect(_same_content(after_offline, [offline_item]), "temporary offline failure leaves the original committed event queued")
+	_expect_same_content([offline_item], after_offline, "temporary offline failure leaves the original committed event queued")
 	_expect(_fake_http.progress_commit_ids == [offline_id], "first attempt sends the persisted ID unchanged")
 	offline_remote.free()
 
@@ -98,7 +98,7 @@ func _run() -> void:
 	_expect(journal.get("schema_version", 0) == 1 and journal_items.size() == 1, "one conflict is durably stored in the versioned journal")
 	if journal_items.size() == 1 and journal_items[0] is Dictionary:
 		var saved_entry: Dictionary = journal_items[0]
-		_expect(_same_content(saved_entry.get("original_event", {}), conflicting_item), "journal preserves the exact original queued event")
+		_expect_same_content(conflicting_item, saved_entry.get("original_event", {}), "journal preserves the exact original queued event")
 		var diagnostic: Variant = saved_entry.get("diagnostic", {})
 		_expect(diagnostic is Dictionary and diagnostic.get("code", "") == "SAVE_COMMIT_ID_REUSED" and diagnostic.get("status", 0) == 409, "journal preserves the server conflict diagnostic")
 		_expect(String(saved_entry.get("original_event", {}).get("save_commit_id", "")) == conflicting_id, "conflict recovery never invents a replacement commit ID")
@@ -165,7 +165,7 @@ func _test_journal_failure_preserves_pending_item() -> void:
 		{"ok": true, "status": 409, "body": {"code": "SAVE_COMMIT_ID_REUSED", "error": "synthetic conflict"}},
 	]
 	await remote.call("_flush_pending")
-	_expect(_same_content(remote.call("_load_pending"), [item]), "journal persistence failure leaves the original event queued")
+	_expect_same_content([item], remote.call("_load_pending"), "journal persistence failure leaves the original event queued")
 	_expect(_read_text(journal_path) == "not-json", "malformed journal is not overwritten while preserving the event")
 	remote.free()
 
@@ -207,6 +207,13 @@ func _canonicalize(value: Variant) -> Variant:
 			normalized_array.append(_canonicalize(item))
 		return normalized_array
 	return value
+
+
+func _expect_same_content(expected: Variant, actual: Variant, label: String) -> void:
+	var matches := _same_content(expected, actual)
+	if not matches:
+		print("SAVE_COMMIT_CONTENT_MISMATCH " + JSON.stringify({"label": label, "expected": _canonicalize(expected), "actual": _canonicalize(actual)}))
+	_expect(matches, label)
 
 
 func _expect(condition: bool, label: String) -> void:
