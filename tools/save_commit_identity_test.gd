@@ -139,7 +139,25 @@ func _expect(condition: bool, label: String) -> void:
 
 
 func _same_content(left: Variant, right: Variant) -> bool:
-	return JSON.stringify(_canonicalize(left)) == JSON.stringify(_canonicalize(right))
+	var left_type := typeof(left)
+	var right_type := typeof(right)
+	if left_type in [TYPE_INT, TYPE_FLOAT] and right_type in [TYPE_INT, TYPE_FLOAT]:
+		return float(left) == float(right)
+	if left is Dictionary and right is Dictionary:
+		if left.size() != right.size():
+			return false
+		for key: Variant in left:
+			if not right.has(key) or not _same_content(left[key], right[key]):
+				return false
+		return true
+	if left is Array and right is Array:
+		if left.size() != right.size():
+			return false
+		for index in range(left.size()):
+			if not _same_content(left[index], right[index]):
+				return false
+		return true
+	return left_type == right_type and left == right
 
 
 func _canonicalize(value: Variant) -> Variant:
