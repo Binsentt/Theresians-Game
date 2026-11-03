@@ -552,7 +552,6 @@ func _persist_pending_queue(queue: Array) -> bool:
 		return false
 	var nonce := str(Time.get_ticks_usec())
 	var temporary_path := "%s.%s.tmp" % [_pending_file, nonce]
-	var backup_path := "%s.%s.backup" % [_pending_file, nonce]
 	var file := FileAccess.open(temporary_path, FileAccess.WRITE)
 	if file == null:
 		return false
@@ -564,17 +563,9 @@ func _persist_pending_queue(queue: Array) -> bool:
 		if FileAccess.file_exists(temporary_path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
 		return false
-	var had_existing := FileAccess.file_exists(_pending_file)
-	if had_existing and DirAccess.rename_absolute(ProjectSettings.globalize_path(_pending_file), ProjectSettings.globalize_path(backup_path)) != OK:
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
-		return false
 	if DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary_path), ProjectSettings.globalize_path(_pending_file)) != OK:
-		if had_existing:
-			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(_pending_file))
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
 		return false
-	if had_existing and FileAccess.file_exists(backup_path):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
 	return true
 
 
@@ -625,7 +616,6 @@ func _persist_conflict_journal(journal: Dictionary) -> bool:
 		return false
 	var nonce := str(Time.get_ticks_usec())
 	var temporary_path := "%s.%s.tmp" % [_conflict_file, nonce]
-	var backup_path := "%s.%s.backup" % [_conflict_file, nonce]
 	var file := FileAccess.open(temporary_path, FileAccess.WRITE)
 	if file == null:
 		return false
@@ -637,17 +627,9 @@ func _persist_conflict_journal(journal: Dictionary) -> bool:
 		if FileAccess.file_exists(temporary_path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
 		return false
-	var had_existing := FileAccess.file_exists(_conflict_file)
-	if had_existing and DirAccess.rename_absolute(ProjectSettings.globalize_path(_conflict_file), ProjectSettings.globalize_path(backup_path)) != OK:
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
-		return false
 	if DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary_path), ProjectSettings.globalize_path(_conflict_file)) != OK:
-		if had_existing:
-			DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_path), ProjectSettings.globalize_path(_conflict_file))
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary_path))
 		return false
-	if had_existing and FileAccess.file_exists(backup_path):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path))
 	return true
 
 

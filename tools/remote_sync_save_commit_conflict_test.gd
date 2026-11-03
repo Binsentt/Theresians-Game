@@ -84,7 +84,9 @@ func _run() -> void:
 	var conflicting_item := _progress_item(conflicting_id, 12)
 	var independent_item := _progress_item(independent_id, 13)
 	var conflict_remote := _new_remote(conflict_queue_path, conflict_journal_path)
-	_expect(bool(conflict_remote.call("_persist_pending_queue", [conflicting_item, independent_item])), "conflict fixture and later independent event are queued together")
+	_expect(bool(conflict_remote.call("_persist_pending_queue", [conflicting_item])), "first conflict event is durably queued")
+	_expect(bool(conflict_remote.call("_persist_pending_queue", [conflicting_item, independent_item])), "queue replacement retains the old event and adds the independent event")
+	_expect_same_content([conflicting_item, independent_item], conflict_remote.call("_load_pending"), "replaced queue remains readable with both events")
 	_fake_http.progress_commit_ids.clear()
 	_fake_http.responses = [
 		{"ok": true, "status": 409, "body": {"code": "SAVE_COMMIT_ID_REUSED", "error": "save_commit_id was already used with different progress data."}},
@@ -102,11 +104,24 @@ func _run() -> void:
 		var diagnostic: Variant = saved_entry.get("diagnostic", {})
 		_expect(diagnostic is Dictionary and diagnostic.get("code", "") == "SAVE_COMMIT_ID_REUSED" and diagnostic.get("status", 0) == 409, "journal preserves the server conflict diagnostic")
 		_expect(String(saved_entry.get("original_event", {}).get("save_commit_id", "")) == conflicting_id, "conflict recovery never invents a replacement commit ID")
+	var second_conflicting_item := _progress_item("save:13579bdf02468ace13579bdf02468ace", 14)
+	_expect(bool(conflict_remote.call("_preserve_save_commit_conflict", second_conflicting_item, {"ok": true, "status": 409, "body": {"code": "SAVE_COMMIT_ID_REUSED", "error": "second synthetic conflict"}})), "second conflict replaces the journal while preserving the existing entry")
+	var replaced_journal: Dictionary = conflict_remote.call("_load_conflict_journal")
+	var replaced_journal_items: Array = replaced_journal.get("items", [])
+	_expect(replaced_journal_items.size() == 2, "journal replacement retains both conflict records")
+	var retained_conflicts: Dictionary = {}
+	for journal_item: Variant in replaced_journal_items:
+		if journal_item is Dictionary:
+			var original_event: Variant = journal_item.get("original_event", {})
+			if original_event is Dictionary:
+				retained_conflicts[String(original_event.get("save_commit_id", ""))] = original_event
+	_expect_same_content(conflicting_item, retained_conflicts.get(conflicting_id, {}), "journal replacement retains the first original event")
+	_expect_same_content(second_conflicting_item, retained_conflicts.get(String(second_conflicting_item.get("save_commit_id", "")), {}), "journal replacement adds the second original event")
 	conflict_remote.free()
 
 	var restarted_conflict_remote := _new_remote(conflict_queue_path, conflict_journal_path)
 	var restarted_journal: Dictionary = restarted_conflict_remote.call("_load_conflict_journal")
-	_expect(restarted_journal == journal, "conflict evidence remains readable after constructing a new queue instance")
+	_expect(restarted_journal == replaced_journal, "both conflict records remain readable after constructing a new queue instance")
 	_expect(not bool(restarted_conflict_remote.call("_is_save_commit_id_reused", {"status": 409, "body": {"code": "LEARNING_CYCLE_CHANGED"}})), "cycle changes are not misclassified as save-ID reuse")
 	_expect(bool(restarted_conflict_remote.call("_is_save_commit_id_reused", {"status": 409, "body": {"code": "SAVE_COMMIT_ID_REUSED"}})), "save-ID reuse has an exact independent classifier")
 	restarted_conflict_remote.free()
