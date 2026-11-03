@@ -103,7 +103,7 @@ func _run() -> void:
 	for item: Variant in matching_progress:
 		if not (item is Dictionary):
 			continue
-		legacy_preserved = legacy_preserved or item == legacy_queue_item
+		legacy_preserved = legacy_preserved or JSON.stringify(item) == JSON.stringify(legacy_queue_item)
 		generated_preserved = generated_preserved or String(item.get("save_commit_id", "")) == manual_id
 	_expect(legacy_preserved, "existing queued IDs remain byte-for-byte equivalent at the event level")
 	_expect(generated_preserved, "queued save uses the exact ID persisted in its save file")
