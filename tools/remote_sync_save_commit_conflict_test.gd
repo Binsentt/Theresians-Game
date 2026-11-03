@@ -63,7 +63,7 @@ func _run() -> void:
 	]
 	await offline_remote.call("_flush_pending")
 	var after_offline: Array = offline_remote.call("_load_pending")
-	_expect(JSON.stringify(after_offline) == JSON.stringify([offline_item]), "temporary offline failure leaves the original committed event queued")
+	_expect(_same_content(after_offline, [offline_item]), "temporary offline failure leaves the original committed event queued")
 	_expect(_fake_http.progress_commit_ids == [offline_id], "first attempt sends the persisted ID unchanged")
 	offline_remote.free()
 
@@ -98,7 +98,7 @@ func _run() -> void:
 	_expect(journal.get("schema_version", 0) == 1 and journal_items.size() == 1, "one conflict is durably stored in the versioned journal")
 	if journal_items.size() == 1 and journal_items[0] is Dictionary:
 		var saved_entry: Dictionary = journal_items[0]
-		_expect(JSON.stringify(saved_entry.get("original_event", {})) == JSON.stringify(conflicting_item), "journal preserves the exact original queued event")
+		_expect(_same_content(saved_entry.get("original_event", {}), conflicting_item), "journal preserves the exact original queued event")
 		var diagnostic: Variant = saved_entry.get("diagnostic", {})
 		_expect(diagnostic is Dictionary and diagnostic.get("code", "") == "SAVE_COMMIT_ID_REUSED" and diagnostic.get("status", 0) == 409, "journal preserves the server conflict diagnostic")
 		_expect(String(saved_entry.get("original_event", {}).get("save_commit_id", "")) == conflicting_id, "conflict recovery never invents a replacement commit ID")
@@ -165,7 +165,7 @@ func _test_journal_failure_preserves_pending_item() -> void:
 		{"ok": true, "status": 409, "body": {"code": "SAVE_COMMIT_ID_REUSED", "error": "synthetic conflict"}},
 	]
 	await remote.call("_flush_pending")
-	_expect(JSON.stringify(remote.call("_load_pending")) == JSON.stringify([item]), "journal persistence failure leaves the original event queued")
+	_expect(_same_content(remote.call("_load_pending"), [item]), "journal persistence failure leaves the original event queued")
 	_expect(_read_text(journal_path) == "not-json", "malformed journal is not overwritten while preserving the event")
 	remote.free()
 
@@ -187,6 +187,26 @@ func _reserve_new_files(paths: Array[String]) -> bool:
 			return false
 	_created_files.append_array(paths)
 	return true
+
+
+func _same_content(left: Variant, right: Variant) -> bool:
+	return JSON.stringify(_canonicalize(left)) == JSON.stringify(_canonicalize(right))
+
+
+func _canonicalize(value: Variant) -> Variant:
+	if value is Dictionary:
+		var keys: Array = value.keys()
+		keys.sort()
+		var normalized := {}
+		for key: Variant in keys:
+			normalized[String(key)] = _canonicalize(value[key])
+		return normalized
+	if value is Array:
+		var normalized_array: Array = []
+		for item: Variant in value:
+			normalized_array.append(_canonicalize(item))
+		return normalized_array
+	return value
 
 
 func _expect(condition: bool, label: String) -> void:

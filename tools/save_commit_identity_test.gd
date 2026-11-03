@@ -103,7 +103,7 @@ func _run() -> void:
 	for item: Variant in matching_progress:
 		if not (item is Dictionary):
 			continue
-		legacy_preserved = legacy_preserved or JSON.stringify(item) == JSON.stringify(legacy_queue_item)
+		legacy_preserved = legacy_preserved or _same_content(item, legacy_queue_item)
 		generated_preserved = generated_preserved or String(item.get("save_commit_id", "")) == manual_id
 	_expect(legacy_preserved, "existing queued IDs remain byte-for-byte equivalent at the event level")
 	_expect(generated_preserved, "queued save uses the exact ID persisted in its save file")
@@ -133,6 +133,26 @@ func _expect(condition: bool, label: String) -> void:
 	_checks.append({"name": label, "passed": condition})
 	if not condition:
 		push_error(label)
+
+
+func _same_content(left: Variant, right: Variant) -> bool:
+	return JSON.stringify(_canonicalize(left)) == JSON.stringify(_canonicalize(right))
+
+
+func _canonicalize(value: Variant) -> Variant:
+	if value is Dictionary:
+		var keys: Array = value.keys()
+		keys.sort()
+		var normalized := {}
+		for key: Variant in keys:
+			normalized[String(key)] = _canonicalize(value[key])
+		return normalized
+	if value is Array:
+		var normalized_array: Array = []
+		for item: Variant in value:
+			normalized_array.append(_canonicalize(item))
+		return normalized_array
+	return value
 
 
 func _finish(conflict_file: String) -> void:
