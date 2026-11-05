@@ -15,6 +15,7 @@ env:
   IOS_PRESET: iOS
   IOS_BUNDLE_ID: com.theresiansquest.game
   IOS_TEAM_ID: 7A4H2D888M
+  IOS_MIN_IOS_VERSION: "15.0"
   GODOT_EDITOR_SHA256: f43613ad72ab1cc9ef14383545f4de344844451a5c9c5f4ea4a923f1f34f91e4
   GODOT_TEMPLATES_SHA256: e6d372afd4fdfaae9571eb5e3568afcd96ce6db9a569244034154faf0ac69875
 
@@ -46,12 +47,12 @@ jobs:
             echo "At least 6 GiB of free space is required; stopping before downloads." >&2
             exit 1
           fi
-          python3 - "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" <<'PY'
+          python3 - "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" "$IOS_MIN_IOS_VERSION" <<'PY'
           import re
           import sys
           from pathlib import Path
 
-          bundle_id, team_id = sys.argv[1:]
+          bundle_id, team_id, min_ios_version = sys.argv[1:]
           text = Path("export_presets.cfg").read_text(encoding="utf-8")
           blocks = re.split(r"(?m)(?=^\[preset\.\d+\]\r?$)", text)
           ios = next((block for block in blocks
@@ -62,6 +63,7 @@ jobs:
               ("architectures/arm64", "true"),
               ("application/bundle_identifier", f'"{bundle_id}"'),
               ("application/app_store_team_id", f'"{team_id}"'),
+              ("application/min_ios_version", f'"{min_ios_version}"'),
           ):
               if not re.search(rf"(?m)^{re.escape(option)}={re.escape(expected)}\s*$", ios):
                   raise SystemExit(f"The iOS preset does not match {option}.")
@@ -471,9 +473,12 @@ jobs:
           test -s "$app_path/Info.plist"
           bundle_id="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleIdentifier' "$app_path/Info.plist")"
           display_name="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleDisplayName' "$app_path/Info.plist")"
+          minimum_ios_version="$(/usr/libexec/PlistBuddy -c 'Print:MinimumOSVersion' "$app_path/Info.plist")"
           executable="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleExecutable' "$app_path/Info.plist")"
           [[ "$bundle_id" == "$IOS_BUNDLE_ID" ]]
           [[ "$display_name" == "Theresian's Quest" ]]
+          [[ "$minimum_ios_version" == "$IOS_MIN_IOS_VERSION" ]]
+          echo "Built app minimum iOS version verified: $minimum_ios_version"
           executable_path="$app_path/$executable"
           test -s "$executable_path"
           app_archs="$(xcrun lipo -archs "$executable_path")"
