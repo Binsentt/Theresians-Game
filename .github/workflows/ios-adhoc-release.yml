@@ -33,6 +33,7 @@ jobs:
     uses: ./.github/workflows/godot-runtime-regression.yml
     with:
       test_ref: ${{ github.sha }}
+      reusable_call: true
 
   profile-contract-tests:
     name: Test Ad Hoc profile validator with synthetic fixtures
