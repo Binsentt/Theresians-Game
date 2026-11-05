@@ -103,6 +103,7 @@ jobs:
     with:
       marketing_version: ${{ needs.release-version.outputs.marketing_version }}
       build_number: ${{ needs.release-version.outputs.build_number }}
+      release_pipeline: true
 
   signing-gate:
     name: Enforce explicit Ad Hoc signing gate
