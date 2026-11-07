@@ -1,0 +1,736 @@
+name: iOS Ad Hoc Release
+
+on:
+  push:
+    branches:
+      - ios-release
+  workflow_dispatch:
+    inputs:
+      build_signed:
+        description: Request an Ad Hoc signed IPA; requires the protected environment and owner-enabled signing gate
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ios-adhoc-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: "4.6.1"
+  IOS_BUNDLE_ID: com.theresiansquest.game
+  IOS_TEAM_ID: 7A4H2D888M
+  IOS_MIN_IOS_VERSION: "15.0"
+
+jobs:
+  runtime-regression:
+    name: Run Godot runtime regressions on the exact source commit
+    if: ${{ github.ref == 'refs/heads/ios-release' }}
+    uses: ./.github/workflows/godot-runtime-regression.yml
+    with:
+      test_ref: ${{ github.sha }}
+      reusable_call: true
+
+  profile-contract-tests:
+    name: Test Ad Hoc profile validator with synthetic fixtures
+    if: ${{ github.ref == 'refs/heads/ios-release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact release source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+      - name: Run synthetic Ad Hoc profile tests
+        run: python3 -m unittest tools.test_ios_adhoc_profile_validation -v
+
+  release-version:
+    name: Compute monotonic release metadata
+    if: ${{ github.ref == 'refs/heads/ios-release' }}
+    runs-on: ubuntu-latest
+    outputs:
+      marketing_version: ${{ steps.version.outputs.marketing_version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+    env:
+      IOS_MARKETING_VERSION: ${{ vars.IOS_MARKETING_VERSION }}
+      IOS_BUILD_BASE: ${{ vars.IOS_BUILD_BASE }}
+    steps:
+      - name: Validate release version and compute build number
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${IOS_MARKETING_VERSION:-}" ]]; then
+            echo "::error::Set the IOS_MARKETING_VERSION repository variable before building the approved release branch."
+            exit 1
+          fi
+          if [[ -z "${IOS_BUILD_BASE:-}" ]]; then
+            echo "::error::Set IOS_BUILD_BASE to a nondecreasing base and keep it at or above the last assigned build number."
+            exit 1
+          fi
+          python3 - <<'PY'
+          import os
+          import re
+
+          version = os.environ["IOS_MARKETING_VERSION"]
+          base_text = os.environ["IOS_BUILD_BASE"]
+          run_number = os.environ["GITHUB_RUN_NUMBER"]
+          run_attempt = os.environ["GITHUB_RUN_ATTEMPT"]
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+              raise SystemExit("IOS_MARKETING_VERSION must be major.minor.patch.")
+          if not re.fullmatch(r"[0-9]+", base_text):
+              raise SystemExit("IOS_BUILD_BASE must be a positive integer.")
+          base, run, attempt = int(base_text), int(run_number), int(run_attempt)
+          if base < 1 or run < 1 or attempt < 1 or attempt > 99:
+              raise SystemExit("Invalid release build-number inputs.")
+          build = base + run * 100 + attempt
+          if build > 2147483647:
+              raise SystemExit("Computed build number exceeds the supported integer limit.")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"marketing_version={version}\n")
+              output.write(f"build_number={build}\n")
+          print(f"Validated marketing version {version}; build number {build}.")
+          PY
+
+  unsigned-release:
+    name: Run Godot export and unsigned iOS Release build
+    if: ${{ github.ref == 'refs/heads/ios-release' }}
+    needs: [runtime-regression, profile-contract-tests, release-version]
+    uses: ./.github/workflows/ios-unsigned-release.yml
+    with:
+      marketing_version: ${{ needs.release-version.outputs.marketing_version }}
+      build_number: ${{ needs.release-version.outputs.build_number }}
+      release_pipeline: true
+
+  signing-gate:
+    name: Enforce explicit Ad Hoc signing gate
+    if: ${{ github.ref == 'refs/heads/ios-release' }}
+    needs: [profile-contract-tests, release-version, unsigned-release]
+    runs-on: ubuntu-latest
+    env:
+      BUILD_SIGNED_INPUT: ${{ inputs.build_signed }}
+      IOS_ADHOC_SIGNING_ENABLED: ${{ vars.IOS_ADHOC_SIGNING_ENABLED }}
+      IOS_ADHOC_RELEASE_REPOSITORY: ${{ vars.IOS_ADHOC_RELEASE_REPOSITORY }}
+    steps:
+      - name: Fail closed for an unapproved signing request
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${BUILD_SIGNED_INPUT:-false}" == "true" ]]; then
+            if [[ "${IOS_ADHOC_SIGNING_ENABLED:-}" != "true" ]]; then
+              echo "::error::Ad Hoc signing is blocked; IOS_ADHOC_SIGNING_ENABLED is not true."
+              exit 1
+            fi
+          fi
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${IOS_ADHOC_SIGNING_ENABLED:-}" != "true" ]]; then
+            echo "Automatic signing remains disabled for this approved-branch push."
+          fi
+          signing_requested=false
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "${IOS_ADHOC_SIGNING_ENABLED:-}" == "true" ]]; then
+            signing_requested=true
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${BUILD_SIGNED_INPUT:-false}" == "true" && "${IOS_ADHOC_SIGNING_ENABLED:-}" == "true" ]]; then
+            signing_requested=true
+          fi
+          if [[ "$signing_requested" == "true" && -z "${IOS_ADHOC_RELEASE_REPOSITORY:-}" ]]; then
+            echo "::error::Set IOS_ADHOC_RELEASE_REPOSITORY to the private release repository before signing."
+            exit 1
+          fi
+          echo "Signing can proceed only in the protected ios-adhoc-release environment."
+
+  signed-adhoc:
+    name: Archive, sign, verify, and publish Ad Hoc IPA privately
+    if: ${{ github.ref == 'refs/heads/ios-release' && vars.IOS_ADHOC_SIGNING_ENABLED == 'true' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.build_signed == true)) && needs.signing-gate.result == 'success' }}
+    needs: [release-version, unsigned-release, signing-gate]
+    runs-on: macos-26
+    environment:
+      name: ios-adhoc-release
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read
+    env:
+      IOS_MARKETING_VERSION: ${{ needs.release-version.outputs.marketing_version }}
+      IOS_BUILD_NUMBER: ${{ needs.release-version.outputs.build_number }}
+      IOS_ADHOC_RELEASE_REPOSITORY: ${{ vars.IOS_ADHOC_RELEASE_REPOSITORY }}
+      IOS_MIN_IOS_VERSION: "15.0"
+      IOS_BUNDLE_ID: com.theresiansquest.game
+      IOS_TEAM_ID: 7A4H2D888M
+    steps:
+      - name: Check out exact source for profile and metadata validation
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+
+      - name: Verify the environment has an explicit independent reviewer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          env_json="$RUNNER_TEMP/adhoc-environment.json"
+          curl --fail --location --silent --show-error             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $GH_TOKEN"             -H "X-GitHub-Api-Version: 2022-11-28"             "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/environments/ios-adhoc-release"             --output "$env_json"
+          python3 - "$env_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          rules = data.get("protection_rules", [])
+          reviewers = [
+              rule for rule in rules
+              if rule.get("type") == "required_reviewers"
+              and bool(rule.get("reviewers"))
+              and rule.get("prevent_self_review") is True
+          ]
+          if not reviewers:
+              raise SystemExit(
+                  "The ios-adhoc-release environment must require at least one reviewer "
+                  "and prevent self-review before signing can run."
+              )
+          branch_policy = data.get("deployment_branch_policy") or {}
+          if branch_policy.get("custom_branch_policies") is not True:
+              raise SystemExit("The Ad Hoc environment must restrict deployments to the ios-release branch.")
+          print(f"Verified protected Ad Hoc environment with {len(reviewers)} independent reviewer rule(s).")
+          PY
+          branch_policies="$RUNNER_TEMP/adhoc-environment-branch-policies.json"
+          curl --fail --location --silent --show-error \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/environments/ios-adhoc-release/deployment-branch-policies?per_page=100" \
+            --output "$branch_policies"
+          python3 - "$branch_policies" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          names = sorted(item.get("name", "") for item in data.get("branch_policies", []))
+          if names != ["ios-release"]:
+              raise SystemExit("The Ad Hoc environment must allow exactly the ios-release branch.")
+          print("Verified the Ad Hoc environment branch allow-list is exactly ios-release.")
+          PY
+
+      - name: Verify Xcode 26.3 and iOS 26.2 SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          developer_dir="/Applications/Xcode_26.3.app/Contents/Developer"
+          test -d "$developer_dir"
+          export DEVELOPER_DIR="$developer_dir"
+          xcode_version="$(xcodebuild -version)"
+          printf '%s\n' "$xcode_version"
+          grep -Fxq "Xcode 26.3" <<< "$xcode_version"
+          sdk_version="$(xcrun --sdk iphoneos --show-sdk-version)"
+          [[ "$sdk_version" == "26.2" ]]
+          echo "Verified Xcode 26.3 and iOS SDK $sdk_version."
+          echo "DEVELOPER_DIR=$developer_dir" >> "$GITHUB_ENV"
+
+      - name: Download unsigned app and exact Godot Xcode export
+        uses: actions/download-artifact@v4
+        with:
+          name: TheresiansQuest-iOS-Unsigned-Release-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/adhoc-unsigned-artifact
+
+      - name: Download export inputs for the Release archive
+        uses: actions/download-artifact@v4
+        with:
+          name: TheresiansQuest-iOS-Xcode-Export-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/adhoc-export-artifact
+
+      - name: Verify and unpack the Xcode export inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          work_root="$RUNNER_TEMP/adhoc-export"
+          mkdir -p "$work_root"
+          input_tar="$RUNNER_TEMP/adhoc-export-artifact/ios-export-inputs.tar.gz"
+          test -s "$input_tar"
+          tar -tzf "$input_tar" | grep -F "export/Theresian's Quest.xcodeproj/project.pbxproj" >/dev/null
+          tar -tzf "$input_tar" | grep -F "export/Theresian's Quest.xcframework/ios-arm64/libgodot.a" >/dev/null
+          tar -tzf "$input_tar" | grep -F "export/Theresian's Quest.pck" >/dev/null
+          tar -tzf "$input_tar" | grep -F "project/PrivacyInfo.xcprivacy" >/dev/null
+          tar -xzf "$input_tar" -C "$work_root"
+          export_root="$work_root/export/Theresian's Quest"
+          xcode_project="$export_root.xcodeproj"
+          pck_path="$work_root/export/Theresian's Quest.pck"
+          project_copy="$work_root/project"
+          test -s "$xcode_project/project.pbxproj"
+          test -s "$pck_path"
+          test -s "$project_copy/PrivacyInfo.xcprivacy"
+          engine="$export_root.xcframework/ios-arm64/libgodot.a"
+          test -s "$engine"
+          /usr/bin/ar -t "$engine" > "$work_root/release-engine-members.txt"
+          grep -q 'ios.template_release.arm64' "$work_root/release-engine-members.txt"
+          if grep -q 'ios.template_debug.arm64' "$work_root/release-engine-members.txt"; then
+            echo "The packaged Xcode export contains debug Godot engine objects." >&2
+            exit 1
+          fi
+          [[ "$(xcrun lipo -archs "$engine")" == "arm64" ]]
+          metadata="$(find "$RUNNER_TEMP/adhoc-unsigned-artifact" -type f -name build-metadata.json -print -quit)"
+          test -s "$metadata"
+          python3 - "$metadata" "$GITHUB_SHA" "$IOS_MARKETING_VERSION" "$IOS_BUILD_NUMBER" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          expected_sha, expected_version, expected_build = sys.argv[2:]
+          if data.get("source_commit") != expected_sha:
+              raise SystemExit("Unsigned artifact metadata SHA does not match the signing source commit.")
+          if data.get("marketing_version") != expected_version or data.get("build_number") != expected_build:
+              raise SystemExit("Unsigned artifact metadata version/build does not match the release run.")
+          print("Unsigned app and Xcode export metadata match the exact release source/version/build.")
+          PY
+          project_list="$work_root/project-list.json"
+          xcodebuild -project "$xcode_project" -list -json > "$project_list"
+          scheme="$(python3 - "$project_list" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          project = data.get("project", {})
+          schemes = project.get("schemes", [])
+          if len(schemes) != 1 or len(project.get("targets", [])) != 1:
+              raise SystemExit("Expected one generated iOS app target and scheme.")
+          if not {"Debug", "Release"}.issubset(set(project.get("configurations", []))):
+              raise SystemExit("Generated project lacks Debug/Release configurations.")
+          print(schemes[0])
+          PY
+          )"
+          test -n "$scheme"
+          {
+            echo "WORK_ROOT=$work_root"
+            echo "EXPORT_ROOT=$export_root"
+            echo "XCODE_PROJECT=$xcode_project"
+            echo "IOS_DATA_PCK=$pck_path"
+            echo "CI_PROJECT=$project_copy"
+            echo "IOS_XCODE_SCHEME=$scheme"
+          } >> "$GITHUB_ENV"
+
+      - name: Verify the private release repository before importing Apple credentials
+        shell: bash
+        env:
+          IOS_ADHOC_RELEASE_TOKEN: ${{ secrets.IOS_ADHOC_RELEASE_TOKEN }}
+          IOS_ADHOC_RELEASE_REPOSITORY: ${{ vars.IOS_ADHOC_RELEASE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${IOS_ADHOC_RELEASE_TOKEN:-}" || -z "${IOS_ADHOC_RELEASE_REPOSITORY:-}" ]]; then
+            echo "Private release repository configuration or scoped token is missing." >&2
+            exit 1
+          fi
+          if [[ ! "$IOS_ADHOC_RELEASE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "IOS_ADHOC_RELEASE_REPOSITORY must use owner/repository format." >&2
+            exit 1
+          fi
+          if [[ "$IOS_ADHOC_RELEASE_REPOSITORY" == "$GITHUB_REPOSITORY" ]]; then
+            echo "Signed Ad Hoc releases must use a separate private repository." >&2
+            exit 1
+          fi
+          repo_json="$RUNNER_TEMP/adhoc-release-repository.json"
+          curl --fail --location --silent --show-error             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $IOS_ADHOC_RELEASE_TOKEN"             -H "X-GitHub-Api-Version: 2022-11-28"             "$GITHUB_API_URL/repos/$IOS_ADHOC_RELEASE_REPOSITORY"             --output "$repo_json"
+          default_branch="$(python3 - "$repo_json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          repo = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          if repo.get("private") is not True:
+              raise SystemExit("Signed IPA destination must be a private GitHub repository.")
+          branch = repo.get("default_branch")
+          if not isinstance(branch, str) or not branch:
+              raise SystemExit("Private release repository has no default branch.")
+          print(branch)
+          PY
+          )"
+          tag="adhoc-v$IOS_MARKETING_VERSION-build$IOS_BUILD_NUMBER-${GITHUB_SHA:0:7}"
+          encoded_tag="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$tag")"
+          http_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}'             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $IOS_ADHOC_RELEASE_TOKEN"             -H "X-GitHub-Api-Version: 2022-11-28"             "$GITHUB_API_URL/repos/$IOS_ADHOC_RELEASE_REPOSITORY/releases/tags/$encoded_tag")"
+          if [[ "$http_status" != "404" ]]; then
+            echo "Release tag already exists or the private release repository could not be checked; refusing a duplicate upload." >&2
+            exit 1
+          fi
+          echo "IOS_ADHOC_RELEASE_DEFAULT_BRANCH=$default_branch" >> "$GITHUB_ENV"
+          echo "IOS_ADHOC_RELEASE_TAG=$tag" >> "$GITHUB_ENV"
+          echo "Verified private Ad Hoc release destination and unique release tag."
+
+      - name: Validate and import Apple Distribution assets
+        shell: bash
+        env:
+          IOS_ADHOC_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_ADHOC_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          IOS_ADHOC_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_ADHOC_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          IOS_ADHOC_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_ADHOC_PROVISIONING_PROFILE_BASE64 }}
+          IOS_ADHOC_PROVISIONING_PROFILE_NAME: ${{ secrets.IOS_ADHOC_PROVISIONING_PROFILE_NAME }}
+          IOS_ADHOC_KEYCHAIN_PASSWORD: ${{ secrets.IOS_ADHOC_KEYCHAIN_PASSWORD }}
+          IOS_ADHOC_EXPECTED_DEVICE_UDIDS: ${{ secrets.IOS_ADHOC_EXPECTED_DEVICE_UDIDS }}
+        run: |
+          set -euo pipefail
+          required=(IOS_ADHOC_DISTRIBUTION_CERTIFICATE_BASE64 IOS_ADHOC_DISTRIBUTION_CERTIFICATE_PASSWORD IOS_ADHOC_PROVISIONING_PROFILE_BASE64 IOS_ADHOC_PROVISIONING_PROFILE_NAME IOS_ADHOC_KEYCHAIN_PASSWORD IOS_ADHOC_EXPECTED_DEVICE_UDIDS)
+          for name in "${required[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Required Ad Hoc signing input is missing: $name" >&2
+              exit 1
+            fi
+          done
+          keychain="$RUNNER_TEMP/theresians-quest-adhoc.keychain-db"
+          keychain_marker="$RUNNER_TEMP/theresians-quest-adhoc-keychain-owned"
+          certificate="$RUNNER_TEMP/adhoc-distribution.p12"
+          profile="$RUNNER_TEMP/adhoc.mobileprovision"
+          profile_plist="$RUNNER_TEMP/adhoc-profile.plist"
+          if [[ -e "$keychain" || -e "$keychain_marker" || -e "$certificate" || -e "$profile" || -e "$profile_plist" ]]; then
+            echo "Ad Hoc temporary signing paths are already occupied; refusing to overwrite them." >&2
+            exit 1
+          fi
+          umask 077
+          printf "%s" "$IOS_ADHOC_DISTRIBUTION_CERTIFICATE_BASE64" | base64 --decode > "$certificate"
+          printf "%s" "$IOS_ADHOC_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$profile"
+          chmod 600 "$certificate" "$profile"
+          test -s "$certificate"
+          test -s "$profile"
+          security cms -D -i "$profile" > "$profile_plist"
+          python3 .github/scripts/validate_adhoc_profile.py "$profile_plist" "$IOS_BUNDLE_ID" "$IOS_TEAM_ID"
+          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print:UUID' "$profile_plist")"
+          profile_name="$(/usr/libexec/PlistBuddy -c 'Print:Name' "$profile_plist")"
+          if [[ "$profile_name" != "$IOS_ADHOC_PROVISIONING_PROFILE_NAME" ]]; then
+            echo "Configured profile name does not match the decoded Ad Hoc profile." >&2
+            exit 1
+          fi
+          profile_dir="$HOME/Library/MobileDevice/Provisioning Profiles"
+          profile_install="$profile_dir/$profile_uuid.mobileprovision"
+          mkdir -p "$profile_dir"
+          if [[ -e "$profile_install" ]]; then
+            echo "The profile UUID already exists on the runner; refusing to overwrite it." >&2
+            exit 1
+          fi
+          cp "$profile" "$profile_install"
+          echo "IOS_PROFILE_UUID=$profile_uuid" >> "$GITHUB_ENV"
+          echo "IOS_PROFILE_NAME=$profile_name" >> "$GITHUB_ENV"
+          printf '%s\n' "$GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT" > "$keychain_marker"
+          if ! security create-keychain -p "$IOS_ADHOC_KEYCHAIN_PASSWORD" "$keychain"; then
+            rm -f "$keychain_marker"
+            echo "Could not create the run-specific Ad Hoc signing keychain." >&2
+            exit 1
+          fi
+          echo "IOS_ADHOC_KEYCHAIN_PATH=$keychain" >> "$GITHUB_ENV"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$IOS_ADHOC_KEYCHAIN_PASSWORD" "$keychain"
+          if ! security import "$certificate" -k "$keychain" -P "$IOS_ADHOC_DISTRIBUTION_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security >/dev/null 2>&1; then
+            echo "Apple Distribution certificate import failed; verify its PKCS#12 password and private-key content." >&2
+            exit 1
+          fi
+          security list-keychains -d user -s "$keychain" login.keychain-db
+          security default-keychain -s "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -k "$IOS_ADHOC_KEYCHAIN_PASSWORD" "$keychain" >/dev/null
+          identities="$(security find-identity -v -p codesigning "$keychain" 2>/dev/null || true)"
+          identity_hash="$(python3 - "$profile_plist" "$identities" "$IOS_TEAM_ID" <<'PY'
+          import hashlib
+          import plistlib
+          import re
+          import sys
+          from pathlib import Path
+
+          profile_path, identity_output, team = sys.argv[1:]
+          pattern = re.compile(r'^\s*(?:\d+\)\s*)?([A-Fa-f0-9]{40})\s+"Apple Distribution: .*?\(' + re.escape(team) + r'\)"\s*$', re.M)
+          identities = {value.upper() for value in pattern.findall(identity_output)}
+          if not identities:
+              raise SystemExit("No Apple Distribution identity with a private key matches the configured Team ID.")
+          with Path(profile_path).open("rb") as stream:
+              profile_data = plistlib.load(stream)
+          fingerprints = {
+              hashlib.sha1(certificate).hexdigest().upper()
+              for certificate in profile_data.get("DeveloperCertificates", [])
+              if isinstance(certificate, bytes)
+          }
+          matches = sorted(identities & fingerprints)
+          if len(matches) != 1:
+              raise SystemExit("Imported signing identity does not uniquely match the Ad Hoc provisioning profile.")
+          print(matches[0])
+          PY
+          )"
+          if [[ ! "$identity_hash" =~ ^[A-Fa-f0-9]{40}$ ]]; then
+            echo "Could not select the Apple Distribution certificate matching the Ad Hoc profile." >&2
+            exit 1
+          fi
+          echo "IOS_ADHOC_SIGNING_IDENTITY=$identity_hash" >> "$GITHUB_ENV"
+          echo "Validated Apple Distribution identity and registered-device profile without printing UDIDs."
+
+      - name: Archive Release arm64 app with Ad Hoc signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          link_map="$RUNNER_TEMP/theresians-quest-adhoc-engine-link-map.txt"
+          archive="$RUNNER_TEMP/theresians-quest-adhoc.xcarchive"
+          if [[ -e "$archive" || -e "$link_map" ]]; then
+            echo "Ad Hoc archive output path is already occupied; refusing to overwrite it." >&2
+            exit 1
+          fi
+          xcodebuild             -project "$XCODE_PROJECT"             -scheme "$IOS_XCODE_SCHEME"             -configuration Release             -destination generic/platform=iOS             -archivePath "$archive"             DEVELOPMENT_TEAM="$IOS_TEAM_ID"             CODE_SIGN_STYLE=Manual             CODE_SIGN_IDENTITY="$IOS_ADHOC_SIGNING_IDENTITY"             PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME"             ARCHS=arm64             ONLY_ACTIVE_ARCH=YES             LD_GENERATE_MAP_FILE=YES             "LD_MAP_FILE_PATH=$link_map"             archive
+          test -s "$link_map"
+          grep -F 'libgodot.a(' "$link_map" >/dev/null
+          grep -E 'ios\.template_release\.arm64' "$link_map" >/dev/null
+          if grep -E 'ios\.template_debug\.arm64' "$link_map" >/dev/null; then
+            echo "The archived app links debug Godot engine objects." >&2
+            exit 1
+          fi
+          echo "ARCHIVE_PATH=$archive" >> "$GITHUB_ENV"
+          echo "LINK_MAP_PATH=$link_map" >> "$GITHUB_ENV"
+
+      - name: Export Ad Hoc IPA with the registered-device profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          export_options="$RUNNER_TEMP/ExportOptions-AdHoc.plist"
+          export_dir="$RUNNER_TEMP/theresians-quest-adhoc-ipa"
+          if [[ -e "$export_options" || -e "$export_dir" ]]; then
+            echo "Ad Hoc export output path is already occupied; refusing to overwrite it." >&2
+            exit 1
+          fi
+          python3 - "$export_options" "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" "$IOS_PROFILE_NAME" "$IOS_ADHOC_SIGNING_IDENTITY" <<'PY'
+          import plistlib
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          bundle, team, profile, identity = sys.argv[2:]
+          options = {
+              "method": "ad-hoc",
+              "signingStyle": "manual",
+              "signingCertificate": identity,
+              "teamID": team,
+              "provisioningProfiles": {bundle: profile},
+              "manageAppVersionAndBuildNumber": False,
+          }
+          path.write_bytes(plistlib.dumps(options, fmt=plistlib.FMT_XML))
+          PY
+          xcodebuild -exportArchive -archivePath "$ARCHIVE_PATH" -exportOptionsPlist "$export_options" -exportPath "$export_dir"
+          ipa="$(find "$export_dir" -maxdepth 1 -type f -name '*.ipa' -print -quit)"
+          test -s "$ipa"
+          echo "IPA_PATH=$ipa" >> "$GITHUB_ENV"
+
+      - name: Verify signed IPA, profile eligibility, and game resources
+        shell: bash
+        env:
+          IOS_ADHOC_EXPECTED_DEVICE_UDIDS: ${{ secrets.IOS_ADHOC_EXPECTED_DEVICE_UDIDS }}
+        run: |
+          set -euo pipefail
+          unzip -tq "$IPA_PATH"
+          unpacked="$RUNNER_TEMP/adhoc-ipa-unpacked"
+          if [[ -e "$unpacked" ]]; then
+            echo "IPA verification extraction path is already occupied; refusing to overwrite it." >&2
+            exit 1
+          fi
+          mkdir -p "$unpacked"
+          ditto -x -k "$IPA_PATH" "$unpacked"
+          app_count="$(find "$unpacked/Payload" -maxdepth 1 -type d -name '*.app' -print | wc -l | tr -d '[:space:]')"
+          [[ "$app_count" == "1" ]]
+          app="$(find "$unpacked/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          plist="$app/Info.plist"
+          test -s "$plist"
+          bundle="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleIdentifier' "$plist")"
+          display="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleDisplayName' "$plist")"
+          version="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleShortVersionString' "$plist")"
+          build="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleVersion' "$plist")"
+          minimum="$(/usr/libexec/PlistBuddy -c 'Print:MinimumOSVersion' "$plist")"
+          executable="$(/usr/libexec/PlistBuddy -c 'Print:CFBundleExecutable' "$plist")"
+          [[ "$bundle" == "$IOS_BUNDLE_ID" ]]
+          [[ "$display" == "Theresian's Quest" ]]
+          [[ "$version" == "$IOS_MARKETING_VERSION" ]]
+          [[ "$build" == "$IOS_BUILD_NUMBER" ]]
+          [[ "$minimum" == "$IOS_MIN_IOS_VERSION" ]]
+          [[ "$(xcrun lipo -archs "$app/$executable")" == "arm64" ]]
+          test -s "$app/Assets.car"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          signature="$RUNNER_TEMP/adhoc-signature.txt"
+          codesign -dvvv "$app" > "$signature" 2>&1
+          grep -q 'Authority=Apple Distribution' "$signature"
+          grep -q "TeamIdentifier=$IOS_TEAM_ID" "$signature"
+          embedded_profile="$app/embedded.mobileprovision"
+          test -s "$embedded_profile"
+          embedded_profile_plist="$RUNNER_TEMP/embedded-adhoc-profile.plist"
+          security cms -D -i "$embedded_profile" > "$embedded_profile_plist"
+          python3 .github/scripts/validate_adhoc_profile.py "$embedded_profile_plist" "$IOS_BUNDLE_ID" "$IOS_TEAM_ID"
+          entitlements="$RUNNER_TEMP/adhoc-entitlements.plist"
+          if ! codesign -d --entitlements :- "$app" > "$entitlements" 2>/dev/null; then
+            echo "Could not extract signed IPA entitlements." >&2
+            exit 1
+          fi
+          python3 - "$entitlements" "$embedded_profile_plist" "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" <<'PY'
+          import plistlib
+          import sys
+          from pathlib import Path
+
+          signed_path, profile_path, bundle, team = sys.argv[1:]
+          with Path(signed_path).open("rb") as stream:
+              signed = plistlib.load(stream)
+          with Path(profile_path).open("rb") as stream:
+              profile = plistlib.load(stream)
+          profile_entitlements = profile.get("Entitlements", {})
+          signed_app_id = signed.get("application-identifier")
+          profile_app_id = profile_entitlements.get("application-identifier")
+          suffix = "." + bundle
+          if not isinstance(signed_app_id, str) or not signed_app_id.endswith(suffix) or "*" in signed_app_id:
+              raise SystemExit("Signed app application-identifier does not exactly match the bundle ID.")
+          if signed_app_id != profile_app_id:
+              raise SystemExit("Signed app application-identifier differs from its embedded Ad Hoc profile.")
+          if signed.get("com.apple.developer.team-identifier") != team:
+              raise SystemExit("Signed app Team ID entitlement is incorrect.")
+          if signed.get("get-task-allow") is not False or profile_entitlements.get("get-task-allow") is not False:
+              raise SystemExit("Signed app and Ad Hoc profile must both set get-task-allow=false.")
+          print("Signed entitlements match the registered-device Ad Hoc profile.")
+          PY
+          pck="$app/Theresian's Quest.pck"
+          test -s "$pck"
+          cmp -s "$IOS_DATA_PCK" "$pck"
+          test -s "$app/PrivacyInfo.xcprivacy"
+          plutil -lint "$app/PrivacyInfo.xcprivacy"
+          cmp -s "$CI_PROJECT/PrivacyInfo.xcprivacy" "$app/PrivacyInfo.xcprivacy"
+          ipa_sha="$(shasum -a 256 "$IPA_PATH" | awk '{print $1}')"
+          ipa_size="$(stat -f '%z' "$IPA_PATH")"
+          report="$RUNNER_TEMP/ios-adhoc-build-report.txt"
+          {
+            echo "source_commit=$GITHUB_SHA"
+            echo "godot_version=$GODOT_VERSION"
+            echo "xcode_version=26.3"
+            echo "ios_sdk=26.2"
+            echo "bundle_id=$bundle"
+            echo "team_id=$IOS_TEAM_ID"
+            echo "marketing_version=$version"
+            echo "build_number=$build"
+            echo "minimum_ios_version=$minimum"
+            echo "architecture=arm64"
+            echo "godot_engine=Release"
+            echo "distribution=Ad Hoc"
+            echo "registered_device_count=$(python3 - "$embedded_profile_plist" <<'PY'
+          import plistlib
+          import sys
+          with open(sys.argv[1], "rb") as stream:
+              profile = plistlib.load(stream)
+          print(len(profile.get("ProvisionedDevices", [])))
+          PY
+          )"
+            echo "pck_sha256=$(shasum -a 256 "$pck" | awk '{print $1}')"
+            echo "privacy_manifest_sha256=$(shasum -a 256 "$app/PrivacyInfo.xcprivacy" | awk '{print $1}')"
+            echo "ipa_file=$(basename "$IPA_PATH")"
+            echo "ipa_size_bytes=$ipa_size"
+            echo "ipa_sha256=$ipa_sha"
+          } > "$report"
+          echo "ADHOC_REPORT=$report" >> "$GITHUB_ENV"
+          echo "ADHOC_IPA_SHA256=$ipa_sha" >> "$GITHUB_ENV"
+          echo "Verified signed Ad Hoc IPA for $bundle; no device UDIDs were written to logs."
+
+      - name: Publish verified IPA to the private release repository
+        shell: bash
+        env:
+          IOS_ADHOC_RELEASE_TOKEN: ${{ secrets.IOS_ADHOC_RELEASE_TOKEN }}
+          IOS_ADHOC_RELEASE_REPOSITORY: ${{ vars.IOS_ADHOC_RELEASE_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          release_notes="$RUNNER_TEMP/private-release-notes.md"
+          metadata="$(find "$RUNNER_TEMP/adhoc-unsigned-artifact" -type f -name build-metadata.json -print -quit)"
+          changelog="$(find "$RUNNER_TEMP/adhoc-unsigned-artifact" -type f -name CHANGELOG.md -print -quit)"
+          test -s "$metadata"
+          test -s "$changelog"
+          cp "$changelog" "$release_notes"
+          request="$RUNNER_TEMP/private-release-request.json"
+          python3 - "$request" "$IOS_ADHOC_RELEASE_TAG" "$IOS_ADHOC_RELEASE_DEFAULT_BRANCH" "$IOS_MARKETING_VERSION" "$IOS_BUILD_NUMBER" "$GITHUB_SHA" "$release_notes" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          path, tag, target, version, build, commit, notes = sys.argv[1:]
+          body = Path(notes).read_text(encoding="utf-8")
+          body += f"\n\nSource commit: {commit}\nVersion: {version} ({build})\n"
+          payload = {
+              "tag_name": tag,
+              "target_commitish": target,
+              "name": f"Theresian's Quest {version} ({build}) Ad Hoc",
+              "body": body,
+              "draft": True,
+              "prerelease": True,
+          }
+          Path(path).write_text(json.dumps(payload), encoding="utf-8")
+          PY
+          response="$RUNNER_TEMP/private-release-response.json"
+          curl --fail-with-body --location --silent --show-error             -X POST             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $IOS_ADHOC_RELEASE_TOKEN"             -H "X-GitHub-Api-Version: 2022-11-28"             -H "Content-Type: application/json"             --data-binary "@$request"             "$GITHUB_API_URL/repos/$IOS_ADHOC_RELEASE_REPOSITORY/releases"             --output "$response"
+          upload_url="$(python3 - "$response" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          value = data.get("upload_url", "")
+          marker = "{?name,label}"
+          if not value.endswith(marker):
+              raise SystemExit("GitHub did not return a supported release asset upload URL.")
+          print(value[:-len(marker)])
+          PY
+          )"
+          release_url="$(python3 - "$response" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          print(data.get("html_url", ""))
+          PY
+          )"
+          if [[ -z "$upload_url" || -z "$release_url" ]]; then
+            echo "Private GitHub release creation returned incomplete metadata." >&2
+            exit 1
+          fi
+          assets=("$IPA_PATH" "$ADHOC_REPORT" "$metadata" "$changelog")
+          for asset in "${assets[@]}"; do
+            name="$(basename "$asset")"
+            encoded_name="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$name")"
+            asset_response="$RUNNER_TEMP/uploaded-asset.json"
+            curl --fail-with-body --location --silent --show-error               -X POST               -H "Accept: application/vnd.github+json"               -H "Authorization: Bearer $IOS_ADHOC_RELEASE_TOKEN"               -H "X-GitHub-Api-Version: 2022-11-28"               -H "Content-Type: application/octet-stream"               --data-binary "@$asset"               "$upload_url?name=$encoded_name"               --output "$asset_response"
+            expected_size="$(stat -f '%z' "$asset")"
+            python3 - "$asset_response" "$name" "$expected_size" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          response_path, expected_name, expected_size = sys.argv[1:]
+          data = json.loads(Path(response_path).read_text(encoding="utf-8"))
+          if data.get("state") != "uploaded" or data.get("name") != expected_name:
+              raise SystemExit("Private release asset upload did not reach the uploaded state.")
+          if int(data.get("size", -1)) != int(expected_size):
+              raise SystemExit("Private release asset size does not match the verified local file.")
+          PY
+          done
+          release_id="$(python3 - "$response" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          print(json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))["id"])
+          PY
+          )"
+          publish_request="$RUNNER_TEMP/publish-private-release.json"
+          printf '%s\n' '{"draft":false}' > "$publish_request"
+          curl --fail-with-body --location --silent --show-error             -X PATCH             -H "Accept: application/vnd.github+json"             -H "Authorization: Bearer $IOS_ADHOC_RELEASE_TOKEN"             -H "X-GitHub-Api-Version: 2022-11-28"             -H "Content-Type: application/json"             --data-binary "@$publish_request"             "$GITHUB_API_URL/repos/$IOS_ADHOC_RELEASE_REPOSITORY/releases/$release_id"             --output "$RUNNER_TEMP/published-private-release.json"
+          echo "Private Ad Hoc release published after all assets verified: $release_url" >> "$GITHUB_STEP_SUMMARY"
+          echo "Private release URL: $release_url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove temporary Ad Hoc signing materials
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/theresians-quest-adhoc.keychain-db"
+          marker="$RUNNER_TEMP/theresians-quest-adhoc-keychain-owned"
+          if [[ -f "$marker" && "$(cat "$marker")" == "$GITHUB_RUN_ID/$GITHUB_RUN_ATTEMPT" ]]; then
+            security default-keychain -s login.keychain-db >/dev/null 2>&1 || true
+            security list-keychains -d user -s login.keychain-db >/dev/null 2>&1 || true
+            if security delete-keychain "$keychain" >/dev/null 2>&1; then
+              rm -f "$marker"
+            else
+              echo "Warning: temporary keychain cleanup failed; ownership marker was retained." >&2
+            fi
+          fi
+          if [[ "${IOS_PROFILE_UUID:-}" =~ ^[A-Fa-f0-9-]{36}$ ]]; then
+            rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/$IOS_PROFILE_UUID.mobileprovision"
+          fi
+          rm -f "$RUNNER_TEMP/adhoc-distribution.p12" "$RUNNER_TEMP/adhoc.mobileprovision" "$RUNNER_TEMP/adhoc-profile.plist" "$RUNNER_TEMP/adhoc-entitlements.plist" "$RUNNER_TEMP/embedded-adhoc-profile.plist" "$RUNNER_TEMP/adhoc-signature.txt"

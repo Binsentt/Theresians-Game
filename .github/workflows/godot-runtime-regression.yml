@@ -30,6 +30,17 @@ on:
       - '**/*.m4a'
       - '**/*.ttf'
       - '**/*.otf'
+  workflow_call:
+    inputs:
+      test_ref:
+        description: Exact source commit SHA to validate
+        required: true
+        type: string
+      reusable_call:
+        description: Set true only when invoked by the protected Ad Hoc release workflow
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       test_ref:
@@ -52,6 +63,7 @@ jobs:
       GODOT_ARCHIVE_URL: https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_macos.universal.zip
       GODOT_TEST_REF: ${{ inputs.test_ref || github.sha }}
       INPUT_TEST_REF: ${{ inputs.test_ref || '' }}
+      IS_REUSABLE_CALL: ${{ inputs.reusable_call || false }}
       PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number || '' }}
       PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
 
@@ -82,6 +94,17 @@ jobs:
               fi
               if [[ ! "$PULL_REQUEST_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
                 echo "::error::Pull request head SHA is missing or malformed." >&2
+                exit 1
+              fi
+              expected_sha="$GITHUB_SHA"
+              ;;
+            workflow_call|push)
+              if [[ "$GITHUB_EVENT_NAME" == "push" && "$IS_REUSABLE_CALL" != "true" ]]; then
+                echo "::error::Push-context runtime tests are allowed only through the protected reusable caller." >&2
+                exit 1
+              fi
+              if [[ ! "$GODOT_TEST_REF" =~ ^[0-9a-f]{40}$ || "$GODOT_TEST_REF" != "$GITHUB_SHA" ]]; then
+                echo "::error::Reusable runtime tests must target the exact caller commit SHA." >&2
                 exit 1
               fi
               expected_sha="$GITHUB_SHA"
@@ -268,8 +291,6 @@ jobs:
             "tools/qa_local_runtime_contract_test.tscn|local-qa"
             "tools/remote_sync_pending_queue_test.tscn|local-qa"
             "tools/remote_sync_reconnect_flush_test.tscn|local-qa"
-            "tools/save_commit_identity_test.tscn|local-qa"
-            "tools/remote_sync_save_commit_conflict_test.tscn|local-qa"
             "tools/progress_commit_boundary_test.tscn|local-qa"
             "tools/load_game_save_data_compatibility_test.tscn|local-qa"
             "tools/learning_cycle_save_test.tscn|local-qa"

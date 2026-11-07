@@ -2,6 +2,21 @@ name: iOS Unsigned Release
 
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      marketing_version:
+        description: Release marketing version for a protected release caller
+        required: false
+        type: string
+      build_number:
+        description: Monotonic build number computed by the protected release caller
+        required: false
+        type: string
+      release_pipeline:
+        description: Set true only when called by the protected Ad Hoc release workflow
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,17 +40,23 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 90
     steps:
-      - name: Check out the dispatched commit
+      - name: Check out the exact triggering commit
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Check project inputs and available disk space
         shell: bash
+        env:
+          IOS_RELEASE_PIPELINE_CALL: ${{ inputs.release_pipeline || false }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then
-            echo "This workflow only supports manual dispatch." >&2
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" && "$IOS_RELEASE_PIPELINE_CALL" != "true" ]]; then
+            echo "This workflow supports manual dispatch and explicitly marked protected release calls only." >&2
+            exit 1
+          fi
+          if [[ "$IOS_RELEASE_PIPELINE_CALL" == "true" && "$GITHUB_REF" != "refs/heads/ios-release" ]]; then
+            echo "Reusable iOS export calls are restricted to the protected ios-release branch." >&2
             exit 1
           fi
           test -s project.godot
@@ -140,16 +161,21 @@ jobs:
             4.6.1.stable.official.*) ;;
             *) echo "Unexpected Godot editor version: $version_output" >&2; exit 1 ;;
           esac
-          echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
-          echo "WORK_ROOT=$work_root" >> "$GITHUB_ENV"
-          echo "GODOT_TEMPLATE_VERSION=$template_version" >> "$GITHUB_ENV"
-          echo "IOS_TEMPLATE_RELEASE_ENGINE=$release_engine" >> "$GITHUB_ENV"
-          echo "IOS_TEMPLATE_RELEASE_MEMBERS=$release_members" >> "$GITHUB_ENV"
+          {
+            echo "GODOT_BIN=$godot_bin"
+            echo "WORK_ROOT=$work_root"
+            echo "GODOT_TEMPLATE_VERSION=$template_version"
+            echo "IOS_TEMPLATE_RELEASE_ENGINE=$release_engine"
+            echo "IOS_TEMPLATE_RELEASE_MEMBERS=$release_members"
+          } >> "$GITHUB_ENV"
           echo "Godot editor verified: $version_output"
           echo "Matching 4.6.1 iOS Release template verified."
 
       - name: Prepare isolated project copy and temporary iOS preset
         shell: bash
+        env:
+          IOS_CALL_MARKETING_VERSION: ${{ inputs.marketing_version }}
+          IOS_CALL_BUILD_NUMBER: ${{ inputs.build_number }}
         run: |
           set -euo pipefail
           ci_project="$WORK_ROOT/project"
@@ -161,12 +187,20 @@ jobs:
             --exclude 'DerivedData/' \
             --exclude 'TQ-iOs-Export/' \
             ./ "$ci_project/"
-          python3 - "$ci_project/export_presets.cfg" <<'PY'
+          python3 - "$ci_project/export_presets.cfg" "$IOS_CALL_MARKETING_VERSION" "$IOS_CALL_BUILD_NUMBER" <<'PY'
+          import json
           import re
           import sys
           from pathlib import Path
 
           path = Path(sys.argv[1])
+          marketing_version, build_number = sys.argv[2:]
+          if bool(marketing_version) != bool(build_number):
+              raise SystemExit("Release version and build number must be supplied together.")
+          if marketing_version and not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", marketing_version):
+              raise SystemExit("Release marketing version must use major.minor.patch format.")
+          if build_number and not re.fullmatch(r"[1-9][0-9]*", build_number):
+              raise SystemExit("Release build number must be a positive decimal integer.")
           text = path.read_text(encoding="utf-8")
           presets = list(re.finditer(r"(?ms)^\[preset\.(\d+)\]\r?\n.*?(?=^\[preset\.\d+\]|\Z)", text))
           ios = next((item for item in presets
@@ -185,8 +219,22 @@ jobs:
           if len(setting.findall(options)) != 1:
               raise SystemExit("Expected one export_project_only setting.")
           options = setting.sub("application/export_project_only=true", options, count=1)
+          if marketing_version:
+              for option, value in (
+                  ("application/short_version", marketing_version),
+                  ("application/version", build_number),
+              ):
+                  setting = re.compile(rf"(?m)^{re.escape(option)}=.*$")
+                  existing = setting.findall(options)
+                  if len(existing) > 1:
+                      raise SystemExit(f"The iOS preset contains duplicate {option} settings.")
+                  line = f"{option}={json.dumps(value)}"
+                  if existing:
+                      options = setting.sub(line, options, count=1)
+                  else:
+                      options += f"\n{line}"
           path.write_text(text[:start] + options + text[end:], encoding="utf-8")
-          print("Only the temporary iOS project-only setting was changed.")
+          print("Temporary iOS project-only and requested release version settings were applied to the isolated copy.")
           PY
           echo "CI_PROJECT=$ci_project" >> "$GITHUB_ENV"
           echo "ARTIFACT_DIR=$artifact_dir" >> "$GITHUB_ENV"
@@ -542,14 +590,81 @@ jobs:
           echo "APP_PATH=$app_path" >> "$GITHUB_ENV"
           echo "VERIFICATION_REPORT=$report" >> "$GITHUB_ENV"
 
+      - name: Prepare source-pinned release metadata and changelog
+        if: ${{ inputs.release_pipeline == true }}
+        shell: bash
+        env:
+          IOS_CALL_MARKETING_VERSION: ${{ inputs.marketing_version }}
+          IOS_CALL_BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          set -euo pipefail
+          [[ -n "$IOS_CALL_MARKETING_VERSION" && -n "$IOS_CALL_BUILD_NUMBER" ]]
+          release_dir="$ARTIFACT_DIR/release-metadata"
+          mkdir -p "$release_dir"
+          previous_tag="$(git tag --list 'ios-v*' --sort=-version:refname | head -n 1 || true)"
+          if [[ -n "$previous_tag" ]] && git merge-base --is-ancestor "$previous_tag" "$GITHUB_SHA"; then
+            git log --format='- %s (%h)' "$previous_tag..$GITHUB_SHA" --max-count=50 > "$release_dir/CHANGELOG.md"
+          else
+            git log --format='- %s (%h)' "$GITHUB_SHA" --max-count=50 > "$release_dir/CHANGELOG.md"
+          fi
+          if [[ ! -s "$release_dir/CHANGELOG.md" ]]; then
+            echo "- Initial Ad Hoc package for source commit $GITHUB_SHA" > "$release_dir/CHANGELOG.md"
+          fi
+          python3 - "$release_dir/build-metadata.json" "$GITHUB_REPOSITORY" "$GITHUB_SHA" "$IOS_CALL_MARKETING_VERSION" "$IOS_CALL_BUILD_NUMBER" "$IOS_BUNDLE_ID" "$IOS_TEAM_ID" "$IOS_MIN_IOS_VERSION" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          output, repository, commit, version, build, bundle, team, minimum = sys.argv[1:]
+          payload = {
+              "repository": repository,
+              "source_commit": commit,
+              "godot_version": "4.6.1",
+              "marketing_version": version,
+              "build_number": build,
+              "bundle_id": bundle,
+              "team_id": team,
+              "minimum_ios_version": minimum,
+              "distribution": "ad-hoc",
+          }
+          Path(output).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+      - name: Package exact Godot Xcode export inputs for the protected signing job
+        if: ${{ inputs.release_pipeline == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export_inputs="$ARTIFACT_DIR/ios-export-inputs.tar.gz"
+          staging="$WORK_ROOT/adhoc-archive-inputs"
+          if [[ -e "$staging" ]]; then
+            echo "Ad Hoc archive staging path already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          mkdir -p "$staging/project"
+          cp "$CI_PROJECT/PrivacyInfo.xcprivacy" "$staging/project/PrivacyInfo.xcprivacy"
+          tar -czf "$export_inputs" -C "$WORK_ROOT" export -C "$staging" project
+          tar -tzf "$export_inputs" | grep -F "export/Theresian's Quest.xcodeproj/project.pbxproj" >/dev/null
+          tar -tzf "$export_inputs" | grep -F "export/Theresian's Quest.xcframework/ios-arm64/libgodot.a" >/dev/null
+          tar -tzf "$export_inputs" | grep -F "export/Theresian's Quest.pck" >/dev/null
+          tar -tzf "$export_inputs" | grep -F "project/PrivacyInfo.xcprivacy" >/dev/null
+          echo "Exact PCK, privacy manifest, Xcode project, and Release framework export inputs packaged."
       - name: Upload unsigned .app and verification report
         uses: actions/upload-artifact@v4
         with:
-          name: TheresiansQuest-iOS-Unsigned-Release-${{ github.sha }}
+          name: TheresiansQuest-iOS-Unsigned-Release-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/theresians-quest-ios-unsigned-${{ github.run_id }}-${{ github.run_attempt }}/DerivedData/Build/Products/Release-iphoneos/Theresian's Quest.app/
-            ${{ runner.temp }}/theresians-quest-ios-unsigned-${{ github.run_id }}-${{ github.run_attempt }}/artifacts/ios-unsigned-release-verification.txt
+            ${{ runner.temp }}/theresians-quest-ios-unsigned-${{ github.run_id }}-${{ github.run_attempt }}/artifacts/
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
           include-hidden-files: true
+      - name: Upload Godot Xcode export inputs for the protected Ad Hoc archive
+        if: ${{ inputs.release_pipeline == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: TheresiansQuest-iOS-Xcode-Export-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/theresians-quest-ios-unsigned-${{ github.run_id }}-${{ github.run_attempt }}/artifacts/ios-export-inputs.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
