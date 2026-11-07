@@ -1,0 +1,69 @@
+name: iOS Ad Hoc PR Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/scripts/validate_adhoc_profile.py
+      - .github/workflows/godot-runtime-regression.yml
+      - .github/workflows/ios-adhoc-pr-validation.yml
+      - .github/workflows/ios-adhoc-release.yml
+      - .github/workflows/ios-unsigned-release.yml
+      - docs/IOS_ADHOC_RELEASE.md
+      - tools/__init__.py
+      - tools/ios_adhoc_profile_validation.py
+      - tools/test_ios_adhoc_profile_validation.py
+      - tools/test_ios_adhoc_workflow_policy.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-adhoc-pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Lint gated Ad Hoc workflow and synthetic profile contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the pull request merge commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+
+      - name: Download and verify pinned actionlint
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="1.7.12"
+          archive="$RUNNER_TEMP/actionlint_${version}_linux_amd64.tar.gz"
+          curl --fail --location --retry 3 --silent --show-error \
+            --output "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v${version}/actionlint_${version}_linux_amd64.tar.gz"
+          printf '%s  %s\n' \
+            "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8" \
+            "$archive" | sha256sum --check -
+          tar -xzf "$archive" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -version
+
+      - name: Lint the reusable and Ad Hoc workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$RUNNER_TEMP/actionlint" \
+            .github/workflows/ios-adhoc-pr-validation.yml \
+            .github/workflows/ios-adhoc-release.yml \
+            .github/workflows/godot-runtime-regression.yml \
+            .github/workflows/ios-unsigned-release.yml
+
+      - name: Run synthetic provisioning-profile and workflow-policy tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest \
+            tools.test_ios_adhoc_profile_validation \
+            tools.test_ios_adhoc_workflow_policy \
+            -v
