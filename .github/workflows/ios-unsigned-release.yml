@@ -161,11 +161,13 @@ jobs:
             4.6.1.stable.official.*) ;;
             *) echo "Unexpected Godot editor version: $version_output" >&2; exit 1 ;;
           esac
-          echo "GODOT_BIN=$godot_bin" >> "$GITHUB_ENV"
-          echo "WORK_ROOT=$work_root" >> "$GITHUB_ENV"
-          echo "GODOT_TEMPLATE_VERSION=$template_version" >> "$GITHUB_ENV"
-          echo "IOS_TEMPLATE_RELEASE_ENGINE=$release_engine" >> "$GITHUB_ENV"
-          echo "IOS_TEMPLATE_RELEASE_MEMBERS=$release_members" >> "$GITHUB_ENV"
+          {
+            echo "GODOT_BIN=$godot_bin"
+            echo "WORK_ROOT=$work_root"
+            echo "GODOT_TEMPLATE_VERSION=$template_version"
+            echo "IOS_TEMPLATE_RELEASE_ENGINE=$release_engine"
+            echo "IOS_TEMPLATE_RELEASE_MEMBERS=$release_members"
+          } >> "$GITHUB_ENV"
           echo "Godot editor verified: $version_output"
           echo "Matching 4.6.1 iOS Release template verified."
 

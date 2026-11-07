@@ -304,12 +304,14 @@ jobs:
           PY
           )"
           test -n "$scheme"
-          echo "WORK_ROOT=$work_root" >> "$GITHUB_ENV"
-          echo "EXPORT_ROOT=$export_root" >> "$GITHUB_ENV"
-          echo "XCODE_PROJECT=$xcode_project" >> "$GITHUB_ENV"
-          echo "IOS_DATA_PCK=$pck_path" >> "$GITHUB_ENV"
-          echo "CI_PROJECT=$project_copy" >> "$GITHUB_ENV"
-          echo "IOS_XCODE_SCHEME=$scheme" >> "$GITHUB_ENV"
+          {
+            echo "WORK_ROOT=$work_root"
+            echo "EXPORT_ROOT=$export_root"
+            echo "XCODE_PROJECT=$xcode_project"
+            echo "IOS_DATA_PCK=$pck_path"
+            echo "CI_PROJECT=$project_copy"
+            echo "IOS_XCODE_SCHEME=$scheme"
+          } >> "$GITHUB_ENV"
 
       - name: Verify the private release repository before importing Apple credentials
         shell: bash
