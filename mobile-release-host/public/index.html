@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#10251e">
+  <title>Theresian's Quest — iPhone updates</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="brand">
+      <div class="mark" aria-hidden="true">TQ</div>
+      <div><p class="eyebrow">PRIVATE DEVICE RELEASES</p><h1>Theresian’s Quest</h1></div>
+    </header>
+
+    <section id="login-card" class="card" aria-labelledby="login-title">
+      <h2 id="login-title">Sign in to install</h2>
+      <p>Enter the release access code provided by the game owner.</p>
+      <form id="login-form">
+        <label for="access-code">Access code</label>
+        <input id="access-code" name="password" type="password" autocomplete="current-password" required minlength="16">
+        <button type="submit">Continue</button>
+      </form>
+      <p id="login-message" class="message" role="status" aria-live="polite"></p>
+    </section>
+
+    <section id="release-card" class="card hidden" aria-labelledby="release-title">
+      <div class="release-heading">
+        <div><p class="eyebrow">LATEST APPROVED BUILD</p><h2 id="release-title">Ready to install</h2></div>
+        <span id="build-badge" class="badge"></span>
+      </div>
+      <dl class="release-details">
+        <div><dt>Version</dt><dd id="version"></dd></div>
+        <div><dt>Build</dt><dd id="build-number"></dd></div>
+      </dl>
+      <h3>Release notes</h3>
+      <pre id="release-notes" class="notes">Loading release notes…</pre>
+      <a id="install-link" class="button hidden" href="#">Install or update on this iPhone</a>
+      <ol class="install-steps">
+        <li>Open this page in Safari on the registered iPhone.</li>
+        <li>Tap the install button and confirm the iOS installation prompt.</li>
+        <li>Keep the existing game installed when updating; do not delete it first.</li>
+      </ol>
+      <p class="install-hint">iPhone installation is user-initiated; it does not happen silently.</p>
+      <button id="sign-out" class="secondary" type="button">Sign out</button>
+    </section>
+
+    <section id="empty-card" class="card hidden" aria-live="polite">
+      <h2>No release is available</h2><p id="empty-message">Check back after the owner publishes an approved build.</p>
+    </section>
+    <footer><p>Only registered devices included in the Ad Hoc profile can run the app.</p></footer>
+  </main>
+</body>
+</html>
