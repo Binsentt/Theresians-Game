@@ -11,7 +11,9 @@ on:
       - .github/workflows/ios-adhoc-release.yml
       - .github/workflows/ios-unsigned-release.yml
       - docs/IOS_ADHOC_RELEASE.md
+      - mobile-release-host/**
       - tools/__init__.py
+      - tools/generate_ios_ota_manifest.mjs
       - tools/ios_adhoc_profile_validation.py
       - tools/test_ios_adhoc_profile_validation.py
       - tools/test_ios_adhoc_workflow_policy.py
@@ -33,6 +35,12 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 1
+
+      - name: Set up Node.js 22 for OTA host validation
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
 
       - name: Download and verify pinned actionlint
         shell: bash
@@ -67,3 +75,10 @@ jobs:
             tools.test_ios_adhoc_profile_validation \
             tools.test_ios_adhoc_workflow_policy \
             -v
+
+      - name: Run OTA manifest and private install-host tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          node --test mobile-release-host/test/ota.test.mjs

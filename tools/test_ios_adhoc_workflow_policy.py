@@ -113,6 +113,29 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
         self.assertIn('repo.get("private") is not True', self.adhoc)
         self.assertIn('IOS_ADHOC_RELEASE_REPOSITORY" == "$GITHUB_REPOSITORY"', self.adhoc)
 
+    def test_ota_host_upload_is_opt_in_and_only_after_signed_ipa_verification(self):
+        self.assertIn("if: ${{ vars.IOS_ADHOC_OTA_ENABLED == 'true' }}", self.adhoc)
+        ota_preflight = self.adhoc.index("Verify the private HTTPS installation host before importing Apple credentials")
+        signing_import = self.adhoc.index("Validate and import Apple Distribution assets")
+        self.assertLess(ota_preflight, signing_import)
+        self.assertIn("/admin/health", self.adhoc)
+        stage = self.adhoc.index("Stage verified IPA on the private HTTPS installation host")
+        verify = self.adhoc.index("Verify signed IPA, profile eligibility, and game resources")
+        private_publish = self.adhoc.index("Publish verified IPA to the private release repository")
+        ota_promote = self.adhoc.index("Promote the approved release on the private HTTPS installation host")
+        cleanup = self.adhoc.index("Remove temporary Ad Hoc signing materials")
+        self.assertLess(verify, stage)
+        self.assertLess(stage, private_publish)
+        self.assertLess(private_publish, ota_promote)
+        self.assertLess(ota_promote, cleanup)
+        self.assertIn("IOS_ADHOC_OTA_UPLOAD_TOKEN: ${{ secrets.IOS_ADHOC_OTA_UPLOAD_TOKEN }}", self.adhoc)
+        self.assertIn("GitHub release URLs are not valid OTA installer hosts", self.adhoc)
+
+    def test_ota_validation_uses_an_explicit_node_runtime(self):
+        self.assertIn("actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444", self.pr_ci)
+        self.assertIn("node-version: 22", self.pr_ci)
+        self.assertIn("package-manager-cache: false", self.pr_ci)
+
     def test_reusable_workflow_calls_have_required_markers(self):
         self.assertIn("reusable_call: true", job(self.adhoc, "runtime-regression"))
         self.assertIn("release_pipeline: true", job(self.adhoc, "unsigned-release"))
