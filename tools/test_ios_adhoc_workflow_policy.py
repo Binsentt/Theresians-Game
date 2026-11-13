@@ -115,6 +115,7 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
 
     def test_ota_host_upload_is_opt_in_and_only_after_signed_ipa_verification(self):
         self.assertIn("if: ${{ vars.IOS_ADHOC_OTA_ENABLED == 'true' }}", self.adhoc)
+        self.assertNotRegex(self.adhoc, r"(?m)^\s*IOS_ADHOC_OTA_ENABLED:\s*['\"]?true['\"]?\s*$")
         ota_preflight = self.adhoc.index("Verify the private HTTPS installation host before importing Apple credentials")
         signing_import = self.adhoc.index("Validate and import Apple Distribution assets")
         self.assertLess(ota_preflight, signing_import)
@@ -127,6 +128,8 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
         self.assertLess(verify, stage)
         self.assertLess(stage, private_publish)
         self.assertLess(private_publish, ota_promote)
+        private_publish_step = self.adhoc[private_publish:ota_promote]
+        self.assertNotIn("if: ${{ vars.IOS_ADHOC_OTA_ENABLED", private_publish_step)
         self.assertLess(ota_promote, cleanup)
         self.assertIn("IOS_ADHOC_OTA_UPLOAD_TOKEN: ${{ secrets.IOS_ADHOC_OTA_UPLOAD_TOKEN }}", self.adhoc)
         self.assertIn("GitHub release URLs are not valid OTA installer hosts", self.adhoc)

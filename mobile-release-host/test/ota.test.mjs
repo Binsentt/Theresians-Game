@@ -58,6 +58,30 @@ async function withServer(callback) {
   }
 }
 
+const auth = { Authorization: `Bearer ${"u".repeat(40)}` };
+const releaseBytes = (buildNumber) => Buffer.from(`synthetic-ipa-${buildNumber}`);
+const releaseMetadata = (buildNumber, bytes, marketingVersion = "1.2.3") => ({
+  ...metadata,
+  release_id: `${marketingVersion}-${buildNumber}`,
+  marketing_version: marketingVersion,
+  build_number: String(buildNumber),
+  ipa_sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+  release_notes: `Synthetic build ${buildNumber}`,
+});
+
+async function stageRelease(server, buildNumber, bytes = releaseBytes(buildNumber), marketingVersion = "1.2.3") {
+  const details = releaseMetadata(buildNumber, bytes, marketingVersion);
+  const created = await request(server, "POST", `/admin/releases/${details.release_id}`, { ...auth, "Content-Type": "application/json" }, Buffer.from(JSON.stringify(details)));
+  assert.equal(created.status, 201);
+  const uploaded = await request(server, "PUT", `/admin/releases/${details.release_id}/ipa`, auth, bytes);
+  assert.equal(uploaded.status, 201);
+  return details.release_id;
+}
+
+async function publishRelease(server, releaseId) {
+  return request(server, "POST", `/admin/releases/${releaseId}/publish`, auth);
+}
+
 test("manifest embeds the approved bundle, marketing version, build, and escaped HTTPS IPA URL", () => {
   const manifest = createManifest({
     ipaUrl: "https://install.example.test/ota/1.2.3-101/app.ipa?e=1799999999&s=abc",
@@ -199,6 +223,130 @@ test("staged IPA hash mismatch cannot be published and build numbers must increa
   });
 });
 
+test("the first valid release is accepted when storage and latest pointer are empty", async () => {
+  await withServer(async (server, directory) => {
+    const id = await stageRelease(server, 1);
+    const result = await publishRelease(server, id);
+    assert.equal(result.status, 201);
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(directory, "latest.json"), "utf8")), { release_id: id });
+  });
+});
+
+test("a missing latest pointer with a published release rejects both lower and higher promotions", async () => {
+  for (const attemptedBuild of [50, 201]) {
+    await withServer(async (server, directory) => {
+      const current = await stageRelease(server, 200);
+      assert.equal((await publishRelease(server, current)).status, 201);
+      await fs.unlink(path.join(directory, "latest.json"));
+      const attempted = await stageRelease(server, attemptedBuild);
+      const rejected = await publishRelease(server, attempted);
+      assert.equal(rejected.status, 409);
+      assert.match(JSON.parse(rejected.body).error, /explicit recovery is required/);
+      assert.equal(await fs.stat(path.join(directory, "releases", current, "app.ipa")).then((stat) => stat.size > 0), true);
+      await assert.rejects(fs.stat(path.join(directory, "releases", attempted)));
+      await assert.rejects(fs.stat(path.join(directory, "latest.json")));
+    });
+  }
+});
+
+test("a missing pointer with multiple published releases fails closed", async () => {
+  await withServer(async (server, directory) => {
+    const first = await stageRelease(server, 200);
+    assert.equal((await publishRelease(server, first)).status, 201);
+    const second = await stageRelease(server, 201);
+    assert.equal((await publishRelease(server, second)).status, 201);
+    await fs.unlink(path.join(directory, "latest.json"));
+    const attempted = await stageRelease(server, 202);
+    assert.equal((await publishRelease(server, attempted)).status, 409);
+    assert.equal(await fs.stat(path.join(directory, "releases", first, "app.ipa")).then((stat) => stat.size > 0), true);
+    assert.equal(await fs.stat(path.join(directory, "releases", second, "app.ipa")).then((stat) => stat.size > 0), true);
+  });
+});
+
+test("a present pointer rejects lower or reused build numbers even under a different release version", async () => {
+  await withServer(async (server, directory) => {
+    const latest = await stageRelease(server, 200);
+    assert.equal((await publishRelease(server, latest)).status, 201);
+    for (const buildNumber of [199, 200]) {
+      const candidate = await stageRelease(server, buildNumber, releaseBytes(buildNumber), "1.2.4");
+      assert.equal((await publishRelease(server, candidate)).status, 409);
+      await assert.rejects(fs.stat(path.join(directory, "releases", candidate)));
+    }
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(directory, "latest.json"), "utf8")), { release_id: latest });
+  });
+});
+
+test("an older pointer contradicting newer published history cannot be used for promotion or reads", async () => {
+  await withServer(async (server, directory) => {
+    const first = await stageRelease(server, 200);
+    assert.equal((await publishRelease(server, first)).status, 201);
+    const second = await stageRelease(server, 201);
+    assert.equal((await publishRelease(server, second)).status, 201);
+    await fs.writeFile(path.join(directory, "latest.json"), JSON.stringify({ release_id: first }));
+    const candidate = await stageRelease(server, 202);
+    assert.equal((await publishRelease(server, candidate)).status, 409);
+    const login = await request(server, "POST", "/api/session", { "Content-Type": "application/json" }, Buffer.from(JSON.stringify({ password: "test-install-code-that-is-long-enough" })));
+    assert.equal((await request(server, "GET", "/api/release", { Cookie: login.headers["set-cookie"][0].split(";")[0] })).status, 409);
+  });
+});
+
+test("malformed, dangling, and corrupt latest pointers fail closed", async () => {
+  await withServer(async (server, directory) => {
+    const first = await stageRelease(server, 200);
+    assert.equal((await publishRelease(server, first)).status, 201);
+    const latestPath = path.join(directory, "latest.json");
+    const candidate = await stageRelease(server, 201);
+
+    await fs.writeFile(latestPath, JSON.stringify({ release_id: first, unexpected: true }));
+    assert.equal((await publishRelease(server, candidate)).status, 409);
+    await fs.writeFile(latestPath, "{not-json");
+    assert.equal((await publishRelease(server, candidate)).status, 409);
+    await fs.writeFile(latestPath, JSON.stringify({ release_id: "1.2.3-999" }));
+    assert.equal((await publishRelease(server, candidate)).status, 409);
+    await fs.writeFile(latestPath, JSON.stringify({ release_id: first }));
+    await fs.writeFile(path.join(directory, "releases", first, "app.ipa"), Buffer.from("corrupt"));
+    assert.equal((await publishRelease(server, candidate)).status, 409);
+    assert.equal(await fs.stat(path.join(directory, "releases", first, "app.ipa")).then((stat) => stat.size), Buffer.byteLength("corrupt"));
+  });
+});
+
+test("only the current latest release is idempotently retryable; older releases cannot be promoted", async () => {
+  await withServer(async (server, directory) => {
+    const first = await stageRelease(server, 200);
+    assert.equal((await publishRelease(server, first)).status, 201);
+    const second = await stageRelease(server, 201);
+    assert.equal((await publishRelease(server, second)).status, 201);
+    const retryLatest = await publishRelease(server, second);
+    assert.equal(retryLatest.status, 200);
+    assert.equal(JSON.parse(retryLatest.body).already_published, true);
+    assert.equal((await publishRelease(server, first)).status, 409);
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(directory, "latest.json"), "utf8")), { release_id: second });
+  });
+});
+
+test("an interrupted publication requires explicit pointer recovery and then permits a latest retry", async () => {
+  await withServer(async (server, directory) => {
+    const first = await stageRelease(server, 200);
+    assert.equal((await publishRelease(server, first)).status, 201);
+    const interrupted = await stageRelease(server, 201);
+    await fs.rename(path.join(directory, "staging", interrupted), path.join(directory, "releases", interrupted));
+
+    const rejectedRetry = await publishRelease(server, interrupted);
+    assert.equal(rejectedRetry.status, 409);
+    assert.match(JSON.parse(rejectedRetry.body).error, /contradicts published build history/);
+    assert.equal(await fs.stat(path.join(directory, "releases", interrupted, "app.ipa")).then((stat) => stat.size > 0), true);
+
+    // Simulate an authorized operator's explicit recovery after verifying the immutable release metadata and IPA digest.
+    const releasePath = path.join(directory, "releases", interrupted);
+    const recoveredMetadata = JSON.parse(await fs.readFile(path.join(releasePath, "release.json"), "utf8"));
+    assert.equal(crypto.createHash("sha256").update(await fs.readFile(path.join(releasePath, "app.ipa"))).digest("hex"), recoveredMetadata.ipa_sha256);
+    await fs.writeFile(path.join(directory, "latest.json"), JSON.stringify({ release_id: interrupted }));
+    const recoveredRetry = await publishRelease(server, interrupted);
+    assert.equal(recoveredRetry.status, 200);
+    assert.equal(JSON.parse(recoveredRetry.body).already_published, true);
+  });
+});
+
 test("concurrent release publication cannot move the latest pointer backwards", async () => {
   await withServer(async (server) => {
     const auth = { Authorization: `Bearer ${"u".repeat(40)}` };
@@ -235,10 +383,10 @@ test("a broken latest pointer fails closed instead of allowing build-number roll
     const older = { ...metadata, release_id: "1.2.3-102", build_number: "102", ipa_sha256: crypto.createHash("sha256").update(bytes).digest("hex") };
     assert.equal((await request(server, "POST", `/admin/releases/${older.release_id}`, { ...auth, "Content-Type": "application/json" }, Buffer.from(JSON.stringify(older)))).status, 201);
     assert.equal((await request(server, "PUT", `/admin/releases/${older.release_id}/ipa`, auth, bytes)).status, 201);
-    assert.equal((await request(server, "POST", `/admin/releases/${older.release_id}/publish`, auth)).status, 400);
+    assert.equal((await request(server, "POST", `/admin/releases/${older.release_id}/publish`, auth)).status, 409);
     const login = await request(server, "POST", "/api/session", { "Content-Type": "application/json" }, Buffer.from(JSON.stringify({ password: "test-install-code-that-is-long-enough" })));
     const cookie = login.headers["set-cookie"][0].split(";")[0];
-    assert.equal((await request(server, "GET", "/api/release", { Cookie: cookie })).status, 400);
+    assert.equal((await request(server, "GET", "/api/release", { Cookie: cookie })).status, 409);
   });
 });
 

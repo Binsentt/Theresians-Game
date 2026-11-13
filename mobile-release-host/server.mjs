@@ -205,27 +205,76 @@ function createApp(config) {
   const loadRelease = async (id) => {
     if (!validReleaseId(id)) return null;
     const folder = releasePath(id);
-    const [metadata, ipaStat] = await Promise.all([
-      fs.promises.readFile(path.join(folder, "release.json"), "utf8").then(JSON.parse),
-      fs.promises.stat(path.join(folder, "app.ipa")),
+    const folderStat = await fs.promises.lstat(folder);
+    if (!folderStat.isDirectory()) throw new Error("Published release directory is not a regular directory.");
+    const metadataPath = path.join(folder, "release.json");
+    const ipaPath = path.join(folder, "app.ipa");
+    const [metadataStat, ipaStat] = await Promise.all([
+      fs.promises.lstat(metadataPath),
+      fs.promises.lstat(ipaPath),
     ]);
+    if (!metadataStat.isFile() || !ipaStat.isFile() || ipaStat.size < 1) {
+      throw new Error("Published release metadata or IPA is missing or not a regular nonempty file.");
+    }
+    const metadata = JSON.parse(await fs.promises.readFile(metadataPath, "utf8"));
     return { metadata, ipaPath: path.join(folder, "app.ipa"), ipaSize: ipaStat.size };
   };
-  const readLatest = async () => {
+  const historyError = (message) => Object.assign(new Error(message), { status: 409 });
+  const inspectPublishedHistory = async () => {
+    const entries = await fs.promises.readdir(releasesDir, { withFileTypes: true });
+    const releases = new Map();
+    let highest = null;
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !validReleaseId(entry.name)) {
+        throw historyError("Published release storage contains an unexpected entry; stop and inspect release history.");
+      }
+      let release;
+      try {
+        release = await loadRelease(entry.name);
+        release.metadata = validateMetadata(release.metadata, entry.name, bundleId);
+      } catch {
+        throw historyError(`Published release ${entry.name} is missing, malformed, or incompatible; stop and inspect release history.`);
+      }
+      const buildNumber = Number(release.metadata.build_number);
+      if (releases.has(buildNumber)) {
+        throw historyError(`Published release history contains duplicate build number ${buildNumber}; explicit recovery is required.`);
+      }
+      releases.set(buildNumber, release);
+      if (!highest || buildNumber > Number(highest.metadata.build_number)) highest = release;
+    }
+
     let raw;
     try {
       raw = await fs.promises.readFile(latestPath, "utf8");
     } catch (error) {
-      if (error.code === "ENOENT") return null;
+      if (error.code === "ENOENT") {
+        if (releases.size > 0) throw historyError("Latest release pointer is missing while published releases exist; explicit recovery is required.");
+        return { latest: null, highest: null, releases };
+      }
       throw error;
     }
-    const value = JSON.parse(raw);
-    if (!value || typeof value !== "object" || typeof value.release_id !== "string") {
-      throw new Error("Latest release pointer is malformed.");
+    let value;
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      throw historyError("Latest release pointer is malformed; explicit recovery is required.");
     }
-    const release = await loadRelease(value.release_id);
-    if (!release) throw new Error("Latest release pointer references an invalid release.");
-    return release;
+    if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length !== 1 || typeof value.release_id !== "string") {
+      throw historyError("Latest release pointer is malformed; explicit recovery is required.");
+    }
+    const latest = [...releases.values()].find((release) => release.metadata.release_id === value.release_id);
+    if (!latest) throw historyError("Latest release pointer references a missing or invalid release; explicit recovery is required.");
+    if (!highest || latest.metadata.release_id !== highest.metadata.release_id) {
+      throw historyError("Latest release pointer contradicts published build history; explicit recovery is required.");
+    }
+    if (await hashFile(latest.ipaPath) !== latest.metadata.ipa_sha256) {
+      throw historyError("Latest published release failed its integrity check; explicit recovery is required.");
+    }
+    return { latest, highest, releases };
+  };
+  const readLatest = async () => {
+    const history = await inspectPublishedHistory();
+    return history.latest;
   };
   const writeLatest = async (id) => {
     const tempLatest = `${latestPath}.${crypto.randomUUID()}.tmp`;
@@ -366,19 +415,17 @@ function createApp(config) {
         const publish = async () => {
           const staged = stagingPath(id);
           const finalDir = releasePath(id);
+          const history = await inspectPublishedHistory();
           if (fs.existsSync(finalDir)) {
-            const existing = await loadRelease(id);
-            if (!existing || await hashFile(existing.ipaPath) !== existing.metadata.ipa_sha256) return { status: 422, body: { error: "Existing published release failed its integrity check." } };
-            const latest = await readLatest();
-            if (latest && latest.metadata.release_id !== id && Number(latest.metadata.build_number) >= Number(existing.metadata.build_number)) return { status: 409, body: { error: "A newer or same-number release is already current." } };
-            if (!latest || latest.metadata.release_id !== id) await writeLatest(id);
+            const existing = history.latest?.metadata.release_id === id ? history.latest : null;
+            if (!existing) return { status: 409, body: { error: "Only the current latest release may be retried; older releases cannot be promoted." } };
             return { status: 200, body: { published: true, already_published: true, release_id: id, marketing_version: existing.metadata.marketing_version, build_number: existing.metadata.build_number } };
           }
           const metadata = JSON.parse(await fs.promises.readFile(path.join(staged, "release.json"), "utf8"));
+          validateMetadata(metadata, id, bundleId);
           const actualHash = await hashFile(path.join(staged, "app.ipa"));
           if (actualHash !== metadata.ipa_sha256) return { status: 422, body: { error: "Staged IPA integrity check failed." } };
-          const latest = await readLatest();
-          if (latest && Number(metadata.build_number) <= Number(latest.metadata.build_number)) return { status: 409, body: { error: "Build number must be higher than the current published build." } };
+          if (history.highest && Number(metadata.build_number) <= Number(history.highest.metadata.build_number)) return { status: 409, body: { error: "Build number must be higher than every published build." } };
           await fs.promises.rename(staged, finalDir);
           await writeLatest(id);
           return { status: 201, body: { published: true, release_id: id, marketing_version: metadata.marketing_version, build_number: metadata.build_number } };
