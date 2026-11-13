@@ -60,16 +60,17 @@ async function withServer(callback) {
 
 const auth = { Authorization: `Bearer ${"u".repeat(40)}` };
 const releaseBytes = (buildNumber) => Buffer.from(`synthetic-ipa-${buildNumber}`);
-const releaseMetadata = (buildNumber, bytes) => ({
+const releaseMetadata = (buildNumber, bytes, marketingVersion = "1.2.3") => ({
   ...metadata,
-  release_id: `1.2.3-${buildNumber}`,
+  release_id: `${marketingVersion}-${buildNumber}`,
+  marketing_version: marketingVersion,
   build_number: String(buildNumber),
   ipa_sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
   release_notes: `Synthetic build ${buildNumber}`,
 });
 
-async function stageRelease(server, buildNumber, bytes = releaseBytes(buildNumber)) {
-  const details = releaseMetadata(buildNumber, bytes);
+async function stageRelease(server, buildNumber, bytes = releaseBytes(buildNumber), marketingVersion = "1.2.3") {
+  const details = releaseMetadata(buildNumber, bytes, marketingVersion);
   const created = await request(server, "POST", `/admin/releases/${details.release_id}`, { ...auth, "Content-Type": "application/json" }, Buffer.from(JSON.stringify(details)));
   assert.equal(created.status, 201);
   const uploaded = await request(server, "PUT", `/admin/releases/${details.release_id}/ipa`, auth, bytes);
@@ -262,6 +263,19 @@ test("a missing pointer with multiple published releases fails closed", async ()
   });
 });
 
+test("a present pointer rejects lower or reused build numbers even under a different release version", async () => {
+  await withServer(async (server, directory) => {
+    const latest = await stageRelease(server, 200);
+    assert.equal((await publishRelease(server, latest)).status, 201);
+    for (const buildNumber of [199, 200]) {
+      const candidate = await stageRelease(server, buildNumber, releaseBytes(buildNumber), "1.2.4");
+      assert.equal((await publishRelease(server, candidate)).status, 409);
+      await assert.rejects(fs.stat(path.join(directory, "releases", candidate)));
+    }
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(directory, "latest.json"), "utf8")), { release_id: latest });
+  });
+});
+
 test("an older pointer contradicting newer published history cannot be used for promotion or reads", async () => {
   await withServer(async (server, directory) => {
     const first = await stageRelease(server, 200);
@@ -283,6 +297,8 @@ test("malformed, dangling, and corrupt latest pointers fail closed", async () =>
     const latestPath = path.join(directory, "latest.json");
     const candidate = await stageRelease(server, 201);
 
+    await fs.writeFile(latestPath, JSON.stringify({ release_id: first, unexpected: true }));
+    assert.equal((await publishRelease(server, candidate)).status, 409);
     await fs.writeFile(latestPath, "{not-json");
     assert.equal((await publishRelease(server, candidate)).status, 409);
     await fs.writeFile(latestPath, JSON.stringify({ release_id: "1.2.3-999" }));
