@@ -4,32 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - .github/workflows/godot-runtime-regression.yml
-      - project.godot
-      - export_presets.cfg
-      - Data/**
-      - Questions/**
-      - '**/*.gd'
-      - '**/*.tscn'
-      - '**/*.scn'
-      - '**/*.tres'
-      - '**/*.res'
-      - '**/*.import'
-      - '**/*.uid'
-      - '**/*.gdshader'
-      - '**/*.png'
-      - '**/*.jpg'
-      - '**/*.jpeg'
-      - '**/*.webp'
-      - '**/*.gif'
-      - '**/*.svg'
-      - '**/*.mp3'
-      - '**/*.wav'
-      - '**/*.ogg'
-      - '**/*.m4a'
-      - '**/*.ttf'
-      - '**/*.otf'
+      - ios-release
   workflow_call:
     inputs:
       test_ref:
