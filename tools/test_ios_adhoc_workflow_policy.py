@@ -54,12 +54,38 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
                 self.assertTrue(scopes)
                 self.assertTrue(set(scopes) <= {"read", "none"}, scopes)
 
-    def test_pr_validation_is_pull_request_only_and_main_scoped(self):
+    def test_pr_validation_is_pull_request_only_and_targets_both_release_branches(self):
         match = re.search(r"(?ms)^on:\n(.*?)(?=^[A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)", self.pr_ci)
         self.assertIsNotNone(match)
         events = re.findall(r"(?m)^  ([A-Za-z_][A-Za-z0-9_-]*):", match.group(1))
         self.assertEqual(events, ["pull_request"])
-        self.assertIn("branches:\n      - main", match.group(1))
+        pull_request = match.group(1)
+        self.assertRegex(pull_request, r"(?m)^      - main$")
+        self.assertRegex(pull_request, r"(?m)^      - ios-release$")
+        self.assertNotIn("paths:", pull_request)
+
+    def test_both_pr_checks_are_unconditional_for_main_and_ios_release(self):
+        for name, text in (("runtime", self.runtime), ("adhoc-pr", self.pr_ci)):
+            with self.subTest(workflow=name):
+                event_match = re.search(r"(?ms)^on:\n(.*?)(?=^[A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)", text)
+                self.assertIsNotNone(event_match)
+                event_block = event_match.group(1)
+                pull_request = re.search(
+                    r"(?ms)^  pull_request:\n(.*?)(?=^  [A-Za-z_][A-Za-z0-9_-]*:|\Z)",
+                    event_block,
+                )
+                self.assertIsNotNone(pull_request)
+                trigger = pull_request.group(1)
+                self.assertRegex(trigger, r"(?m)^      - main$")
+                self.assertRegex(trigger, r"(?m)^      - ios-release$")
+                self.assertNotIn("paths:", trigger)
+                if name == "runtime":
+                    self.assertIn("name: Godot 4.6.1 headless runtime suite", text)
+                else:
+                    self.assertIn("name: Lint gated Ad Hoc workflow and synthetic profile contract", text)
+        guide = (ROOT / "docs" / "IOS_ADHOC_RELEASE.md").read_text(encoding="utf-8")
+        self.assertIn("`Godot 4.6.1 headless runtime suite`", guide)
+        self.assertIn("`Lint gated Ad Hoc workflow and synthetic profile contract`", guide)
 
     def test_pr_validation_has_no_secrets_or_distribution_operations(self):
         for token in ("secrets.", "vars.", "contents: write", "actions: write",
@@ -73,6 +99,7 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
         self.assertIn("8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8", self.pr_ci)
         self.assertIn("tools.test_ios_adhoc_profile_validation", self.pr_ci)
         self.assertIn("tools.test_ios_adhoc_workflow_policy", self.pr_ci)
+        self.assertIn("tools.test_ios_adhoc_release_history", self.pr_ci)
 
     def test_release_workflow_is_limited_to_release_branch_or_manual_run(self):
         self.assertRegex(self.adhoc, r"(?ms)^on:\n  push:\n    branches:\n      - ios-release\n")
@@ -112,6 +139,27 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
                         self.adhoc.index("Publish verified IPA to the private release repository"))
         self.assertIn('repo.get("private") is not True', self.adhoc)
         self.assertIn('IOS_ADHOC_RELEASE_REPOSITORY" == "$GITHUB_REPOSITORY"', self.adhoc)
+
+    def test_release_history_gate_runs_before_signing_material_import_and_publication(self):
+        history = self.adhoc.index("Verify build number exceeds complete private release history")
+        import_assets = self.adhoc.index("Validate and import Apple Distribution assets")
+        publish = self.adhoc.index("Publish verified IPA to the private release repository")
+        self.assertLess(history, import_assets)
+        self.assertLess(history, publish)
+        block = self.adhoc[history:import_assets]
+        self.assertIn("tools/ios_adhoc_release_history.py", block)
+        self.assertIn("IOS_ADHOC_RELEASE_TOKEN: ${{ secrets.IOS_ADHOC_RELEASE_TOKEN }}", block)
+        self.assertIn('"$IOS_BUILD_NUMBER"', block)
+        self.assertNotIn("echo $IOS_ADHOC_RELEASE_TOKEN", block)
+        self.assertNotIn("set -x", block)
+
+    def test_history_validator_is_offline_tested_and_release_gates_remain(self):
+        helper = (ROOT / "tools" / "ios_adhoc_release_history.py").read_text(encoding="utf-8")
+        self.assertIn("validate_release_history", helper)
+        self.assertIn("collect_release_pages", helper)
+        self.assertIn("tools.test_ios_adhoc_release_history", self.pr_ci)
+        self.assertIn("vars.IOS_ADHOC_SIGNING_ENABLED == 'true'", self.adhoc)
+        self.assertIn("vars.IOS_ADHOC_OTA_ENABLED == 'true'", self.adhoc)
 
     def test_ota_host_upload_is_opt_in_and_only_after_signed_ipa_verification(self):
         self.assertIn("if: ${{ vars.IOS_ADHOC_OTA_ENABLED == 'true' }}", self.adhoc)

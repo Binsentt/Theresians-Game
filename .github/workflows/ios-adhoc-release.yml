@@ -359,6 +359,17 @@ jobs:
           echo "IOS_ADHOC_RELEASE_TAG=$tag" >> "$GITHUB_ENV"
           echo "Verified private Ad Hoc release destination and unique release tag."
 
+      - name: Verify build number exceeds complete private release history
+        shell: bash
+        env:
+          IOS_ADHOC_RELEASE_TOKEN: ${{ secrets.IOS_ADHOC_RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 tools/ios_adhoc_release_history.py \
+            --repository "$IOS_ADHOC_RELEASE_REPOSITORY" \
+            --marketing-version "$IOS_MARKETING_VERSION" \
+            --build-number "$IOS_BUILD_NUMBER"
+
       - name: Verify the private HTTPS installation host before importing Apple credentials
         if: ${{ vars.IOS_ADHOC_OTA_ENABLED == 'true' }}
         shell: bash
