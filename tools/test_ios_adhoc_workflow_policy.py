@@ -45,6 +45,7 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
         self.unsigned = workflow("ios-unsigned-release.yml")
         self.pr_ci = workflow("ios-adhoc-pr-validation.yml")
         self.signed = job(self.adhoc, "signed-adhoc")
+        self.release_guide = (ROOT / "docs" / "IOS_ADHOC_RELEASE.md").read_text(encoding="utf-8")
 
     def test_all_related_token_permissions_are_read_only(self):
         for name, text in (("adhoc", self.adhoc), ("runtime", self.runtime),
@@ -54,12 +55,42 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
                 self.assertTrue(scopes)
                 self.assertTrue(set(scopes) <= {"read", "none"}, scopes)
 
-    def test_pr_validation_is_pull_request_only_and_main_scoped(self):
-        match = re.search(r"(?ms)^on:\n(.*?)(?=^[A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)", self.pr_ci)
-        self.assertIsNotNone(match)
-        events = re.findall(r"(?m)^  ([A-Za-z_][A-Za-z0-9_-]*):", match.group(1))
-        self.assertEqual(events, ["pull_request"])
-        self.assertIn("branches:\n      - main", match.group(1))
+    def test_required_pr_checks_cover_main_and_ios_release_without_path_filters(self):
+        for name, text, expected_events in (
+            ("Godot runtime", self.runtime, ["pull_request", "workflow_call", "workflow_dispatch"]),
+            ("Ad Hoc policy", self.pr_ci, ["pull_request"]),
+        ):
+            with self.subTest(workflow=name):
+                match = re.search(r"(?ms)^on:\n(.*?)(?=^[A-Za-z][A-Za-z0-9_-]*:\s*$|\Z)", text)
+                self.assertIsNotNone(match)
+                events = re.findall(r"(?m)^  ([A-Za-z_][A-Za-z0-9_-]*):", match.group(1))
+                self.assertEqual(events, expected_events)
+                pull_request = re.search(
+                    r"(?ms)^  pull_request:\n(.*?)(?=^  [A-Za-z_][A-Za-z0-9_-]*:|\Z)",
+                    match.group(1),
+                )
+                self.assertIsNotNone(pull_request)
+                trigger = pull_request.group(1)
+                branches = re.findall(r"(?m)^      - ([A-Za-z0-9_-]+)\s*$", trigger)
+                self.assertEqual(branches, ["main", "ios-release"])
+                self.assertNotRegex(trigger, r"(?m)^    paths(?:-ignore)?:")
+
+    def test_runtime_pull_request_validation_stays_on_the_exact_merge_commit(self):
+        self.assertIn('expected_pr_ref="refs/pull/${PULL_REQUEST_NUMBER}/merge"', self.runtime)
+        self.assertIn('if [[ "$GODOT_TEST_REF" != "$GITHUB_SHA" ]]', self.runtime)
+        self.assertIn('expected_sha="$GITHUB_SHA"', self.runtime)
+        self.assertIn('if [[ "$test_sha" != "$expected_sha" ]]', self.runtime)
+        self.assertIn("GODOT_VERSION: 4.6.1", self.runtime)
+
+    def test_ios_release_ruleset_required_contexts_are_documented(self):
+        self.assertIn(
+            "Godot Runtime Regression / Godot 4.6.1 headless runtime suite",
+            self.release_guide,
+        )
+        self.assertIn(
+            "iOS Ad Hoc PR Validation / Lint gated Ad Hoc workflow and synthetic profile contract",
+            self.release_guide,
+        )
 
     def test_pr_validation_has_no_secrets_or_distribution_operations(self):
         for token in ("secrets.", "vars.", "contents: write", "actions: write",
@@ -73,6 +104,7 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
         self.assertIn("8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8", self.pr_ci)
         self.assertIn("tools.test_ios_adhoc_profile_validation", self.pr_ci)
         self.assertIn("tools.test_ios_adhoc_workflow_policy", self.pr_ci)
+        self.assertIn("tools.test_ios_adhoc_release_history", self.pr_ci)
 
     def test_release_workflow_is_limited_to_release_branch_or_manual_run(self):
         self.assertRegex(self.adhoc, r"(?ms)^on:\n  push:\n    branches:\n      - ios-release\n")
@@ -112,6 +144,24 @@ class AdHocWorkflowPolicyTests(unittest.TestCase):
                         self.adhoc.index("Publish verified IPA to the private release repository"))
         self.assertIn('repo.get("private") is not True', self.adhoc)
         self.assertIn('IOS_ADHOC_RELEASE_REPOSITORY" == "$GITHUB_REPOSITORY"', self.adhoc)
+
+    def test_release_history_check_uses_scoped_token_before_apple_credentials(self):
+        preflight_start = self.adhoc.index(
+            "Verify the private release repository before importing Apple credentials"
+        )
+        preflight_end = self.adhoc.index(
+            "Verify the private HTTPS installation host before importing Apple credentials"
+        )
+        preflight = self.adhoc[preflight_start:preflight_end]
+        self.assertIn(
+            "IOS_ADHOC_RELEASE_TOKEN: ${{ secrets.IOS_ADHOC_RELEASE_TOKEN }}",
+            preflight,
+        )
+        self.assertIn("python3 -m tools.ios_adhoc_release_history", preflight)
+        self.assertLess(
+            preflight.index("python3 -m tools.ios_adhoc_release_history"),
+            self.adhoc.index("Validate and import Apple Distribution assets"),
+        )
 
     def test_ota_host_upload_is_opt_in_and_only_after_signed_ipa_verification(self):
         self.assertIn("if: ${{ vars.IOS_ADHOC_OTA_ENABLED == 'true' }}", self.adhoc)
