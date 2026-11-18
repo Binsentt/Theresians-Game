@@ -15,7 +15,11 @@ The signed workflow can optionally stage and promote a verified IPA to the priva
 Complete these steps before enabling signed automation:
 
 1. **Create a separate private release repository.** Suggested name: `Binsentt/Theresians-Quest-iOS-Releases`. Set visibility to Private and grant access only to the owner and intended testers/operators. This workflow fails if the destination is public or is the source repository. Do not change the game repository’s visibility as part of this setup.
-2. **Protect the release branch.** After this workflow reaches the default branch, create `ios-release` from the approved source. Require pull requests and the Godot runtime checks before changes can reach it. Restrict who can push, disallow force-push and deletion, and do not allow routine gameplay pushes to bypass review. Configure the branch before the first release push.
+2. **Protect the release branch.** After this workflow reaches the default branch, create `ios-release` from the approved source. Require pull requests and these exact GitHub Actions check contexts before changes can reach it:
+   - `Godot Runtime Regression / Godot 4.6.1 headless runtime suite`
+   - `iOS Ad Hoc PR Validation / Lint gated Ad Hoc workflow and synthetic profile contract`
+
+   Both workflows run on every pull request targeting `main` or `ios-release`, including changes outside the workflow/test paths. Restrict who can push, disallow force-push and deletion, and do not allow routine gameplay pushes to bypass review. Configure the branch before the first release push. This guide documents the eventual ruleset requirements; no ruleset is changed by the workflow.
 3. **Configure the `ios-adhoc-release` GitHub environment.** Set a custom deployment branch policy matching exactly `ios-release` (no wildcard branches). Require at least one independent reviewer and enable “Prevent self-review”; the signing job checks both settings. Do not add signing secrets to repository-level secrets; add them to this environment.
 4. **Keep these repository variables disabled until separately approved:**
    - `IOS_ADHOC_SIGNING_ENABLED=false`
@@ -24,7 +28,7 @@ Complete these steps before enabling signed automation:
    - `IOS_ADHOC_RELEASE_REPOSITORY=<owner>/<private-repository>`
    - `IOS_MARKETING_VERSION=<approved major.minor.patch>`
    - `IOS_BUILD_BASE=<integer greater than every previously issued build number>`
-5. **Create a least-privilege fine-grained token** for the private destination repository only. Give it Contents read/write (plus the API’s implicit metadata read), an expiration date, and no access to the game repository unless GitHub requires it for your chosen token type. Store it as `IOS_ADHOC_RELEASE_TOKEN` in the protected environment and rotate it on a schedule.
+5. **Create a least-privilege fine-grained token** for the private destination repository only. Give it Contents read/write (plus the API’s implicit metadata read), an expiration date, and no access to the game repository unless GitHub requires it for your chosen token type. The signing preflight uses Contents read to inspect every draft and published release; publication uses write access. Store it as `IOS_ADHOC_RELEASE_TOKEN` in the protected environment and rotate it on a schedule.
 6. **Create Apple signing assets** in the Apple Developer account:
    - Confirm which paid Apple Developer membership owns the App ID `com.theresiansquest.game`. The workflow currently expects Team `7A4H2D888M`; do not create assets until the owner verifies that membership is correct.
    - Register each intended iPhone UDID under Certificates, Identifiers & Profiles > Devices. Use only devices you have permission to register.
@@ -39,7 +43,7 @@ Complete these steps before enabling signed automation:
    - `IOS_ADHOC_EXPECTED_DEVICE_UDIDS` (comma-separated exact expected UDIDs)
    - `IOS_ADHOC_RELEASE_TOKEN`
    - `IOS_ADHOC_OTA_UPLOAD_TOKEN` (only after the HTTPS host is deployed and the owner enables OTA publishing)
-8. Confirm the marketing version and build base against the latest IPA already distributed to those devices. The workflow computes `build = IOS_BUILD_BASE + run_number × 100 + run_attempt`; it rejects malformed/overflowing inputs and attempts above 99. Set the base high enough to avoid reusing any prior build number. When replacing/resetting the workflow, re-evaluate the base instead of assuming run numbers continue.
+8. Confirm the marketing version and build base against every IPA already distributed to those devices, including copies distributed outside GitHub and records that may have been deleted. The workflow computes `build = IOS_BUILD_BASE + run_number × 100 + run_attempt`; it rejects malformed/overflowing inputs and attempts above 99. Before Apple credentials are imported, a fail-closed preflight pages through the private destination’s release history, including drafts, and requires the proposed build to exceed every recorded Ad Hoc build. It requires uploaded, non-empty IPA, build metadata, and build-report assets; validates the metadata/report contents against release identity and source SHA; and verifies the downloaded metadata/report bytes against GitHub’s SHA-256 asset digests. Incomplete drafts, missing digests, malformed or inconsistent records, and unsupported asset-download redirects stop signing. This history cannot reveal IPAs distributed elsewhere or deleted release records: an empty private release repository is not proof that no earlier build was distributed. Set `IOS_BUILD_BASE` above the highest build from all distribution records. When replacing/resetting the workflow, re-evaluate the base instead of assuming run numbers continue.
 9. Keep signing disabled until all setup is reviewed and the owner separately approves the first signed run.
 
 ## Private wireless installation host
@@ -85,8 +89,8 @@ Only after the owner explicitly authorizes a signed run and all credentials are 
 1. Review the exact source commit, version, computed build number, private destination, and device set.
 2. For a manual release, choose Actions > **iOS Ad Hoc Release**, select `ios-release`, and set `build_signed=true`. A protected-branch push can also request the signed stage once the signing variable is enabled; the environment reviewer must approve that run.
 3. The workflow first passes the runtime suite, profile-contract tests, version checks, Godot export, and unsigned Xcode Release build. It then waits for the protected environment approval before accessing Apple credentials.
-4. The signed job verifies the environment rule and private destination before importing the certificate/profile. It archives arm64 Release, exports with method `ad-hoc`, checks the signature, Team/bundle/version/build, exact device profile, entitlements, PCK, privacy manifest, and IPA ZIP integrity. If `IOS_ADHOC_OTA_ENABLED=true`, it also stages the verified IPA on the HTTPS host.
-5. The verified IPA, build report, metadata, and changelog are uploaded to a draft release in the private repository. The workflow publishes that private release only after every upload is verified. If a run fails, it does not replace a prior release. Inspect any partial draft in the private repository and resolve it before retrying; each new run gets a distinct build number.
+4. The signed job verifies the environment rule, private destination, and complete release-history build-number guard before importing the certificate/profile. It archives arm64 Release, exports with method `ad-hoc`, checks the signature, Team/bundle/version/build, exact device profile, entitlements, PCK, privacy manifest, and IPA ZIP integrity. If `IOS_ADHOC_OTA_ENABLED=true`, it also stages the verified IPA on the HTTPS host.
+5. The verified IPA, build report, metadata, and changelog are uploaded to a draft release in the private repository. The workflow publishes that private release only after every upload is verified. If a run fails, it does not replace a prior release. Every existing draft must have a complete, verifiable asset set to pass a later preflight. Inspect incomplete or ambiguous drafts manually; do not automatically delete, rewrite, or publish them. Before resolving a draft, confirm whether any IPA was distributed and select a build base that cannot reuse an issued number.
 6. Download the IPA from the private repository over an authenticated account and keep its SHA-256 report with the release record. When OTA is enabled, testers instead use the authenticated HTTPS installation page; the installer fetches from expiring HTTPS capability URLs, not private GitHub asset URLs.
 
 ## Install and update registered iPhones
@@ -107,7 +111,7 @@ Normal pushes to `main` and pull requests do not trigger the Ad Hoc workflow. PR
 
 - Never add certificates, private keys, passwords, provisioning profiles, device lists, or tokens to commits or workflow output.
 - If a credential is exposed, revoke/replace the Apple certificate/profile or GitHub token at its issuer, then update the protected environment.
-- A failed preflight must stop before signing. A failed IPA validation must stop before private release creation. A private release upload failure can leave a draft; inspect it manually before rerunning.
+- A failed preflight must stop before signing. A failed IPA validation must stop before private release creation. A private release upload failure can leave an incomplete draft that blocks future signing; inspect and resolve it manually only after checking for any distributed IPA and confirming the next build number.
 - Verify the private repository’s collaborator list and the environment’s branch/reviewer rules during every release review.
 - A build and signature check are not proof of successful installation or save preservation. Validate on the actual registered devices before inviting testers.
 - The host uses a shared install access code. Rotate it if shared beyond intended testers; the Ad Hoc profile remains the device eligibility control. Back up the private persistent volume and rehearse a restore before relying on the host.

@@ -4,19 +4,7 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - .github/scripts/validate_adhoc_profile.py
-      - .github/workflows/godot-runtime-regression.yml
-      - .github/workflows/ios-adhoc-pr-validation.yml
-      - .github/workflows/ios-adhoc-release.yml
-      - .github/workflows/ios-unsigned-release.yml
-      - docs/IOS_ADHOC_RELEASE.md
-      - mobile-release-host/**
-      - tools/__init__.py
-      - tools/generate_ios_ota_manifest.mjs
-      - tools/ios_adhoc_profile_validation.py
-      - tools/test_ios_adhoc_profile_validation.py
-      - tools/test_ios_adhoc_workflow_policy.py
+      - ios-release
 
 permissions:
   contents: read
@@ -74,6 +62,7 @@ jobs:
           python3 -m unittest \
             tools.test_ios_adhoc_profile_validation \
             tools.test_ios_adhoc_workflow_policy \
+            tools.test_ios_adhoc_release_history \
             -v
 
       - name: Run OTA manifest and private install-host tests
